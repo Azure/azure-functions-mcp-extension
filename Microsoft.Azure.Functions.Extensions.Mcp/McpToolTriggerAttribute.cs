@@ -6,7 +6,7 @@ namespace Microsoft.Azure.Functions.Extensions.Mcp;
 #pragma warning disable CS0618 // Type or member is obsolete
 [Binding(TriggerHandlesReturnValue = true)]
 #pragma warning restore CS0618 // Type or member is obsolete
-public sealed class McpTriggerAttribute(string toolName) : Attribute
+public sealed class McpToolTriggerAttribute(string name) : Attribute
 {
-    public string ToolName { get; } = toolName;
+    public string Name { get; } = name;
 }
