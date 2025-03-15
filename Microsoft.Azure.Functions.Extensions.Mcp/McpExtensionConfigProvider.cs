@@ -4,7 +4,7 @@ using Microsoft.Azure.WebJobs.Host.Config;
 namespace Microsoft.Azure.Functions.Extensions.Mcp;
 
 [Extension("Mcp")]
-internal class McpExtensionConfigProvider : IExtensionConfigProvider
+internal class McpExtensionConfigProvider(IMcpRequestHandler requestHandler) : IExtensionConfigProvider
 {
     public void Initialize(ExtensionConfigContext context)
     {

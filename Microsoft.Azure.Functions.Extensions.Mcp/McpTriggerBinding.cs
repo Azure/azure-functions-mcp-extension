@@ -5,7 +5,7 @@ using Microsoft.Azure.WebJobs.Host.Triggers;
 
 namespace Microsoft.Azure.Functions.Extensions.Mcp;
 
-public sealed class McpTriggerBinding : ITriggerBinding
+public sealed class McpTriggerBinding(IMcpRequestHandler requestHandler) : ITriggerBinding
 {
     public Type TriggerValueType { get; }
 
@@ -18,7 +18,7 @@ public sealed class McpTriggerBinding : ITriggerBinding
 
     public Task<IListener> CreateListenerAsync(ListenerFactoryContext context)
     {
-        var listener = new McpListener(context.Executor);
+        var listener = new McpListener(context.Executor, requestHandler);
 
         return Task.FromResult<IListener>(listener);
     }
@@ -36,6 +36,4 @@ public sealed class McpTriggerBinding : ITriggerBinding
             }
         };
     }
-
-   
 }

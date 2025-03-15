@@ -5,7 +5,7 @@ namespace Microsoft.Azure.Functions.Extensions.Mcp;
 
 internal sealed class McpListener : IListener
 {
-    public McpListener(ITriggeredFunctionExecutor executor)
+    public McpListener(ITriggeredFunctionExecutor executor, IMcpRequestHandler requestHandler)
     {
         ArgumentNullException.ThrowIfNull(executor);
 
