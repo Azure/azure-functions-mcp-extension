@@ -33,7 +33,7 @@ public class McpFunctionProvider : IFunctionProvider
             Language = "DotNetAssembly",
         };
 
-        functionMetadata.Bindings.Add(CreateBinding(route));
+        functionMetadata.Bindings.Add(CreateBinding(route, methods));
 
         return functionMetadata;
     }

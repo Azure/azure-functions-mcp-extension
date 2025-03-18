@@ -1,7 +1,7 @@
 ﻿using Microsoft.Azure.WebJobs.Description;
 using Microsoft.Azure.WebJobs.Host.Config;
 
-namespace Microsoft.Azure.Functions.Extensions.Mcp.WebJobs;
+namespace Microsoft.Azure.Functions.Extensions.Mcp;
 
 [Extension("Mcp")]
 internal class McpExtensionConfigProvider(IToolRegistry toolRegistry) : IExtensionConfigProvider

@@ -1,5 +1,4 @@
 ﻿using Microsoft.Azure.Functions.Extensions.Mcp;
-using Microsoft.Azure.Functions.Extensions.Mcp.WebJobs;
 using Microsoft.Azure.WebJobs;
 using Microsoft.Azure.WebJobs.Hosting;
 using Microsoft.Azure.WebJobs.Script.Description;
