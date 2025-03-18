@@ -38,7 +38,7 @@ internal sealed class DefaultMcpMessageHandlerManager(IToolRegistry toolRegistry
     {
         try
         {
-            await foreach (var message in handler.MessageReader.ReadAllAsync(cancellationToken).ConfigureAwait(false))
+            await foreach (var message in handler.MessageReader.ReadAllAsync(cancellationToken))
             {
                 _ = ProcessMessageAsync(message, cancellationToken);
             }
@@ -52,6 +52,7 @@ internal sealed class DefaultMcpMessageHandlerManager(IToolRegistry toolRegistry
     private async Task ProcessMessageAsync(string message, CancellationToken cancellationToken)
     {
         // switch on message type here
+        // Add logging
         switch (message)
         {
             case "start":

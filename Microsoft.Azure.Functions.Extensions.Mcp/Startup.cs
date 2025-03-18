@@ -4,6 +4,7 @@ using Microsoft.Azure.WebJobs;
 using Microsoft.Azure.WebJobs.Hosting;
 using Microsoft.Azure.WebJobs.Script.Description;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 
 [assembly: WebJobsStartup(typeof(Startup))]
 
@@ -13,12 +14,7 @@ namespace Microsoft.Azure.Functions.Extensions.Mcp
     {
         public void Configure(IWebJobsBuilder builder)
         {
-            builder.Services.AddSingleton<IFunctionProvider, McpFunctionProvider>();
-            builder.Services.AddSingleton<IMcpRequestHandler, DefaultMcpRequestHandler>();
-            builder.Services.AddSingleton<IToolRegistry, DefaultToolRegistry>();
-            builder.Services.AddSingleton<IMcpMessageHandlerManager, DefaultMcpMessageHandlerManager>();
-
-            builder.AddExtension<McpExtensionConfigProvider>();
+            builder.AddMcp();
         }
     }
 }

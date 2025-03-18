@@ -1,4 +1,5 @@
-﻿using Microsoft.Azure.WebJobs.Host.Bindings;
+﻿using Microsoft.ApplicationInsights.Extensibility;
+using Microsoft.Azure.WebJobs.Host.Bindings;
 using Microsoft.Azure.WebJobs.Host.Listeners;
 using Microsoft.Azure.WebJobs.Host.Protocols;
 using Microsoft.Azure.WebJobs.Host.Triggers;
@@ -11,12 +12,20 @@ internal sealed class McpToolTriggerBinding(IToolRegistry toolRegistry) : ITrigg
 
     public IReadOnlyDictionary<string, Type> BindingDataContract { get; } = new Dictionary<string, Type>
     {
-        { "data", typeof(object) }
+        { "data", typeof(object) },
+        { "$return", typeof(object).MakeByRefType() }
     };
 
     public Task<ITriggerData> BindAsync(object value, ValueBindingContext context)
     {
-        throw new NotImplementedException();
+        var bindingData = new Dictionary<string, object>();
+
+        var data = new TriggerData(bindingData)
+        {
+            ReturnValueProvider = new McpToolTriggerReturnValueBinder()
+        };
+
+        return Task.FromResult<ITriggerData>(data);
     }
 
     public Task<IListener> CreateListenerAsync(ListenerFactoryContext context)
@@ -40,5 +49,29 @@ internal sealed class McpToolTriggerBinding(IToolRegistry toolRegistry) : ITrigg
                 Prompt = "Enter MCP tool trigger value"
             }
         };
+    }
+
+    internal class McpToolTriggerReturnValueBinder : IValueBinder
+    {
+        public Type Type { get; } = typeof(object);
+
+
+        public Task SetValueAsync(object value, CancellationToken cancellationToken)
+        {
+
+            // Set return.
+            return Task.CompletedTask;
+        }
+
+        public Task<object> GetValueAsync()
+        {
+            throw new NotSupportedException();
+        }
+
+        public string ToInvokeString()
+        {
+            return string.Empty;
+        }
+
     }
 }

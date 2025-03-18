@@ -29,6 +29,8 @@ internal sealed class McpToolListener(ITriggeredFunctionExecutor executor, strin
 
         var result = await Executor.TryExecuteAsync(input, cancellationToken);
 
+        
+
         // TODO: process result
         return string.Empty;
     }
