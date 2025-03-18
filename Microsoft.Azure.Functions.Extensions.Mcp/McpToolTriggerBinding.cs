@@ -5,11 +5,14 @@ using Microsoft.Azure.WebJobs.Host.Triggers;
 
 namespace Microsoft.Azure.Functions.Extensions.Mcp;
 
-public sealed class McpTriggerBinding(IMcpRequestHandler requestHandler) : ITriggerBinding
+internal sealed class McpToolTriggerBinding(IToolRegistry toolRegistry) : ITriggerBinding
 {
-    public Type TriggerValueType { get; }
+    public Type TriggerValueType { get; } = typeof(object);
 
-    public IReadOnlyDictionary<string, Type> BindingDataContract { get; }
+    public IReadOnlyDictionary<string, Type> BindingDataContract { get; } = new Dictionary<string, Type>
+    {
+        { "data", typeof(object) }
+    };
 
     public Task<ITriggerData> BindAsync(object value, ValueBindingContext context)
     {
@@ -18,7 +21,9 @@ public sealed class McpTriggerBinding(IMcpRequestHandler requestHandler) : ITrig
 
     public Task<IListener> CreateListenerAsync(ListenerFactoryContext context)
     {
-        var listener = new McpListener(context.Executor, requestHandler);
+        var listener = new McpToolListener(context.Executor, "foo", "fooTool");
+
+        toolRegistry.Register(listener);
 
         return Task.FromResult<IListener>(listener);
     }
@@ -27,12 +32,12 @@ public sealed class McpTriggerBinding(IMcpRequestHandler requestHandler) : ITrig
     {
         return new ParameterDescriptor
         {
-            Name = "McpTrigger",
-            Type = "McpTrigger",
+            Name = "McpToolTrigger",
+            Type = "McpToolTrigger",
             DisplayHints = new ParameterDisplayHints
             {
-                Description = "MCP Trigger",
-                Prompt = "Enter MCP trigger value"
+                Description = "MCP tool trigger",
+                Prompt = "Enter MCP tool trigger value"
             }
         };
     }

@@ -5,6 +5,8 @@ VisualStudioVersion = 17.12.35728.132 d17.12
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Microsoft.Azure.Functions.Extensions.Mcp", "Microsoft.Azure.Functions.Extensions.Mcp\Microsoft.Azure.Functions.Extensions.Mcp.csproj", "{8C8D2B58-2F9B-49AA-9745-CA5D5CCBFB60}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Worker.Extensions.Mcp", "Worker.Extensions.Mcp\Worker.Extensions.Mcp.csproj", "{ED5CF945-7BDE-4F2D-BC94-9C79E7073298}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -15,6 +17,10 @@ Global
 		{8C8D2B58-2F9B-49AA-9745-CA5D5CCBFB60}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{8C8D2B58-2F9B-49AA-9745-CA5D5CCBFB60}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{8C8D2B58-2F9B-49AA-9745-CA5D5CCBFB60}.Release|Any CPU.Build.0 = Release|Any CPU
+		{ED5CF945-7BDE-4F2D-BC94-9C79E7073298}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{ED5CF945-7BDE-4F2D-BC94-9C79E7073298}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{ED5CF945-7BDE-4F2D-BC94-9C79E7073298}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{ED5CF945-7BDE-4F2D-BC94-9C79E7073298}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -1,4 +1,5 @@
 ﻿using Microsoft.Azure.Functions.Extensions.Mcp;
+using Microsoft.Azure.Functions.Extensions.Mcp.WebJobs;
 using Microsoft.Azure.WebJobs;
 using Microsoft.Azure.WebJobs.Hosting;
 using Microsoft.Azure.WebJobs.Script.Description;
@@ -14,6 +15,8 @@ namespace Microsoft.Azure.Functions.Extensions.Mcp
         {
             builder.Services.AddSingleton<IFunctionProvider, McpFunctionProvider>();
             builder.Services.AddSingleton<IMcpRequestHandler, DefaultMcpRequestHandler>();
+            builder.Services.AddSingleton<IToolRegistry, DefaultToolRegistry>();
+            builder.Services.AddSingleton<IMcpMessageHandlerManager, DefaultMcpMessageHandlerManager>();
 
             builder.AddExtension<McpExtensionConfigProvider>();
         }

@@ -1,37 +1,56 @@
 ﻿using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Azure.Functions.Extensions.Mcp.Serialization;
+using Microsoft.Extensions.Primitives;
 
 namespace Microsoft.Azure.Functions.Extensions.Mcp;
 
-public sealed class DefaultMcpRequestHandler : IMcpRequestHandler
+public sealed class DefaultMcpRequestHandler(IMcpMessageHandlerManager messageHandlerManager) : IMcpRequestHandler
 {
-    private readonly Dictionary<string, MessageHandler> _handlers = new Dictionary<string, MessageHandler>();
-    
+    private readonly IMcpMessageHandlerManager _messageHandlerManager = messageHandlerManager;
+
     public async Task HandleSseRequest(HttpContext context)
     {
         // Set the appropriate headers for SSE.
-        context.Response.Headers.Add("Content-Type", "text/event-stream");
-        context.Response.Headers.Add("Cache-Control", "no-cache");
-        context.Response.Headers.Add("Connection", "keep-alive");
+        context.Response.Headers.Append("Content-Type", "text/event-stream");
+        context.Response.Headers.Append("Cache-Control", "no-cache");
+        context.Response.Headers.Append("Connection", "keep-alive");
 
-        // Keep sending data as long as the client is connected.
-        var counter = 0;
+        IMcpMessageHandler handler = _messageHandlerManager.CreateHandler(context.Response.Body, context.RequestAborted);
 
-        while (!context.RequestAborted.IsCancellationRequested)
+        try
         {
-            counter++;
-            // Format the SSE data. Each event is separated by two newlines.
-            await context.Response.WriteAsync($"data: Server message {counter}\n\n", cancellationToken: context.RequestAborted);
-
-            // Flush the data to ensure it gets sent to the client immediately.
-            await context.Response.Body.FlushAsync(context.RequestAborted);
-
-            // Wait for 1 second before sending the next event.
-            await Task.Delay(1000, context.RequestAborted);
+            await handler.StartAsync(context.RequestAborted);
+        }
+        catch (OperationCanceledException) when (context.RequestAborted.IsCancellationRequested)
+        {
+            // Nothing to do. Normal client disconnect behavior...
+        }
+        finally
+        {
+           await _messageHandlerManager.CloseHandlerAsync(handler);
         }
     }
 
-    public Task HandleMessageRequest(HttpContext context)
+    public async Task HandleMessageRequest(HttpContext context)
     {
-        throw new NotImplementedException();
+        if (!context.Request.Query.TryGetValue("mcpcid", out StringValues mcpClientId)
+            || !_messageHandlerManager.TryGetHandler(mcpClientId!, out IMcpMessageHandler? handler))
+        {
+            await Results.BadRequest("Missing client context. Please connect to the /sse endpoint to initiate your session.").ExecuteAsync(context);
+            return;
+        }
+
+        var message = await context.Request.ReadFromJsonAsync<string>(McpJsonSerializerOptions.DefaultOptions, context.RequestAborted);
+        
+        if (message is null)
+        {
+            await Results.BadRequest("No message in request body.").ExecuteAsync(context);
+            return;
+        }
+
+        await handler.ProcessMessageAsync(message, context.RequestAborted);
+        
+        await Results.Accepted(null, "Accepted").ExecuteAsync(context);
     }
 }

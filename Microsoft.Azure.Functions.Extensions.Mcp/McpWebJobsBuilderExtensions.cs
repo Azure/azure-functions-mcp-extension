@@ -1,4 +1,4 @@
-﻿using Microsoft.Azure.Functions.Extensions.Mcp;
+﻿using Microsoft.Azure.Functions.Extensions.Mcp.WebJobs;
 using Microsoft.Azure.WebJobs;
 
 namespace Microsoft.Extensions.Hosting;

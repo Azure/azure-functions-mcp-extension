@@ -2,11 +2,11 @@
 
 namespace Microsoft.Azure.Functions.Extensions.Mcp;
 
-public sealed class McpTriggerBindingProvider(IMcpRequestHandler requestHandler) : ITriggerBindingProvider
+internal sealed class McpTriggerBindingProvider(IToolRegistry toolRegistry) : ITriggerBindingProvider
 {
     public Task<ITriggerBinding> TryCreateAsync(TriggerBindingProviderContext context)
     {
-        var binding = new McpTriggerBinding(requestHandler);
+        var binding = new McpToolTriggerBinding(toolRegistry);
 
         return Task.FromResult<ITriggerBinding>(binding);
     }

@@ -6,7 +6,7 @@ using Microsoft.Azure.Functions.Extensions.Mcp.Serialization;
 
 namespace Microsoft.Azure.Functions.Extensions.Mcp;
 
-public class MessageHandler(Stream eventStream) : IAsyncDisposable
+public class MessageHandler(Stream eventStream) : IMcpMessageHandler, IAsyncDisposable
 {
     private readonly Channel<string> _incomingChannel = CreateChannel<string>();
     private readonly Channel<SseItem<string>> _outgoingChannel = CreateChannel<SseItem<string>>();
@@ -14,7 +14,7 @@ public class MessageHandler(Stream eventStream) : IAsyncDisposable
 
     public string Id { get; } = Guid.NewGuid().ToString();
 
-    public Task Start(CancellationToken cancellationToken)
+    public Task StartAsync(CancellationToken cancellationToken)
     {
         _outgoingChannel.Writer.TryWrite(new SseItem<string>("write the endpoint"));
 
@@ -25,7 +25,7 @@ public class MessageHandler(Stream eventStream) : IAsyncDisposable
 
     private static void BufferWriter<T>(SseItem<T> sseItem, IBufferWriter<byte> writer)
     {
-        JsonSerializer.Serialize(new Utf8JsonWriter(writer), sseItem.Data, McpJsonSerializerOptions.DefaultOptions)
+        JsonSerializer.Serialize(new Utf8JsonWriter(writer), sseItem.Data, McpJsonSerializerOptions.DefaultOptions);
     }
 
     public ChannelReader<string> MessageReader => _incomingChannel.Reader;
@@ -33,7 +33,7 @@ public class MessageHandler(Stream eventStream) : IAsyncDisposable
     public Task SendMessageAsync(string message, CancellationToken cancellationToken)
         => _outgoingChannel.Writer.WriteAsync(new SseItem<string>(message), cancellationToken).AsTask();
 
-    public Task ProcessMessage(string message, CancellationToken cancellationToken)
+    public Task ProcessMessageAsync(string message, CancellationToken cancellationToken)
         => _incomingChannel.Writer.WriteAsync(message, cancellationToken).AsTask();
 
     private static Channel<T> CreateChannel<T>()
