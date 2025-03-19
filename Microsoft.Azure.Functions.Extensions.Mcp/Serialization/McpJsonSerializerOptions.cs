@@ -12,7 +12,7 @@ internal static class McpJsonSerializerOptions
         JsonSerializerOptions options = new();
 
         // Add custom converters
-        //options.Converters.Add(new JsonRpcMessageConverter());
+        options.Converters.Add(new JsonRpcMessageConverter());
         options.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase));
 
         // Configure general options

@@ -1,0 +1,14 @@
+﻿namespace Microsoft.Azure.Functions.Extensions.Mcp.Protocol.Model;
+
+/// <summary>
+/// The server's response to a resources/list request from the client.
+/// <see href="https://github.com/modelcontextprotocol/specification/blob/main/schema/2024-11-05/schema.json">See the schema for details</see>
+/// </summary>
+public class ListResourcesResult : PaginatedResult
+{
+    /// <summary>
+    /// A list of resources that the server offers.
+    /// </summary>
+    [System.Text.Json.Serialization.JsonPropertyName("resources")]
+    public List<Resource> Resources { get; set; } = [];
+}

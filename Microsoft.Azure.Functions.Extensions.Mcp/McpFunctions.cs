@@ -4,9 +4,9 @@ using Microsoft.Azure.WebJobs.Extensions.Http;
 
 namespace Microsoft.Azure.Functions.Extensions.Mcp;
 
-public class McpFunctions(IMcpRequestHandler requestHandler)
+public class McpFunctions
 {
-    public static async Task HandleSseRequest([HttpTrigger(AuthorizationLevel.Anonymous, "POST", Route = "sse")] HttpRequest request)
+    public static async Task HandleSseRequest(HttpRequest request)
     {
         ArgumentNullException.ThrowIfNull(request);
 
@@ -20,8 +20,15 @@ public class McpFunctions(IMcpRequestHandler requestHandler)
         await requestHandler.HandleSseRequest(request.HttpContext);
     }
 
-    public async Task HandleMessageRequest(HttpRequest request)
+    public static async Task HandleMessageRequest(HttpRequest request)
     {
+        var requestHandler = request.HttpContext.RequestServices.GetService(typeof(IMcpRequestHandler)) as IMcpRequestHandler;
+
+        if (requestHandler == null)
+        {
+            throw new InvalidOperationException("Request handler not found.");
+        }
+
         await requestHandler.HandleMessageRequest(request.HttpContext);
     }
 }

@@ -1,22 +1,24 @@
 ﻿using System.Buffers;
 using System.Net.ServerSentEvents;
+using System.Text;
 using System.Text.Json;
 using System.Threading.Channels;
+using Microsoft.Azure.Functions.Extensions.Mcp.Protocol.Messages;
 using Microsoft.Azure.Functions.Extensions.Mcp.Serialization;
 
 namespace Microsoft.Azure.Functions.Extensions.Mcp;
 
 public class MessageHandler(Stream eventStream) : IMcpMessageHandler, IAsyncDisposable
 {
-    private readonly Channel<string> _incomingChannel = CreateChannel<string>();
-    private readonly Channel<SseItem<string>> _outgoingChannel = CreateChannel<SseItem<string>>();
+    private readonly Channel<IJsonRpcMessage> _incomingChannel = CreateChannel<IJsonRpcMessage>();
+    private readonly Channel<SseItem<IJsonRpcMessage>> _outgoingChannel = CreateChannel<SseItem<IJsonRpcMessage>>();
     private Task _writeTask = Task.CompletedTask;
 
     public string Id { get; } = Guid.NewGuid().ToString();
 
     public Task StartAsync(CancellationToken cancellationToken)
     {
-        _outgoingChannel.Writer.TryWrite(new SseItem<string>("write the endpoint"));
+        _outgoingChannel.Writer.TryWrite(new SseItem<IJsonRpcMessage>(null!, "endpoint") { EventId = Id});
 
         var events = _outgoingChannel.Reader.ReadAllAsync(cancellationToken);
 
@@ -25,15 +27,21 @@ public class MessageHandler(Stream eventStream) : IMcpMessageHandler, IAsyncDisp
 
     private static void BufferWriter<T>(SseItem<T> sseItem, IBufferWriter<byte> writer)
     {
+        if (string.Equals(sseItem.EventType, "endpoint", StringComparison.OrdinalIgnoreCase))
+        {
+            writer.Write(Encoding.UTF8.GetBytes($"/message?mcpcid={sseItem.EventId}"));
+            return;
+        }
+
         JsonSerializer.Serialize(new Utf8JsonWriter(writer), sseItem.Data, McpJsonSerializerOptions.DefaultOptions);
     }
 
-    public ChannelReader<string> MessageReader => _incomingChannel.Reader;
+    public ChannelReader<IJsonRpcMessage> MessageReader => _incomingChannel.Reader;
 
-    public Task SendMessageAsync(string message, CancellationToken cancellationToken)
-        => _outgoingChannel.Writer.WriteAsync(new SseItem<string>(message), cancellationToken).AsTask();
+    public Task SendMessageAsync(IJsonRpcMessage message, CancellationToken cancellationToken)
+        => _outgoingChannel.Writer.WriteAsync(new SseItem<IJsonRpcMessage>(message), cancellationToken).AsTask();
 
-    public Task ProcessMessageAsync(string message, CancellationToken cancellationToken)
+    public Task ProcessMessageAsync(IJsonRpcMessage message, CancellationToken cancellationToken)
         => _incomingChannel.Writer.WriteAsync(message, cancellationToken).AsTask();
 
     private static Channel<T> CreateChannel<T>()

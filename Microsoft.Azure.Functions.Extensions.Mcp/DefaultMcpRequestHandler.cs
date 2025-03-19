@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Azure.Functions.Extensions.Mcp.Protocol.Messages;
 using Microsoft.Azure.Functions.Extensions.Mcp.Serialization;
 using Microsoft.Extensions.Primitives;
 
@@ -41,7 +42,7 @@ public sealed class DefaultMcpRequestHandler(IMcpMessageHandlerManager messageHa
             return;
         }
 
-        var message = await context.Request.ReadFromJsonAsync<string>(McpJsonSerializerOptions.DefaultOptions, context.RequestAborted);
+        var message = await context.Request.ReadFromJsonAsync<IJsonRpcMessage>(McpJsonSerializerOptions.DefaultOptions, context.RequestAborted);
         
         if (message is null)
         {
