@@ -54,6 +54,10 @@ internal sealed class DefaultMcpMessageHandlerManager(IToolRegistry toolRegistry
         {
             // Ignore cancellation
         }
+        finally
+        {
+            _handlers.Remove(handler.Id);
+        }
     }
 
     private async Task ProcessMessageAsync(IMcpMessageHandler handler, IJsonRpcMessage message, CancellationToken cancellationToken)
@@ -75,7 +79,7 @@ internal sealed class DefaultMcpMessageHandlerManager(IToolRegistry toolRegistry
         }
     }
 
-    private Task<object> HandleRequestAsync(JsonRpcRequest request, CancellationToken cancellationToken)
+    private async Task<object> HandleRequestAsync(JsonRpcRequest request, CancellationToken cancellationToken)
     {
         switch (request.Method)
         {
@@ -94,9 +98,7 @@ internal sealed class DefaultMcpMessageHandlerManager(IToolRegistry toolRegistry
                     })
                     .ToList();
 
-                var result = new ListToolsResult {Tools = tools};
-
-                return Task.FromResult<object>(result);
+                return new ListToolsResult {Tools = tools};
             case "tools/call":
                 if (request.Params is JsonElement paramsElement)
                 {
@@ -104,19 +106,19 @@ internal sealed class DefaultMcpMessageHandlerManager(IToolRegistry toolRegistry
                     if (callToolRequest is not null
                         && toolRegistry.TryGetTool(callToolRequest.Name, out var tool))
                     {
-                        tool.RunAsync(cancellationToken);
+                        return await tool.RunAsync(callToolRequest, cancellationToken);
                     }
                 }
-
                 break;
             case "initialize":
-                return Task.FromResult<object>(new InitializeResult
+                return new InitializeResult
                 {
                     ProtocolVersion = "2024-11-05",
                     ServerInfo = new Implementation
                     {
                         Name = "Azure Functions MCP server.",
-                        Version = typeof(DefaultMcpMessageHandlerManager).Assembly.GetName().Version?.ToString() ?? string.Empty
+                        Version = typeof(DefaultMcpMessageHandlerManager).Assembly.GetName().Version?.ToString() ??
+                                  string.Empty
                     },
                     Capabilities = new ServerCapabilities
                     {
@@ -125,7 +127,7 @@ internal sealed class DefaultMcpMessageHandlerManager(IToolRegistry toolRegistry
                             ListChanged = false
                         }
                     }
-                });
+                };
 
         }
 

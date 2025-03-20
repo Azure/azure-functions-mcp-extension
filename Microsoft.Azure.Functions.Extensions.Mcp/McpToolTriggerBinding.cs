@@ -34,12 +34,19 @@ internal sealed class McpToolTriggerBinding : ITriggerBinding
 
     public Task<ITriggerData> BindAsync(object value, ValueBindingContext context)
     {
+        if (value is not CallToolExecutionContext executionContext)
+        {
+
+            throw new InvalidOperationException(
+                $"Cannot execute a tool without a value of type {nameof(CallToolExecutionContext)}.");
+        }
+
         var bindingData = new Dictionary<string, object>();
-        var valueProvider = new ObjectValueProvider(value, typeof(object));
+        var valueProvider = new ObjectValueProvider(executionContext.Request, typeof(object));
 
         var data = new TriggerData(valueProvider, bindingData)
         {
-            ReturnValueProvider = new McpToolTriggerReturnValueBinder(),
+            ReturnValueProvider = new McpToolTriggerReturnValueBinder(executionContext),
         };
 
         return Task.FromResult<ITriggerData>(data);
@@ -68,14 +75,15 @@ internal sealed class McpToolTriggerBinding : ITriggerBinding
         };
     }
 
-    internal class McpToolTriggerReturnValueBinder : IValueBinder
+    internal class McpToolTriggerReturnValueBinder(CallToolExecutionContext executionContext) : IValueBinder
     {
         public Type Type { get; } = typeof(object);
 
 
         public Task SetValueAsync(object value, CancellationToken cancellationToken)
         {
-            // Set return.
+            executionContext.SetResult(value);
+
             return Task.CompletedTask;
         }
 
@@ -94,10 +102,10 @@ internal sealed class McpToolTriggerBinding : ITriggerBinding
 
 internal class ObjectValueProvider : IValueProvider
 {
-    private readonly object? value;
-    private readonly Task<object?> valueAsTask;
+    private readonly object? _value;
+    private readonly Task<object?> _valueAsTask;
 
-    public ObjectValueProvider(object value, Type valueType)
+    public ObjectValueProvider(object? value, Type valueType)
     {
         ArgumentNullException.ThrowIfNull(valueType);
 
@@ -106,20 +114,14 @@ internal class ObjectValueProvider : IValueProvider
             throw new ArgumentException($"Cannot convert {value} to {valueType.Name}.");
         }
 
-        this.value = value;
-        this.valueAsTask = Task.FromResult(value);
-        this.Type = valueType;
+        _value = value;
+        _valueAsTask = Task.FromResult(value);
+        Type = valueType;
     }
 
     public Type Type { get; }
 
-    public Task<object?> GetValueAsync()
-    {
-        return this.valueAsTask;
-    }
+    public Task<object?> GetValueAsync() => _valueAsTask;
 
-    public string? ToInvokeString()
-    {
-        return value?.ToString();
-    }
+    public string? ToInvokeString() => _value?.ToString();
 }

@@ -1,4 +1,5 @@
-﻿using Microsoft.Azure.WebJobs.Host.Executors;
+﻿using Microsoft.Azure.Functions.Extensions.Mcp.Protocol.Model;
+using Microsoft.Azure.WebJobs.Host.Executors;
 using Microsoft.Azure.WebJobs.Host.Listeners;
 
 namespace Microsoft.Azure.Functions.Extensions.Mcp;
@@ -22,16 +23,41 @@ internal sealed class McpToolListener(ITriggeredFunctionExecutor executor, strin
 
     public void Cancel() { }
 
-    public async Task<object> RunAsync(CancellationToken cancellationToken)
+    public async Task<CallToolResponse> RunAsync(CallToolRequestParams callToolRequest, CancellationToken cancellationToken)
     {
+        var execution = new CallToolExecutionContext(callToolRequest);
+
         var input = new TriggeredFunctionData
         {
-            TriggerValue = this
+            TriggerValue = execution
         };
 
         var result = await Executor.TryExecuteAsync(input, cancellationToken);
 
-        // TODO: process result
-        return string.Empty;
+        if (!result.Succeeded)
+        {
+            throw result.Exception;
+        }
+
+        var toolResult = await execution.ResultTask;
+
+        if (toolResult is null)
+        {
+            return new CallToolResponse {Content = []};
+        }
+
+        return new CallToolResponse
+        {
+            Content =
+            [
+                new Content
+                {
+                    Text = toolResult.ToString(),
+                    Type = "text"
+                }
+            ]
+        };
+
+
     }
 }
