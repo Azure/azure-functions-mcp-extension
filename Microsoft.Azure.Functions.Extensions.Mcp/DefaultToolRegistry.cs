@@ -21,4 +21,9 @@ internal sealed class DefaultToolRegistry : IToolRegistry
         ArgumentNullException.ThrowIfNull(nameof(name));
         return _tools.TryGetValue(name, out tool);
     }
+
+    public ICollection<IMcpTool> GetTools()
+    {
+        return _tools.Values;
+    }
 }

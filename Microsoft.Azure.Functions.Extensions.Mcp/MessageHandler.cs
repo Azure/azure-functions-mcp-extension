@@ -29,7 +29,7 @@ public class MessageHandler(Stream eventStream) : IMcpMessageHandler, IAsyncDisp
     {
         if (string.Equals(sseItem.EventType, "endpoint", StringComparison.OrdinalIgnoreCase))
         {
-            writer.Write(Encoding.UTF8.GetBytes($"/message?mcpcid={sseItem.EventId}"));
+            writer.Write(Encoding.UTF8.GetBytes($"message?mcpcid={sseItem.EventId}"));
             return;
         }
 

@@ -3,7 +3,7 @@ using Microsoft.Azure.WebJobs.Host.Listeners;
 
 namespace Microsoft.Azure.Functions.Extensions.Mcp;
 
-internal sealed class McpToolListener(ITriggeredFunctionExecutor executor, string functionName, string toolName)
+internal sealed class McpToolListener(ITriggeredFunctionExecutor executor, string functionName, string toolName, string? toolDescription = null)
     : IListener, IMcpTool
 {
     public ITriggeredFunctionExecutor Executor { get; } = executor;
@@ -11,6 +11,8 @@ internal sealed class McpToolListener(ITriggeredFunctionExecutor executor, strin
     public string FunctionName { get; } = functionName;
 
     string IMcpTool.Name { get; } = toolName;
+
+    public string? Description { get; set; } = toolDescription;
 
     public void Dispose() { }
 
@@ -28,8 +30,6 @@ internal sealed class McpToolListener(ITriggeredFunctionExecutor executor, strin
         };
 
         var result = await Executor.TryExecuteAsync(input, cancellationToken);
-
-        
 
         // TODO: process result
         return string.Empty;

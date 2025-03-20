@@ -7,10 +7,8 @@ internal sealed class McpTriggerBindingProvider(IToolRegistry toolRegistry) : IT
 {
     public Task<ITriggerBinding?> TryCreateAsync(TriggerBindingProviderContext context)
     {
-        if (context == null)
-        {
-            throw new ArgumentNullException(nameof(context));
-        }
+        ArgumentNullException.ThrowIfNull(context);
+
         var parameterInfo = context.Parameter;
         var attribute = parameterInfo.GetCustomAttribute<McpToolTriggerAttribute>(false);
         if (attribute == null)
@@ -18,8 +16,7 @@ internal sealed class McpTriggerBindingProvider(IToolRegistry toolRegistry) : IT
             return Task.FromResult<ITriggerBinding?>(null);
         }
 
-
-        var binding = new McpToolTriggerBinding(toolRegistry);
+        var binding = new McpToolTriggerBinding(context.Parameter, toolRegistry, attribute.Name, attribute.Description);
 
         return Task.FromResult<ITriggerBinding?>(binding);
     }

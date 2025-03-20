@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics.CodeAnalysis;
+using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.Functions.Extensions.Mcp.Protocol.Messages;
 using Microsoft.Azure.Functions.Extensions.Mcp.Protocol.Model;
@@ -66,43 +67,56 @@ internal sealed class DefaultMcpMessageHandlerManager(IToolRegistry toolRegistry
                 var response = new JsonRpcResponse
                 {
                     Id = request.Id,
-                    Result = result,
-                    
+                    Result = result
                 };
+
                 await handler.SendMessageAsync(response, cancellationToken);
                 break;
         }
     }
 
-    private async Task<object> HandleRequestAsync(JsonRpcRequest request, CancellationToken cancellationToken)
+    private Task<object> HandleRequestAsync(JsonRpcRequest request, CancellationToken cancellationToken)
     {
         switch (request.Method)
         {
             case "tools/list":
-                var tools = new ListToolsResult
-                {
-                    Tools =
-                    [
-                        new Tool
-                        {
-                            Name = "Foo",
-                            Description = "Foo tool",
-                        }
-                    ]
-                };
 
-                return await Task.FromResult<ListToolsResult>(tools);
+                var tools = toolRegistry.GetTools()
+                    .Select(t => new Tool
+                    {
+                        Name = t.Name, Description = t.Description,
+                        InputSchema = new JsonSchema
+                        {
+                            Properties = new Dictionary<string, JsonSchemaProperty>() {{ "param", new JsonSchemaProperty { Type = "string", Description = "description" } }
+                        }
+                    }
+                        
+                    })
+                    .ToList();
+
+                var result = new ListToolsResult {Tools = tools};
+
+                return Task.FromResult<object>(result);
             case "tools/call":
+                if (request.Params is JsonElement paramsElement)
+                {
+                    var callToolRequest = paramsElement.Deserialize<CallToolRequestParams>();
+                    if (callToolRequest is not null
+                        && toolRegistry.TryGetTool(callToolRequest.Name, out var tool))
+                    {
+                        tool.RunAsync(cancellationToken);
+                    }
+                }
+
                 break;
             case "initialize":
-                return Task.FromResult(new InitializeResult
+                return Task.FromResult<object>(new InitializeResult
                 {
                     ProtocolVersion = "2024-11-05",
                     ServerInfo = new Implementation
                     {
                         Name = "Azure Functions MCP server.",
-                        Version = typeof(DefaultMcpMessageHandlerManager).Assembly.GetName().Version?.ToString() ??
-                                  string.Empty
+                        Version = typeof(DefaultMcpMessageHandlerManager).Assembly.GetName().Version?.ToString() ?? string.Empty
                     },
                     Capabilities = new ServerCapabilities
                     {
@@ -115,7 +129,7 @@ internal sealed class DefaultMcpMessageHandlerManager(IToolRegistry toolRegistry
 
         }
 
-        return new JsonRpcError
+        var error = new JsonRpcError
         {
             Id = RequestId.FromString("test"),
             Error = new JsonRpcErrorDetail()
@@ -124,6 +138,8 @@ internal sealed class DefaultMcpMessageHandlerManager(IToolRegistry toolRegistry
                 Message = "Method not found",
             }
         };
+
+        return Task.FromResult<object>(error);
     }
 
     private record MessageHandlerReference(IMcpMessageHandler Handler, Task MessageProcessingTask)

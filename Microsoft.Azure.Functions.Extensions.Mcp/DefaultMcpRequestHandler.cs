@@ -51,7 +51,8 @@ public sealed class DefaultMcpRequestHandler(IMcpMessageHandlerManager messageHa
         }
 
         await handler.ProcessMessageAsync(message, context.RequestAborted);
-        
-        await Results.Accepted(null, "Accepted").ExecuteAsync(context);
+
+        context.Response.StatusCode = StatusCodes.Status202Accepted;
+        await context.Response.WriteAsync("Accepted");
     }
 }
