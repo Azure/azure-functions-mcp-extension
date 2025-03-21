@@ -9,5 +9,7 @@ internal interface IMcpTool
 
     public string? Description { get; set; }
 
-    Task<CallToolResponse> RunAsync(CallToolRequestParams callToolRequest, CancellationToken cancellationToken);
+    public ICollection<IMcpToolProperty> Properties { get; set; }
+
+    Task<CallToolResponse> RunAsync(ToolInvocationContext callToolRequest, CancellationToken cancellationToken);
 }

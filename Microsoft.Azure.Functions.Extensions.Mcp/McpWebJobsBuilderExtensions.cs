@@ -1,4 +1,5 @@
 ﻿using Microsoft.Azure.Functions.Extensions.Mcp;
+using Microsoft.Azure.Functions.Extensions.Mcp.Abstractions;
 using Microsoft.Azure.WebJobs;
 using Microsoft.Azure.WebJobs.Script.Description;
 using Microsoft.Extensions.DependencyInjection;
@@ -19,9 +20,9 @@ public static class McpWebJobsBuilderExtensions
         ArgumentNullException.ThrowIfNull(nameof(builder));
 
         builder.Services.AddSingleton<IFunctionProvider, McpFunctionProvider>();
-        builder.Services.AddSingleton<IMcpRequestHandler, DefaultMcpRequestHandler>();
+        builder.Services.AddSingleton<IRequestHandler, DefaultRequestHandler>();
         builder.Services.AddSingleton<IToolRegistry, DefaultToolRegistry>();
-        builder.Services.AddSingleton<IMcpMessageHandlerManager, DefaultMcpMessageHandlerManager>();
+        builder.Services.AddSingleton<IMessageHandlerManager, DefaultMessageHandlerManager>();
 
         builder.AddExtension<McpExtensionConfigProvider>();
 

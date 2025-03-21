@@ -1,14 +1,14 @@
 ﻿using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
+using Microsoft.Azure.Functions.Extensions.Mcp.Abstractions;
 using Microsoft.Azure.Functions.Extensions.Mcp.Protocol.Messages;
 using Microsoft.Azure.Functions.Extensions.Mcp.Serialization;
 using Microsoft.Extensions.Primitives;
 
 namespace Microsoft.Azure.Functions.Extensions.Mcp;
 
-public sealed class DefaultMcpRequestHandler(IMcpMessageHandlerManager messageHandlerManager) : IMcpRequestHandler
+internal sealed class DefaultRequestHandler(IMessageHandlerManager messageHandlerManager) : IRequestHandler
 {
-    private readonly IMcpMessageHandlerManager _messageHandlerManager = messageHandlerManager;
+    private readonly IMessageHandlerManager _messageHandlerManager = messageHandlerManager;
 
     public async Task HandleSseRequest(HttpContext context)
     {
@@ -17,7 +17,7 @@ public sealed class DefaultMcpRequestHandler(IMcpMessageHandlerManager messageHa
         context.Response.Headers.Append("Cache-Control", "no-cache");
         context.Response.Headers.Append("Connection", "keep-alive");
 
-        IMcpMessageHandler handler = _messageHandlerManager.CreateHandler(context.Response.Body, context.RequestAborted);
+        IMessageHandler handler = _messageHandlerManager.CreateHandler(context.Response.Body, context.RequestAborted);
 
         try
         {
@@ -36,7 +36,7 @@ public sealed class DefaultMcpRequestHandler(IMcpMessageHandlerManager messageHa
     public async Task HandleMessageRequest(HttpContext context)
     {
         if (!context.Request.Query.TryGetValue("mcpcid", out StringValues mcpClientId)
-            || !_messageHandlerManager.TryGetHandler(mcpClientId!, out IMcpMessageHandler? handler))
+            || !_messageHandlerManager.TryGetHandler(mcpClientId!, out IMessageHandler? handler))
         {
             await Results.BadRequest("Missing client context. Please connect to the /sse endpoint to initiate your session.").ExecuteAsync(context);
             return;

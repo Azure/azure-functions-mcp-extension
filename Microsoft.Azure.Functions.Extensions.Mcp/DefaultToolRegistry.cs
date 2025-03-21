@@ -1,4 +1,5 @@
-﻿using System.Diagnostics.CodeAnalysis;
+﻿using Microsoft.Azure.Functions.Extensions.Mcp.Abstractions;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Microsoft.Azure.Functions.Extensions.Mcp;
 
@@ -6,13 +7,13 @@ internal sealed class DefaultToolRegistry : IToolRegistry
 {
     private readonly Dictionary<string, IMcpTool> _tools = new(StringComparer.OrdinalIgnoreCase);
 
-    public void Register(IMcpTool toolListener)
+    public void Register(IMcpTool tool)
     {
-        ArgumentNullException.ThrowIfNull(nameof(toolListener));
+        ArgumentNullException.ThrowIfNull(nameof(tool));
 
-        if (!_tools.TryAdd(toolListener.Name, toolListener))
+        if (!_tools.TryAdd(tool.Name, tool))
         {
-            throw new InvalidOperationException($"Tool with name '{toolListener.Name}' is already registered.");
+            throw new InvalidOperationException($"Tool with name '{tool.Name}' is already registered.");
         }
     }
 

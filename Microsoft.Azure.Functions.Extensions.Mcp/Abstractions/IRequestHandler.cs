@@ -1,8 +1,8 @@
 ﻿using Microsoft.AspNetCore.Http;
 
-namespace Microsoft.Azure.Functions.Extensions.Mcp;
+namespace Microsoft.Azure.Functions.Extensions.Mcp.Abstractions;
 
-public interface IMcpRequestHandler
+public interface IRequestHandler
 {
     Task HandleSseRequest(HttpContext context);
 

@@ -1,0 +1,7 @@
+﻿<Project>
+  
+  <PropertyGroup>
+    <ExtensionVersion Condition="'$(ExtensionVersion)' == ''">1.0.0-beta1</ExtensionVersion>
+  </PropertyGroup>
+  
+</Project>

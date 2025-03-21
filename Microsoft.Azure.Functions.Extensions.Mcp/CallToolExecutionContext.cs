@@ -2,11 +2,11 @@
 
 namespace Microsoft.Azure.Functions.Extensions.Mcp;
 
-internal class CallToolExecutionContext(CallToolRequestParams request)
+internal class CallToolExecutionContext(ToolInvocationContext request)
 {
     private readonly TaskCompletionSource<object?> _taskCompletionSource = new();
 
-    public CallToolRequestParams Request { get; init; } = request;
+    public ToolInvocationContext Request { get; init; } = request;
 
     public Task<object?> ResultTask => _taskCompletionSource.Task;
 

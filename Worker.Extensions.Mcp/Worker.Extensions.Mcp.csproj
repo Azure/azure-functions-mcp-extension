@@ -1,11 +1,13 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <AssemblyName>Microsoft.Azure.Functions.Worker.Extensions.Mcp[</AssemblyName>
+    <AssemblyName>Microsoft.Azure.Functions.Worker.Extensions.Mcp</AssemblyName>
     <RootNamespace>Microsoft.Azure.Functions.Worker.Extensions.Mcp</RootNamespace>
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <PackageId>Microsoft.Azure.Functions.Worker.Extensions.Mcp</PackageId>
+    <PackageVersion>$(ExtensionVersion)</PackageVersion>
   </PropertyGroup>
 
   <ItemGroup>
@@ -14,6 +16,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <WebJobsExtension Include="Microsoft.Azure.WebJobs.Extensions.SendGrid" Version="3.1.0" />
+    <WebJobsExtension Include="Microsoft.Azure.Functions.Extensions.Mcp" Version="$(ExtensionVersion)" />
   </ItemGroup>
 </Project>

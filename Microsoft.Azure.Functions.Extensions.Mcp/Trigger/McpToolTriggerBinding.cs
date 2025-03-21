@@ -1,5 +1,8 @@
-﻿using System.Reflection;
+﻿using System.ComponentModel.DataAnnotations;
+using System.Reflection;
 using Microsoft.ApplicationInsights.Extensibility;
+using Microsoft.Azure.Functions.Extensions.Mcp.Abstractions;
+using Microsoft.Azure.Functions.Extensions.Mcp.Protocol.Model;
 using Microsoft.Azure.WebJobs.Host.Bindings;
 using Microsoft.Azure.WebJobs.Host.Listeners;
 using Microsoft.Azure.WebJobs.Host.Protocols;
@@ -12,6 +15,7 @@ internal sealed class McpToolTriggerBinding : ITriggerBinding
     private readonly IToolRegistry _toolRegistry;
     private readonly string _toolName;
     private readonly string? _toolDescription;
+    private readonly ParameterInfo _triggerParameter;
 
     public McpToolTriggerBinding(ParameterInfo triggerParameter, IToolRegistry toolRegistry, string toolName, string? toolDescription)
     {
@@ -20,10 +24,12 @@ internal sealed class McpToolTriggerBinding : ITriggerBinding
         _toolRegistry = toolRegistry;
         _toolName = toolName;
         _toolDescription = toolDescription;
+        _triggerParameter = triggerParameter;
 
         BindingDataContract = new Dictionary<string, Type>
         {
             { triggerParameter.Name!, triggerParameter.ParameterType },
+            { "mcptoolcontext", typeof(ToolInvocationContext) },
             { "$return", typeof(object).MakeByRefType() }
         };
     }
@@ -42,6 +48,8 @@ internal sealed class McpToolTriggerBinding : ITriggerBinding
         }
 
         var bindingData = new Dictionary<string, object>();
+        bindingData["mcptoolcontext"] = executionContext.Request;
+
         var valueProvider = new ObjectValueProvider(executionContext.Request, typeof(object));
 
         var data = new TriggerData(valueProvider, bindingData)
@@ -54,7 +62,23 @@ internal sealed class McpToolTriggerBinding : ITriggerBinding
 
     public Task<IListener> CreateListenerAsync(ListenerFactoryContext context)
     {
-        var listener = new McpToolListener(context.Executor, context.Descriptor.ShortName, _toolName, _toolDescription);
+        var toolProperties = new List<IMcpToolProperty>();
+
+        if (_triggerParameter.Member is MethodInfo methodInfo)
+        {
+            foreach (var parameter in methodInfo.GetParameters())
+            {
+                var property = parameter.GetCustomAttribute<McpToolPropertyAttribute>(inherit: false);
+                if (property is null)
+                {
+                    continue;
+                }
+
+                toolProperties.Add(property);
+            }
+        }
+
+        var listener = new McpToolListener(context.Executor, context.Descriptor.ShortName, _toolName, _toolDescription, toolProperties);
 
         _toolRegistry.Register(listener);
 

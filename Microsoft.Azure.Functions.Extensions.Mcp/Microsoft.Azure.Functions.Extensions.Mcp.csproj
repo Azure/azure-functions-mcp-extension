@@ -8,14 +8,10 @@
     <Nullable>enable</Nullable>
     <LangVersion>Latest</LangVersion>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <PackageId>Microsoft.Azure.Functions.Extensions.Mcp</PackageId>
+    <PackageVersion>$(ExtensionVersion)</PackageVersion>
     <!--<AnalysisMode>All</AnalysisMode>-->
   </PropertyGroup>
-
-  <ItemGroup>
-    <Compile Remove="NewFolder\**" />
-    <EmbeddedResource Remove="NewFolder\**" />
-    <None Remove="NewFolder\**" />
-  </ItemGroup>
 
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />

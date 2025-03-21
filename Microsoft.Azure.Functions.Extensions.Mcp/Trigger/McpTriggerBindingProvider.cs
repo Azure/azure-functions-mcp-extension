@@ -1,4 +1,5 @@
-﻿using Microsoft.Azure.WebJobs.Host.Triggers;
+﻿using Microsoft.Azure.Functions.Extensions.Mcp.Abstractions;
+using Microsoft.Azure.WebJobs.Host.Triggers;
 using System.Reflection;
 
 namespace Microsoft.Azure.Functions.Extensions.Mcp;

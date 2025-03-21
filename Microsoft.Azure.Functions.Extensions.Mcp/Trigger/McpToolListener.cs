@@ -1,19 +1,25 @@
-﻿using Microsoft.Azure.Functions.Extensions.Mcp.Protocol.Model;
+﻿using Microsoft.Azure.Functions.Extensions.Mcp.Abstractions;
+using Microsoft.Azure.Functions.Extensions.Mcp.Protocol.Model;
 using Microsoft.Azure.WebJobs.Host.Executors;
 using Microsoft.Azure.WebJobs.Host.Listeners;
 
 namespace Microsoft.Azure.Functions.Extensions.Mcp;
 
-internal sealed class McpToolListener(ITriggeredFunctionExecutor executor, string functionName, string toolName, string? toolDescription = null)
-    : IListener, IMcpTool
+internal sealed class McpToolListener(ITriggeredFunctionExecutor executor,
+                                      string functionName,
+                                      string toolName,
+                                      string? toolDescription,
+                                      ICollection<IMcpToolProperty> properties) : IListener, IMcpTool
 {
     public ITriggeredFunctionExecutor Executor { get; } = executor;
 
     public string FunctionName { get; } = functionName;
 
-    string IMcpTool.Name { get; } = toolName;
+    public string Name { get; } = toolName;
 
     public string? Description { get; set; } = toolDescription;
+
+    public ICollection<IMcpToolProperty> Properties { get; set; } = properties;
 
     public void Dispose() { }
 
@@ -23,7 +29,7 @@ internal sealed class McpToolListener(ITriggeredFunctionExecutor executor, strin
 
     public void Cancel() { }
 
-    public async Task<CallToolResponse> RunAsync(CallToolRequestParams callToolRequest, CancellationToken cancellationToken)
+    public async Task<CallToolResponse> RunAsync(ToolInvocationContext callToolRequest, CancellationToken cancellationToken)
     {
         var execution = new CallToolExecutionContext(callToolRequest);
 

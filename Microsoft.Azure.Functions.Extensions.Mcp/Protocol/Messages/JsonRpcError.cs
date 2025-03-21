@@ -5,7 +5,7 @@ namespace Microsoft.Azure.Functions.Extensions.Mcp.Protocol.Messages;
 /// <summary>
 /// An error response message in the JSON-RPC protocol.
 /// </summary>
-public record JsonRpcError : IJsonRpcMessageWithId
+internal record JsonRpcError : IJsonRpcMessageWithId
 {
     /// <summary>
     /// JSON-RPC protocol version. Always "2.0".

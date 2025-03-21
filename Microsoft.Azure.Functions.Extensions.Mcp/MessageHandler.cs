@@ -3,12 +3,13 @@ using System.Net.ServerSentEvents;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Channels;
+using Microsoft.Azure.Functions.Extensions.Mcp.Abstractions;
 using Microsoft.Azure.Functions.Extensions.Mcp.Protocol.Messages;
 using Microsoft.Azure.Functions.Extensions.Mcp.Serialization;
 
 namespace Microsoft.Azure.Functions.Extensions.Mcp;
 
-public class MessageHandler(Stream eventStream) : IMcpMessageHandler, IAsyncDisposable
+internal sealed class MessageHandler(Stream eventStream) : IMessageHandler, IAsyncDisposable
 {
     private readonly Channel<IJsonRpcMessage> _incomingChannel = CreateChannel<IJsonRpcMessage>();
     private readonly Channel<SseItem<IJsonRpcMessage>> _outgoingChannel = CreateChannel<SseItem<IJsonRpcMessage>>();

@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Http;
+using Microsoft.Azure.Functions.Extensions.Mcp.Abstractions;
 using Microsoft.Azure.WebJobs;
 using Microsoft.Azure.WebJobs.Extensions.Http;
 
@@ -10,7 +11,7 @@ public class McpFunctions
     {
         ArgumentNullException.ThrowIfNull(request);
 
-        var requestHandler = request.HttpContext.RequestServices.GetService(typeof(IMcpRequestHandler)) as IMcpRequestHandler;
+        var requestHandler = request.HttpContext.RequestServices.GetService(typeof(IRequestHandler)) as IRequestHandler;
 
         if (requestHandler == null)
         {
@@ -22,7 +23,7 @@ public class McpFunctions
 
     public static async Task HandleMessageRequest(HttpRequest request)
     {
-        var requestHandler = request.HttpContext.RequestServices.GetService(typeof(IMcpRequestHandler)) as IMcpRequestHandler;
+        var requestHandler = request.HttpContext.RequestServices.GetService(typeof(IRequestHandler)) as IRequestHandler;
 
         if (requestHandler == null)
         {
