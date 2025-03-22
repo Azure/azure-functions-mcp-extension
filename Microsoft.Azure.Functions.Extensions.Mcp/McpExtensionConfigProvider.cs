@@ -14,11 +14,11 @@ internal sealed class McpExtensionConfigProvider(IToolRegistry toolRegistry) : I
     public void Initialize(ExtensionConfigContext context)
     {
         context.AddBindingRule<McpToolTriggerAttribute>()
+            .AddConverter<ToolInvocationContext, string>(InvocationContextToString)
+            .AddConverter<CallToolExecutionContext, string>(CallToolExecutionContextToString)
             .BindToTrigger(new McpTriggerBindingProvider(toolRegistry));
 
         context.AddBindingRule<McpToolPropertyAttribute>()
-            .AddConverter<ToolInvocationContext, string>(InvocationContextToString)
-            .AddConverter<CallToolExecutionContext, string>(CallToolExecutionContextToString)
             .Bind(new McpToolPropertyBindingProvider());
 
     }
