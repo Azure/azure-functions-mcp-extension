@@ -46,9 +46,7 @@ internal sealed class MessageHandler(Stream eventStream) : IMessageHandler, IAsy
         => _incomingChannel.Writer.WriteAsync(message, cancellationToken).AsTask();
 
     private static Channel<T> CreateChannel<T>()
-    {
-        return Channel.CreateBounded<T>(new BoundedChannelOptions(1) { SingleReader = true, SingleWriter = false });
-    }
+        => Channel.CreateBounded<T>(new BoundedChannelOptions(1) { SingleReader = true, SingleWriter = false });
 
     public ValueTask DisposeAsync()
     {
