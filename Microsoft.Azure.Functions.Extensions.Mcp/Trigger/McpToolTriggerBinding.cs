@@ -5,6 +5,8 @@ using Microsoft.Azure.WebJobs.Host.Listeners;
 using Microsoft.Azure.WebJobs.Host.Protocols;
 using Microsoft.Azure.WebJobs.Host.Triggers;
 using System.Reflection;
+using System.Text.Json;
+using Microsoft.Azure.Functions.Extensions.Mcp.Serialization;
 
 namespace Microsoft.Azure.Functions.Extensions.Mcp;
 
@@ -40,15 +42,22 @@ internal sealed class McpToolTriggerBinding : ITriggerBinding
     {
         if (value is not CallToolExecutionContext executionContext)
         {
-
-            throw new InvalidOperationException(
-                $"Cannot execute a tool without a value of type {nameof(CallToolExecutionContext)}.");
+            throw new InvalidOperationException($"Cannot execute a tool without a value of type {nameof(CallToolExecutionContext)}.");
         }
 
-        var bindingData = new Dictionary<string, object>();
-        bindingData["mcptoolcontext"] = executionContext.Request;
+        object? triggerValue = executionContext.Request;
+        if (_triggerParameter.ParameterType == typeof(string))
+        {
+            triggerValue = JsonSerializer.Serialize(executionContext.Request, McpJsonSerializerOptions.DefaultOptions);
+        }
 
-        var valueProvider = new ObjectValueProvider(executionContext.Request, typeof(object));
+        var bindingData = new Dictionary<string, object>
+        {
+            ["mcptoolcontext"] = executionContext.Request,
+            [_triggerParameter.Name!] = triggerValue,
+        };
+
+        var valueProvider = new ObjectValueProvider(triggerValue, _triggerParameter.ParameterType);
 
         var data = new TriggerData(valueProvider, bindingData)
         {
@@ -100,7 +109,6 @@ internal sealed class McpToolTriggerBinding : ITriggerBinding
     internal class McpToolTriggerReturnValueBinder(CallToolExecutionContext executionContext) : IValueBinder
     {
         public Type Type { get; } = typeof(object);
-
 
         public Task SetValueAsync(object value, CancellationToken cancellationToken)
         {
