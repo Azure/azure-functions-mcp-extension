@@ -1,4 +1,5 @@
-﻿using Microsoft.Azure.Functions.Extensions.Mcp.Abstractions;
+﻿using System.Collections.Concurrent;
+using Microsoft.Azure.Functions.Extensions.Mcp.Abstractions;
 using Microsoft.Azure.Functions.Extensions.Mcp.Protocol.Messages;
 using Microsoft.Azure.Functions.Extensions.Mcp.Protocol.Model;
 using System.Diagnostics.CodeAnalysis;
@@ -8,7 +9,7 @@ namespace Microsoft.Azure.Functions.Extensions.Mcp;
 
 internal sealed class DefaultMessageHandlerManager(IToolRegistry toolRegistry) : IMessageHandlerManager
 {
-    private readonly Dictionary<string, MessageHandlerReference> _handlers = new();
+    private readonly ConcurrentDictionary<string, MessageHandlerReference> _handlers = new();
 
     public IMessageHandler CreateHandler(Stream eventStream, CancellationToken cancellationToken)
     {
@@ -16,7 +17,7 @@ internal sealed class DefaultMessageHandlerManager(IToolRegistry toolRegistry) :
         var processingTask = ProcessMessagesAsync(handler, cancellationToken);
 
         var handlerReference = new MessageHandlerReference(handler, processingTask);
-        _handlers.Add(handler.Id, handlerReference);
+        _handlers.TryAdd(handler.Id, handlerReference);
 
         return handler;
     }
@@ -53,7 +54,7 @@ internal sealed class DefaultMessageHandlerManager(IToolRegistry toolRegistry) :
         }
         finally
         {
-            _handlers.Remove(handler.Id);
+            _handlers.TryRemove(handler.Id, out _);
         }
     }
 
