@@ -1,5 +1,5 @@
-﻿using System.Text.Json.Serialization;
-using Microsoft.Azure.WebJobs.Extensions.Http;
+﻿using Microsoft.Azure.WebJobs.Extensions.Http;
+using System.Text.Json.Serialization;
 
 namespace Microsoft.Azure.Functions.Extensions.Mcp;
 

@@ -1,5 +1,4 @@
-﻿using Microsoft.Azure.Functions.Extensions.Mcp.Abstractions;
-using Microsoft.Azure.Functions.Extensions.Mcp.Protocol.Model;
+﻿using Microsoft.Azure.Functions.Extensions.Mcp.Protocol.Model;
 using Microsoft.Azure.WebJobs.Host.Executors;
 using Microsoft.Azure.WebJobs.Host.Listeners;
 
@@ -49,7 +48,7 @@ internal sealed class McpToolListener(ITriggeredFunctionExecutor executor,
 
         if (toolResult is null)
         {
-            return new CallToolResponse {Content = []};
+            return new CallToolResponse { Content = [] };
         }
 
         return new CallToolResponse

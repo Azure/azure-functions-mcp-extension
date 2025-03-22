@@ -1,8 +1,8 @@
-﻿using System.Diagnostics.CodeAnalysis;
-using System.Text.Json;
-using Microsoft.Azure.Functions.Extensions.Mcp.Abstractions;
+﻿using Microsoft.Azure.Functions.Extensions.Mcp.Abstractions;
 using Microsoft.Azure.Functions.Extensions.Mcp.Protocol.Messages;
 using Microsoft.Azure.Functions.Extensions.Mcp.Protocol.Model;
+using System.Diagnostics.CodeAnalysis;
+using System.Text.Json;
 
 namespace Microsoft.Azure.Functions.Extensions.Mcp;
 
@@ -91,7 +91,7 @@ internal sealed class DefaultMessageHandlerManager(IToolRegistry toolRegistry) :
                         }
                     }).ToList();
 
-                return new ListToolsResult {Tools = tools};
+                return new ListToolsResult { Tools = tools };
             case "tools/call":
                 if (request.Params is JsonElement paramsElement)
                 {
@@ -149,5 +149,7 @@ internal sealed class DefaultMessageHandlerManager(IToolRegistry toolRegistry) :
     private record MessageHandlerReference(IMessageHandler Handler, Task MessageProcessingTask)
     {
         public string Id => Handler.Id;
+
+        public Task MessageProcessingTask { get; init; } = MessageProcessingTask;
     }
 }

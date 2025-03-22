@@ -1,6 +1,6 @@
-﻿using System.Text.Json;
+﻿using Microsoft.Azure.Functions.Extensions.Mcp.Protocol.Messages;
+using System.Text.Json;
 using System.Text.Json.Serialization;
-using Microsoft.Azure.Functions.Extensions.Mcp.Protocol.Messages;
 
 namespace Microsoft.Azure.Functions.Extensions.Mcp.Serialization;
 

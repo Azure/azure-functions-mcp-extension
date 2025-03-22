@@ -16,5 +16,5 @@ public class CompleteRequestParams
     /// The argument's information
     /// </summary>
     [System.Text.Json.Serialization.JsonPropertyName("argument")]
-    public required Argument Argument { get; init; }    
+    public required Argument Argument { get; init; }
 }

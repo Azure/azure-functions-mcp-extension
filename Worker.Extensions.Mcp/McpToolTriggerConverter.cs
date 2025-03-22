@@ -1,6 +1,4 @@
-﻿using Microsoft.Azure.Functions.Worker.Converters;
-
-namespace Microsoft.Azure.Functions.Worker.Extensions.Mcp
+﻿namespace Microsoft.Azure.Functions.Worker.Extensions.Mcp
 {
     //internal class McpToolTriggerConverter : IInputConverter
     //{

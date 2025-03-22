@@ -24,8 +24,8 @@ internal sealed class McpExtensionConfigProvider(IToolRegistry toolRegistry) : I
             .Bind(new McpToolPropertyBindingProvider());
     }
 
-    private string InvocationContextToString(ToolInvocationContext context)
-        => JsonSerializer.Serialize<ToolInvocationContext>(context, McpJsonSerializerOptions.DefaultOptions);
+    private static string InvocationContextToString(ToolInvocationContext context)
+        => JsonSerializer.Serialize(context, McpJsonSerializerOptions.DefaultOptions);
 }
 
 

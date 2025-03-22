@@ -1,11 +1,11 @@
-﻿using System.Buffers;
+﻿using Microsoft.Azure.Functions.Extensions.Mcp.Abstractions;
+using Microsoft.Azure.Functions.Extensions.Mcp.Protocol.Messages;
+using Microsoft.Azure.Functions.Extensions.Mcp.Serialization;
+using System.Buffers;
 using System.Net.ServerSentEvents;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Channels;
-using Microsoft.Azure.Functions.Extensions.Mcp.Abstractions;
-using Microsoft.Azure.Functions.Extensions.Mcp.Protocol.Messages;
-using Microsoft.Azure.Functions.Extensions.Mcp.Serialization;
 
 namespace Microsoft.Azure.Functions.Extensions.Mcp;
 
@@ -19,7 +19,7 @@ internal sealed class MessageHandler(Stream eventStream) : IMessageHandler, IAsy
 
     public Task StartAsync(CancellationToken cancellationToken)
     {
-        _outgoingChannel.Writer.TryWrite(new SseItem<IJsonRpcMessage>(null!, "endpoint") { EventId = Id});
+        _outgoingChannel.Writer.TryWrite(new SseItem<IJsonRpcMessage>(null!, "endpoint") { EventId = Id });
 
         var events = _outgoingChannel.Reader.ReadAllAsync(cancellationToken);
 
@@ -52,8 +52,6 @@ internal sealed class MessageHandler(Stream eventStream) : IMessageHandler, IAsy
 
     public ValueTask DisposeAsync()
     {
-        GC.SuppressFinalize(this);
-
         _incomingChannel.Writer.TryComplete();
         _outgoingChannel.Writer.TryComplete();
 

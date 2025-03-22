@@ -1,8 +1,6 @@
 ﻿using Microsoft.Azure.Functions.Extensions.Mcp;
 using Microsoft.Azure.WebJobs;
 using Microsoft.Azure.WebJobs.Hosting;
-using Microsoft.Azure.WebJobs.Script.Description;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
 [assembly: WebJobsStartup(typeof(Startup))]

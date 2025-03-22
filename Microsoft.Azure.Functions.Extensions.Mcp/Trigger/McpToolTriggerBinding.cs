@@ -1,12 +1,10 @@
-﻿using System.ComponentModel.DataAnnotations;
-using System.Reflection;
-using Microsoft.ApplicationInsights.Extensibility;
-using Microsoft.Azure.Functions.Extensions.Mcp.Abstractions;
+﻿using Microsoft.Azure.Functions.Extensions.Mcp.Abstractions;
 using Microsoft.Azure.Functions.Extensions.Mcp.Protocol.Model;
 using Microsoft.Azure.WebJobs.Host.Bindings;
 using Microsoft.Azure.WebJobs.Host.Listeners;
 using Microsoft.Azure.WebJobs.Host.Protocols;
 using Microsoft.Azure.WebJobs.Host.Triggers;
+using System.Reflection;
 
 namespace Microsoft.Azure.Functions.Extensions.Mcp;
 

@@ -1,5 +1,4 @@
 ﻿using System.Diagnostics.CodeAnalysis;
-using Microsoft.Azure.Functions.Extensions.Mcp.Protocol.Model;
 
 namespace Microsoft.Azure.Functions.Extensions.Mcp.Abstractions;
 

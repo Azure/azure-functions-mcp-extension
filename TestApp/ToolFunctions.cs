@@ -1,9 +1,6 @@
-using System.Linq;
-using Microsoft.Azure.WebJobs;
 using Microsoft.Azure.Functions.Extensions.Mcp;
 using Microsoft.Azure.Functions.Extensions.Mcp.Protocol.Model;
-using System.Collections.Generic;
-using System;
+using Microsoft.Azure.WebJobs;
 
 namespace TestApp
 {
@@ -12,7 +9,7 @@ namespace TestApp
         [FunctionName(nameof(GetSnippet))]
         public object GetSnippet(
             [McpToolTrigger("getsnippets", "Gets code snippets from your snippet collection.")] ToolInvocationContext context,
-            [McpToolProperty("snippetname", "text",  "The name of the snippet.")] string name)
+            [McpToolProperty("snippetname", "text", "The name of the snippet.")] string name)
         {
             if (SnippetsCache.Snippets.TryGetValue(name, out var snippet))
             {

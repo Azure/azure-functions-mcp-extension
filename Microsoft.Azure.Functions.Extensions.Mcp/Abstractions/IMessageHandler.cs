@@ -1,6 +1,5 @@
-﻿using System.Threading.Channels;
-using Microsoft.Azure.Functions.Extensions.Mcp.Protocol.Messages;
-using Microsoft.Extensions.Primitives;
+﻿using Microsoft.Azure.Functions.Extensions.Mcp.Protocol.Messages;
+using System.Threading.Channels;
 
 namespace Microsoft.Azure.Functions.Extensions.Mcp.Abstractions;
 

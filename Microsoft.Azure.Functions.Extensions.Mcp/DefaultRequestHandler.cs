@@ -8,8 +8,6 @@ namespace Microsoft.Azure.Functions.Extensions.Mcp;
 
 internal sealed class DefaultRequestHandler(IMessageHandlerManager messageHandlerManager) : IRequestHandler
 {
-    private readonly IMessageHandlerManager _messageHandlerManager = messageHandlerManager;
-
     public async Task HandleSseRequest(HttpContext context)
     {
         // Set the appropriate headers for SSE.
@@ -17,7 +15,7 @@ internal sealed class DefaultRequestHandler(IMessageHandlerManager messageHandle
         context.Response.Headers.Append("Cache-Control", "no-cache");
         context.Response.Headers.Append("Connection", "keep-alive");
 
-        IMessageHandler handler = _messageHandlerManager.CreateHandler(context.Response.Body, context.RequestAborted);
+        IMessageHandler handler = messageHandlerManager.CreateHandler(context.Response.Body, context.RequestAborted);
 
         try
         {
@@ -29,21 +27,21 @@ internal sealed class DefaultRequestHandler(IMessageHandlerManager messageHandle
         }
         finally
         {
-           await _messageHandlerManager.CloseHandlerAsync(handler);
+            await messageHandlerManager.CloseHandlerAsync(handler);
         }
     }
 
     public async Task HandleMessageRequest(HttpContext context)
     {
         if (!context.Request.Query.TryGetValue("mcpcid", out StringValues mcpClientId)
-            || !_messageHandlerManager.TryGetHandler(mcpClientId!, out IMessageHandler? handler))
+            || !messageHandlerManager.TryGetHandler(mcpClientId!, out IMessageHandler? handler))
         {
             await Results.BadRequest("Missing client context. Please connect to the /sse endpoint to initiate your session.").ExecuteAsync(context);
             return;
         }
 
         var message = await context.Request.ReadFromJsonAsync<IJsonRpcMessage>(McpJsonSerializerOptions.DefaultOptions, context.RequestAborted);
-        
+
         if (message is null)
         {
             await Results.BadRequest("No message in request body.").ExecuteAsync(context);

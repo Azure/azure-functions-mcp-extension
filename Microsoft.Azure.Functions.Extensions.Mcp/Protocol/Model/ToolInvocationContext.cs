@@ -18,5 +18,5 @@ public class ToolInvocationContext
     /// Optional arguments to pass to the tool.
     /// </summary>
     [JsonPropertyName("arguments")]
-    public Dictionary<string,object>? Arguments { get; init; }    
+    public Dictionary<string, object>? Arguments { get; init; }
 }
