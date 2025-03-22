@@ -18,3 +18,5 @@ public sealed class McpToolTriggerAttribute(string name, string? description = n
     /// </summary>
     public string? Description { get; set; } = description;
 }
+
+
