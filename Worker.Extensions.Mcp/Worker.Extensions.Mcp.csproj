@@ -16,6 +16,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <WebJobsExtension Include="Microsoft.Azure.Functions.Extensions.Mcp" Version="$(ExtensionVersion)" />
+    <AssemblyAttribute Include="Microsoft.Azure.Functions.Worker.Extensions.Abstractions.ExtensionInformationAttribute">
+      <_Parameter1>Microsoft.Azure.Functions.Extensions.Mcp</_Parameter1>
+      <_Parameter2>$(ExtensionVersion)</_Parameter2>
+    </AssemblyAttribute>
   </ItemGroup>
 </Project>

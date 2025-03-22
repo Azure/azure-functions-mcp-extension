@@ -1,10 +1,12 @@
 ﻿using Microsoft.Azure.Functions.Extensions.Mcp.Abstractions;
 using Microsoft.Azure.Functions.Extensions.Mcp.Protocol.Model;
+using Microsoft.Azure.Functions.Extensions.Mcp.Serialization;
 using Microsoft.Azure.WebJobs.Description;
 using Microsoft.Azure.WebJobs.Host.Bindings;
 using Microsoft.Azure.WebJobs.Host.Config;
 using Microsoft.Azure.WebJobs.Host.Protocols;
 using System.Reflection;
+using System.Text.Json;
 
 namespace Microsoft.Azure.Functions.Extensions.Mcp;
 
@@ -13,12 +15,17 @@ internal sealed class McpExtensionConfigProvider(IToolRegistry toolRegistry) : I
 {
     public void Initialize(ExtensionConfigContext context)
     {
+        context.AddConverter<ToolInvocationContext, string>(InvocationContextToString);
+
         context.AddBindingRule<McpToolTriggerAttribute>()
             .BindToTrigger(new McpTriggerBindingProvider(toolRegistry));
 
         context.AddBindingRule<McpToolPropertyAttribute>()
             .Bind(new McpToolPropertyBindingProvider());
     }
+
+    private string InvocationContextToString(ToolInvocationContext context)
+        => JsonSerializer.Serialize<ToolInvocationContext>(context, McpJsonSerializerOptions.DefaultOptions);
 }
 
 
