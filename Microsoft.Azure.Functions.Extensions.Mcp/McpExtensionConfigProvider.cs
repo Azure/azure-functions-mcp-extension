@@ -14,18 +14,10 @@ internal sealed class McpExtensionConfigProvider(IToolRegistry toolRegistry) : I
     public void Initialize(ExtensionConfigContext context)
     {
         context.AddBindingRule<McpToolTriggerAttribute>()
-            .AddConverter<ToolInvocationContext, string>(InvocationContextToString)
-            .AddConverter<CallToolExecutionContext, string>(CallToolExecutionContextToString)
             .BindToTrigger(new McpTriggerBindingProvider(toolRegistry));
 
         context.AddBindingRule<McpToolPropertyAttribute>()
             .Bind(new McpToolPropertyBindingProvider());
 
     }
-
-    private static string CallToolExecutionContextToString(CallToolExecutionContext executionContext)
-        => InvocationContextToString(executionContext.Request);
-
-    private static string InvocationContextToString(ToolInvocationContext context)
-        => JsonSerializer.Serialize(context, McpJsonSerializerOptions.DefaultOptions);
 }
