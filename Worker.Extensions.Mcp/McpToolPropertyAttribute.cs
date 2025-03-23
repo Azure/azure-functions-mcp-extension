@@ -4,9 +4,9 @@ using Microsoft.Azure.Functions.Worker.Extensions.Abstractions;
 namespace Microsoft.Azure.Functions.Worker.Extensions.Mcp;
 
 [ConverterFallbackBehavior(ConverterFallbackBehavior.Default)]
-public sealed class McpToolPropertyAttribute(string name, string propertyType, string description) : InputBindingAttribute
+public sealed class McpToolPropertyAttribute(string propertyName, string propertyType, string description) : InputBindingAttribute
 {
-    public string Name { get; set; } = name;
+    public string PropertyName { get; set; } = propertyName;
 
     public string PropertyType { get; set; } = propertyType;
 

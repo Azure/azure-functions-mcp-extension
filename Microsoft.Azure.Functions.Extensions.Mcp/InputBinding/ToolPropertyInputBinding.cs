@@ -17,7 +17,7 @@ public class ToolPropertyInputBinding(McpToolPropertyAttribute attribute) : IBin
         }
 
         if (toolContext.Arguments == null
-            || !toolContext.Arguments.TryGetValue(attribute.Name, out var propertyValue))
+            || !toolContext.Arguments.TryGetValue(attribute.PropertyName, out var propertyValue))
         {
             propertyValue = null;
         }

@@ -139,7 +139,7 @@ internal sealed class DefaultMessageHandlerManager(IToolRegistry toolRegistry) :
     private Dictionary<string, JsonSchemaProperty> GetProperties(IMcpTool t)
     {
         return t.Properties.ToDictionary(
-            p => p.Name,
+            p => p.PropertyName,
             p => new JsonSchemaProperty
             {
                 Type = p.PropertyType,
