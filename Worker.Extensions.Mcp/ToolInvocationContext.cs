@@ -6,7 +6,7 @@ namespace Microsoft.Azure.Functions.Worker.Extensions.Mcp;
 /// <summary>
 /// The context for the tool call.
 /// </summary>
-public class CallToolContext
+public class ToolInvocationContext
 {
     /// <summary>
     /// Tool name.
