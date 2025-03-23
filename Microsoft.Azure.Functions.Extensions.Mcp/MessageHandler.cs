@@ -2,6 +2,7 @@
 using Microsoft.Azure.Functions.Extensions.Mcp.Protocol.Messages;
 using Microsoft.Azure.Functions.Extensions.Mcp.Serialization;
 using System.Buffers;
+using System.Globalization;
 using System.Net.ServerSentEvents;
 using System.Text;
 using System.Text.Json;
@@ -19,18 +20,20 @@ internal sealed class MessageHandler(Stream eventStream) : IMessageHandler, IAsy
 
     public Task StartAsync(CancellationToken cancellationToken)
     {
-        _outgoingChannel.Writer.TryWrite(new SseItem<IJsonRpcMessage>(null!, "endpoint") { EventId = Id });
+        var endpointResponse = new JsonRpcResponse { Id = RequestId.FromString(Id), Result = null };
+        _outgoingChannel.Writer.TryWrite(new SseItem<IJsonRpcMessage>(endpointResponse, "endpoint"));
 
         var events = _outgoingChannel.Reader.ReadAllAsync(cancellationToken);
 
         return _writeTask = SseFormatter.WriteAsync(events, eventStream, BufferWriter, cancellationToken);
     }
 
-    private static void BufferWriter<T>(SseItem<T> sseItem, IBufferWriter<byte> writer)
+    private static void BufferWriter(SseItem<IJsonRpcMessage> sseItem, IBufferWriter<byte> writer)
     {
         if (string.Equals(sseItem.EventType, "endpoint", StringComparison.OrdinalIgnoreCase))
         {
-            writer.Write(Encoding.UTF8.GetBytes($"message?mcpcid={sseItem.EventId}"));
+            var clientId = ((JsonRpcResponse) sseItem.Data).Id.AsString;
+            writer.Write(Encoding.UTF8.GetBytes($"message?mcpcid={clientId}"));
             return;
         }
 
