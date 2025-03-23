@@ -17,7 +17,7 @@ internal sealed class McpTriggerBindingProvider(IToolRegistry toolRegistry) : IT
             return Task.FromResult<ITriggerBinding?>(null);
         }
 
-        var binding = new McpToolTriggerBinding(context.Parameter, toolRegistry, attribute.Name, attribute.Description);
+        var binding = new McpToolTriggerBinding(context.Parameter, toolRegistry, attribute);
 
         return Task.FromResult<ITriggerBinding?>(binding);
     }

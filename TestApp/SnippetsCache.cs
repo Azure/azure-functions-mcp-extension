@@ -4,7 +4,7 @@ using System.Linq;
 
 namespace TestApp
 {
-    public static class SnippetsCache
+    internal static class SnippetsCache
     {
         public static Dictionary<string, string> Snippets = Enumerable.Range(1, 100)
             .ToDictionary(i => $"Snippet {i}", i => i switch
