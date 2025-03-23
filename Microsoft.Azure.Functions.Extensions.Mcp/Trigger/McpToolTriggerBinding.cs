@@ -13,17 +13,15 @@ namespace Microsoft.Azure.Functions.Extensions.Mcp;
 internal sealed class McpToolTriggerBinding : ITriggerBinding
 {
     private readonly IToolRegistry _toolRegistry;
-    private readonly string _toolName;
-    private readonly string? _toolDescription;
+    private readonly McpToolTriggerAttribute _toolAttribute;
     private readonly ParameterInfo _triggerParameter;
 
-    public McpToolTriggerBinding(ParameterInfo triggerParameter, IToolRegistry toolRegistry, string toolName, string? toolDescription)
+    public McpToolTriggerBinding(ParameterInfo triggerParameter, IToolRegistry toolRegistry, McpToolTriggerAttribute toolAttribute)
     {
         ArgumentNullException.ThrowIfNull(triggerParameter);
 
         _toolRegistry = toolRegistry;
-        _toolName = toolName;
-        _toolDescription = toolDescription;
+        _toolAttribute = toolAttribute;
         _triggerParameter = triggerParameter;
 
         BindingDataContract = new Dictionary<string, Type>
@@ -69,10 +67,20 @@ internal sealed class McpToolTriggerBinding : ITriggerBinding
 
     public Task<IListener> CreateListenerAsync(ListenerFactoryContext context)
     {
-        var toolProperties = new List<IMcpToolProperty>();
-
-        if (_triggerParameter.Member is MethodInfo methodInfo)
+        List<IMcpToolProperty>? toolProperties = null;
+        if (_toolAttribute.ToolProperties is not null)
         {
+            var arguments = JsonSerializer.Deserialize<List<McpToolPropertyAttribute>>(_toolAttribute.ToolProperties, McpJsonSerializerOptions.DefaultOptions);
+
+            if (arguments is not null)
+            {
+                toolProperties = arguments.Cast<IMcpToolProperty>().ToList();
+            }
+        } 
+        else if (_triggerParameter.Member is MethodInfo methodInfo)
+        {
+            toolProperties = new List<IMcpToolProperty>();
+
             foreach (var parameter in methodInfo.GetParameters())
             {
                 var property = parameter.GetCustomAttribute<McpToolPropertyAttribute>(inherit: false);
@@ -85,7 +93,7 @@ internal sealed class McpToolTriggerBinding : ITriggerBinding
             }
         }
 
-        var listener = new McpToolListener(context.Executor, context.Descriptor.ShortName, _toolName, _toolDescription, toolProperties);
+        var listener = new McpToolListener(context.Executor, context.Descriptor.ShortName, _toolAttribute.ToolName, _toolAttribute.Description, toolProperties ?? []);
 
         _toolRegistry.Register(listener);
 
