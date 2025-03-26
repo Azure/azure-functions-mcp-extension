@@ -15,13 +15,4 @@ public sealed class McpToolPropertyAttribute(string propertyName, string propert
     public string PropertyType { get; set; } = propertyType;
 
     public string? Description { get; set; } = description;
-
-    void Foo()
-    {
-        var list = new List<McpToolPropertyAttribute>
-        {
-            new McpToolPropertyAttribute("name", "string", "description"),
-            new McpToolPropertyAttribute("name", "string", "description")
-        };
-    }
 }
