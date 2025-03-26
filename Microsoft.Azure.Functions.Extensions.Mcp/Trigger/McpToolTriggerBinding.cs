@@ -1,4 +1,5 @@
-﻿using Microsoft.Azure.Functions.Extensions.Mcp.Abstractions;
+﻿using System.Diagnostics.CodeAnalysis;
+using Microsoft.Azure.Functions.Extensions.Mcp.Abstractions;
 using Microsoft.Azure.Functions.Extensions.Mcp.Protocol.Model;
 using Microsoft.Azure.WebJobs.Host.Bindings;
 using Microsoft.Azure.WebJobs.Host.Listeners;
@@ -7,6 +8,7 @@ using Microsoft.Azure.WebJobs.Host.Triggers;
 using System.Reflection;
 using System.Text.Json;
 using Microsoft.Azure.Functions.Extensions.Mcp.Serialization;
+using Newtonsoft.Json.Linq;
 
 namespace Microsoft.Azure.Functions.Extensions.Mcp;
 
@@ -28,6 +30,7 @@ internal sealed class McpToolTriggerBinding : ITriggerBinding
         {
             { triggerParameter.Name!, triggerParameter.ParameterType },
             { "mcptoolcontext", typeof(ToolInvocationContext) },
+            { "mcptoolargs", typeof(IDictionary<string, string>)},
             { "$return", typeof(object).MakeByRefType() }
         };
     }
@@ -55,6 +58,11 @@ internal sealed class McpToolTriggerBinding : ITriggerBinding
             [_triggerParameter.Name!] = triggerValue,
         };
 
+        if (executionContext.Request.Arguments is { } arguments)
+        {
+            bindingData["mcptoolargs"] = arguments.ToDictionary(kvp => kvp.Key, kvp => kvp.Value?.ToString() ?? string.Empty);
+        }
+
         var valueProvider = new ObjectValueProvider(triggerValue, _triggerParameter.ParameterType);
 
         var data = new TriggerData(valueProvider, bindingData)
@@ -67,37 +75,64 @@ internal sealed class McpToolTriggerBinding : ITriggerBinding
 
     public Task<IListener> CreateListenerAsync(ListenerFactoryContext context)
     {
-        List<IMcpToolProperty>? toolProperties = null;
-        if (_toolAttribute.ToolProperties is not null)
-        {
-            var arguments = JsonSerializer.Deserialize<List<McpToolPropertyAttribute>>(_toolAttribute.ToolProperties, McpJsonSerializerOptions.DefaultOptions);
+        var toolProperties = GetProperties(_toolAttribute, _triggerParameter);
 
-            if (arguments is not null)
-            {
-                toolProperties = arguments.Cast<IMcpToolProperty>().ToList();
-            }
-        } 
-        else if (_triggerParameter.Member is MethodInfo methodInfo)
-        {
-            toolProperties = new List<IMcpToolProperty>();
-
-            foreach (var parameter in methodInfo.GetParameters())
-            {
-                var property = parameter.GetCustomAttribute<McpToolPropertyAttribute>(inherit: false);
-                if (property is null)
-                {
-                    continue;
-                }
-
-                toolProperties.Add(property);
-            }
-        }
-
-        var listener = new McpToolListener(context.Executor, context.Descriptor.ShortName, _toolAttribute.ToolName, _toolAttribute.Description, toolProperties ?? []);
+        var listener = new McpToolListener(context.Executor, context.Descriptor.ShortName, _toolAttribute.ToolName, _toolAttribute.Description, toolProperties);
 
         _toolRegistry.Register(listener);
 
         return Task.FromResult<IListener>(listener);
+    }
+
+
+    private static List<IMcpToolProperty> GetProperties(McpToolTriggerAttribute attribute, ParameterInfo triggerParameter)
+    {
+        List<IMcpToolProperty>? toolProperties = null;
+
+        switch (attribute.ToolProperties)
+        {
+            //case JArray jarrayProperties:
+            //{
+            //    var arguments = jarrayProperties.ToObject<List<McpToolPropertyAttribute>>();
+            //    SetProperties(arguments);
+            //    break;
+            //}
+            case string propertiesString:
+            {
+                var arguments = JsonSerializer.Deserialize<List<McpToolPropertyAttribute>>(propertiesString, McpJsonSerializerOptions.DefaultOptions);
+                SetProperties(arguments);
+                break;
+            }
+            default:
+            {
+                if (triggerParameter.Member is MethodInfo methodInfo)
+                {
+                    toolProperties = [];
+
+                    foreach (var parameter in methodInfo.GetParameters())
+                    {
+                        var property = parameter.GetCustomAttribute<McpToolPropertyAttribute>(inherit: false);
+                        if (property is null)
+                        {
+                            continue;
+                        }
+
+                        toolProperties.Add(property);
+                    }
+                }
+                break;
+            }
+        }
+
+        return toolProperties ?? [];
+
+        void SetProperties(List<McpToolPropertyAttribute>? properties)
+        {
+            if (properties is not null)
+            {
+                toolProperties = properties.Cast<IMcpToolProperty>().ToList();
+            }
+        }
     }
 
     public ParameterDescriptor ToParameterDescriptor()
