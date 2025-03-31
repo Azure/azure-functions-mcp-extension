@@ -19,7 +19,7 @@ internal sealed class MessageHandler(Stream eventStream) : IMessageHandler, IAsy
 
     public Task StartAsync(CancellationToken cancellationToken, Func<string, string>? endpointWriter = null)
     {
-        endpointWriter ??= (clientId) => $"message?mcpcid={Id}";
+        endpointWriter ??= (clientId) => $"message?{McpConstants.AzmcpClientIdQuery}={Id}";
 
         var endpointResponse = new JsonRpcResponse { Id = RequestId.FromString(Id), Result = endpointWriter(Id) };
         _outgoingChannel.Writer.TryWrite(new SseItem<IJsonRpcMessage>(endpointResponse, "endpoint"));

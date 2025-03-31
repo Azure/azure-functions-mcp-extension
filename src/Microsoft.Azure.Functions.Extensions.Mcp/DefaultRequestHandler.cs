@@ -4,20 +4,13 @@ using Microsoft.Azure.Functions.Extensions.Mcp.Protocol.Messages;
 using Microsoft.Azure.Functions.Extensions.Mcp.Serialization;
 using Microsoft.Extensions.Primitives;
 using System.Diagnostics.CodeAnalysis;
+using static Microsoft.Azure.Functions.Extensions.Mcp.McpConstants;
 
 namespace Microsoft.Azure.Functions.Extensions.Mcp;
 
-internal sealed class DefaultRequestHandler : IRequestHandler
+internal sealed class DefaultRequestHandler(IMessageHandlerManager messageHandlerManager, IMcpInstanceIdProvider instanceIdProvider) : IRequestHandler
 {
-    private readonly string InstanceId = Guid.NewGuid().ToString();
-    private readonly IMessageHandlerManager _messageHandlerManager;
-    private readonly IMcpBackplane _backplane;
-
-    public DefaultRequestHandler(IMessageHandlerManager messageHandlerManager, IMcpBackplane backplane)
-    {
-        _messageHandlerManager = messageHandlerManager;
-        _backplane = backplane;
-    }
+    private readonly IMessageHandlerManager _messageHandlerManager = messageHandlerManager;
 
     public async Task HandleSseRequest(HttpContext context)
     {
@@ -52,12 +45,14 @@ internal sealed class DefaultRequestHandler : IRequestHandler
 
     private string WriteEndpoint(string clientId, HttpContext context)
     {
-        if (context.Request.Query.TryGetValue("code", out StringValues code))
+        string result = $"message?{AzmcpClientIdQuery}={clientId}&{AzmcpInstanceIdQuery}={instanceIdProvider.InstanceId}";
+
+        if (TryGetQueryValue(context, AzmcpCodeQuery, out string? code))
         {
-            return $"message?azmcpcid={clientId}&azmcpiid={InstanceId}&code={code}";
+            result += $"&{AzmcpCodeQuery}={code}";
         }
 
-        return $"message?azmcpcid={clientId}&azmcpiid={InstanceId}";
+        return result;
     }
 
     public async Task HandleMessageRequest(HttpContext context)
@@ -67,13 +62,13 @@ internal sealed class DefaultRequestHandler : IRequestHandler
             return Results.BadRequest($"{message} Please connect to the /sse endpoint to initiate your session.").ExecuteAsync(httpContext);
         }
 
-        if (!TryGetQueryValue(context, "azmciid", out string? instanceId))
+        if (!TryGetQueryValue(context, AzmcpInstanceIdQuery, out string? instanceId))
         {
             await WriteInvalidSessionResponse("Missing service context.", context);
             return;
         }
 
-        if (!TryGetQueryValue(context, "azmcpcid", out string? mcpClientId))
+        if (!TryGetQueryValue(context, AzmcpClientIdQuery, out string? mcpClientId))
         {
             await WriteInvalidSessionResponse("Missing client context.", context);
             return;
@@ -87,21 +82,7 @@ internal sealed class DefaultRequestHandler : IRequestHandler
             return;
         }
 
-        if (string.Equals(instanceId, InstanceId, StringComparison.OrdinalIgnoreCase))
-        {
-            if (!_messageHandlerManager.TryGetHandler(mcpClientId!, out IMessageHandler? handler))
-            {
-                await WriteInvalidSessionResponse("Invalid client context.", context);
-                return;
-            }
-
-            await handler.ProcessMessageAsync(message, context.RequestAborted);
-        }
-        else
-        {
-            // Route this request to the appropriate instance
-            await _backplane.SendMessageAsync(message, instanceId, mcpClientId, context.RequestAborted);
-        }
+        await _messageHandlerManager.HandleMessageAsync(message, instanceId, mcpClientId, context.RequestAborted);
 
         context.Response.StatusCode = StatusCodes.Status202Accepted;
         await context.Response.WriteAsync("Accepted");
