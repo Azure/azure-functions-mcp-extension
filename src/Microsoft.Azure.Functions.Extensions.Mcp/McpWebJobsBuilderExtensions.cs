@@ -19,7 +19,9 @@ public static class McpWebJobsBuilderExtensions
     {
         ArgumentNullException.ThrowIfNull(nameof(builder));
 
-        builder.Services.AddSingleton<IFunctionProvider, McpFunctionProvider>();
+        // Uncomment the line below to register the endpoints as functions.
+        //builder.Services.AddSingleton<IFunctionProvider, McpFunctionProvider>();
+
         builder.Services.AddSingleton<IRequestHandler, DefaultRequestHandler>();
         builder.Services.AddSingleton<IToolRegistry, DefaultToolRegistry>();
         builder.Services.AddSingleton<IMessageHandlerManager, DefaultMessageHandlerManager>();

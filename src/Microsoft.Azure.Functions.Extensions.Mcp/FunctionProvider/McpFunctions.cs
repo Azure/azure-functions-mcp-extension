@@ -9,24 +9,16 @@ public class McpFunctions
     {
         ArgumentNullException.ThrowIfNull(request);
 
-        var requestHandler = request.HttpContext.RequestServices.GetService(typeof(IRequestHandler)) as IRequestHandler;
-
-        if (requestHandler == null)
-        {
-            throw new InvalidOperationException("Request handler not found.");
-        }
+        var requestHandler = request.HttpContext.RequestServices.GetService(typeof(IRequestHandler)) as IRequestHandler
+            ?? throw new InvalidOperationException("Request handler not found.");
 
         await requestHandler.HandleSseRequest(request.HttpContext);
     }
 
     public static async Task HandleMessageRequest(HttpRequest request)
     {
-        var requestHandler = request.HttpContext.RequestServices.GetService(typeof(IRequestHandler)) as IRequestHandler;
-
-        if (requestHandler == null)
-        {
-            throw new InvalidOperationException("Request handler not found.");
-        }
+        var requestHandler = request.HttpContext.RequestServices.GetService(typeof(IRequestHandler)) as IRequestHandler
+            ?? throw new InvalidOperationException("Request handler not found.");
 
         await requestHandler.HandleMessageRequest(request.HttpContext);
     }
