@@ -3,11 +3,22 @@ using Microsoft.Azure.Functions.Extensions.Mcp.Abstractions;
 using Microsoft.Azure.Functions.Extensions.Mcp.Protocol.Messages;
 using Microsoft.Azure.Functions.Extensions.Mcp.Serialization;
 using Microsoft.Extensions.Primitives;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Microsoft.Azure.Functions.Extensions.Mcp;
 
-internal sealed class DefaultRequestHandler(IMessageHandlerManager messageHandlerManager) : IRequestHandler
+internal sealed class DefaultRequestHandler : IRequestHandler
 {
+    private readonly string InstanceId = Guid.NewGuid().ToString();
+    private readonly IMessageHandlerManager _messageHandlerManager;
+    private readonly IMcpBackplane _backplane;
+
+    public DefaultRequestHandler(IMessageHandlerManager messageHandlerManager, IMcpBackplane backplane)
+    {
+        _messageHandlerManager = messageHandlerManager;
+        _backplane = backplane;
+    }
+
     public async Task HandleSseRequest(HttpContext context)
     {
         // Set the appropriate headers for SSE.
@@ -15,7 +26,7 @@ internal sealed class DefaultRequestHandler(IMessageHandlerManager messageHandle
         context.Response.Headers.Append("Cache-Control", "no-cache");
         context.Response.Headers.Append("Connection", "keep-alive");
 
-        IMessageHandler handler = messageHandlerManager.CreateHandler(context.Response.Body, context.RequestAborted);
+        IMessageHandler handler = _messageHandlerManager.CreateHandler(context.Response.Body, context.RequestAborted);
 
         try
         {
@@ -27,23 +38,44 @@ internal sealed class DefaultRequestHandler(IMessageHandlerManager messageHandle
         }
         finally
         {
-            await messageHandlerManager.CloseHandlerAsync(handler);
+            try
+            {
+                await _messageHandlerManager.CloseHandlerAsync(handler);
+            }
+            catch (Exception)
+            {
+                // Ignore exceptions during handler closure.
+                // Do we want to log this cleanup?
+            }
         }
     }
 
     private string WriteEndpoint(string clientId, HttpContext context)
     {
-        context.Request.Query.TryGetValue("code", out StringValues code);
+        if (context.Request.Query.TryGetValue("code", out StringValues code))
+        {
+            return $"message?azmcpcid={clientId}&azmcpiid={InstanceId}&code={code}";
+        }
 
-        return $"message?mcpcid={clientId}&code={code}";
+        return $"message?azmcpcid={clientId}&azmcpiid={InstanceId}";
     }
 
     public async Task HandleMessageRequest(HttpContext context)
     {
-        if (!context.Request.Query.TryGetValue("mcpcid", out StringValues mcpClientId)
-            || !messageHandlerManager.TryGetHandler(mcpClientId!, out IMessageHandler? handler))
+        static Task WriteInvalidSessionResponse(string message, HttpContext httpContext)
         {
-            await Results.BadRequest("Missing client context. Please connect to the /sse endpoint to initiate your session.").ExecuteAsync(context);
+            return Results.BadRequest($"{message} Please connect to the /sse endpoint to initiate your session.").ExecuteAsync(httpContext);
+        }
+
+        if (!TryGetQueryValue(context, "azmciid", out string? instanceId))
+        {
+            await WriteInvalidSessionResponse("Missing service context.", context);
+            return;
+        }
+
+        if (!TryGetQueryValue(context, "azmcpcid", out string? mcpClientId))
+        {
+            await WriteInvalidSessionResponse("Missing client context.", context);
             return;
         }
 
@@ -55,9 +87,34 @@ internal sealed class DefaultRequestHandler(IMessageHandlerManager messageHandle
             return;
         }
 
-        await handler.ProcessMessageAsync(message, context.RequestAborted);
+        if (string.Equals(instanceId, InstanceId, StringComparison.OrdinalIgnoreCase))
+        {
+            if (!_messageHandlerManager.TryGetHandler(mcpClientId!, out IMessageHandler? handler))
+            {
+                await WriteInvalidSessionResponse("Invalid client context.", context);
+                return;
+            }
+
+            await handler.ProcessMessageAsync(message, context.RequestAborted);
+        }
+        else
+        {
+            // Route this request to the appropriate instance
+            await _backplane.SendMessageAsync(message, instanceId, mcpClientId, context.RequestAborted);
+        }
 
         context.Response.StatusCode = StatusCodes.Status202Accepted;
         await context.Response.WriteAsync("Accepted");
+    }
+
+    private static bool TryGetQueryValue(HttpContext context, string key, [NotNullWhen(true)] out string? value)
+    {
+        value = null;
+        if (context.Request.Query.TryGetValue(key, out var strings))
+        {
+            value = strings.FirstOrDefault();
+        }
+
+        return value is not null;
     }
 }
