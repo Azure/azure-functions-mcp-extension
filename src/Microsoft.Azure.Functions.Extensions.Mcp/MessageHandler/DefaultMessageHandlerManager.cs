@@ -4,12 +4,42 @@ using Microsoft.Azure.Functions.Extensions.Mcp.Protocol.Messages;
 using Microsoft.Azure.Functions.Extensions.Mcp.Protocol.Model;
 using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
+using System.Threading.Channels;
+using Microsoft.Azure.Functions.Extensions.Mcp.Backplane;
+using System.Threading;
 
 namespace Microsoft.Azure.Functions.Extensions.Mcp;
 
-internal sealed class DefaultMessageHandlerManager(IToolRegistry toolRegistry) : IMessageHandlerManager
+internal sealed class DefaultMessageHandlerManager : IMessageHandlerManager, IAsyncDisposable
 {
     private readonly ConcurrentDictionary<string, MessageHandlerReference> _handlers = new();
+    private readonly IToolRegistry _toolRegistry;
+    private readonly IMcpInstanceIdProvider _instanceIdProvider;
+    private readonly IMcpBackplane _backplane;
+    private readonly Task _backplaneProcessingTask;
+
+    public DefaultMessageHandlerManager(IToolRegistry toolRegistry, IMcpInstanceIdProvider instanceIdProvider, IMcpBackplane backplane)
+    {
+        _toolRegistry = toolRegistry;
+        _instanceIdProvider = instanceIdProvider;
+        _backplane = backplane;
+        _backplaneProcessingTask = InitializeBackplaneProcessing(_backplane.Messages);
+    }
+
+    private async Task InitializeBackplaneProcessing(ChannelReader<McpBackplaneMessage> messages)
+    {
+        try
+        {
+            await foreach (var message in messages.ReadAllAsync())
+            {
+                _ = HandleMessageAsync(message.ClientId, message.Message, CancellationToken.None);
+            }
+        }
+        catch (OperationCanceledException) when (messages.Completion.IsCompleted)
+        {
+            // Ignore cancellation
+        }
+    }
 
     public IMessageHandler CreateHandler(Stream eventStream, CancellationToken cancellationToken)
     {
@@ -37,6 +67,34 @@ internal sealed class DefaultMessageHandlerManager(IToolRegistry toolRegistry) :
         }
 
         return messageHandler is not null;
+    }
+
+    public async Task HandleMessageAsync(IJsonRpcMessage message, string instanceId, string clientId, CancellationToken cancellationToken)
+    {
+        if (string.Equals(instanceId, _instanceIdProvider.InstanceId, StringComparison.OrdinalIgnoreCase))
+        {
+            await HandleMessageAsync(clientId, message, cancellationToken);
+        }
+        else
+        {
+            // Route this request to the appropriate instance
+            await _backplane.SendMessageAsync(message, instanceId, clientId, cancellationToken);
+        }
+    }
+
+    public ValueTask DisposeAsync()
+    {
+        return new ValueTask(_backplaneProcessingTask);
+    }
+
+    private Task HandleMessageAsync(string clientId, IJsonRpcMessage message, CancellationToken cancellationToken)
+    {
+        if (!TryGetHandler(clientId, out IMessageHandler? handler))
+        {
+            throw new InvalidOperationException("Invalid client id.");
+        }
+
+        return handler.ProcessMessageAsync(message, cancellationToken);
     }
 
     private async Task ProcessMessagesAsync(IMessageHandler handler, CancellationToken cancellationToken)
@@ -81,7 +139,7 @@ internal sealed class DefaultMessageHandlerManager(IToolRegistry toolRegistry) :
         {
             case "tools/list":
 
-                var tools = toolRegistry.GetTools()
+                var tools = _toolRegistry.GetTools()
                     .Select(t => new Tool
                     {
                         Name = t.Name,
@@ -98,7 +156,7 @@ internal sealed class DefaultMessageHandlerManager(IToolRegistry toolRegistry) :
                 {
                     var callToolRequest = paramsElement.Deserialize<ToolInvocationContext>();
                     if (callToolRequest is not null
-                        && toolRegistry.TryGetTool(callToolRequest.Name, out var tool))
+                        && _toolRegistry.TryGetTool(callToolRequest.Name, out var tool))
                     {
                         return await tool.RunAsync(callToolRequest, cancellationToken);
                     }

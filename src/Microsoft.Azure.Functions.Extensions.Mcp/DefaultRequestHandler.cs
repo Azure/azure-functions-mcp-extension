@@ -3,11 +3,15 @@ using Microsoft.Azure.Functions.Extensions.Mcp.Abstractions;
 using Microsoft.Azure.Functions.Extensions.Mcp.Protocol.Messages;
 using Microsoft.Azure.Functions.Extensions.Mcp.Serialization;
 using Microsoft.Extensions.Primitives;
+using System.Diagnostics.CodeAnalysis;
+using static Microsoft.Azure.Functions.Extensions.Mcp.McpConstants;
 
 namespace Microsoft.Azure.Functions.Extensions.Mcp;
 
-internal sealed class DefaultRequestHandler(IMessageHandlerManager messageHandlerManager) : IRequestHandler
+internal sealed class DefaultRequestHandler(IMessageHandlerManager messageHandlerManager, IMcpInstanceIdProvider instanceIdProvider) : IRequestHandler
 {
+    private readonly IMessageHandlerManager _messageHandlerManager = messageHandlerManager;
+
     public async Task HandleSseRequest(HttpContext context)
     {
         // Set the appropriate headers for SSE.
@@ -15,7 +19,7 @@ internal sealed class DefaultRequestHandler(IMessageHandlerManager messageHandle
         context.Response.Headers.Append("Cache-Control", "no-cache");
         context.Response.Headers.Append("Connection", "keep-alive");
 
-        IMessageHandler handler = messageHandlerManager.CreateHandler(context.Response.Body, context.RequestAborted);
+        IMessageHandler handler = _messageHandlerManager.CreateHandler(context.Response.Body, context.RequestAborted);
 
         try
         {
@@ -27,23 +31,46 @@ internal sealed class DefaultRequestHandler(IMessageHandlerManager messageHandle
         }
         finally
         {
-            await messageHandlerManager.CloseHandlerAsync(handler);
+            try
+            {
+                await _messageHandlerManager.CloseHandlerAsync(handler);
+            }
+            catch (Exception)
+            {
+                // Ignore exceptions during handler closure.
+                // Do we want to log this cleanup?
+            }
         }
     }
 
     private string WriteEndpoint(string clientId, HttpContext context)
     {
-        context.Request.Query.TryGetValue("code", out StringValues code);
+        string result = $"message?{AzmcpClientIdQuery}={clientId}&{AzmcpInstanceIdQuery}={instanceIdProvider.InstanceId}";
 
-        return $"message?mcpcid={clientId}&code={code}";
+        if (TryGetQueryValue(context, AzmcpCodeQuery, out string? code))
+        {
+            result += $"&{AzmcpCodeQuery}={code}";
+        }
+
+        return result;
     }
 
     public async Task HandleMessageRequest(HttpContext context)
     {
-        if (!context.Request.Query.TryGetValue("mcpcid", out StringValues mcpClientId)
-            || !messageHandlerManager.TryGetHandler(mcpClientId!, out IMessageHandler? handler))
+        static Task WriteInvalidSessionResponse(string message, HttpContext httpContext)
         {
-            await Results.BadRequest("Missing client context. Please connect to the /sse endpoint to initiate your session.").ExecuteAsync(context);
+            return Results.BadRequest($"{message} Please connect to the /sse endpoint to initiate your session.").ExecuteAsync(httpContext);
+        }
+
+        if (!TryGetQueryValue(context, AzmcpInstanceIdQuery, out string? instanceId))
+        {
+            await WriteInvalidSessionResponse("Missing service context.", context);
+            return;
+        }
+
+        if (!TryGetQueryValue(context, AzmcpClientIdQuery, out string? mcpClientId))
+        {
+            await WriteInvalidSessionResponse("Missing client context.", context);
             return;
         }
 
@@ -55,9 +82,20 @@ internal sealed class DefaultRequestHandler(IMessageHandlerManager messageHandle
             return;
         }
 
-        await handler.ProcessMessageAsync(message, context.RequestAborted);
+        await _messageHandlerManager.HandleMessageAsync(message, instanceId, mcpClientId, context.RequestAborted);
 
         context.Response.StatusCode = StatusCodes.Status202Accepted;
         await context.Response.WriteAsync("Accepted");
+    }
+
+    private static bool TryGetQueryValue(HttpContext context, string key, [NotNullWhen(true)] out string? value)
+    {
+        value = null;
+        if (context.Request.Query.TryGetValue(key, out var strings))
+        {
+            value = strings.FirstOrDefault();
+        }
+
+        return value is not null;
     }
 }
