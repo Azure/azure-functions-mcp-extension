@@ -19,7 +19,7 @@ internal sealed class DefaultRequestHandler(IMessageHandlerManager messageHandle
 
         try
         {
-            await handler.StartAsync(context.RequestAborted);
+            await handler.StartAsync(context.RequestAborted, (clientId) => WriteEndpoint(clientId, context));
         }
         catch (OperationCanceledException) when (context.RequestAborted.IsCancellationRequested)
         {
@@ -29,6 +29,13 @@ internal sealed class DefaultRequestHandler(IMessageHandlerManager messageHandle
         {
             await messageHandlerManager.CloseHandlerAsync(handler);
         }
+    }
+
+    private string WriteEndpoint(string clientId, HttpContext context)
+    {
+        context.Request.Query.TryGetValue("code", out StringValues code);
+
+        return $"message?mcpcid={clientId}&code={code}";
     }
 
     public async Task HandleMessageRequest(HttpContext context)

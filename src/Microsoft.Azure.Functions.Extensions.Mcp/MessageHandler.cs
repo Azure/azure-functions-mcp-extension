@@ -2,7 +2,6 @@
 using Microsoft.Azure.Functions.Extensions.Mcp.Protocol.Messages;
 using Microsoft.Azure.Functions.Extensions.Mcp.Serialization;
 using System.Buffers;
-using System.Globalization;
 using System.Net.ServerSentEvents;
 using System.Text;
 using System.Text.Json;
@@ -18,9 +17,11 @@ internal sealed class MessageHandler(Stream eventStream) : IMessageHandler, IAsy
 
     public string Id { get; } = Guid.NewGuid().ToString();
 
-    public Task StartAsync(CancellationToken cancellationToken)
+    public Task StartAsync(CancellationToken cancellationToken, Func<string, string>? endpointWriter = null)
     {
-        var endpointResponse = new JsonRpcResponse { Id = RequestId.FromString(Id), Result = null };
+        endpointWriter ??= (clientId) => $"message?mcpcid={Id}";
+
+        var endpointResponse = new JsonRpcResponse { Id = RequestId.FromString(Id), Result = endpointWriter(Id) };
         _outgoingChannel.Writer.TryWrite(new SseItem<IJsonRpcMessage>(endpointResponse, "endpoint"));
 
         var events = _outgoingChannel.Reader.ReadAllAsync(cancellationToken);
@@ -32,8 +33,10 @@ internal sealed class MessageHandler(Stream eventStream) : IMessageHandler, IAsy
     {
         if (string.Equals(sseItem.EventType, "endpoint", StringComparison.OrdinalIgnoreCase))
         {
-            var clientId = ((JsonRpcResponse) sseItem.Data).Id.AsString;
-            writer.Write(Encoding.UTF8.GetBytes($"message?mcpcid={clientId}"));
+            var endpoint = (((JsonRpcResponse)sseItem.Data).Result?.ToString()) 
+                ?? throw new InvalidOperationException("Endpoint is null");
+
+            writer.Write(Encoding.UTF8.GetBytes(endpoint));
             return;
         }
 
@@ -58,4 +61,8 @@ internal sealed class MessageHandler(Stream eventStream) : IMessageHandler, IAsy
 
         return new ValueTask(_writeTask);
     }
+}
+
+internal sealed record EndpointContext(string ClientId, string InstanceId, string? Code)
+{
 }
