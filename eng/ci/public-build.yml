@@ -5,6 +5,7 @@ trigger:
   branches:
     include:
     - main
+    - fabiocav/initial
 
 schedules:
   # Ensure we build nightly to catch any new CVEs and report SDL often.
