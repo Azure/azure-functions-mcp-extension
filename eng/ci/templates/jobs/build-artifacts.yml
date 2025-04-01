@@ -1,0 +1,52 @@
+parameters:
+  - name: CreateArtifacts
+    type: boolean
+    default: true
+
+jobs:
+
+- job: BuildArtifacts
+  displayName: Build Artifacts
+
+  variables:
+    - template: /eng/ci/templates/variables/build.yml@self
+
+  templateContext:
+    outputParentDirectory: $(System.DefaultWorkingDirectory)/packages
+    outputs:
+    - ${{ if eq(parameters.CreateArtifacts, true) }}:
+      - output: pipelineArtifact
+        displayName: Publish artifacts
+        path: $(System.DefaultWorkingDirectory)/packages
+        artifact: drop
+
+  steps:
+  - pwsh: dotnet --version
+    displayName: "Echo dotnet version"
+  
+  - task: DotNetCoreCLI@2
+    displayName: 'Build project'
+    condition: false
+    inputs:
+      command: 'build'
+      arguments: '-c $(buildConfiguration)'
+      projects: 'Microsoft.Azure.Functions.Extensions.Mcp.sln'
+
+  - task: DotNetCoreCLI@2
+    displayName: 'Run tests'
+    condition: false
+    inputs:
+      command: 'test'
+      arguments: '--no-build -c $(buildConfiguration)'
+      projects: 'Microsoft.Azure.Functions.Extensions.Mcp.sln'
+
+  - ${{ if eq(parameters.CreateArtifacts, true) }}:
+    - task: DotNetCoreCLI@2
+      displayName: 'Build package'
+      condition: false
+      inputs:
+        command: 'custom'
+        custom: 'pack'
+        arguments: '--no-build -c Release -p:Version="$(buildVersion)-$(versionSuffix)" -o packages'
+        projects: |
+          **/Extensions**.csproj
