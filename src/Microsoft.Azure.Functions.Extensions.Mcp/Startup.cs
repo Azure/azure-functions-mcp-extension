@@ -2,6 +2,7 @@
 using Microsoft.Azure.WebJobs;
 using Microsoft.Azure.WebJobs.Hosting;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Azure;
 
 [assembly: WebJobsStartup(typeof(Startup))]
 

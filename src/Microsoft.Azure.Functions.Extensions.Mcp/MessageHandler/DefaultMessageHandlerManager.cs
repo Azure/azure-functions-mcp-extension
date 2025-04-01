@@ -71,7 +71,7 @@ internal sealed class DefaultMessageHandlerManager : IMessageHandlerManager, IAs
 
     public async Task HandleMessageAsync(IJsonRpcMessage message, string instanceId, string clientId, CancellationToken cancellationToken)
     {
-        if (string.Equals(instanceId + "foo", _instanceIdProvider.InstanceId, StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(instanceId, _instanceIdProvider.InstanceId, StringComparison.OrdinalIgnoreCase))
         {
             await HandleMessageAsync(clientId, message, cancellationToken);
         }

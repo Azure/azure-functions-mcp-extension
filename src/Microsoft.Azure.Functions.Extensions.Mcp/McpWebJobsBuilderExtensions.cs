@@ -1,8 +1,8 @@
 ﻿using Microsoft.Azure.Functions.Extensions.Mcp;
 using Microsoft.Azure.Functions.Extensions.Mcp.Abstractions;
-using Microsoft.Azure.Functions.Extensions.Mcp.Backplane;
+using Microsoft.Azure.Functions.Extensions.Mcp.Backplane.Storage;
 using Microsoft.Azure.WebJobs;
-using Microsoft.Azure.WebJobs.Script.Description;
+using Microsoft.Extensions.Azure;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Microsoft.Extensions.Hosting;
@@ -27,7 +27,9 @@ public static class McpWebJobsBuilderExtensions
         builder.Services.AddSingleton<IToolRegistry, DefaultToolRegistry>();
         builder.Services.AddSingleton<IMessageHandlerManager, DefaultMessageHandlerManager>();
         builder.Services.AddSingleton<IMcpInstanceIdProvider, DefaultMcpInstanceIdProvider>();
-        builder.Services.AddSingleton<IMcpBackplane, InMemoryBackplane>();
+        builder.Services.AddSingleton<IMcpBackplane, AzureStorageBackplane>();
+        builder.Services.AddSingleton<QueueServiceClientProvider>();
+        builder.Services.AddAzureClientsCore();
 
         builder.AddExtension<McpExtensionConfigProvider>();
 
