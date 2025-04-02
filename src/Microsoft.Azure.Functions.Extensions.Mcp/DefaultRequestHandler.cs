@@ -45,7 +45,8 @@ internal sealed class DefaultRequestHandler(IMessageHandlerManager messageHandle
 
     private string WriteEndpoint(string clientId, HttpContext context)
     {
-        string result = $"message?{AzmcpClientIdQuery}={clientId}&{AzmcpInstanceIdQuery}={instanceIdProvider.InstanceId}";
+        string clientState = ClientStateManager.FormatUriState(clientId, instanceIdProvider.InstanceId);
+        string result = $"message?{AzmcpStateQuery}={clientState}";
 
         if (TryGetQueryValue(context, AzmcpCodeQuery, out string? code))
         {
@@ -62,15 +63,15 @@ internal sealed class DefaultRequestHandler(IMessageHandlerManager messageHandle
             return Results.BadRequest($"{message} Please connect to the /sse endpoint to initiate your session.").ExecuteAsync(httpContext);
         }
 
-        if (!TryGetQueryValue(context, AzmcpInstanceIdQuery, out string? instanceId))
+        if (!TryGetQueryValue(context, AzmcpStateQuery, out string? clientState))
         {
             await WriteInvalidSessionResponse("Missing service context.", context);
             return;
         }
 
-        if (!TryGetQueryValue(context, AzmcpClientIdQuery, out string? mcpClientId))
+        if (!ClientStateManager.TryParseUriState(clientState, out string? clientId, out string? instanceId))
         {
-            await WriteInvalidSessionResponse("Missing client context.", context);
+            await WriteInvalidSessionResponse("Invalid client state.", context);
             return;
         }
 
@@ -82,7 +83,7 @@ internal sealed class DefaultRequestHandler(IMessageHandlerManager messageHandle
             return;
         }
 
-        await _messageHandlerManager.HandleMessageAsync(message, instanceId, mcpClientId, context.RequestAborted);
+        await _messageHandlerManager.HandleMessageAsync(message, instanceId, clientId, context.RequestAborted);
 
         context.Response.StatusCode = StatusCodes.Status202Accepted;
         await context.Response.WriteAsync("Accepted");
