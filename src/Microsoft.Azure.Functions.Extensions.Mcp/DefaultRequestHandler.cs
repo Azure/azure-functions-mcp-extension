@@ -48,9 +48,9 @@ internal sealed class DefaultRequestHandler(IMessageHandlerManager messageHandle
         string clientState = ClientStateManager.FormatUriState(clientId, instanceIdProvider.InstanceId);
         string result = $"message?{AzmcpStateQuery}={clientState}";
 
-        if (TryGetQueryValue(context, AzmcpCodeQuery, out string? code))
+        if (TryGetFunctionKey(context, out string? code))
         {
-            result += $"&{AzmcpCodeQuery}={code}";
+            result += $"&{FunctionsCodeQuery}={code}";
         }
 
         return result;
@@ -87,6 +87,13 @@ internal sealed class DefaultRequestHandler(IMessageHandlerManager messageHandle
 
         context.Response.StatusCode = StatusCodes.Status202Accepted;
         await context.Response.WriteAsync("Accepted");
+    }
+
+    private bool TryGetFunctionKey(HttpContext context, out string? code)
+    {
+        return TryGetQueryValue(context, FunctionsCodeQuery, out code) ||
+               context.Request.Headers.TryGetValue(FunctionsKeyHeader, out StringValues values) &&
+               (code = values.FirstOrDefault()) is not null;
     }
 
     private static bool TryGetQueryValue(HttpContext context, string key, [NotNullWhen(true)] out string? value)
