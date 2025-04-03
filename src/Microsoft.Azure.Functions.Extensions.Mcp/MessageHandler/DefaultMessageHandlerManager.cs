@@ -138,7 +138,6 @@ internal sealed class DefaultMessageHandlerManager : IMessageHandlerManager, IAs
         switch (request.Method)
         {
             case "tools/list":
-
                 var tools = _toolRegistry.GetTools()
                     .Select(t => new Tool
                     {
@@ -158,7 +157,22 @@ internal sealed class DefaultMessageHandlerManager : IMessageHandlerManager, IAs
                     if (callToolRequest is not null
                         && _toolRegistry.TryGetTool(callToolRequest.Name, out var tool))
                     {
-                        return await tool.RunAsync(callToolRequest, cancellationToken);
+                        try
+                        {
+                            return await tool.RunAsync(callToolRequest, cancellationToken);
+                        }
+                        catch (Exception)
+                        {
+                            return new JsonRpcError
+                            {
+                                Id = request.Id,
+                                Error = new JsonRpcErrorDetail
+                                {
+                                    Code = ErrorCodes.InternalError,
+                                    Message = "Tool invocation failure."
+                                }
+                            };
+                        }
                     }
                 }
                 break;
@@ -180,12 +194,11 @@ internal sealed class DefaultMessageHandlerManager : IMessageHandlerManager, IAs
                         }
                     }
                 };
-
         }
 
         return new JsonRpcError
         {
-            Id = RequestId.FromString("test"),
+            Id = request.Id,
             Error = new JsonRpcErrorDetail()
             {
                 Code = ErrorCodes.MethodNotFound,
@@ -194,9 +207,9 @@ internal sealed class DefaultMessageHandlerManager : IMessageHandlerManager, IAs
         };
     }
 
-    private Dictionary<string, JsonSchemaProperty> GetProperties(IMcpTool t)
+    private Dictionary<string, JsonSchemaProperty> GetProperties(IMcpTool tool)
     {
-        return t.Properties.ToDictionary(
+        return tool.Properties.ToDictionary(
             p => p.PropertyName,
             p => new JsonSchemaProperty
             {
