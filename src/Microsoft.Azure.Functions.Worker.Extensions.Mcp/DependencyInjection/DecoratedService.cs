@@ -6,9 +6,10 @@ internal static class DecoratedService
 {
     private static Func<IServiceProvider, object> GetFactory(ServiceDescriptor descriptor)
     {
+
         return descriptor.ImplementationFactory
                ?? ((p) => descriptor.ImplementationInstance ??
-                          ActivatorUtilities.CreateInstance(p, descriptor.ImplementationType));
+                          ActivatorUtilities.CreateInstance(p, descriptor.ImplementationType!));
     }
 
     public static IServiceCollection Decorate<TService, TImplementation>(this IServiceCollection collection)
