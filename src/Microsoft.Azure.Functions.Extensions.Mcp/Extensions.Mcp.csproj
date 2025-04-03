@@ -3,16 +3,18 @@
   <PropertyGroup>
     <AssemblyName>Microsoft.Azure.Functions.Extensions.Mcp</AssemblyName>
     <RootNamespace>Microsoft.Azure.Functions.Extensions.Mcp</RootNamespace>
+    <Description>Model Context Protocol (MCP) extensions for Azure Functions</Description>
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
-    <LangVersion>Latest</LangVersion>
-    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <PackageId>Microsoft.Azure.Functions.Extensions.Mcp</PackageId>
-    <PackageVersion>$(ExtensionVersion)</PackageVersion>
+    <AssemblyVersion>$(ExtensionVersion).0</AssemblyVersion>
+    <PackageVersion>$(ExtensionPackageVersion)</PackageVersion>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
     <!--<AnalysisMode>All</AnalysisMode>-->
   </PropertyGroup>
 
+  <Import Project="..\..\build\Common.props" />
+  
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
   </ItemGroup>
@@ -27,6 +29,10 @@
     <PackageReference Include="System.Net.Http" Version="4.3.4" />
     <PackageReference Include="System.Net.ServerSentEvents" Version="10.0.0-preview.1.25080.5" />
     <PackageReference Include="System.Text.RegularExpressions" Version="4.3.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="README.md" Pack="true" PackagePath="/" />
   </ItemGroup>
 
 </Project>

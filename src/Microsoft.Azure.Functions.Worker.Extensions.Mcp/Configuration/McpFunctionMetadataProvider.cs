@@ -112,6 +112,11 @@ public sealed class McpFunctionMetadataProvider(IFunctionMetadataProvider inner,
 
         var method = type.GetMethod(methodName);
 
+        if (method is null)
+        {
+            return false;
+        }
+
         var properties = new List<ToolProperty>();
         foreach (var parameter in method.GetParameters())
         {
