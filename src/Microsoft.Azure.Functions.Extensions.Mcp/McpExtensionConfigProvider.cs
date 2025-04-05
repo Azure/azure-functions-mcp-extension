@@ -22,7 +22,7 @@ internal sealed class McpExtensionConfigProvider(IToolRegistry toolRegistry, IRe
         var uri = context.GetWebhookHandler();
 
         loggerFactory.CreateLogger("Host.Function.Console")
-            .LogInformation("MCP server SSE endpoint: {Uri}", uri.GetLeftPart(UriPartial.Path));
+            .LogInformation("MCP server SSE endpoint: {Uri}/sse", uri.GetLeftPart(UriPartial.Path));
 
         _webhookDelegate = () => webHookProvider.GetUrl(this);
 

@@ -37,10 +37,10 @@ internal sealed class MessageHandler(Stream eventStream) : IMessageHandler, IAsy
         // Not taking any action if the client fails to respond.
         while (!cancellationToken.IsCancellationRequested)
         {
+            await Task.Delay(TimeSpan.FromSeconds(25), cancellationToken);
+
             var requestId = RequestId.FromString($"{Id}-{Interlocked.Increment(ref _currentRequestId)}");
             await SendMessageAsync(new JsonRpcRequest { Id = requestId, Method = "ping" }, cancellationToken);
-
-            await Task.Delay(TimeSpan.FromSeconds(25), cancellationToken);
         }
     }
 
