@@ -6,18 +6,23 @@ using Microsoft.Azure.Functions.Extensions.Mcp.Abstractions;
 using Microsoft.Azure.WebJobs;
 using Microsoft.Azure.WebJobs.Description;
 using Microsoft.Azure.WebJobs.Host.Config;
+using Microsoft.Extensions.Logging;
 #pragma warning disable CS0618 // Type or member is obsolete
 
 namespace Microsoft.Azure.Functions.Extensions.Mcp;
 
 [Extension("Mcp", "mcp")]
-internal sealed class McpExtensionConfigProvider(IToolRegistry toolRegistry, IRequestHandler requestHandler, IWebHookProvider webHookProvider) : IExtensionConfigProvider, IAsyncConverter<HttpRequestMessage, HttpResponseMessage>
+internal sealed class McpExtensionConfigProvider(IToolRegistry toolRegistry, IRequestHandler requestHandler, IWebHookProvider webHookProvider, ILoggerFactory loggerFactory)
+    : IExtensionConfigProvider, IAsyncConverter<HttpRequestMessage, HttpResponseMessage>, IDisposable
 {
     private Func<Uri>? _webhookDelegate;
 
     public void Initialize(ExtensionConfigContext context)
     {
         var uri = context.GetWebhookHandler();
+
+        loggerFactory.CreateLogger("Host.Function.Console")
+            .LogInformation("MCP server SSE endpoint: {Uri}", uri.GetLeftPart(UriPartial.Path));
 
         _webhookDelegate = () => webHookProvider.GetUrl(this);
 
@@ -54,6 +59,11 @@ internal sealed class McpExtensionConfigProvider(IToolRegistry toolRegistry, IRe
         }
 
         return context.GetHttpRequestMessage().CreateResponse();
+    }
+
+    public void Dispose()
+    {
+        loggerFactory.Dispose();
     }
 
     private class EmptyResponseFeature(IHttpResponseFeature responseFeature) : IHttpResponseFeature
