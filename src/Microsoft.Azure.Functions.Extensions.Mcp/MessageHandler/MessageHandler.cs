@@ -13,18 +13,35 @@ internal sealed class MessageHandler(Stream eventStream) : IMessageHandler, IAsy
 {
     private readonly Channel<IJsonRpcMessage> _incomingChannel = CreateChannel<IJsonRpcMessage>();
     private readonly Channel<SseItem<IJsonRpcMessage>> _outgoingChannel = CreateChannel<SseItem<IJsonRpcMessage>>();
-    private Task _writeTask = Task.CompletedTask;
+    private Task _handlerTasks = Task.CompletedTask;
+    private long _currentRequestId = 0;
 
     public string Id { get; } = Guid.NewGuid().ToString();
 
-    public Task StartAsync(CancellationToken cancellationToken, Func<string, string> endpointWriter)
+    public Task RunAsync(Func<string, string> endpointWriter, CancellationToken cancellationToken)
     {
         var endpointResponse = new JsonRpcResponse { Id = RequestId.FromString(Id), Result = endpointWriter(Id) };
         _outgoingChannel.Writer.TryWrite(new SseItem<IJsonRpcMessage>(endpointResponse, "endpoint"));
 
         var events = _outgoingChannel.Reader.ReadAllAsync(cancellationToken);
+        
+        var pingTask = StartPingAsync(cancellationToken);
+        var writerTask = SseFormatter.WriteAsync(events, eventStream, BufferWriter, cancellationToken);
 
-        return _writeTask = SseFormatter.WriteAsync(events, eventStream, BufferWriter, cancellationToken);
+        return _handlerTasks = Task.WhenAll(pingTask, writerTask);
+    }
+
+    private async Task StartPingAsync(CancellationToken cancellationToken)
+    {
+        // We're currently pinging to keep the connection alive.
+        // Not taking any action if the client fails to respond.
+        while (!cancellationToken.IsCancellationRequested)
+        {
+            var requestId = RequestId.FromString($"{Id}-{Interlocked.Increment(ref _currentRequestId)}");
+            await SendMessageAsync(new JsonRpcRequest { Id = requestId, Method = "ping" }, cancellationToken);
+
+            await Task.Delay(TimeSpan.FromSeconds(25), cancellationToken);
+        }
     }
 
     private static void BufferWriter(SseItem<IJsonRpcMessage> sseItem, IBufferWriter<byte> writer)
@@ -57,7 +74,7 @@ internal sealed class MessageHandler(Stream eventStream) : IMessageHandler, IAsy
         _incomingChannel.Writer.TryComplete();
         _outgoingChannel.Writer.TryComplete();
 
-        return new ValueTask(_writeTask);
+        return new ValueTask(_handlerTasks);
     }
 }
 

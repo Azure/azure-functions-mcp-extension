@@ -7,7 +7,6 @@ namespace Microsoft.Azure.Functions.Worker.Extensions.Mcp;
 [ConverterFallbackBehavior(ConverterFallbackBehavior.Default)]
 public sealed class McpToolTriggerAttribute(string toolName, string? description = null) : TriggerBindingAttribute
 {
-
     /// <summary>
     /// Gets or sets the name of the MCP tool.
     /// </summary>

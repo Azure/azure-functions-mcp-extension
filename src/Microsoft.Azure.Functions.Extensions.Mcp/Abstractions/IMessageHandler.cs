@@ -13,5 +13,5 @@ public interface IMessageHandler
 
     Task ProcessMessageAsync(IJsonRpcMessage message, CancellationToken cancellationToken);
 
-    Task StartAsync(CancellationToken cancellationToken, Func<string, string> endpointWriter);
+    Task RunAsync(Func<string, string> endpointWriter, CancellationToken cancellationToken);
 }

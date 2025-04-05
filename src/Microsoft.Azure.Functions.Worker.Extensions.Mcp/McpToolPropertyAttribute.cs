@@ -10,6 +10,7 @@ public sealed class McpToolPropertyAttribute(string propertyName, string propert
     : this(string.Empty, string.Empty, string.Empty)
     {
     }
+
     public string PropertyName { get; set; } = propertyName;
 
     public string PropertyType { get; set; } = propertyType;
