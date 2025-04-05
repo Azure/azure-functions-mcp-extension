@@ -5,7 +5,7 @@ using System.Text;
 
 namespace Microsoft.Azure.Functions.Extensions.Mcp;
 
-internal class TokenUtility
+internal sealed class TokenUtility
 {
     private const int KeySize = 32;
     private const int IvSize = 12;

@@ -23,7 +23,7 @@ internal sealed class DefaultRequestHandler(IMessageHandlerManager messageHandle
 
         try
         {
-            await handler.StartAsync(context.RequestAborted, (clientId) => WriteEndpoint(clientId, context));
+            await handler.RunAsync(clientId => WriteEndpoint(clientId, context), context.RequestAborted);
         }
         catch (OperationCanceledException) when (context.RequestAborted.IsCancellationRequested)
         {
