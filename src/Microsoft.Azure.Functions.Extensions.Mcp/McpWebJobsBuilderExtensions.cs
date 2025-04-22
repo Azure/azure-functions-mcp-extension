@@ -1,6 +1,7 @@
 ﻿using Microsoft.Azure.Functions.Extensions.Mcp;
 using Microsoft.Azure.Functions.Extensions.Mcp.Abstractions;
 using Microsoft.Azure.Functions.Extensions.Mcp.Backplane.Storage;
+using Microsoft.Azure.Functions.Extensions.Mcp.Configuration;
 using Microsoft.Azure.WebJobs;
 using Microsoft.Extensions.Azure;
 using Microsoft.Extensions.DependencyInjection;
@@ -31,7 +32,8 @@ public static class McpWebJobsBuilderExtensions
         builder.Services.AddSingleton<QueueServiceClientProvider>();
         builder.Services.AddAzureClientsCore();
 
-        builder.AddExtension<McpExtensionConfigProvider>();
+        builder.AddExtension<McpExtensionConfigProvider>()
+            .BindOptions<McpOptions>();
 
         return builder;
     }

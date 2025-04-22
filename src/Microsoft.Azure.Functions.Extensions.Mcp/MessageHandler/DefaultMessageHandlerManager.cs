@@ -7,6 +7,8 @@ using System.Text.Json;
 using System.Threading.Channels;
 using Microsoft.Azure.Functions.Extensions.Mcp.Backplane;
 using System.Threading;
+using Microsoft.Azure.Functions.Extensions.Mcp.Configuration;
+using Microsoft.Extensions.Options;
 
 namespace Microsoft.Azure.Functions.Extensions.Mcp;
 
@@ -17,13 +19,15 @@ internal sealed class DefaultMessageHandlerManager : IMessageHandlerManager, IAs
     private readonly IMcpInstanceIdProvider _instanceIdProvider;
     private readonly IMcpBackplane _backplane;
     private readonly Task _backplaneProcessingTask;
+    private readonly McpOptions _mcpOptions;
 
-    public DefaultMessageHandlerManager(IToolRegistry toolRegistry, IMcpInstanceIdProvider instanceIdProvider, IMcpBackplane backplane)
+    public DefaultMessageHandlerManager(IToolRegistry toolRegistry, IMcpInstanceIdProvider instanceIdProvider, IMcpBackplane backplane, IOptions<McpOptions> mcpOptions)
     {
         _toolRegistry = toolRegistry;
         _instanceIdProvider = instanceIdProvider;
         _backplane = backplane;
         _backplaneProcessingTask = InitializeBackplaneProcessing(_backplane.Messages);
+        _mcpOptions = mcpOptions.Value;
     }
 
     private async Task InitializeBackplaneProcessing(ChannelReader<McpBackplaneMessage> messages)
@@ -182,9 +186,8 @@ internal sealed class DefaultMessageHandlerManager : IMessageHandlerManager, IAs
                     ProtocolVersion = "2024-11-05",
                     ServerInfo = new Implementation
                     {
-                        Name = "Azure Functions MCP server.",
-                        Version = typeof(DefaultMessageHandlerManager).Assembly.GetName().Version?.ToString() ??
-                                  string.Empty
+                        Name = _mcpOptions.ServerName,
+                        Version = _mcpOptions.ServerVersion
                     },
                     Capabilities = new ServerCapabilities
                     {
@@ -192,7 +195,8 @@ internal sealed class DefaultMessageHandlerManager : IMessageHandlerManager, IAs
                         {
                             ListChanged = false
                         }
-                    }
+                    },
+                    Instructions = _mcpOptions.Instructions
                 };
         }
 
