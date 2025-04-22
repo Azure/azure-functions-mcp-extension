@@ -3,7 +3,7 @@ parameters:
   type: boolean
 - name: artifactName
   type: string
-  default: NugetPackages
+  default: drop
 - name: targetFolder
   type: string
   default: ''
@@ -34,17 +34,20 @@ extends:
         - job: Prepare
 
           variables:
-            drop_path: $(Pipeline.Workspace)/drop
+          - template: ci/variables/cfs.yml@eng
+          - name: drop_path
+            value: $(Pipeline.Workspace)/build/${{ parameters.artifactName }}
 
           templateContext:
             type: validationJob
-            inputs:
-            - input: pipelineArtifact
-              targetPath: $(drop_path)
-              artifactName: ${{ parameters.artifactName }}
-              pipeline: build
 
           steps:
+          - checkout: none
+
+          # validationJob uses retail artifact inputs
+          - download: build
+            artifact: ${{ parameters.artifactName }}
+
           # For extension releases, we assume the first package (alphanumerically) in the drop is the one we want to version off of.
           # This is a bit of a hack, but it works for our current setup.
           # We use a regex to extract the version from the package name and set it as the build number.
@@ -61,12 +64,13 @@ extends:
       dependsOn: Prepare
 
       variables:
+      - template: ci/variables/cfs.yml@eng
       - name: target_folder
         readonly: true
         ${{ if ne(parameters.targetFolder, '') }}:
           value: ${{ parameters.targetFolder }}
         ${{ else }}:
-          value: ${{ replace(replace(replace(variables['resources.pipeline.build.pipelineName'], 'mcp-extension.', ''), '.official', ''), '.', '-') }}
+          value: $[ replace(replace(replace(variables['resources.pipeline.build.pipelineName'], 'mcp-extension.', ''), '.official', ''), '.', '-') ]
 
       jobs:
       - template: /ci/release-nuget-package.yml@eng
@@ -75,7 +79,7 @@ extends:
           approvers: '[internal]\Azure Functions Core'
           stagingFeed: public/pre-release
           artifact:
-            name: NugetPackages
+            name: drop
             pipeline: build
           ${{ if eq(parameters.publishToNugetOrg, true) }}:
             partnerDrop:
