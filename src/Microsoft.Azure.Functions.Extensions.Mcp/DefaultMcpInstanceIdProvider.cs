@@ -4,11 +4,6 @@ namespace Microsoft.Extensions.Hosting
 {
     internal class DefaultMcpInstanceIdProvider : IMcpInstanceIdProvider
     {
-        public DefaultMcpInstanceIdProvider()
-        {
-            InstanceId = Guid.NewGuid().ToString();
-        }
-
-        public string InstanceId { get; }
+        public string InstanceId { get; } = Guid.NewGuid().ToString();
     }
 }

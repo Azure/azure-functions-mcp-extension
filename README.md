@@ -2,6 +2,33 @@
 
 Extension to enable MCP support to Azure Functions.
 
+## Instructions
+
+To get started with the extension, please see the following samples:
+
+| Language (Stack) | Repo Location |
+|------------------|---------------|
+| C# (.NET) | [remote-mcp-functions-dotnet](https://github.com/Azure-Samples/remote-mcp-functions-dotnet) |
+| Python | [remote-mcp-functions-python](https://github.com/Azure-Samples/remote-mcp-functions-python) |
+| TypeScript (Node.js) | [remote-mcp-functions-typescript](https://github.com/Azure-Samples/remote-mcp-functions-typescript) |
+
+### Configuration
+
+You can configure the extension behavior using the `host.json` file. The following is an example of the configurable settings:
+
+``` json
+{
+  "version": "2.0",
+  "extensions": {
+    "mcp": {
+      "instructions": "Some test instructions on how to use the server",
+      "serverName": "TestServer",
+      "serverVersion": "2.0.0"
+    }
+  }
+}
+```
+
 ## Contributing
 
 This project welcomes contributions and suggestions.  Most contributions require you to agree to a
