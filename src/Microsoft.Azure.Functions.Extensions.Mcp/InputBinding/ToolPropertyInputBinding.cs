@@ -1,6 +1,6 @@
-﻿using Microsoft.Azure.Functions.Extensions.Mcp.Protocol.Model;
-using Microsoft.Azure.WebJobs.Host.Bindings;
+﻿using Microsoft.Azure.WebJobs.Host.Bindings;
 using Microsoft.Azure.WebJobs.Host.Protocols;
+using ModelContextProtocol.Protocol.Types;
 
 namespace Microsoft.Azure.Functions.Extensions.Mcp;
 
@@ -11,7 +11,7 @@ public class ToolPropertyInputBinding(McpToolPropertyAttribute attribute) : IBin
         // Access the trigger's binding data
         var bindingData = context.BindingData;
 
-        if (bindingData["mcptoolcontext"] is not ToolInvocationContext toolContext)
+        if (bindingData["mcptoolcontext"] is not CallToolRequestParams toolContext)
         {
             throw new InvalidOperationException("Tool context is not available.");
         }
@@ -19,10 +19,10 @@ public class ToolPropertyInputBinding(McpToolPropertyAttribute attribute) : IBin
         if (toolContext.Arguments == null
             || !toolContext.Arguments.TryGetValue(attribute.PropertyName, out var propertyValue))
         {
-            propertyValue = null;
+            propertyValue = default;
         }
 
-        IValueProvider valueProvider = new ToolPropertyValueProvider(propertyValue?.ToString());
+        IValueProvider valueProvider = new ToolPropertyValueProvider(propertyValue.ToString());
         return Task.FromResult(valueProvider);
     }
 

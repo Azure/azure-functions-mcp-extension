@@ -1,12 +1,12 @@
-﻿using Microsoft.Azure.Functions.Extensions.Mcp.Protocol.Model;
+﻿using ModelContextProtocol.Protocol.Types;
 
 namespace Microsoft.Azure.Functions.Extensions.Mcp;
 
-internal class CallToolExecutionContext(ToolInvocationContext request)
+internal class CallToolExecutionContext(CallToolRequestParams request)
 {
     private readonly TaskCompletionSource<object?> _taskCompletionSource = new();
 
-    public ToolInvocationContext Request { get; init; } = request;
+    public CallToolRequestParams Request { get; init; } = request;
 
     public Task<object?> ResultTask => _taskCompletionSource.Task;
 

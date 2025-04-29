@@ -1,16 +1,16 @@
-﻿using Microsoft.Azure.Functions.Extensions.Mcp.Protocol.Messages;
+﻿using ModelContextProtocol.Protocol.Messages;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace Microsoft.Azure.Functions.Extensions.Mcp.Serialization;
 
 /// <summary>
-/// JSON converter for IJsonRpcMessage that handles polymorphic deserialization of different message types.
+/// JSON converter for JsonRpcMessage that handles polymorphic deserialization of different message types.
 /// </summary>
-internal sealed class JsonRpcMessageConverter : JsonConverter<IJsonRpcMessage>
+internal sealed class JsonRpcMessageConverter : JsonConverter<JsonRpcMessage>
 {
     /// <inheritdoc/>
-    public override IJsonRpcMessage? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    public override JsonRpcMessage? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
         if (reader.TokenType != JsonTokenType.StartObject)
         {
@@ -68,7 +68,7 @@ internal sealed class JsonRpcMessageConverter : JsonConverter<IJsonRpcMessage>
     }
 
     /// <inheritdoc/>
-    public override void Write(Utf8JsonWriter writer, IJsonRpcMessage value, JsonSerializerOptions options)
+    public override void Write(Utf8JsonWriter writer, JsonRpcMessage value, JsonSerializerOptions options)
     {
         switch (value)
         {

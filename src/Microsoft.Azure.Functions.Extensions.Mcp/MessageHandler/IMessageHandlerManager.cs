@@ -1,4 +1,4 @@
-﻿using Microsoft.Azure.Functions.Extensions.Mcp.Protocol.Messages;
+﻿using ModelContextProtocol.Protocol.Messages;
 using System.Diagnostics.CodeAnalysis;
 
 namespace Microsoft.Azure.Functions.Extensions.Mcp.Abstractions;
@@ -11,5 +11,5 @@ public interface IMessageHandlerManager
 
     bool TryGetHandler(string id, [NotNullWhen(true)] out IMessageHandler? messageHandler);
 
-    Task HandleMessageAsync(IJsonRpcMessage message, string instanceId, string mcpClientId, CancellationToken requestAborted);
+    Task HandleMessageAsync(JsonRpcMessage message, string instanceId, string mcpClientId, CancellationToken requestAborted);
 }

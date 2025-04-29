@@ -1,4 +1,4 @@
-﻿using Microsoft.Azure.Functions.Extensions.Mcp.Protocol.Messages;
+﻿using ModelContextProtocol.Protocol.Messages;
 using System.Threading.Channels;
 
 namespace Microsoft.Azure.Functions.Extensions.Mcp.Backplane;
@@ -9,7 +9,7 @@ internal class InMemoryBackplane : IMcpBackplane, IAsyncDisposable
 
     public ChannelReader<McpBackplaneMessage> Messages => _mesageChannel.Reader;
 
-    public Task SendMessageAsync(IJsonRpcMessage message, string instanceId, string clientId, CancellationToken cancellationToken)
+    public Task SendMessageAsync(JsonRpcMessage message, string instanceId, string clientId, CancellationToken cancellationToken)
     {
         _mesageChannel.Writer.WriteAsync(new McpBackplaneMessage { ClientId = clientId, Message = message });
 
