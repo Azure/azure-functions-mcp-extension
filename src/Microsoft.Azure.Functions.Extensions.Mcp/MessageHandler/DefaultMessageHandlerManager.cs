@@ -1,14 +1,17 @@
 ﻿using System.Collections.Concurrent;
-using Microsoft.Azure.Functions.Extensions.Mcp.Abstractions;
-using Microsoft.Azure.Functions.Extensions.Mcp.Protocol.Messages;
-using Microsoft.Azure.Functions.Extensions.Mcp.Protocol.Model;
 using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
+using System.Text.Json.Nodes;
+using System.Text.Json.Serialization.Metadata;
 using System.Threading.Channels;
+using Microsoft.Azure.Functions.Extensions.Mcp.Abstractions;
 using Microsoft.Azure.Functions.Extensions.Mcp.Backplane;
-using System.Threading;
 using Microsoft.Azure.Functions.Extensions.Mcp.Configuration;
 using Microsoft.Extensions.Options;
+using ModelContextProtocol;
+using ModelContextProtocol.Protocol.Messages;
+using ModelContextProtocol.Protocol.Types;
+using ModelContextProtocol.Utils.Json;
 
 namespace Microsoft.Azure.Functions.Extensions.Mcp;
 
@@ -73,7 +76,7 @@ internal sealed class DefaultMessageHandlerManager : IMessageHandlerManager, IAs
         return messageHandler is not null;
     }
 
-    public async Task HandleMessageAsync(IJsonRpcMessage message, string instanceId, string clientId, CancellationToken cancellationToken)
+    public async Task HandleMessageAsync(JsonRpcMessage message, string instanceId, string clientId, CancellationToken cancellationToken)
     {
         if (string.Equals(instanceId, _instanceIdProvider.InstanceId, StringComparison.OrdinalIgnoreCase))
         {
@@ -91,7 +94,7 @@ internal sealed class DefaultMessageHandlerManager : IMessageHandlerManager, IAs
         return new ValueTask(_backplaneProcessingTask);
     }
 
-    private Task HandleMessageAsync(string clientId, IJsonRpcMessage message, CancellationToken cancellationToken)
+    private Task HandleMessageAsync(string clientId, JsonRpcMessage message, CancellationToken cancellationToken)
     {
         if (!TryGetHandler(clientId, out IMessageHandler? handler))
         {
@@ -120,68 +123,98 @@ internal sealed class DefaultMessageHandlerManager : IMessageHandlerManager, IAs
         }
     }
 
-    private async Task ProcessMessageAsync(IMessageHandler handler, IJsonRpcMessage message, CancellationToken cancellationToken)
+    private async Task ProcessMessageAsync(IMessageHandler handler, JsonRpcMessage message,
+        CancellationToken cancellationToken)
     {
         switch (message)
         {
             case JsonRpcRequest request:
-                var result = await HandleRequestAsync(request, cancellationToken);
-                var response = new JsonRpcResponse
-                {
-                    Id = request.Id,
-                    Result = result
-                };
 
-                await handler.SendMessageAsync(response, cancellationToken);
+                try
+                {
+                    var result = await HandleRequestAsync(request, cancellationToken);
+                    var response = new JsonRpcResponse
+                    {
+                        Id = request.Id,
+                        Result = result
+                    };
+
+                    await handler.SendMessageAsync(response, cancellationToken);
+                    break;
+                }
+                catch (OperationCanceledException)
+                {
+                    // Cancellation. Add logging.
+                }
+                catch (Exception exc)
+                {
+                    var detail = exc is McpException mcpException
+                        ? new JsonRpcErrorDetail
+                        {
+                            Code = (int) mcpException.ErrorCode,
+                            Message = mcpException.Message
+                        }
+                        : new JsonRpcErrorDetail
+                        {
+                            Code = (int) McpErrorCode.InternalError,
+                            Message = exc.Message,
+                        };
+
+                    var error = new JsonRpcError
+                    {
+                        Id = request.Id,
+                        JsonRpc = "2.0",
+                        Error = detail
+                    };
+
+                    await handler.SendMessageAsync(error, cancellationToken);
+                }
+
                 break;
         }
     }
 
-    private async Task<object> HandleRequestAsync(JsonRpcRequest request, CancellationToken cancellationToken)
+    private JsonTypeInfo<T> GetTypeInfo<T>()
+    {
+        return McpJsonUtilities.DefaultOptions.GetTypeInfo(typeof(T)) as JsonTypeInfo<T>
+               ?? throw new InvalidOperationException($"Unable to get type info for {typeof(T)}.");
+    }
+
+    private async Task<JsonNode?> HandleRequestAsync(JsonRpcRequest request, CancellationToken cancellationToken)
     {
         switch (request.Method)
         {
-            case "tools/list":
+            case RequestMethods.ToolsList:
                 var tools = _toolRegistry.GetTools()
                     .Select(t => new Tool
                     {
                         Name = t.Name,
                         Description = t.Description,
-                        InputSchema = new JsonSchema
-                        {
-                            Properties = GetProperties(t)
-                        }
+                        InputSchema = GetPropertiesInputSchema(t)
                     }).ToList();
 
-                return new ListToolsResult { Tools = tools };
-            case "tools/call":
-                if (request.Params is JsonElement paramsElement)
+                return JsonSerializer.SerializeToNode(new ListToolsResult {Tools = tools}, GetTypeInfo<ListToolsResult>());
+            case RequestMethods.ToolsCall:
+                var typedRequest = request.Params.Deserialize(GetTypeInfo<CallToolRequestParams>());
+
+                if (typedRequest is not null
+                    && _toolRegistry.TryGetTool(typedRequest.Name, out var tool))
                 {
-                    var callToolRequest = paramsElement.Deserialize<ToolInvocationContext>();
-                    if (callToolRequest is not null
-                        && _toolRegistry.TryGetTool(callToolRequest.Name, out var tool))
+                    try
                     {
-                        try
-                        {
-                            return await tool.RunAsync(callToolRequest, cancellationToken);
-                        }
-                        catch (Exception)
-                        {
-                            return new JsonRpcError
-                            {
-                                Id = request.Id,
-                                Error = new JsonRpcErrorDetail
-                                {
-                                    Code = ErrorCodes.InternalError,
-                                    Message = "Tool invocation failure."
-                                }
-                            };
-                        }
+                        var result = await tool.RunAsync(typedRequest, cancellationToken);
+
+                        return JsonSerializer.SerializeToNode(result, GetTypeInfo<CallToolResponse>());
+                    }
+                    catch (Exception exc)
+                    {
+                        throw new McpException("Method not found.", exc, McpErrorCode.MethodNotFound);
                     }
                 }
+
                 break;
-            case "initialize":
-                return new InitializeResult
+            case RequestMethods.Initialize:
+                var initializeResult = new InitializeResult
                 {
                     ProtocolVersion = "2024-11-05",
                     ServerInfo = new Implementation
@@ -198,28 +231,32 @@ internal sealed class DefaultMessageHandlerManager : IMessageHandlerManager, IAs
                     },
                     Instructions = _mcpOptions.Instructions
                 };
+
+                return JsonSerializer.SerializeToNode(initializeResult, GetTypeInfo<InitializeResult>());
         }
 
-        return new JsonRpcError
-        {
-            Id = request.Id,
-            Error = new JsonRpcErrorDetail()
-            {
-                Code = ErrorCodes.MethodNotFound,
-                Message = "Method not found",
-            }
-        };
+        throw new McpException("Method not found.", McpErrorCode.MethodNotFound);
     }
 
-    private Dictionary<string, JsonSchemaProperty> GetProperties(IMcpTool tool)
+    private JsonElement GetPropertiesInputSchema(IMcpTool tool)
     {
-        return tool.Properties.ToDictionary(
-            p => p.PropertyName,
-            p => new JsonSchemaProperty
-            {
-                Type = p.PropertyType,
-                Description = p.Description,
-            });
+        var schema = new
+        {
+            type = "object",
+            properties = tool.Properties.ToDictionary(
+                prop => prop.PropertyName,
+                prop => new
+                {
+                    type = prop.PropertyType,
+                    description = prop.Description ?? string.Empty
+                }
+            ),
+            required = tool.Properties.Select(prop => prop.PropertyName).ToArray()
+        };
+
+        var jsonString = JsonSerializer.Serialize(schema);
+        using var document = JsonDocument.Parse(jsonString);
+        return document.RootElement.Clone();
     }
 
     private record MessageHandlerReference(IMessageHandler Handler, Task MessageProcessingTask)

@@ -1,4 +1,4 @@
-﻿using Microsoft.Azure.Functions.Extensions.Mcp.Protocol.Model;
+﻿using ModelContextProtocol.Protocol.Types;
 
 namespace Microsoft.Azure.Functions.Extensions.Mcp;
 
@@ -10,5 +10,5 @@ internal interface IMcpTool
 
     public ICollection<IMcpToolProperty> Properties { get; set; }
 
-    Task<CallToolResponse> RunAsync(ToolInvocationContext callToolRequest, CancellationToken cancellationToken);
+    Task<CallToolResponse> RunAsync(CallToolRequestParams callToolRequest, CancellationToken cancellationToken);
 }

@@ -1,10 +1,10 @@
-﻿using Azure.Storage.Queues;
+﻿using System.Text.Json;
+using System.Threading.Channels;
+using Azure.Storage.Queues;
 using Azure.Storage.Queues.Models;
-using Microsoft.Azure.Functions.Extensions.Mcp.Protocol.Messages;
 using Microsoft.Azure.Functions.Extensions.Mcp.Serialization;
 using Microsoft.Extensions.Logging;
-using System.Text.Json;
-using System.Threading.Channels;
+using ModelContextProtocol.Protocol.Messages;
 
 namespace Microsoft.Azure.Functions.Extensions.Mcp.Backplane.Storage;
 
@@ -29,7 +29,7 @@ internal class AzureStorageBackplane : IMcpBackplane, IAsyncDisposable
 
     public ChannelReader<McpBackplaneMessage> Messages => _messageChannel.Reader;
 
-    public async Task SendMessageAsync(IJsonRpcMessage message, string instanceId, string clientId, CancellationToken cancellationToken)
+    public async Task SendMessageAsync(JsonRpcMessage message, string instanceId, string clientId, CancellationToken cancellationToken)
     {
         QueueClient queueClient = await GetQueueClientAsync(instanceId, cancellationToken);
         var backplaneMessage = new McpBackplaneMessage { ClientId = clientId, Message = message };

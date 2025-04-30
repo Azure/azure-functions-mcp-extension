@@ -1,14 +1,12 @@
-﻿using System.Diagnostics.CodeAnalysis;
+﻿using System.Reflection;
+using System.Text.Json;
 using Microsoft.Azure.Functions.Extensions.Mcp.Abstractions;
-using Microsoft.Azure.Functions.Extensions.Mcp.Protocol.Model;
+using Microsoft.Azure.Functions.Extensions.Mcp.Serialization;
 using Microsoft.Azure.WebJobs.Host.Bindings;
 using Microsoft.Azure.WebJobs.Host.Listeners;
 using Microsoft.Azure.WebJobs.Host.Protocols;
 using Microsoft.Azure.WebJobs.Host.Triggers;
-using System.Reflection;
-using System.Text.Json;
-using Microsoft.Azure.Functions.Extensions.Mcp.Serialization;
-using Newtonsoft.Json.Linq;
+using ModelContextProtocol.Protocol.Types;
 
 namespace Microsoft.Azure.Functions.Extensions.Mcp;
 
@@ -29,7 +27,7 @@ internal sealed class McpToolTriggerBinding : ITriggerBinding
         BindingDataContract = new Dictionary<string, Type>
         {
             { triggerParameter.Name!, triggerParameter.ParameterType },
-            { "mcptoolcontext", typeof(ToolInvocationContext) },
+            { "mcptoolcontext", typeof(CallToolRequestParams) },
             { "mcptoolargs", typeof(IDictionary<string, string>)},
             { "$return", typeof(object).MakeByRefType() }
         };
@@ -60,7 +58,7 @@ internal sealed class McpToolTriggerBinding : ITriggerBinding
 
         if (executionContext.Request.Arguments is { } arguments)
         {
-            bindingData["mcptoolargs"] = arguments.ToDictionary(kvp => kvp.Key, kvp => kvp.Value?.ToString() ?? string.Empty);
+            bindingData["mcptoolargs"] = arguments.ToDictionary(kvp => kvp.Key, kvp => kvp.Value.ToString() ?? string.Empty);
         }
 
         var valueProvider = new ObjectValueProvider(triggerValue, _triggerParameter.ParameterType);
