@@ -87,38 +87,31 @@ internal sealed class McpToolTriggerBinding : ITriggerBinding
     {
         List<IMcpToolProperty>? toolProperties = null;
 
-        switch (attribute.ToolProperties)
+        if (attribute.ToolProperties is { } propertiesString)
         {
-            //case JArray jarrayProperties:
-            //{
-            //    var arguments = jarrayProperties.ToObject<List<McpToolPropertyAttribute>>();
-            //    SetProperties(arguments);
-            //    break;
-            //}
-            case string propertiesString:
+            var arguments =
+                JsonSerializer.Deserialize<List<McpToolPropertyAttribute>>(propertiesString,
+                    McpJsonSerializerOptions.DefaultOptions);
+            SetProperties(arguments);
+        }
+        else
+        {
+            if (triggerParameter.Member is not MethodInfo methodInfo)
             {
-                var arguments = JsonSerializer.Deserialize<List<McpToolPropertyAttribute>>(propertiesString, McpJsonSerializerOptions.DefaultOptions);
-                SetProperties(arguments);
-                break;
+                return toolProperties ?? [];
             }
-            default:
+
+            toolProperties = [];
+
+            foreach (var parameter in methodInfo.GetParameters())
             {
-                if (triggerParameter.Member is MethodInfo methodInfo)
+                var property = parameter.GetCustomAttribute<McpToolPropertyAttribute>(inherit: false);
+                if (property is null)
                 {
-                    toolProperties = [];
-
-                    foreach (var parameter in methodInfo.GetParameters())
-                    {
-                        var property = parameter.GetCustomAttribute<McpToolPropertyAttribute>(inherit: false);
-                        if (property is null)
-                        {
-                            continue;
-                        }
-
-                        toolProperties.Add(property);
-                    }
+                    continue;
                 }
-                break;
+
+                toolProperties.Add(property);
             }
         }
 
@@ -167,32 +160,5 @@ internal sealed class McpToolTriggerBinding : ITriggerBinding
         {
             return string.Empty;
         }
-
     }
-}
-
-internal class ObjectValueProvider : IValueProvider
-{
-    private readonly object? _value;
-    private readonly Task<object?> _valueAsTask;
-
-    public ObjectValueProvider(object? value, Type valueType)
-    {
-        ArgumentNullException.ThrowIfNull(valueType);
-
-        if (value != null && !valueType.IsInstanceOfType(value))
-        {
-            throw new ArgumentException($"Cannot convert {value} to {valueType.Name}.");
-        }
-
-        _value = value;
-        _valueAsTask = Task.FromResult(value);
-        Type = valueType;
-    }
-
-    public Type Type { get; }
-
-    public Task<object?> GetValueAsync() => _valueAsTask;
-
-    public string? ToInvokeString() => _value?.ToString();
 }

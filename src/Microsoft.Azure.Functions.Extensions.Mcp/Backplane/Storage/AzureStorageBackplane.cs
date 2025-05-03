@@ -39,6 +39,8 @@ internal class AzureStorageBackplane : IMcpBackplane, IAsyncDisposable
 
     private async Task StartProcessingAsync()
     {
+        _logger.LogDebug($"Starting {nameof(AzureStorageBackplane)} processing loop.");
+
         var client = await GetQueueClientAsync(_instanceIdProvider.InstanceId, _processingCts.Token);
 
         const int maxDelay = 1500;
@@ -72,6 +74,8 @@ internal class AzureStorageBackplane : IMcpBackplane, IAsyncDisposable
         }
 
         await client.DeleteIfExistsAsync();
+
+        _logger.LogDebug($"{nameof(AzureStorageBackplane)} processing loop completed.");
     }
 
     private async Task ProcessMessageAsync(QueueMessage message, QueueClient client)
@@ -88,7 +92,7 @@ internal class AzureStorageBackplane : IMcpBackplane, IAsyncDisposable
         }
         catch (JsonException)
         {
-            _logger.LogWarning("Failed to deserialize backplane message from queue {QueueName}, messageId={MessageId}", client.Name, message.MessageId);
+            _logger.LogWarning("Failed to deserialize backplane message from queue {queueName}, messageId={messageId}", client.Name, message.MessageId);
 
             await client.DeleteMessageAsync(message.MessageId, message.PopReceipt, _processingCts.Token);
         }

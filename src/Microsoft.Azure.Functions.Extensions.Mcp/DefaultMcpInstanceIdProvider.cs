@@ -1,9 +1,8 @@
 ﻿using Microsoft.Azure.Functions.Extensions.Mcp;
 
-namespace Microsoft.Extensions.Hosting
+namespace Microsoft.Extensions.Hosting;
+
+internal class DefaultMcpInstanceIdProvider : IMcpInstanceIdProvider
 {
-    internal class DefaultMcpInstanceIdProvider : IMcpInstanceIdProvider
-    {
-        public string InstanceId { get; } = Guid.NewGuid().ToString();
-    }
+    public string InstanceId { get; } = Utility.CreateId();
 }

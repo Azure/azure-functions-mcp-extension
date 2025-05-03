@@ -4,14 +4,13 @@ using ModelContextProtocol.Protocol.Messages;
 using Microsoft.Azure.Functions.Extensions.Mcp.Serialization;
 using Microsoft.Extensions.Primitives;
 using System.Diagnostics.CodeAnalysis;
+using Microsoft.Extensions.Logging;
 using static Microsoft.Azure.Functions.Extensions.Mcp.McpConstants;
 
 namespace Microsoft.Azure.Functions.Extensions.Mcp;
 
-internal sealed class DefaultRequestHandler(IMessageHandlerManager messageHandlerManager, IMcpInstanceIdProvider instanceIdProvider) : IRequestHandler
+internal sealed class DefaultRequestHandler(IMessageHandlerManager messageHandlerManager, IMcpInstanceIdProvider instanceIdProvider, ILogger<DefaultRequestHandler> logger) : IRequestHandler
 {
-    private readonly IMessageHandlerManager _messageHandlerManager = messageHandlerManager;
-
     public async Task HandleSseRequest(HttpContext context)
     {
         // Set the appropriate headers for SSE.
@@ -19,10 +18,12 @@ internal sealed class DefaultRequestHandler(IMessageHandlerManager messageHandle
         context.Response.Headers.Append("Cache-Control", "no-cache");
         context.Response.Headers.Append("Connection", "keep-alive");
 
-        IMessageHandler handler = _messageHandlerManager.CreateHandler(context.Response.Body, context.RequestAborted);
+        IMessageHandler handler = messageHandlerManager.CreateHandler(context.Response.Body, context.RequestAborted);
 
         try
         {
+            logger.LogInformation("Handling SSE request for client '{clientId}'.", handler.Id);
+
             await handler.RunAsync(clientId => WriteEndpoint(clientId, context), context.RequestAborted);
         }
         catch (OperationCanceledException) when (context.RequestAborted.IsCancellationRequested)
@@ -33,7 +34,7 @@ internal sealed class DefaultRequestHandler(IMessageHandlerManager messageHandle
         {
             try
             {
-                await _messageHandlerManager.CloseHandlerAsync(handler);
+                await messageHandlerManager.CloseHandlerAsync(handler);
             }
             catch (Exception)
             {
@@ -58,11 +59,6 @@ internal sealed class DefaultRequestHandler(IMessageHandlerManager messageHandle
 
     public async Task HandleMessageRequest(HttpContext context)
     {
-        static Task WriteInvalidSessionResponse(string message, HttpContext httpContext)
-        {
-            return Results.BadRequest($"{message} Please connect to the /sse endpoint to initiate your session.").ExecuteAsync(httpContext);
-        }
-
         if (!TryGetQueryValue(context, AzmcpStateQuery, out string? clientState))
         {
             await WriteInvalidSessionResponse("Missing service context.", context);
@@ -83,10 +79,16 @@ internal sealed class DefaultRequestHandler(IMessageHandlerManager messageHandle
             return;
         }
 
-        await _messageHandlerManager.HandleMessageAsync(message, instanceId, clientId, context.RequestAborted);
+        await messageHandlerManager.HandleMessageAsync(message, instanceId, clientId, context.RequestAborted);
 
         context.Response.StatusCode = StatusCodes.Status202Accepted;
         await context.Response.WriteAsync("Accepted");
+        return;
+
+        static Task WriteInvalidSessionResponse(string message, HttpContext httpContext)
+        {
+            return Results.BadRequest($"{message} Please connect to the /sse endpoint to initiate your session.").ExecuteAsync(httpContext);
+        }
     }
 
     private bool TryGetFunctionKey(HttpContext context, out string? code)

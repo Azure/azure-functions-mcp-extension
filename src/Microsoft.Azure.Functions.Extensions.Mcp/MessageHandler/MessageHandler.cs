@@ -9,17 +9,18 @@ using ModelContextProtocol.Protocol.Messages;
 
 namespace Microsoft.Azure.Functions.Extensions.Mcp;
 
-internal sealed class MessageHandler(Stream eventStream) : IMessageHandler, IAsyncDisposable
+internal sealed class MessageHandler(Stream eventStream, string id) : IMessageHandler, IAsyncDisposable
 {
     private readonly Channel<JsonRpcMessage> _incomingChannel = CreateChannel<JsonRpcMessage>();
     private readonly Channel<SseItem<JsonRpcMessage>> _outgoingChannel = CreateChannel<SseItem<JsonRpcMessage>>();
     private Task _handlerTasks = Task.CompletedTask;
     private long _currentRequestId = 0;
 
-    public string Id { get; } = Guid.NewGuid().ToString();
+    public string Id { get; } = id;
 
     public Task RunAsync(Func<string, string> endpointWriter, CancellationToken cancellationToken)
     {
+
         var endpointResponse = new JsonRpcResponse { Id = new RequestId(Id), Result = endpointWriter(Id) };
         _outgoingChannel.Writer.TryWrite(new SseItem<JsonRpcMessage>(endpointResponse, "endpoint"));
 
@@ -76,8 +77,4 @@ internal sealed class MessageHandler(Stream eventStream) : IMessageHandler, IAsy
 
         return new ValueTask(_handlerTasks);
     }
-}
-
-internal sealed record EndpointContext(string ClientId, string InstanceId, string? Code)
-{
 }
