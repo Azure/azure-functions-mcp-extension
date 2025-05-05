@@ -7,6 +7,7 @@ using System.Threading.Channels;
 using Microsoft.Azure.Functions.Extensions.Mcp.Abstractions;
 using Microsoft.Azure.Functions.Extensions.Mcp.Backplane;
 using Microsoft.Azure.Functions.Extensions.Mcp.Configuration;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using ModelContextProtocol;
 using ModelContextProtocol.Protocol.Messages;
@@ -19,16 +20,18 @@ internal sealed class DefaultMessageHandlerManager : IMessageHandlerManager, IAs
 {
     private readonly ConcurrentDictionary<string, MessageHandlerReference> _handlers = new();
     private readonly IToolRegistry _toolRegistry;
-    private readonly IMcpInstanceIdProvider _instanceIdProvider;
+    private readonly string _instanceId;
     private readonly IMcpBackplane _backplane;
+    private readonly ILogger<DefaultRequestHandler> _logger;
     private readonly Task _backplaneProcessingTask;
     private readonly McpOptions _mcpOptions;
 
-    public DefaultMessageHandlerManager(IToolRegistry toolRegistry, IMcpInstanceIdProvider instanceIdProvider, IMcpBackplane backplane, IOptions<McpOptions> mcpOptions)
+    public DefaultMessageHandlerManager(IToolRegistry toolRegistry, IMcpInstanceIdProvider instanceIdProvider, IMcpBackplane backplane, IOptions<McpOptions> mcpOptions, ILogger<DefaultRequestHandler> logger)
     {
         _toolRegistry = toolRegistry;
-        _instanceIdProvider = instanceIdProvider;
+        _instanceId = instanceIdProvider.InstanceId;
         _backplane = backplane;
+        _logger = logger;
         _backplaneProcessingTask = InitializeBackplaneProcessing(_backplane.Messages);
         _mcpOptions = mcpOptions.Value;
     }
@@ -37,6 +40,8 @@ internal sealed class DefaultMessageHandlerManager : IMessageHandlerManager, IAs
     {
         try
         {
+            _logger.LogInformation("Initializing backplane message processing.");
+
             await foreach (var message in messages.ReadAllAsync())
             {
                 _ = HandleMessageAsync(message.ClientId, message.Message, CancellationToken.None);
@@ -44,23 +49,31 @@ internal sealed class DefaultMessageHandlerManager : IMessageHandlerManager, IAs
         }
         catch (OperationCanceledException) when (messages.Completion.IsCompleted)
         {
-            // Ignore cancellation
+            _logger.LogInformation("Backplane message processing completed.");
         }
     }
 
     public IMessageHandler CreateHandler(Stream eventStream, CancellationToken cancellationToken)
     {
-        var handler = new MessageHandler(eventStream);
+        var clientId = Utility.CreateId();
+        _logger.LogInformation("Creating message handler for client '{clientId}'", clientId);
+
+        var handler = new MessageHandler(eventStream, clientId);
+
         var processingTask = ProcessMessagesAsync(handler, cancellationToken);
 
         var handlerReference = new MessageHandlerReference(handler, processingTask);
         _handlers.TryAdd(handler.Id, handlerReference);
+
+        _logger.LogInformation("Message handler created with ID: '{clientId}' on instance '{instanceId}'", handler.Id, _instanceId);
 
         return handler;
     }
 
     public Task CloseHandlerAsync(IMessageHandler handler)
     {
+        _logger.LogInformation("Closing message handler with ID: {clientId}", handler.Id);
+
         return (handler as IAsyncDisposable)?.DisposeAsync().AsTask() ?? Task.CompletedTask;
     }
 
@@ -78,14 +91,26 @@ internal sealed class DefaultMessageHandlerManager : IMessageHandlerManager, IAs
 
     public async Task HandleMessageAsync(JsonRpcMessage message, string instanceId, string clientId, CancellationToken cancellationToken)
     {
-        if (string.Equals(instanceId, _instanceIdProvider.InstanceId, StringComparison.OrdinalIgnoreCase))
+        try
         {
-            await HandleMessageAsync(clientId, message, cancellationToken);
+            if (string.Equals(instanceId, _instanceId, StringComparison.OrdinalIgnoreCase))
+            {
+                _logger.LogDebug("Handling message for client '{clientId}'", clientId);
+
+                await HandleMessageAsync(clientId, message, cancellationToken);
+            }
+            else
+            {
+                _logger.LogDebug("Sending message to backplane for instance '{instanceId}', client '{clientId}'", instanceId, clientId);
+
+                // Route this request to the appropriate instance
+                await _backplane.SendMessageAsync(message, instanceId, clientId, cancellationToken);
+            }
         }
-        else
+        catch (Exception exc)
         {
-            // Route this request to the appropriate instance
-            await _backplane.SendMessageAsync(message, instanceId, clientId, cancellationToken);
+            _logger.LogError(exc, "Error handling message for client '{clientId}'", clientId);
+            throw;
         }
     }
 
@@ -98,7 +123,7 @@ internal sealed class DefaultMessageHandlerManager : IMessageHandlerManager, IAs
     {
         if (!TryGetHandler(clientId, out IMessageHandler? handler))
         {
-            throw new InvalidOperationException("Invalid client id.");
+            throw new InvalidOperationException($"Invalid client id. The client '{clientId}' does not exist in instance '{_instanceId}'.");
         }
 
         return handler.ProcessMessageAsync(message, cancellationToken);
@@ -108,6 +133,8 @@ internal sealed class DefaultMessageHandlerManager : IMessageHandlerManager, IAs
     {
         try
         {
+            _logger.LogDebug("Starting message processing loop for handler '{handlerId}'.", handler.Id);
+
             await foreach (var message in handler.MessageReader.ReadAllAsync(cancellationToken))
             {
                 _ = ProcessMessageAsync(handler, message, cancellationToken);
@@ -119,12 +146,13 @@ internal sealed class DefaultMessageHandlerManager : IMessageHandlerManager, IAs
         }
         finally
         {
+            _logger.LogDebug("Message processing loop for handler '{handlerId}' completed.", handler.Id);
+
             _handlers.TryRemove(handler.Id, out _);
         }
     }
 
-    private async Task ProcessMessageAsync(IMessageHandler handler, JsonRpcMessage message,
-        CancellationToken cancellationToken)
+    private async Task ProcessMessageAsync(IMessageHandler handler, JsonRpcMessage message, CancellationToken cancellationToken)
     {
         switch (message)
         {
@@ -140,7 +168,6 @@ internal sealed class DefaultMessageHandlerManager : IMessageHandlerManager, IAs
                     };
 
                     await handler.SendMessageAsync(response, cancellationToken);
-                    break;
                 }
                 catch (OperationCanceledException)
                 {
@@ -148,6 +175,8 @@ internal sealed class DefaultMessageHandlerManager : IMessageHandlerManager, IAs
                 }
                 catch (Exception exc)
                 {
+                    _logger.LogError(exc, "Error processing request: '{requestId}' for client '{handlerId}'", request.Id, handler.Id);
+
                     var detail = exc is McpException mcpException
                         ? new JsonRpcErrorDetail
                         {
