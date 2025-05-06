@@ -8,17 +8,16 @@ jobs:
 - job: BuildArtifacts
   displayName: Build Artifacts
 
+  templateContext:
+    outputParentDirectory: $(Build.ArtifactStagingDirectory)/packages
+    outputs:
+    - output: pipelineArtifact
+      displayName: Publish nuget packages
+      path: $(Build.ArtifactStagingDirectory)/packages
+      artifact: drop
+
   variables:
     - template: /eng/ci/templates/variables/build.yml@self
-
-  templateContext:
-    outputParentDirectory: $(System.DefaultWorkingDirectory)/packages
-    outputs:
-    - ${{ if eq(parameters.CreateArtifacts, true) }}:
-      - output: pipelineArtifact
-        displayName: Publish artifacts
-        path: $(System.DefaultWorkingDirectory)/packages
-        artifact: drop
 
   steps:
   - pwsh: dotnet --version
@@ -27,8 +26,12 @@ jobs:
   - task: DotNetCoreCLI@2
     displayName: 'Build project'
     inputs:
-      command: 'build'
-      arguments: '-c $(buildConfiguration)'
+      command: custom
+      custom: build
+      ${{ if and(not(contains(variables['Build.SourceBranch'], '/release/')), not(startsWith(variables['Build.SourceBranch'], 'refs/tags'))) }}:
+        arguments: -p:ExtensionVersionSuffix=$(Build.BuildNumber) -c $(buildConfiguration)
+      ${{ else }}:
+        arguments: -c $(buildConfiguration)
       projects: 'Microsoft.Azure.Functions.Extensions.Mcp.sln'
 
   - task: DotNetCoreCLI@2
@@ -39,11 +42,53 @@ jobs:
       projects: 'Microsoft.Azure.Functions.Extensions.Mcp.sln'
 
   - ${{ if eq(parameters.CreateArtifacts, true) }}:
+    - template: ci/sign-files.yml@eng
+      parameters:
+        displayName: Sign worker extension assemblies
+        folderPath: src/Microsoft.Azure.Functions.Worker.Extensions.Mcp/bin
+        pattern: Microsoft.Azure.Functions.Worker.Extensions.Mcp.dll
+        signType: dll
+
+    - task: DeleteFiles@1
+      displayName: Delete CodeSignSummary files
+      inputs:
+        sourceFolder: src/Microsoft.Azure.Functions.Worker.Extensions.Mcp/
+        contents: '**/CodeSignSummary-*.md'
+
+    - template: ci/sign-files.yml@eng
+      parameters:
+        displayName: Sign extension assemblies
+        folderPath: src/Microsoft.Azure.Functions.Extensions.Mcp/bin
+        pattern: Microsoft.Azure.Functions.Extensions.Mcp.dll
+        signType: dll
+
+    - task: DeleteFiles@1
+      displayName: Delete CodeSignSummary files
+      inputs:
+        sourceFolder: src/Microsoft.Azure.Functions.Extensions.Mcp/
+        contents: '**/CodeSignSummary-*.md'
+
     - task: DotNetCoreCLI@2
       displayName: 'Build package'
       inputs:
         command: 'custom'
         custom: 'pack'
-        arguments: '--no-build -c Release -o packages'
+        ${{ if and(not(contains(variables['Build.SourceBranch'], '/release/')), not(startsWith(variables['Build.SourceBranch'], 'refs/tags'))) }}:
+          arguments: '--no-build -c Release -o $(Build.ArtifactStagingDirectory)/packages -p:ExtensionVersionSuffix=$(Build.BuildNumber)'
+        ${{ else }}:
+          arguments: '--no-build -c Release -o $(Build.ArtifactStagingDirectory)/packages'
         projects: |
           **/**Extensions.Mcp.csproj
+
+    - template: ci/sign-files.yml@eng
+      parameters:
+        displayName: Sign nuget packages
+        folderPath: $(Build.ArtifactStagingDirectory)/packages
+        pattern: Microsoft.Azure.Functions**
+        signType: nuget
+
+    - task: DeleteFiles@1
+      displayName: Delete CodeSignSummary files
+      inputs:
+        sourceFolder: $(Build.ArtifactStagingDirectory)/packages
+        contents: '**/CodeSignSummary-*.md'

@@ -79,7 +79,7 @@ extends:
           approvers: '[internal]\Azure Functions Core'
           stagingFeed: public/pre-release
           artifact:
-            name: drop
+            name: ${{ parameters.artifactName }}
             pipeline: build
           ${{ if eq(parameters.publishToNugetOrg, true) }}:
             partnerDrop:
