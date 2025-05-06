@@ -9,12 +9,12 @@ jobs:
   displayName: Build Artifacts
 
   templateContext:
-  outputParentDirectory: $(Build.ArtifactStagingDirectory)
-  outputs:
-  - output: pipelineArtifact
-    displayName: Publish nuget packages
-    path: $(Build.ArtifactStagingDirectory)/packages
-    artifact: drop
+    outputParentDirectory: $(Build.ArtifactStagingDirectory)
+    outputs:
+    - output: pipelineArtifact
+      displayName: Publish nuget packages
+      path: $(Build.ArtifactStagingDirectory)/packages
+      artifact: drop
 
   variables:
     - template: /eng/ci/templates/variables/build.yml@self
