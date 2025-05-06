@@ -1,7 +1,7 @@
 parameters:
   - name: CreateArtifacts
     type: boolean
-    default: false
+    default: true
 
 jobs:
 
@@ -16,7 +16,7 @@ jobs:
     outputs:
     - ${{ if eq(parameters.CreateArtifacts, true) }}:
       - output: pipelineArtifact
-        displayName: Publish nuget packages
+        displayName: Publish artifacts
         path: $(Build.ArtifactStagingDirectory)/packages
         artifact: drop
 
