@@ -7,6 +7,7 @@ using System.Threading.Channels;
 using Microsoft.Azure.Functions.Extensions.Mcp.Abstractions;
 using Microsoft.Azure.Functions.Extensions.Mcp.Backplane;
 using Microsoft.Azure.Functions.Extensions.Mcp.Configuration;
+using Microsoft.Azure.WebJobs.Extensions.Mcp;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using ModelContextProtocol;
@@ -22,11 +23,11 @@ internal sealed class DefaultMessageHandlerManager : IMessageHandlerManager, IAs
     private readonly IToolRegistry _toolRegistry;
     private readonly string _instanceId;
     private readonly IMcpBackplane _backplane;
-    private readonly ILogger<DefaultRequestHandler> _logger;
+    private readonly ILogger<Logs.DefaultMessageHandler> _logger;
     private readonly Task _backplaneProcessingTask;
     private readonly McpOptions _mcpOptions;
 
-    public DefaultMessageHandlerManager(IToolRegistry toolRegistry, IMcpInstanceIdProvider instanceIdProvider, IMcpBackplane backplane, IOptions<McpOptions> mcpOptions, ILogger<DefaultRequestHandler> logger)
+    public DefaultMessageHandlerManager(IToolRegistry toolRegistry, IMcpInstanceIdProvider instanceIdProvider, IMcpBackplane backplane, IOptions<McpOptions> mcpOptions, ILogger<Logs.DefaultMessageHandler> logger)
     {
         _toolRegistry = toolRegistry;
         _instanceId = instanceIdProvider.InstanceId;

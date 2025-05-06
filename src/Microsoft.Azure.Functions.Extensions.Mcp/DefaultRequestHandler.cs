@@ -6,17 +6,21 @@ using Microsoft.Extensions.Primitives;
 using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.Logging;
 using static Microsoft.Azure.Functions.Extensions.Mcp.McpConstants;
+using Microsoft.AspNetCore.Http.Features;
+using Microsoft.Azure.WebJobs.Extensions.Mcp;
 
 namespace Microsoft.Azure.Functions.Extensions.Mcp;
 
-internal sealed class DefaultRequestHandler(IMessageHandlerManager messageHandlerManager, IMcpInstanceIdProvider instanceIdProvider, ILogger<DefaultRequestHandler> logger) : IRequestHandler
+internal sealed class DefaultRequestHandler(IMessageHandlerManager messageHandlerManager, IMcpInstanceIdProvider instanceIdProvider, ILogger<Logs.DefaultRequestHandler> logger) : IRequestHandler
 {
     public async Task HandleSseRequest(HttpContext context)
     {
         // Set the appropriate headers for SSE.
         context.Response.Headers.Append("Content-Type", "text/event-stream");
-        context.Response.Headers.Append("Cache-Control", "no-cache");
+        context.Response.Headers.Append("Cache-Control", "no-cache,no-store");
         context.Response.Headers.Append("Connection", "keep-alive");
+        context.Response.Headers.ContentEncoding = "identity";
+        context.Features.GetRequiredFeature<IHttpResponseBodyFeature>().DisableBuffering();
 
         IMessageHandler handler = messageHandlerManager.CreateHandler(context.Response.Body, context.RequestAborted);
 
