@@ -9,7 +9,7 @@ jobs:
   displayName: Build Artifacts
 
   templateContext:
-    outputParentDirectory: $(Build.ArtifactStagingDirectory)
+    outputParentDirectory: $(Build.ArtifactStagingDirectory)/packages
     outputs:
     - output: pipelineArtifact
       displayName: Publish nuget packages
@@ -26,12 +26,8 @@ jobs:
   - task: DotNetCoreCLI@2
     displayName: 'Build project'
     inputs:
-      command: custom
-      custom: build
-      ${{ if and(not(contains(variables['Build.SourceBranch'], '/release/')), not(startsWith(variables['Build.SourceBranch'], 'refs/tags'))) }}:
-        arguments: -p:ExtensionVersionSuffix=$(Build.BuildNumber) -c $(buildConfiguration)
-      ${{ else }}:
-        arguments: -c $(buildConfiguration)
+      command: 'build'
+      arguments: '-c $(buildConfiguration)'
       projects: 'Microsoft.Azure.Functions.Extensions.Mcp.sln'
 
   - task: DotNetCoreCLI@2
