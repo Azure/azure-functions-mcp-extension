@@ -7,6 +7,9 @@ jobs:
 
 - job: BuildArtifacts
   displayName: Build Artifacts
+  
+  variables:
+    - template: /eng/ci/templates/variables/build.yml@self
 
   templateContext:
     outputParentDirectory: $(Build.ArtifactStagingDirectory)/packages
@@ -15,9 +18,6 @@ jobs:
       displayName: Publish nuget packages
       path: $(Build.ArtifactStagingDirectory)/packages
       artifact: drop
-
-  variables:
-    - template: /eng/ci/templates/variables/build.yml@self
 
   steps:
   - pwsh: dotnet --version
