@@ -7,17 +7,18 @@ jobs:
 
 - job: BuildArtifacts
   displayName: Build Artifacts
-  
+
   variables:
     - template: /eng/ci/templates/variables/build.yml@self
 
   templateContext:
     outputParentDirectory: $(Build.ArtifactStagingDirectory)/packages
     outputs:
-    - output: pipelineArtifact
-      displayName: Publish nuget packages
-      path: $(Build.ArtifactStagingDirectory)/packages
-      artifact: drop
+    - ${{ if eq(parameters.CreateArtifacts, true) }}:
+      - output: pipelineArtifact
+        displayName: Publish nuget packages
+        path: $(Build.ArtifactStagingDirectory)/packages
+        artifact: drop
 
   steps:
   - pwsh: dotnet --version
@@ -26,8 +27,12 @@ jobs:
   - task: DotNetCoreCLI@2
     displayName: 'Build project'
     inputs:
-      command: 'build'
-      arguments: '-c $(buildConfiguration)'
+      command: custom
+      custom: build
+      ${{ if and(not(contains(variables['Build.SourceBranch'], '/release/')), not(startsWith(variables['Build.SourceBranch'], 'refs/tags'))) }}:
+        arguments: -p:ExtensionVersionSuffix=$(Build.BuildNumber) -c $(buildConfiguration)
+      ${{ else }}:
+        arguments: -c $(buildConfiguration)
       projects: 'Microsoft.Azure.Functions.Extensions.Mcp.sln'
 
   - task: DotNetCoreCLI@2
@@ -69,7 +74,10 @@ jobs:
       inputs:
         command: 'custom'
         custom: 'pack'
-        arguments: '--no-build -c Release -o $(Build.ArtifactStagingDirectory)/packages'
+        ${{ if and(not(contains(variables['Build.SourceBranch'], '/release/')), not(startsWith(variables['Build.SourceBranch'], 'refs/tags'))) }}:
+           arguments: '--no-build -c Release -o $(Build.ArtifactStagingDirectory)/packages -p:ExtensionVersionSuffix=$(Build.BuildNumber)'
+        ${{ else }}:
+           arguments: '--no-build -c Release -o $(Build.ArtifactStagingDirectory)/packages'
         projects: |
           **/**Extensions.Mcp.csproj
 
