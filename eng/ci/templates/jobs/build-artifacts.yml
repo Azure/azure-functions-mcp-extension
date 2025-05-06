@@ -8,6 +8,14 @@ jobs:
 - job: BuildArtifacts
   displayName: Build Artifacts
 
+  templateContext:
+  outputParentDirectory: $(Build.ArtifactStagingDirectory)
+  outputs:
+  - output: pipelineArtifact
+    displayName: Publish nuget packages
+    path: $(Build.ArtifactStagingDirectory)/packages
+    artifact: drop
+
   variables:
     - template: /eng/ci/templates/variables/build.yml@self
 
@@ -34,15 +42,6 @@ jobs:
       projects: 'Microsoft.Azure.Functions.Extensions.Mcp.sln'
 
   - ${{ if eq(parameters.CreateArtifacts, true) }}:
-
-    templateContext:
-    outputParentDirectory: $(Build.ArtifactStagingDirectory)/packages
-    outputs:
-    - output: pipelineArtifact
-      displayName: Publish nuget packages
-      path: $(Build.ArtifactStagingDirectory)/packages
-      artifact: drop
-
     - template: ci/sign-files.yml@eng
       parameters:
         displayName: Sign worker extension assemblies
