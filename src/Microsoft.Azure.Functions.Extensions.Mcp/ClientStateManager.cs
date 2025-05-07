@@ -6,10 +6,10 @@ internal class ClientStateManager
 {
     private readonly static bool _isCoreToolsEnvironment = Environment.GetEnvironmentVariable("FUNCTIONS_CORETOOLS_ENVIRONMENT") is not null;
 
-    public static bool TryParseUriState(string clientState, [NotNullWhen(true)] out string? clientId, [NotNullWhen(true)] out string? instanceId)
+    public static bool TryParseUriState(string clientState, [NotNullWhen(true)] out string? clientId, [NotNullWhen(true)] out string? instanceId, bool isEncrypted = true)
     {
-        // When running locally, we use a plain client state format
-        if (!_isCoreToolsEnvironment)
+        // If not encrypted, or running locally, we use a plain client state format
+        if (isEncrypted && !_isCoreToolsEnvironment)
         {
             clientState = TokenUtility.ReadUriState(clientState);
         }
@@ -17,12 +17,12 @@ internal class ClientStateManager
         return TryParsePlainClientState(clientState, out clientId, out instanceId);
     }
 
-    public static string FormatUriState(string clientId, string instanceId)
+    public static string FormatUriState(string clientId, string instanceId, bool isEncrypted = true)
     {
         var uriState = $"{clientId}|{instanceId}";
 
-        // When running locally, we use a plain client state format
-        if (_isCoreToolsEnvironment)
+        // If not encrypted, or running locally, we use a plain client state format
+        if (!isEncrypted || _isCoreToolsEnvironment)
         {
             return uriState;
         }
