@@ -8,7 +8,8 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <PackageId>Microsoft.Azure.Functions.Extensions.Mcp</PackageId>
     <AssemblyVersion>$(ExtensionVersion).0</AssemblyVersion>
-    <PackageVersion>$(ExtensionPackageVersion)</PackageVersion>
+    <VersionPrefix>$(ExtensionVersion)</VersionPrefix>
+    <VersionSuffix>$(ExtensionVersionSuffix)</VersionSuffix>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <!--<AnalysisMode>All</AnalysisMode>-->
   </PropertyGroup>
