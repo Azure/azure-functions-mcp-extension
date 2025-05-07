@@ -3,6 +3,7 @@ using System.Threading.Channels;
 using Azure.Storage.Queues;
 using Azure.Storage.Queues.Models;
 using Microsoft.Azure.Functions.Extensions.Mcp.Serialization;
+using Microsoft.Azure.WebJobs.Extensions.Mcp;
 using Microsoft.Extensions.Logging;
 using ModelContextProtocol.Protocol.Messages;
 
@@ -15,9 +16,9 @@ internal class AzureStorageBackplane : IMcpBackplane, IAsyncDisposable
     private readonly QueueServiceClientProvider _queueServiceProvider;
     private readonly Task _processingTask;
     private readonly CancellationTokenSource _processingCts;
-    private readonly ILogger<AzureStorageBackplane> _logger;
+    private readonly ILogger<Logs.AzureStorageBackplane> _logger;
 
-    public AzureStorageBackplane(IMcpInstanceIdProvider instanceIdProvider, QueueServiceClientProvider queueServiceClientProvider, ILogger<AzureStorageBackplane> logger)
+    public AzureStorageBackplane(IMcpInstanceIdProvider instanceIdProvider, QueueServiceClientProvider queueServiceClientProvider, ILogger<Logs.AzureStorageBackplane> logger)
     {
         _processingCts = new CancellationTokenSource();
 
