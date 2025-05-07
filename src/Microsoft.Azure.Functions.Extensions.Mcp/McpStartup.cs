@@ -4,11 +4,11 @@ using Microsoft.Azure.WebJobs.Hosting;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Azure;
 
-[assembly: WebJobsStartup(typeof(Startup))]
+[assembly: WebJobsStartup(typeof(McpStartup))]
 
 namespace Microsoft.Azure.Functions.Extensions.Mcp
 {
-    public class Startup : IWebJobsStartup
+    public class McpStartup : IWebJobsStartup
     {
         public void Configure(IWebJobsBuilder builder)
         {
