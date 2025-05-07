@@ -37,9 +37,4 @@
     <Content Include="README.md" Pack="true" PackagePath="/" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="Protocol\Messages\" />
-    <Folder Include="Protocol\Model\" />
-  </ItemGroup>
-
 </Project>
