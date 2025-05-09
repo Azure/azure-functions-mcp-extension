@@ -15,6 +15,16 @@ internal sealed class DefaultRequestHandler(IMessageHandlerManager messageHandle
 {
     public async Task HandleSseRequest(HttpContext context)
     {
+        // Handle clients attempting to use Streamable HTTP from protocol version 2025-03-26.
+        // Clients should respond to a 405 Method Not Allowed by reattempting with the HTTP+SSE transport.
+        if (context.Request.Method == HttpMethods.Post &&
+            context.Request.Headers.TryGetValue("Accept", out var acceptHeader) &&
+             acceptHeader.Any(h => h != null && h.Contains("application/json", StringComparison.OrdinalIgnoreCase)))
+        {
+            context.Response.StatusCode = StatusCodes.Status405MethodNotAllowed;
+            return;
+        }
+
         // Set the appropriate headers for SSE.
         context.Response.Headers.Append("Content-Type", "text/event-stream");
         context.Response.Headers.Append("Cache-Control", "no-cache,no-store");
