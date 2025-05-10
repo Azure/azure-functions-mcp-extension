@@ -15,6 +15,12 @@ internal sealed class DefaultRequestHandler(IMessageHandlerManager messageHandle
 {
     public async Task HandleSseRequest(HttpContext context)
     {
+        if (!HttpMethods.IsGet(context.Request.Method))
+        {
+            context.Response.StatusCode = StatusCodes.Status405MethodNotAllowed;
+            return;
+        }
+
         // Set the appropriate headers for SSE.
         context.Response.Headers.Append("Content-Type", "text/event-stream");
         context.Response.Headers.Append("Cache-Control", "no-cache,no-store");

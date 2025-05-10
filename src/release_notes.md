@@ -6,4 +6,6 @@
 
 ### Microsoft.Azure.Functions.Extensions 1.0.0-preview.5
 
+- Restricting SSE endpoint to GET requests.
+
 ### Microsoft.Azure.Functions.Worker.Extensions.Mcp 1.0.0-preview.5
