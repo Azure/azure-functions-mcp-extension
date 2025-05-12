@@ -2,7 +2,7 @@
   
   <PropertyGroup>
     <ExtensionVersion Condition="'$(ExtensionVersion)' == ''">1.0.0</ExtensionVersion>
-    <ExtensionVersionSuffix Condition="'$(ExtensionVersionSuffix)' == ''">preview.4</ExtensionVersionSuffix>
+    <ExtensionVersionSuffix Condition="'$(ExtensionVersionSuffix)' == ''">preview.5</ExtensionVersionSuffix>
   </PropertyGroup>
   
 </Project>
