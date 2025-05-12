@@ -1,7 +1,6 @@
 ﻿using System.Diagnostics;
 using ModelContextProtocol.Protocol.Messages;
 
-
 namespace Microsoft.Azure.Functions.Extensions.Mcp.Diagnostics
 {
     internal class RequestActivityFactory
@@ -25,6 +24,7 @@ namespace Microsoft.Azure.Functions.Extensions.Mcp.Diagnostics
 
         public Activity? CreateActivity(string name, JsonRpcRequest request)
         {
+            // The use of ActivityContext with ActivityTraceId.CreateRandom() is intentional; otherwise, all tool calls would be correlated to the GET /runtime/webhooks/mcp/sse request. 
             var rootContext = new ActivityContext(
                 ActivityTraceId.CreateRandom(),
                 ActivitySpanId.CreateRandom(),
