@@ -1,10 +1,6 @@
-﻿using ModelContextProtocol.Protocol.Messages;
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Diagnostics;
+using ModelContextProtocol.Protocol.Messages;
+
 
 namespace Microsoft.Azure.Functions.Extensions.Mcp.Diagnostics
 {
@@ -30,9 +26,9 @@ namespace Microsoft.Azure.Functions.Extensions.Mcp.Diagnostics
         public Activity? CreateActivity(string name, JsonRpcRequest request)
         {
             var rootContext = new ActivityContext(
-        ActivityTraceId.CreateRandom(),
-        ActivitySpanId.CreateRandom(),
-        ActivityTraceFlags.None);
+                ActivityTraceId.CreateRandom(),
+                ActivitySpanId.CreateRandom(),
+                ActivityTraceFlags.None);
 
             return _activityHelper.StartServerActivity(name,
                 request, rootContext, 
