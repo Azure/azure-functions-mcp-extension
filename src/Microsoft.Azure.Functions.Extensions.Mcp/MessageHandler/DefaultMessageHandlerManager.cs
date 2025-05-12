@@ -1,4 +1,11 @@
-﻿using Microsoft.Azure.Functions.Extensions.Mcp.Abstractions;
+﻿using System.Collections.Concurrent;
+using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
+using System.Text.Json;
+using System.Text.Json.Nodes;
+using System.Text.Json.Serialization.Metadata;
+using System.Threading.Channels;
+using Microsoft.Azure.Functions.Extensions.Mcp.Abstractions;
 using Microsoft.Azure.Functions.Extensions.Mcp.Backplane;
 using Microsoft.Azure.Functions.Extensions.Mcp.Configuration;
 using Microsoft.Azure.Functions.Extensions.Mcp.Diagnostics;
@@ -9,13 +16,6 @@ using ModelContextProtocol;
 using ModelContextProtocol.Protocol.Messages;
 using ModelContextProtocol.Protocol.Types;
 using ModelContextProtocol.Utils.Json;
-using System.Collections.Concurrent;
-using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
-using System.Text.Json;
-using System.Text.Json.Nodes;
-using System.Text.Json.Serialization.Metadata;
-using System.Threading.Channels;
 
 namespace Microsoft.Azure.Functions.Extensions.Mcp;
 
@@ -229,7 +229,6 @@ internal sealed class DefaultMessageHandlerManager : IMessageHandlerManager, IAs
                     }).ToList();
 
                 return JsonSerializer.SerializeToNode(new ListToolsResult {Tools = tools}, GetTypeInfo<ListToolsResult>());
-
             case RequestMethods.ToolsCall:
                 var typedRequest = request.Params.Deserialize(GetTypeInfo<CallToolRequestParams>());
 
