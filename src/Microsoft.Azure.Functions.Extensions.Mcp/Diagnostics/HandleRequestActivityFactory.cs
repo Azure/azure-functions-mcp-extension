@@ -1,0 +1,66 @@
+﻿using ModelContextProtocol.Protocol.Messages;
+using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace Microsoft.Azure.Functions.Extensions.Mcp.Diagnostics
+{
+    internal class RequestActivityFactory
+    {
+        private readonly ActivityHelper _activityHelper;
+        private readonly List<IActivityTagProvider> _tagProviders = new();
+        private static readonly ActivitySource _activitySource = new(TraceConstants.ExtActivitySource, TraceConstants.ExtActivitySourceVersion);
+
+        public RequestActivityFactory()
+        {
+            _activityHelper = new ActivityHelper(_activitySource);
+
+            // Register default tag providers
+            RegisterTagProvider(new RequestInfoTagProviderV1());
+        }
+
+        public void RegisterTagProvider(IActivityTagProvider provider)
+        {
+            _tagProviders.Add(provider);
+        }
+
+        public Activity? CreateActivity(string name, JsonRpcRequest request)
+        {
+            var rootContext = new ActivityContext(
+        ActivityTraceId.CreateRandom(),
+        ActivitySpanId.CreateRandom(),
+        ActivityTraceFlags.None);
+
+            return _activityHelper.StartServerActivity(name,
+                request, rootContext, 
+                activity => {
+                    foreach (var provider in _tagProviders)
+                    {
+                        provider.AddTags(activity, request);
+                    }
+                });
+        }
+
+        internal interface IActivityTagProvider
+        {
+            void AddTags(Activity activity, object context);
+        }
+
+        internal class RequestInfoTagProviderV1 : IActivityTagProvider
+        {
+            public void AddTags(Activity activity, object context)
+            {
+                if (context is JsonRpcRequest request)
+                {
+                    activity.SetTag("request.id", request.Id);
+                    activity.SetTag("request.method", request.Method);
+                    activity.SetTag("type", "other");
+                }
+            }
+        }
+    }
+
+}
