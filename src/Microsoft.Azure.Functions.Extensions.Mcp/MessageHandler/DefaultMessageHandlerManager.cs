@@ -246,6 +246,7 @@ internal sealed class DefaultMessageHandlerManager : IMessageHandlerManager, IAs
                     catch (Exception exc)
                     {
                         activity?.SetExceptionStatus(null, DateTimeOffset.UtcNow);
+
                         throw new McpException("Method not found.", exc, McpErrorCode.MethodNotFound);
                     }
                 }
