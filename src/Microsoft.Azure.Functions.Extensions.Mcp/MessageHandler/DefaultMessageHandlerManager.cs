@@ -236,18 +236,15 @@ internal sealed class DefaultMessageHandlerManager : IMessageHandlerManager, IAs
                     && _toolRegistry.TryGetTool(typedRequest.Name, out var tool))
                 {
                     using var activity = _requestActivityFactory.CreateActivity(tool.Name, request);
+
                     try
                     {
                         var result = await tool.RunAsync(typedRequest, cancellationToken);
-                        activity?.SetStatus(ActivityStatusCode.Ok);
-
                         return JsonSerializer.SerializeToNode(result, GetTypeInfo<CallToolResponse>());
                     }
                     catch (Exception exc)
                     {
-                        activity?.SetStatus(ActivityStatusCode.Error, exc.Message);
-                        activity?.RecordException(exc, DateTimeOffset.UtcNow); 
-
+                        activity?.SetExceptionStatus(null, DateTimeOffset.UtcNow);
                         throw new McpException("Method not found.", exc, McpErrorCode.MethodNotFound);
                     }
                 }
