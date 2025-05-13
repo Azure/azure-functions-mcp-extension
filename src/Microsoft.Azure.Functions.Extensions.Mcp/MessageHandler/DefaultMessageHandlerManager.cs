@@ -240,6 +240,7 @@ internal sealed class DefaultMessageHandlerManager : IMessageHandlerManager, IAs
                     try
                     {
                         var result = await tool.RunAsync(typedRequest, cancellationToken);
+
                         return JsonSerializer.SerializeToNode(result, GetTypeInfo<CallToolResponse>());
                     }
                     catch (Exception exc)
