@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.WebUtilities;
 
 namespace Microsoft.Azure.Functions.Extensions.Mcp;
 
+// Test change
 internal class Utility
 {
     private const string ValidChars = "abcdefghijklmnopqrstuvwxyz0123456789";
