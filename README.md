@@ -1,8 +1,16 @@
-# Azure Functions MCP extension
+[![Build Status](https://azfunc.visualstudio.com/public/_apis/build/status%2Fazure%2Fazure-functions-mcp-extension%2Fmcp-extension.public?repoName=Azure%2Fazure-functions-mcp-extension&branchName=main)](https://azfunc.visualstudio.com/public/_build/latest?definitionId=1375&repoName=Azure%2Fazure-functions-mcp-extension&branchName=main)
 
-Extension to enable MCP support to Azure Functions.
+# Azure Functions MCP extension (Preview)
+
+This repository contains an extension of [Azure Functions](https://functions.azure.com) to enable support for [Model Context Protocol (MCP)](https://modelcontextprotocol.io/). Using this extension, an Azure Functions application can act as a scalable remote MCP server. The extension includes an MCP tool trigger to help you define tools that can be used by clients such as AI agents to perform defined tasks during their operation.
+
+In addition to the host extension which supports all stacks, this repository also includes an integration for Functions projects using .NET on the isolated worker model.
 
 ## Instructions
+
+> [!IMPORTANT]
+> The Azure Functions MCP extension is currently in preview. You can expect changes to the trigger and binding APIs prior to the extension becoming generally available.
+> You should avoid using preview extensions in production apps.
 
 To get started with the extension, please see the following samples:
 
@@ -11,6 +19,9 @@ To get started with the extension, please see the following samples:
 | C# (.NET) | [remote-mcp-functions-dotnet](https://github.com/Azure-Samples/remote-mcp-functions-dotnet) |
 | Python | [remote-mcp-functions-python](https://github.com/Azure-Samples/remote-mcp-functions-python) |
 | TypeScript (Node.js) | [remote-mcp-functions-typescript](https://github.com/Azure-Samples/remote-mcp-functions-typescript) |
+| Java | [remote-mcp-functions-java](https://github.com/Azure-Samples/remote-mcp-functions-java) |
+
+Additional information can also be found in the [Azure Functions documentation](https://aka.ms/functions-mcp).
 
 ### Configuration
 

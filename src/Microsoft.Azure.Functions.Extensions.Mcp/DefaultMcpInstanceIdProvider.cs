@@ -1,6 +1,4 @@
-﻿using Microsoft.Azure.Functions.Extensions.Mcp;
-
-namespace Microsoft.Extensions.Hosting;
+﻿namespace Microsoft.Azure.Functions.Extensions.Mcp;
 
 internal class DefaultMcpInstanceIdProvider : IMcpInstanceIdProvider
 {
