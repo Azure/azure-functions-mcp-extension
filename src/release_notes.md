@@ -5,7 +5,7 @@
 -->
 
 ### Microsoft.Azure.Functions.Extensions 1.0.0-preview.7
-
+- Adding instrumentation to emit a server span for the tools/call. (#47)
 - Adding configurable support for absolute URIs in endpoint message.
 
 ### Microsoft.Azure.Functions.Worker.Extensions.Mcp 1.0.0-preview.7

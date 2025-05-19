@@ -1,4 +1,5 @@
 ﻿using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -7,6 +8,7 @@ using System.Threading.Channels;
 using Microsoft.Azure.Functions.Extensions.Mcp.Abstractions;
 using Microsoft.Azure.Functions.Extensions.Mcp.Backplane;
 using Microsoft.Azure.Functions.Extensions.Mcp.Configuration;
+using Microsoft.Azure.Functions.Extensions.Mcp.Diagnostics;
 using Microsoft.Azure.WebJobs.Extensions.Mcp;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -26,8 +28,10 @@ internal sealed class DefaultMessageHandlerManager : IMessageHandlerManager, IAs
     private readonly ILogger<Logs.DefaultMessageHandler> _logger;
     private readonly Task _backplaneProcessingTask;
     private readonly McpOptions _mcpOptions;
+    private readonly RequestActivityFactory _requestActivityFactory;
 
-    public DefaultMessageHandlerManager(IToolRegistry toolRegistry, IMcpInstanceIdProvider instanceIdProvider, IMcpBackplane backplane, IOptions<McpOptions> mcpOptions, ILogger<Logs.DefaultMessageHandler> logger)
+    public DefaultMessageHandlerManager(IToolRegistry toolRegistry, IMcpInstanceIdProvider instanceIdProvider, IMcpBackplane backplane, IOptions<McpOptions> mcpOptions, 
+        ILogger<Logs.DefaultMessageHandler> logger, RequestActivityFactory activityFactory )
     {
         _toolRegistry = toolRegistry;
         _instanceId = instanceIdProvider.InstanceId;
@@ -35,6 +39,7 @@ internal sealed class DefaultMessageHandlerManager : IMessageHandlerManager, IAs
         _logger = logger;
         _backplaneProcessingTask = InitializeBackplaneProcessing(_backplane.Messages);
         _mcpOptions = mcpOptions.Value;
+        _requestActivityFactory = activityFactory;
     }
 
     private async Task InitializeBackplaneProcessing(ChannelReader<McpBackplaneMessage> messages)
@@ -230,6 +235,8 @@ internal sealed class DefaultMessageHandlerManager : IMessageHandlerManager, IAs
                 if (typedRequest is not null
                     && _toolRegistry.TryGetTool(typedRequest.Name, out var tool))
                 {
+                    using var activity = _requestActivityFactory.CreateActivity(tool.Name, request);
+
                     try
                     {
                         var result = await tool.RunAsync(typedRequest, cancellationToken);
@@ -238,6 +245,8 @@ internal sealed class DefaultMessageHandlerManager : IMessageHandlerManager, IAs
                     }
                     catch (Exception exc)
                     {
+                        activity?.SetExceptionStatus(null, DateTimeOffset.UtcNow);
+
                         throw new McpException("Method not found.", exc, McpErrorCode.MethodNotFound);
                     }
                 }
