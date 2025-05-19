@@ -11,7 +11,7 @@ public class TestFunction
     public object GetSnippet(
         [McpToolTrigger(GetSnippetToolName, GetSnippetToolDescription)]
         string context,
-        [McpToolProperty(SnippetNamePropertyName, PropertyType, SnippetNamePropertyDescription)]
+        [McpToolProperty(SnippetNamePropertyName, PropertyType, SnippetNamePropertyDescription, true)]
         string name)
     {
         return SnippetsCache.Snippets.TryGetValue(name, out var snippet)
@@ -23,9 +23,9 @@ public class TestFunction
     public void SaveSnippet(
         [McpToolTrigger(SaveSnippetToolName, SaveSnippetToolDescription)]
         CallToolRequestParams context,
-        [McpToolProperty(SnippetNamePropertyName, PropertyType, SnippetNamePropertyDescription)]
+        [McpToolProperty(SnippetNamePropertyName, PropertyType, SnippetNamePropertyDescription, true)]
         string name,
-        [McpToolProperty(SnippetPropertyName, PropertyType, SnippetPropertyDescription)]
+        [McpToolProperty(SnippetPropertyName, PropertyType, SnippetPropertyDescription, true)]
         string snippet)
     {
         SnippetsCache.Snippets[name] = snippet;
