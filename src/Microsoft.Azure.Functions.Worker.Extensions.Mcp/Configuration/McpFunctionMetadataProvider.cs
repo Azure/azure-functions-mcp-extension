@@ -127,7 +127,7 @@ public sealed class McpFunctionMetadataProvider(IFunctionMetadataProvider inner,
                 continue;
             }
 
-            properties.Add(new ToolProperty(toolAttribute.PropertyName, toolAttribute.PropertyType, toolAttribute.Description));
+            properties.Add(new ToolProperty(toolAttribute.PropertyName, toolAttribute.PropertyType, toolAttribute.Description, toolAttribute.Required));
         }
 
         toolProperties = properties;

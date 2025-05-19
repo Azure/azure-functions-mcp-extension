@@ -11,4 +11,11 @@ public sealed class McpToolBuilder(IFunctionsWorkerApplicationBuilder builder, s
 
         return this;
     }
+    
+    public McpToolBuilder WithProperty(string name, string type, string description, bool required)
+    {
+        builder.Services.Configure<ToolOptions>(toolName, o => o.AddProperty(name, type, description, required));
+
+        return this;
+    }
 }

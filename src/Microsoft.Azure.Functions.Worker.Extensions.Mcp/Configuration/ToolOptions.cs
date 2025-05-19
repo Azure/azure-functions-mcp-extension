@@ -6,6 +6,11 @@ public class ToolOptions
     {
         Properties.Add(new ToolProperty(name, type, description));
     }
+    
+    public void AddProperty(string name, string type, string description, bool required)
+    {
+        Properties.Add(new ToolProperty(name, type, description, required));
+    }
 
     public required List<ToolProperty> Properties { get; set; } = [];
 }

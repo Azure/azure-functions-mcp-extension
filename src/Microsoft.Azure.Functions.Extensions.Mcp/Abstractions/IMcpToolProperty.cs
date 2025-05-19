@@ -7,4 +7,6 @@ public interface IMcpToolProperty
     public string PropertyType { get; set; }
 
     public string? Description { get; set; }
+    
+    public bool Required { get; set; }
 }
