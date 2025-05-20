@@ -5,14 +5,7 @@ namespace Microsoft.Azure.Functions.Worker.Builder;
 
 public sealed class McpToolBuilder(IFunctionsWorkerApplicationBuilder builder, string toolName)
 {
-    public McpToolBuilder WithProperty(string name, string type, string description)
-    {
-        builder.Services.Configure<ToolOptions>(toolName, o => o.AddProperty(name, type, description));
-
-        return this;
-    }
-    
-    public McpToolBuilder WithProperty(string name, string type, string description, bool required)
+    public McpToolBuilder WithProperty(string name, string type, string description, bool required = false)
     {
         builder.Services.Configure<ToolOptions>(toolName, o => o.AddProperty(name, type, description, required));
 

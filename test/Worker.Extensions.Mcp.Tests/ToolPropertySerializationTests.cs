@@ -1,6 +1,5 @@
 using System.Text.Json;
 using Microsoft.Azure.Functions.Worker.Extensions.Mcp.Configuration;
-using Xunit;
 
 namespace Worker.Extensions.Mcp.Tests;
 
