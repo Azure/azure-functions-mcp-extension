@@ -1,17 +1,19 @@
 ﻿using Microsoft.AspNetCore.Http;
-using Microsoft.Azure.Functions.Extensions.Mcp.Abstractions;
-using ModelContextProtocol.Protocol.Messages;
-using Microsoft.Azure.Functions.Extensions.Mcp.Serialization;
-using Microsoft.Extensions.Primitives;
-using System.Diagnostics.CodeAnalysis;
-using Microsoft.Extensions.Logging;
-using static Microsoft.Azure.Functions.Extensions.Mcp.McpConstants;
 using Microsoft.AspNetCore.Http.Features;
+using Microsoft.Azure.Functions.Extensions.Mcp.Abstractions;
+using Microsoft.Azure.Functions.Extensions.Mcp.Configuration;
+using Microsoft.Azure.Functions.Extensions.Mcp.Serialization;
 using Microsoft.Azure.WebJobs.Extensions.Mcp;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Primitives;
+using ModelContextProtocol.Protocol.Messages;
+using System.Diagnostics.CodeAnalysis;
+using static Microsoft.Azure.Functions.Extensions.Mcp.McpConstants;
 
 namespace Microsoft.Azure.Functions.Extensions.Mcp;
 
-internal sealed class DefaultRequestHandler(IMessageHandlerManager messageHandlerManager, IMcpInstanceIdProvider instanceIdProvider, ILogger<Logs.DefaultRequestHandler> logger) : IRequestHandler
+internal sealed class DefaultRequestHandler(IMessageHandlerManager messageHandlerManager, IMcpInstanceIdProvider instanceIdProvider, IOptions<McpOptions> mcpOptions, ILogger<Logs.DefaultRequestHandler> logger) : IRequestHandler
 {
     public async Task HandleSseRequest(HttpContext context)
     {
@@ -54,14 +56,27 @@ internal sealed class DefaultRequestHandler(IMessageHandlerManager messageHandle
         }
     }
 
-    private string WriteEndpoint(string clientId, HttpContext context)
+    internal string WriteEndpoint(string clientId, HttpContext context)
     {
-        string clientState = ClientStateManager.FormatUriState(clientId, instanceIdProvider.InstanceId);
-        string result = $"message?{AzmcpStateQuery}={clientState}";
+        var mcpOptionsValue = mcpOptions.Value;
+        var clientState = ClientStateManager.FormatUriState(clientId, instanceIdProvider.InstanceId, mcpOptionsValue.EncryptClientState);
+        var result = $"message?{AzmcpStateQuery}={clientState}";
 
         if (TryGetFunctionKey(context, out string? code))
         {
             result += $"&{FunctionsCodeQuery}={code}";
+        }
+
+        if (mcpOptionsValue.MessageOptions.UseAbsoluteUriForEndpoint)
+        {
+            var request = context.Request;
+
+            var fullPath = $"{request.PathBase}{request.Path}".TrimEnd('/');
+
+            var lastSegmentDelimiter = fullPath.LastIndexOf('/');
+            var trimmedPath = lastSegmentDelimiter > 0 ? fullPath[..lastSegmentDelimiter] : string.Empty;
+
+            result = $"{request.Scheme}://{request.Host}{trimmedPath}/{result}";
         }
 
         return result;
@@ -75,7 +90,7 @@ internal sealed class DefaultRequestHandler(IMessageHandlerManager messageHandle
             return;
         }
 
-        if (!ClientStateManager.TryParseUriState(clientState, out string? clientId, out string? instanceId))
+        if (!ClientStateManager.TryParseUriState(clientState, out string? clientId, out string? instanceId, mcpOptions.Value.EncryptClientState))
         {
             await WriteInvalidSessionResponse("Invalid client state.", context);
             return;

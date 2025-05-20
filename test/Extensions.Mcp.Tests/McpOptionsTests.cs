@@ -13,5 +13,8 @@ public class McpOptionsTests
         Assert.Equal("Azure Functions MCP server", options.ServerName);
         Assert.Equal("1.0.0", options.ServerVersion);
         Assert.Null(options.Instructions);
+        Assert.True(options.EncryptClientState);
+        Assert.NotNull(options.MessageOptions);
+        Assert.False(options.MessageOptions.UseAbsoluteUriForEndpoint);
     }
 }
