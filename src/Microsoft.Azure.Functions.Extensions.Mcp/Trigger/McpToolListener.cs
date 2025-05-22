@@ -1,4 +1,7 @@
-﻿using Microsoft.Azure.WebJobs.Host.Executors;
+﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// Licensed under the MIT License.
+
+using Microsoft.Azure.WebJobs.Host.Executors;
 using Microsoft.Azure.WebJobs.Host.Listeners;
 using ModelContextProtocol.Protocol.Types;
 
