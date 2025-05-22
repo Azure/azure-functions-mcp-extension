@@ -1,4 +1,7 @@
-﻿using System.Text.Json;
+﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// Licensed under the MIT License.
+
+using System.Text.Json;
 using System.Threading.Channels;
 using Azure.Storage.Queues;
 using Azure.Storage.Queues.Models;

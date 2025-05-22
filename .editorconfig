@@ -1,0 +1,15 @@
+# .editorconfig
+
+# Top-most EditorConfig file
+root = true
+
+# All files
+[*]
+charset = utf-8
+end_of_line = crlf
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+# C# files
+[*.cs]
+file_header_template = Copyright (c) Microsoft Corporation. All rights reserved.\nLicensed under the MIT License.

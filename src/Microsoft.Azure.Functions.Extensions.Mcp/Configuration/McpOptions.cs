@@ -1,4 +1,7 @@
-﻿namespace Microsoft.Azure.Functions.Extensions.Mcp.Configuration;
+﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// Licensed under the MIT License.
+
+namespace Microsoft.Azure.Functions.Extensions.Mcp.Configuration;
 
 /// <summary>
 /// Options for configuring the Model Context Protocol (MCP) extension in Azure Functions.

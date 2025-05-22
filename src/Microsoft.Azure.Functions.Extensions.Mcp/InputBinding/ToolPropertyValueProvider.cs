@@ -1,4 +1,7 @@
-﻿using Microsoft.Azure.WebJobs.Host.Bindings;
+﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// Licensed under the MIT License.
+
+using Microsoft.Azure.WebJobs.Host.Bindings;
 
 namespace Microsoft.Azure.Functions.Extensions.Mcp;
 

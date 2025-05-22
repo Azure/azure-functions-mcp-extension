@@ -1,4 +1,7 @@
-﻿using System.Reflection;
+﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// Licensed under the MIT License.
+
+using System.Reflection;
 using System.Text.Json;
 using Microsoft.Azure.Functions.Extensions.Mcp.Abstractions;
 using Microsoft.Azure.Functions.Extensions.Mcp.Serialization;

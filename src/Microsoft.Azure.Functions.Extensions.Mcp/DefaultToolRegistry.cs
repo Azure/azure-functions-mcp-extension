@@ -1,4 +1,7 @@
-﻿using Microsoft.Azure.Functions.Extensions.Mcp.Abstractions;
+﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// Licensed under the MIT License.
+
+using Microsoft.Azure.Functions.Extensions.Mcp.Abstractions;
 using System.Diagnostics.CodeAnalysis;
 
 namespace Microsoft.Azure.Functions.Extensions.Mcp;

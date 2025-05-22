@@ -1,4 +1,7 @@
-﻿using Azure.Storage.Queues;
+﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// Licensed under the MIT License.
+
+using Azure.Storage.Queues;
 using Microsoft.Azure.WebJobs.Hosting;
 using Newtonsoft.Json.Linq;
 using System.ComponentModel;
