@@ -290,7 +290,8 @@ internal sealed class DefaultMessageHandlerManager : IMessageHandlerManager, IAs
                     description = prop.Description ?? string.Empty
                 }
             ),
-            required = tool.Properties.Select(prop => prop.PropertyName).ToArray()
+            required = tool.Properties.Where(prop => prop.Required)
+                .Select(prop => prop.PropertyName).ToArray()
         };
 
         var jsonString = JsonSerializer.Serialize(schema);
