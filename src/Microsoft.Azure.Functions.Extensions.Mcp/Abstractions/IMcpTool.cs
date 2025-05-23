@@ -1,4 +1,7 @@
-﻿using ModelContextProtocol.Protocol.Types;
+﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// Licensed under the MIT License.
+
+using ModelContextProtocol.Protocol.Types;
 
 namespace Microsoft.Azure.Functions.Extensions.Mcp;
 

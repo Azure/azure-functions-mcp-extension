@@ -1,10 +1,13 @@
-﻿using System.Diagnostics.CodeAnalysis;
+﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// Licensed under the MIT License.
+
+using System.Diagnostics.CodeAnalysis;
 
 namespace Microsoft.Azure.Functions.Extensions.Mcp;
 
 internal class ClientStateManager
 {
-    private readonly static bool _isCoreToolsEnvironment = Environment.GetEnvironmentVariable("FUNCTIONS_CORETOOLS_ENVIRONMENT") is not null;
+    private static readonly bool _isCoreToolsEnvironment = Environment.GetEnvironmentVariable("FUNCTIONS_CORETOOLS_ENVIRONMENT") is not null;
 
     public static bool TryParseUriState(string clientState, [NotNullWhen(true)] out string? clientId, [NotNullWhen(true)] out string? instanceId, bool isEncrypted = true)
     {

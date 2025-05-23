@@ -1,4 +1,7 @@
-﻿using ModelContextProtocol.Protocol.Messages;
+﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// Licensed under the MIT License.
+
+using ModelContextProtocol.Protocol.Messages;
 using System.Threading.Channels;
 
 namespace Microsoft.Azure.Functions.Extensions.Mcp.Backplane;
