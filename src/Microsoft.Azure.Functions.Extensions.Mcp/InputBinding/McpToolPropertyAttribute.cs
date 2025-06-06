@@ -7,12 +7,14 @@ namespace Microsoft.Azure.Functions.Extensions.Mcp
 {
     [AttributeUsage(AttributeTargets.Parameter)]
     [Binding]
-    public sealed class McpToolPropertyAttribute(string propertyName, string propertyType, string description) : Attribute, IMcpToolProperty
+    public sealed class McpToolPropertyAttribute(string propertyName, string propertyType, string description, bool required = false) : Attribute, IMcpToolProperty
     {
         public string PropertyName { get; set; } = propertyName;
 
         public string PropertyType { get; set; } = propertyType;
 
         public string? Description { get; set; } = description;
+        
+        public bool Required { get; set; } = required;
     }
 }
