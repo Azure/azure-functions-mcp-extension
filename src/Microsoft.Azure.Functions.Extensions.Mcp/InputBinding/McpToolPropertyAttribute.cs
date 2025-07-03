@@ -14,7 +14,7 @@ namespace Microsoft.Azure.Functions.Extensions.Mcp
         public string PropertyType { get; set; } = propertyType;
 
         public string? Description { get; set; } = description;
-        
+
         public bool Required { get; set; } = required;
     }
 }

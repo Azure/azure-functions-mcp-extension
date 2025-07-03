@@ -5,7 +5,7 @@ using Microsoft.Azure.WebJobs.Host.Bindings;
 
 namespace Microsoft.Azure.Functions.Extensions.Mcp;
 
-internal class ObjectValueProvider : IValueProvider
+internal class ObjectValueProvider : IValueProvider // I don't think I understand the flow of ObjectValueProvider -> ToolPropertyValueProvider
 {
     private readonly object? _value;
     private readonly Task<object?> _valueAsTask;
@@ -28,5 +28,5 @@ internal class ObjectValueProvider : IValueProvider
 
     public Task<object?> GetValueAsync() => _valueAsTask;
 
-    public string? ToInvokeString() => _value?.ToString();
+    public string? ToInvokeString() => _value?.ToString(); // Who calls this? And what is it used for?
 }

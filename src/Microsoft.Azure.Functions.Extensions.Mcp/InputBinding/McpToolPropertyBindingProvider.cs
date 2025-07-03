@@ -15,6 +15,6 @@ public class McpToolPropertyBindingProvider : IBindingProvider
 
         return attribute == null
             ? Task.FromResult<IBinding?>(null)
-            : Task.FromResult<IBinding?>(new ToolPropertyInputBinding(attribute));
+            : Task.FromResult<IBinding?>(new ToolPropertyInputBinding(attribute, parameter.ParameterType));
     }
 }

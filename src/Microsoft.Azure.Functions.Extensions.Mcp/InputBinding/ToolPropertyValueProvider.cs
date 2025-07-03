@@ -5,11 +5,11 @@ using Microsoft.Azure.WebJobs.Host.Bindings;
 
 namespace Microsoft.Azure.Functions.Extensions.Mcp;
 
-public class ToolPropertyValueProvider(string? value) : IValueProvider
+public class ToolPropertyValueProvider(object? value, Type? type) : IValueProvider
 {
-    public Type Type => typeof(string);
+    public Type Type => type ?? typeof(string);
 
-    public Task<object?> GetValueAsync() => Task.FromResult<object?>(value);
+    public Task<object?> GetValueAsync() => ToolPropertyConverterRegistry.ToTargetTypeAsync(value, Type);
 
-    public string? ToInvokeString() => value;
+    public string? ToInvokeString() => value?.ToString() ?? string.Empty;
 }

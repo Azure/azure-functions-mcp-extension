@@ -161,7 +161,7 @@ internal sealed class McpToolTriggerBinding : ITriggerBinding
 
         public string ToInvokeString()
         {
-            return string.Empty;
+            return string.Empty; // Why do we always return an empty string here?
         }
     }
 }

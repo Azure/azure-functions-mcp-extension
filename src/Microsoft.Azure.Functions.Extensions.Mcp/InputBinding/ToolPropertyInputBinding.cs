@@ -7,7 +7,7 @@ using ModelContextProtocol.Protocol.Types;
 
 namespace Microsoft.Azure.Functions.Extensions.Mcp;
 
-public class ToolPropertyInputBinding(McpToolPropertyAttribute attribute) : IBinding
+public class ToolPropertyInputBinding(McpToolPropertyAttribute attribute, Type propertyType) : IBinding
 {
     public Task<IValueProvider> BindAsync(BindingContext context)
     {
@@ -25,7 +25,7 @@ public class ToolPropertyInputBinding(McpToolPropertyAttribute attribute) : IBin
             propertyValue = default;
         }
 
-        IValueProvider valueProvider = new ToolPropertyValueProvider(propertyValue.ToString());
+        IValueProvider valueProvider = new ToolPropertyValueProvider(propertyValue, propertyType);
         return Task.FromResult(valueProvider);
     }
 
