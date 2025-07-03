@@ -2,7 +2,6 @@ using Microsoft.Azure.Functions.Extensions.Mcp;
 using Microsoft.Azure.WebJobs;
 using ModelContextProtocol.Protocol.Types;
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using static TestApp.ToolsInformation;
 
@@ -33,7 +32,7 @@ public class TestFunction
     {
         SnippetsCache.Snippets[name] = snippet;
     }
-    
+
     [FunctionName(nameof(SearchSnippets))]
     public object SearchSnippets(
         [McpToolTrigger("searchSnippets", "Search for snippets by name pattern")]
@@ -47,5 +46,21 @@ public class TestFunction
         return SnippetsCache.Snippets
             .Where(kvp => kvp.Key.Contains(pattern, comparisonType))
             .ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+    }
+
+    [FunctionName(nameof(SaveSnippetPoco))]
+    public void SaveSnippetPoco(
+        [McpToolTrigger("savesnippetpoco", SaveSnippetToolDescription)]
+        CallToolRequestParams context,
+        [McpToolProperty("snippet", "object", "Snippet object containing snippet name and content", true)]
+        Snippet snippet)
+    {
+        SnippetsCache.Snippets[snippet.Name] = snippet.Content;
+    }
+
+    public class Snippet
+    {
+        public string Name { get; set; }
+        public string Content { get; set; }
     }
 }
