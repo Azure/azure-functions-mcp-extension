@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
 using System.Reflection;
@@ -92,9 +92,7 @@ internal sealed class McpToolTriggerBinding : ITriggerBinding
 
         if (attribute.ToolProperties is { } propertiesString)
         {
-            var arguments =
-                JsonSerializer.Deserialize<List<McpToolPropertyAttribute>>(propertiesString,
-                    McpJsonSerializerOptions.DefaultOptions);
+            var arguments = JsonSerializer.Deserialize<List<McpToolPropertyAttribute>>(propertiesString, McpJsonSerializerOptions.DefaultOptions);
             SetProperties(arguments);
         }
         else
@@ -116,6 +114,9 @@ internal sealed class McpToolTriggerBinding : ITriggerBinding
 
                 toolProperties.Add(property);
             }
+
+            // Set the tool properties string from the attributes found on the method parameters.
+            attribute.ToolProperties = JsonSerializer.Serialize(toolProperties, McpJsonSerializerOptions.DefaultOptions);
         }
 
         return toolProperties ?? [];

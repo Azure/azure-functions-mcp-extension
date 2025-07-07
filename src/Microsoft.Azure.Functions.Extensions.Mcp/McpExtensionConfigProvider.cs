@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
 using Microsoft.ApplicationInsights.AspNetCore.Extensions;
@@ -15,7 +15,7 @@ using Microsoft.Extensions.Logging;
 namespace Microsoft.Azure.Functions.Extensions.Mcp;
 
 [Extension("Mcp", "mcp")]
-internal sealed class McpExtensionConfigProvider(IToolRegistry toolRegistry, IRequestHandler requestHandler, IWebHookProvider webHookProvider, ILoggerFactory loggerFactory)
+internal sealed class McpExtensionConfigProvider(IToolRegistry toolRegistry, IMcpRequestHandler requestHandler, IWebHookProvider webHookProvider, ILoggerFactory loggerFactory)
     : IExtensionConfigProvider, IAsyncConverter<HttpRequestMessage, HttpResponseMessage>, IDisposable
 {
     private Func<Uri>? _webhookDelegate;
@@ -43,16 +43,7 @@ internal sealed class McpExtensionConfigProvider(IToolRegistry toolRegistry, IRe
             throw new InvalidOperationException("HttpContext not found in request options.");
         }
 
-        var isSse = context.Request.GetUri().AbsolutePath.Contains("sse");
-
-        if (isSse)
-        {
-            await requestHandler.HandleSseRequest(context);
-        }
-        else
-        {
-            await requestHandler.HandleMessageRequest(context);
-        }
+        await requestHandler.HandleRequest(context);
 
         var responseFeature = context.Features.Get<IHttpResponseFeature>();
 
