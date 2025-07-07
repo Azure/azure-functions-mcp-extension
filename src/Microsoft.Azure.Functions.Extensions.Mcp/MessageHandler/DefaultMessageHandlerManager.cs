@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
 using System.Collections.Concurrent;
@@ -228,7 +228,7 @@ internal sealed class DefaultMessageHandlerManager : IMessageHandlerManager, IAs
                     {
                         Name = t.Name,
                         Description = t.Description,
-                        InputSchema = GetPropertiesInputSchema(t)
+                        InputSchema = t.GetPropertiesInputSchema()
                     }).ToList();
 
                 return JsonSerializer.SerializeToNode(new ListToolsResult {Tools = tools}, GetTypeInfo<ListToolsResult>());
@@ -278,28 +278,6 @@ internal sealed class DefaultMessageHandlerManager : IMessageHandlerManager, IAs
         }
 
         throw new McpException("Method not found.", McpErrorCode.MethodNotFound);
-    }
-
-    private JsonElement GetPropertiesInputSchema(IMcpTool tool)
-    {
-        var schema = new
-        {
-            type = "object",
-            properties = tool.Properties.ToDictionary(
-                prop => prop.PropertyName,
-                prop => new
-                {
-                    type = prop.PropertyType,
-                    description = prop.Description ?? string.Empty
-                }
-            ),
-            required = tool.Properties.Where(prop => prop.Required)
-                .Select(prop => prop.PropertyName).ToArray()
-        };
-
-        var jsonString = JsonSerializer.Serialize(schema);
-        using var document = JsonDocument.Parse(jsonString);
-        return document.RootElement.Clone();
     }
 
     private record MessageHandlerReference(IMessageHandler Handler, Task MessageProcessingTask)

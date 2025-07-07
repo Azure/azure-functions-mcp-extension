@@ -1,7 +1,8 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
 using Microsoft.Azure.Functions.Extensions.Mcp.Abstractions;
+using ModelContextProtocol.Protocol.Types;
 using System.Diagnostics.CodeAnalysis;
 
 namespace Microsoft.Azure.Functions.Extensions.Mcp;
@@ -29,5 +30,20 @@ internal sealed class DefaultToolRegistry : IToolRegistry
     public ICollection<IMcpTool> GetTools()
     {
         return _tools.Values;
+    }
+
+    public ValueTask<ListToolsResult> ListToolsAsync(CancellationToken cancellationToken = default)
+    {
+        var result = new ListToolsResult
+        {
+            Tools = _tools.Values.Select(static tool => new Tool
+            {
+                Name = tool.Name,
+                Description = tool.Description,
+                InputSchema = tool.GetPropertiesInputSchema()
+            }).ToList()
+        };
+
+        return new ValueTask<ListToolsResult>(result);
     }
 }
