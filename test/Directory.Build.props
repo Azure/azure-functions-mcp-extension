@@ -1,0 +1,16 @@
+<Project>
+
+  <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))"
+          Condition="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../')) != ''" />
+
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+    <WarnOnPackingNonPackableProject>false</WarnOnPackingNonPackableProject>
+    <IsTestApp Condition="$(MSBuildProjectName.EndsWith('Tests'))">true</IsTestApp>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(IsTestApp)' == 'true'">
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+</Project>

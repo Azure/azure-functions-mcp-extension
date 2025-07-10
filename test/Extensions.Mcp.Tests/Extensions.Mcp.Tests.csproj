@@ -2,12 +2,7 @@
 
   <PropertyGroup>
     <TargetFramework>net9.0</TargetFramework>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
-    <IsPackable>false</IsPackable>
   </PropertyGroup>
-
-  <Import Project="..\..\build\Common.props" />
 
   <ItemGroup>
     <PackageReference Include="coverlet.collector" Version="6.0.2" />
@@ -19,10 +14,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Microsoft.Azure.Functions.Extensions.Mcp\Extensions.Mcp.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Using Include="Xunit" />
   </ItemGroup>
 
 </Project>
