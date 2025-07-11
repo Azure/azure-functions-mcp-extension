@@ -59,7 +59,7 @@
 			"type": "func",
 			"dependsOn": "build (functions)",
 			"options": {
-				"cwd": "${workspaceFolder}/test/TestApp/bin/Debug/net8.0"
+				"cwd": "${workspaceFolder}/out/bin/TestApp/debug"
 			},
 			"command": "host start",
 			"isBackground": true,

@@ -1,8 +1,21 @@
 ﻿<Project>
-  
+
+  <!-- artifacts -->
   <PropertyGroup>
-    <ExtensionVersion Condition="'$(ExtensionVersion)' == ''">1.0.0</ExtensionVersion>
-    <ExtensionVersionSuffix Condition="'$(ExtensionVersionSuffix)' == ''">preview.6</ExtensionVersionSuffix>
+    <ArtifactsPath>$(MSBuildThisFileDirectory)out</ArtifactsPath>
+    <ArtifactsPublishOutputName>pub</ArtifactsPublishOutputName>
+    <ArtifactsPackageOutputName>pkg</ArtifactsPackageOutputName>
   </PropertyGroup>
-  
+
+  <!-- paths -->
+  <PropertyGroup>
+    <RepoRoot>$(MSBuildThisFileDirectory)</RepoRoot>
+    <SrcRoot>$(RepoRoot)src/</SrcRoot>
+    <EngRoot>$(RepoRoot)eng/</EngRoot>
+    <EngBuildRoot>$(EngRoot)build/</EngBuildRoot>
+    <EngResourceRoot>$(EngRoot)res/</EngResourceRoot>
+  </PropertyGroup>
+
+  <Import Project="$(EngBuildRoot)Engineering.props" />
+
 </Project>

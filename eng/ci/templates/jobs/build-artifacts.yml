@@ -10,86 +10,85 @@ jobs:
 
   variables:
     - template: /eng/ci/templates/variables/build.yml@self
+    - name: packages_path
+      value: $(Build.ArtifactStagingDirectory)/packages
 
   templateContext:
-    outputParentDirectory: $(Build.ArtifactStagingDirectory)/packages
+    outputParentDirectory: $(packages_path)
     outputs:
     - ${{ if eq(parameters.CreateArtifacts, true) }}:
       - output: pipelineArtifact
         displayName: Publish artifacts
-        path: $(Build.ArtifactStagingDirectory)/packages
+        path: $(packages_path)
         artifact: drop
 
   steps:
-  - pwsh: dotnet --version
-    displayName: "Echo dotnet version"
-  
+
+  - task: UseDotNet@2 # The pinned SDK we use to build
+    displayName: Install .NET SDK from global.json
+    inputs:
+      packageType: sdk
+      useGlobalJson: true
+
   - task: DotNetCoreCLI@2
-    displayName: 'Build project'
+    displayName: Build project
     inputs:
       command: custom
       custom: build
-      ${{ if and(not(contains(variables['Build.SourceBranch'], '/release/')), not(startsWith(variables['Build.SourceBranch'], 'refs/tags'))) }}:
-        arguments: -p:ExtensionVersionSuffix=$(Build.BuildNumber) -c $(buildConfiguration)
-      ${{ else }}:
-        arguments: -c $(buildConfiguration)
-      projects: 'Microsoft.Azure.Functions.Extensions.Mcp.sln'
+      arguments: -c $(configuration)
+      projects: $(project)
 
   - task: DotNetCoreCLI@2
-    displayName: 'Run tests'
+    displayName: Run tests
     inputs:
-      command: 'test'
-      arguments: '--no-build -c $(buildConfiguration)'
-      projects: 'Microsoft.Azure.Functions.Extensions.Mcp.sln'
+      command: test
+      arguments: --no-build -c $(configuration)
+      projects: $(project)
 
   - ${{ if eq(parameters.CreateArtifacts, true) }}:
     - template: ci/sign-files.yml@eng
       parameters:
-        displayName: Sign worker extension assemblies
-        folderPath: src/Microsoft.Azure.Functions.Worker.Extensions.Mcp/bin
+        displayName: Sign assemblies
+        folderPath: out/bin/Worker.Extensions.Mcp/
         pattern: Microsoft.Azure.Functions.Worker.Extensions.Mcp.dll
         signType: dll
 
     - task: DeleteFiles@1
       displayName: Delete CodeSignSummary files
       inputs:
-        sourceFolder: src/Microsoft.Azure.Functions.Worker.Extensions.Mcp/
+        sourceFolder: out/bin/Worker.Extensions.Mcp/
         contents: '**/CodeSignSummary-*.md'
 
     - template: ci/sign-files.yml@eng
       parameters:
         displayName: Sign extension assemblies
-        folderPath: src/Microsoft.Azure.Functions.Extensions.Mcp/bin
+        folderPath: out/bin/Extensions.Mcp/
         pattern: Microsoft.Azure.Functions.Extensions.Mcp.dll
         signType: dll
 
     - task: DeleteFiles@1
       displayName: Delete CodeSignSummary files
       inputs:
-        sourceFolder: src/Microsoft.Azure.Functions.Extensions.Mcp/
+        sourceFolder: out/bin/Extensions.Mcp/
         contents: '**/CodeSignSummary-*.md'
 
     - task: DotNetCoreCLI@2
       displayName: 'Build package'
       inputs:
-        command: 'custom'
-        custom: 'pack'
-        ${{ if and(not(contains(variables['Build.SourceBranch'], '/release/')), not(startsWith(variables['Build.SourceBranch'], 'refs/tags'))) }}:
-           arguments: '--no-build -c Release -o $(Build.ArtifactStagingDirectory)/packages -p:ExtensionVersionSuffix=$(Build.BuildNumber)'
-        ${{ else }}:
-           arguments: '--no-build -c Release -o $(Build.ArtifactStagingDirectory)/packages'
-        projects: |
-          **/**Extensions.Mcp.csproj
+        command: custom
+        custom: pack
+        arguments: --no-build -c Release -o $(packages_path)
+        projects: $(project)
 
     - template: ci/sign-files.yml@eng
       parameters:
         displayName: Sign nuget packages
-        folderPath: $(Build.ArtifactStagingDirectory)/packages
-        pattern: Microsoft.Azure.Functions**
+        folderPath: $(packages_path)
+        pattern: '*.nupkg'
         signType: nuget
 
     - task: DeleteFiles@1
       displayName: Delete CodeSignSummary files
       inputs:
-        sourceFolder: $(Build.ArtifactStagingDirectory)/packages
+        sourceFolder: $(packages_path)
         contents: '**/CodeSignSummary-*.md'
