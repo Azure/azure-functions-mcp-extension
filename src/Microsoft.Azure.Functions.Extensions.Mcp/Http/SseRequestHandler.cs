@@ -11,7 +11,6 @@ using Microsoft.Extensions.Options;
 using ModelContextProtocol.Protocol.Messages;
 using ModelContextProtocol.Protocol.Transport;
 using ModelContextProtocol.Server;
-using System.Collections.Concurrent;
 using static Microsoft.Azure.Functions.Extensions.Mcp.McpConstants;
 
 namespace Microsoft.Azure.Functions.Extensions.Mcp;
@@ -19,12 +18,12 @@ namespace Microsoft.Azure.Functions.Extensions.Mcp;
 internal sealed class SseRequestHandler(
     IMessageHandlerManager messageHandlerManager,
     IMcpInstanceIdProvider instanceIdProvider,
+    IMcpClientSessionManager clientSessionManager,
     IOptions<McpOptions> mcpOptions,
     IOptions<McpServerOptions> mcpServerOptions,
     ILoggerFactory loggerFactory) : ISseRequestHandler
 {
     private readonly ILogger _logger = loggerFactory.CreateLogger<Logs.SseRequestHandler>();
-    private readonly ConcurrentDictionary<string, McpClientSession<SseResponseStreamTransport>> _sessions = new();
 
     public bool IsSseRequest(HttpContext context)
     {
@@ -60,13 +59,7 @@ internal sealed class SseRequestHandler(
         var messageEndpoint = GetMessageEndpoint(clientId, context);
         var transport = new SseResponseStreamTransport(context.Response.Body, messageEndpoint);
 
-        await using var clientSession = new McpClientSession<SseResponseStreamTransport>(clientId, instanceIdProvider.InstanceId, transport);
-
-        if (!_sessions.TryAdd(clientId, clientSession))
-        {
-            // This condition should never happen
-            throw new InvalidOperationException($"A session for client '{clientId}' already exists.");
-        }
+        await using var clientSession = clientSessionManager.CreateSession(clientId, instanceIdProvider.InstanceId, transport);
 
         try
         {
@@ -93,10 +86,6 @@ internal sealed class SseRequestHandler(
         {
             // Nothing to do. Normal client disconnect behavior...
         }
-        finally
-        {
-            _sessions.TryRemove(clientId, out _);
-        }
     }
 
     public async Task HandleMessageRequest(HttpContext context, IMessageHandlerManager messageHandlerManager, McpOptions mcpOptions)
@@ -121,7 +110,7 @@ internal sealed class SseRequestHandler(
             return;
         }
 
-        if (!_sessions.TryGetValue(clientId, out var clientSession))
+        if (!clientSessionManager.TryGetSession<SseResponseStreamTransport>(clientId, out var clientSession))
         {
             await WriteInvalidSessionResponse($"No active session for client '{clientId}' and instance '{instanceId}'.", context);
             return;
