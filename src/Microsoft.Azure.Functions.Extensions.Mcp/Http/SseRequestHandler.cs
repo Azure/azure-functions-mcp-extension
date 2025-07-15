@@ -2,23 +2,22 @@
 // Licensed under the MIT License.
 
 using Microsoft.AspNetCore.Http;
-using Microsoft.Azure.Functions.Extensions.Mcp.Abstractions;
+using Microsoft.Azure.Functions.Extensions.Mcp.Backplane;
 using Microsoft.Azure.Functions.Extensions.Mcp.Configuration;
 using Microsoft.Azure.Functions.Extensions.Mcp.Serialization;
 using Microsoft.Azure.WebJobs.Extensions.Mcp;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using ModelContextProtocol.Protocol.Messages;
-using ModelContextProtocol.Protocol.Transport;
 using ModelContextProtocol.Server;
 using static Microsoft.Azure.Functions.Extensions.Mcp.McpConstants;
 
 namespace Microsoft.Azure.Functions.Extensions.Mcp;
 
 internal sealed class SseRequestHandler(
-    IMessageHandlerManager messageHandlerManager,
     IMcpInstanceIdProvider instanceIdProvider,
     IMcpClientSessionManager clientSessionManager,
+    IMcpBackplaneService backplaneService,
     IOptions<McpOptions> mcpOptions,
     IOptions<McpServerOptions> mcpServerOptions,
     ILoggerFactory loggerFactory) : ISseRequestHandler
@@ -41,7 +40,7 @@ internal sealed class SseRequestHandler(
         }
         else
         {
-            await HandleMessageRequest(context, messageHandlerManager, mcpOptions.Value);
+            await HandleMessageRequest(context, mcpOptions.Value);
         }
     }
 
@@ -57,7 +56,7 @@ internal sealed class SseRequestHandler(
 
         var clientId = Utility.CreateId();
         var messageEndpoint = GetMessageEndpoint(clientId, context);
-        var transport = new SseResponseStreamTransport(context.Response.Body, messageEndpoint);
+        var transport = new SseStreamTransportWithMessageHandling(context.Response.Body, messageEndpoint);
 
         await using var clientSession = clientSessionManager.CreateSession(clientId, instanceIdProvider.InstanceId, transport);
 
@@ -88,7 +87,7 @@ internal sealed class SseRequestHandler(
         }
     }
 
-    public async Task HandleMessageRequest(HttpContext context, IMessageHandlerManager messageHandlerManager, McpOptions mcpOptions)
+    public async Task HandleMessageRequest(HttpContext context, McpOptions mcpOptions)
     {
         if (!McpHttpUtility.TryGetQueryValue(context, AzmcpStateQuery, out string? clientState))
         {
@@ -110,17 +109,25 @@ internal sealed class SseRequestHandler(
             return;
         }
 
-        if (!clientSessionManager.TryGetSession<SseResponseStreamTransport>(clientId, out var clientSession))
+        if (clientSessionManager.TryGetSession(clientId, out var clientSession))
         {
-            await WriteInvalidSessionResponse($"No active session for client '{clientId}' and instance '{instanceId}'.", context);
-            return;
+            await clientSession.HandleMessageAsync(message, context.RequestAborted);
         }
+        else
+        {
+            // If we're unable to find the session, but the client state indicates it was bound to this instance, we have an error condition
+            // as that client ID is not valid.
+            if (string.Equals(instanceId, instanceIdProvider.InstanceId, StringComparison.OrdinalIgnoreCase))
+            {
+                await WriteInvalidSessionResponse($"No active session for client '{clientId}' and instance '{instanceId}'.", context);
+                return;
+            }
 
-        await clientSession.Transport.OnMessageReceivedAsync(message, context.RequestAborted);
+            await backplaneService.SendMessageAsync(message, instanceId, clientId, context.RequestAborted);
+        }
 
         context.Response.StatusCode = StatusCodes.Status202Accepted;
         await context.Response.WriteAsync("Accepted");
-        return;
 
         static Task WriteInvalidSessionResponse(string message, HttpContext httpContext)
         {
