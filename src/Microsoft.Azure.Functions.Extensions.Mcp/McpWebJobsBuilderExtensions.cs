@@ -40,6 +40,7 @@ public static class McpWebJobsBuilderExtensions
         // Core services
         builder.Services.AddSingleton<IMessageHandlerManager, DefaultMessageHandlerManager>();
         builder.Services.AddSingleton<IMcpInstanceIdProvider, DefaultMcpInstanceIdProvider>();
+        builder.Services.AddSingleton<IMcpClientSessionManager, McpClientSessionManager>();
 
         // Backplane
         builder.Services.AddSingleton<IMcpBackplane, AzureStorageBackplane>();

@@ -15,6 +15,7 @@ namespace Microsoft.Azure.Functions.Extensions.Mcp.Tests;
 public class SseRequestHandlerTests
 {
     private readonly IMcpInstanceIdProvider _instanceIdProvider;
+    private readonly IMcpClientSessionManager _clientSessionManager;
 
     public SseRequestHandlerTests()
     {
@@ -22,6 +23,9 @@ public class SseRequestHandlerTests
         idProviderMock.Setup(p => p.InstanceId)
             .Returns("instance");
         _instanceIdProvider = idProviderMock.Object;
+
+        var clientSessionManagerMock = new Mock<IMcpClientSessionManager>();
+        _clientSessionManager = clientSessionManagerMock.Object;
     }
 
     private static IOptions<McpOptions> CreateOptions(bool useAbsoluteUri)
@@ -38,7 +42,7 @@ public class SseRequestHandlerTests
     {
         var options = CreateOptions(false);
         var serverOptions = Options.Create(new McpServerOptions());
-        var handler = new SseRequestHandler(null!, _instanceIdProvider, options, serverOptions, NullLoggerFactory.Instance);
+        var handler = new SseRequestHandler(null!, _instanceIdProvider, _clientSessionManager, options, serverOptions, NullLoggerFactory.Instance);
         var context = new DefaultHttpContext
         {
             Request =
@@ -59,7 +63,7 @@ public class SseRequestHandlerTests
     {
         var options = CreateOptions(true);
         var serverOptions = Options.Create(new McpServerOptions());
-        var handler = new SseRequestHandler(null!, _instanceIdProvider, options, serverOptions, NullLoggerFactory.Instance);
+        var handler = new SseRequestHandler(null!, _instanceIdProvider, _clientSessionManager, options, serverOptions, NullLoggerFactory.Instance);
         var context = new DefaultHttpContext
         {
             Request =
@@ -80,7 +84,7 @@ public class SseRequestHandlerTests
     {
         var options = CreateOptions(false);
         var serverOptions = Options.Create(new McpServerOptions());
-        var handler = new SseRequestHandler(null!, _instanceIdProvider, options, serverOptions, NullLoggerFactory.Instance);
+        var handler = new SseRequestHandler(null!, _instanceIdProvider, _clientSessionManager, options, serverOptions, NullLoggerFactory.Instance);
         var context = new DefaultHttpContext
         {
             Request =
@@ -107,7 +111,7 @@ public class SseRequestHandlerTests
     {
         var options = CreateOptions(false);
         var serverOptions = Options.Create(new McpServerOptions());
-        var handler = new SseRequestHandler(null!, _instanceIdProvider, options, serverOptions, NullLoggerFactory.Instance);
+        var handler = new SseRequestHandler(null!, _instanceIdProvider, _clientSessionManager, options, serverOptions, NullLoggerFactory.Instance);
         var context = new DefaultHttpContext
         {
             Request =
