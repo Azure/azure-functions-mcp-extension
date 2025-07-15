@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
+using ModelContextProtocol.Protocol.Messages;
 using ModelContextProtocol.Protocol.Transport;
 using ModelContextProtocol.Server;
 using System.Collections.Concurrent;
@@ -21,7 +22,7 @@ internal sealed class McpClientSessionManager : IMcpClientSessionManager
         }
     }
 
-    public IMcpClientSession<TTransport> CreateSession<TTransport>(string clientId, string instanceId, TTransport transport) where TTransport : ITransport
+    public IMcpClientSession<TTransport> CreateSession<TTransport>(string clientId, string instanceId, TTransport transport) where TTransport : ITransportWithMessageHandling
     {
         var clientSession = new McpClientSessionImplementation<TTransport>(this, clientId, instanceId, transport);
 
@@ -39,16 +40,8 @@ internal sealed class McpClientSessionManager : IMcpClientSessionManager
         return _sessions.TryGetValue(clientId, out clientSession);
     }
 
-    public bool TryGetSession<TTransport>(string clientId, [NotNullWhen(true)] out IMcpClientSession<TTransport>? clientSession) where TTransport : ITransport
-    {
-        var result = _sessions.TryGetValue(clientId, out var session);
-        clientSession = session as IMcpClientSession<TTransport>;
-        
-        return result;
-    }
-
     private sealed class McpClientSessionImplementation<TTransport>(McpClientSessionManager manager, string clientId, string instanceId, TTransport transport) : IMcpClientSession<TTransport>
-        where TTransport : ITransport
+        where TTransport : ITransportWithMessageHandling
     {
         private bool _disposed;
 
@@ -59,6 +52,9 @@ internal sealed class McpClientSessionManager : IMcpClientSessionManager
         public string InstanceId { get; } = instanceId;
 
         public IMcpServer? Server { get; set; }
+
+        public Task HandleMessageAsync(JsonRpcMessage message, CancellationToken cancellationToken)
+            => Transport.HandleMessageAsync(message, cancellationToken);
 
         public async ValueTask DisposeAsync()
         {
