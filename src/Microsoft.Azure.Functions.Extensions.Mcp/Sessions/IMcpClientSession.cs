@@ -20,4 +20,8 @@ internal interface IMcpClientSession : IAsyncDisposable
     IMcpServer? Server { get; set; }
 
     Task HandleMessageAsync(JsonRpcMessage message, CancellationToken cancellationToken);
+
+    void StartPing(CancellationToken cancellationToken);
+
+    void StopPing();
 }

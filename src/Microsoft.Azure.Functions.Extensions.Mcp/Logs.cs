@@ -9,7 +9,5 @@ internal class Logs
 
     public record DefaultRequestHandler;
 
-    public record DefaultMessageHandler;
-
     public record SseRequestHandler;
 }
