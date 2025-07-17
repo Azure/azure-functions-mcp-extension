@@ -72,7 +72,8 @@ internal sealed class SseRequestHandler(
                 clientSession.Server = mcpServer;
                 context.Features.Set(mcpServer);
 
-                // Run the client
+                clientSession.StartPing(context.RequestAborted);
+                
                 await mcpServer.RunAsync(context.RequestAborted);
             }
             finally
