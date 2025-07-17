@@ -32,32 +32,13 @@ extends:
     - stage: Prepare
       jobs:
         - job: Prepare
-
-          variables:
-          - template: ci/variables/cfs.yml@eng
-          - name: drop_path
-            value: $(Pipeline.Workspace)/build/${{ parameters.artifactName }}
-
           templateContext:
             type: validationJob
 
           steps:
           - checkout: none
-
-          # validationJob uses retail artifact inputs
-          - download: build
-            artifact: ${{ parameters.artifactName }}
-
-          # For extension releases, we assume the first package (alphanumerically) in the drop is the one we want to version off of.
-          # This is a bit of a hack, but it works for our current setup.
-          # We use a regex to extract the version from the package name and set it as the build number.
           - pwsh: |
-              $ErrorActionPreference = 'Stop'
-              $packages = Get-ChildItem -Path $(drop_path) -Filter *.nupkg -Recurse
-              $name = $packages[0].Name
-              Write-Host "Getting version for $name"
-              $version = [Regex]::Match($name, '(\d+\.\d+\.\d+(?:\.\d+)?(?:-[\w\.].*)?)(?=\.nupkg$)').Value
-              Write-Host "##vso[build.updatebuildnumber]$version"
+              Write-Host "##vso[build.updatebuildnumber]$(resources.pipeline.build.runeName)"
             displayName: Get package version
 
     - stage: Release

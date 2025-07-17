@@ -1,19 +1,10 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <AssemblyName>Microsoft.Azure.Functions.Worker.Extensions.Mcp</AssemblyName>
-    <RootNamespace>Microsoft.Azure.Functions.Worker.Extensions.Mcp</RootNamespace>
-    <Description>Model Context Protocol (MCP) extensions for .NET isolated functions.</Description>
     <TargetFramework>net8.0</TargetFramework>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <PackageId>Microsoft.Azure.Functions.Worker.Extensions.Mcp</PackageId>
-    <AssemblyVersion>$(ExtensionVersion).0</AssemblyVersion>
-    <VersionPrefix>$(ExtensionVersion)</VersionPrefix>
-    <VersionSuffix>$(ExtensionVersionSuffix)</VersionSuffix>
-    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <AssemblyName>Microsoft.Azure.Functions.Worker.Extensions.Mcp</AssemblyName>
+    <Description>Model Context Protocol (MCP) extensions for .NET isolated functions.</Description>
   </PropertyGroup>
-
-  <Import Project="..\..\build\Common.props" />
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Azure.Functions.Worker.Core" Version="2.0.0" />
@@ -23,12 +14,8 @@
   <ItemGroup>
     <AssemblyAttribute Include="Microsoft.Azure.Functions.Worker.Extensions.Abstractions.ExtensionInformationAttribute">
       <_Parameter1>Microsoft.Azure.Functions.Extensions.Mcp</_Parameter1>
-      <_Parameter2>$(ExtensionVersion)-$(ExtensionVersionSuffix)</_Parameter2>
+      <_Parameter2>$(Version)</_Parameter2>
     </AssemblyAttribute>
-  </ItemGroup>
-
-  <ItemGroup>
-    <Content Include="README.md" Pack="true" PackagePath="/" />
   </ItemGroup>
 
 </Project>

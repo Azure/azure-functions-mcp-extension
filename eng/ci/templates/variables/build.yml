@@ -1,2 +1,7 @@
 variables:
-  buildConfiguration: 'Release'
+- name: configuration
+  value: release
+- name: project
+  value: Microsoft.Azure.Functions.Extensions.Mcp.sln
+- name: Build.Counter
+  value: $[counter(format('{0:yyyyMMdd}', pipeline.startTime), 0)]
