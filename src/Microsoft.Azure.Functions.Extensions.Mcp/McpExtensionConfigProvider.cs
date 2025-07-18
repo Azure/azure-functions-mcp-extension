@@ -1,11 +1,11 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-using Microsoft.ApplicationInsights.AspNetCore.Extensions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Mvc.WebApiCompatShim;
 using Microsoft.Azure.Functions.Extensions.Mcp.Abstractions;
+using Microsoft.Azure.Functions.Extensions.Mcp.Backplane;
 using Microsoft.Azure.WebJobs;
 using Microsoft.Azure.WebJobs.Description;
 using Microsoft.Azure.WebJobs.Host.Config;
@@ -15,7 +15,7 @@ using Microsoft.Extensions.Logging;
 namespace Microsoft.Azure.Functions.Extensions.Mcp;
 
 [Extension("Mcp", "mcp")]
-internal sealed class McpExtensionConfigProvider(IToolRegistry toolRegistry, IMcpRequestHandler requestHandler, IWebHookProvider webHookProvider, ILoggerFactory loggerFactory)
+internal sealed class McpExtensionConfigProvider(IToolRegistry toolRegistry, IMcpRequestHandler requestHandler, IWebHookProvider webHookProvider, IMcpBackplaneService backplaneService, ILoggerFactory loggerFactory)
     : IExtensionConfigProvider, IAsyncConverter<HttpRequestMessage, HttpResponseMessage>, IDisposable
 {
     private Func<Uri>? _webhookDelegate;
@@ -34,6 +34,10 @@ internal sealed class McpExtensionConfigProvider(IToolRegistry toolRegistry, IMc
 
         context.AddBindingRule<McpToolPropertyAttribute>()
             .Bind(new McpToolPropertyBindingProvider());
+
+       backplaneService.StartAsync(CancellationToken.None)
+           .GetAwaiter()
+           .GetResult();
     }
 
     public async Task<HttpResponseMessage> ConvertAsync(HttpRequestMessage input, CancellationToken cancellationToken)
@@ -57,6 +61,10 @@ internal sealed class McpExtensionConfigProvider(IToolRegistry toolRegistry, IMc
 
     public void Dispose()
     {
+        backplaneService.StopAsync(CancellationToken.None)
+            .GetAwaiter()
+            .GetResult();
+
         loggerFactory.Dispose();
     }
 

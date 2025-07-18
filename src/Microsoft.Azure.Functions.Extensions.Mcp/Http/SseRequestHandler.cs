@@ -4,6 +4,7 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.Azure.Functions.Extensions.Mcp.Backplane;
 using Microsoft.Azure.Functions.Extensions.Mcp.Configuration;
+using Microsoft.Azure.Functions.Extensions.Mcp.Http;
 using Microsoft.Azure.Functions.Extensions.Mcp.Serialization;
 using Microsoft.Azure.WebJobs.Extensions.Mcp;
 using Microsoft.Extensions.Logging;
@@ -52,6 +53,8 @@ internal sealed class SseRequestHandler(
             return;
         }
 
+        _logger.LogInformation("Handling legacy SSE request.");
+
         McpHttpUtility.SetSseContext(context);
 
         var clientId = Utility.CreateId();
@@ -72,7 +75,7 @@ internal sealed class SseRequestHandler(
                 clientSession.Server = mcpServer;
                 context.Features.Set(mcpServer);
 
-                clientSession.StartPing(context.RequestAborted);
+                _ = clientSession.StartPingAsync(context.RequestAborted);
                 
                 await mcpServer.RunAsync(context.RequestAborted);
             }
