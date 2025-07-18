@@ -1,14 +1,16 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
+using Microsoft.Extensions.Logging;
 using ModelContextProtocol.Protocol.Messages;
 using ModelContextProtocol.Server;
 using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
+using System.Threading.Tasks;
 
 namespace Microsoft.Azure.Functions.Extensions.Mcp;
 
-internal sealed class McpClientSessionManager : IMcpClientSessionManager
+internal sealed class McpClientSessionManager(ILogger<McpClientSessionManager> logger) : IMcpClientSessionManager
 {
     private readonly ConcurrentDictionary<string, IMcpClientSession> _sessions = new();
 
@@ -19,6 +21,8 @@ internal sealed class McpClientSessionManager : IMcpClientSessionManager
             // This condition should never happen
             throw new InvalidOperationException($"A session for client '{clientId}' does not exist.");
         }
+
+        logger.LogInformation("Removed session for client '{ClientId}'.", clientId);
     }
 
     public IMcpClientSession<TTransport> CreateSession<TTransport>(string clientId, string instanceId, TTransport transport) where TTransport : ITransportWithMessageHandling
@@ -31,6 +35,8 @@ internal sealed class McpClientSessionManager : IMcpClientSessionManager
             throw new InvalidOperationException($"A session for client '{clientId}' already exists.");
         }
 
+        logger.LogInformation("Created session for client '{ClientId}' with instance '{InstanceId}'.", clientId, instanceId);
+
         return clientSession;
     }
 
@@ -42,12 +48,23 @@ internal sealed class McpClientSessionManager : IMcpClientSessionManager
     private sealed class McpClientSessionImplementation<TTransport>(McpClientSessionManager manager, string clientId, string instanceId, TTransport transport) : IMcpClientSession<TTransport>
         where TTransport : ITransportWithMessageHandling
     {
-        private readonly object _pingLock = new();
+        private readonly SemaphoreSlim _pingSemaphore = new(1, 1);
         private CancellationTokenSource? _pingTokenSource;
         private Task? _pingTask;
         private bool _disposed;
 
-        private async Task StartPingAsync(CancellationToken cancellationToken)
+        public TTransport Transport { get; } = transport;
+
+        public string ClientId { get; } = clientId;
+
+        public string InstanceId { get; } = instanceId;
+
+        public IMcpServer? Server { get; set; }
+
+        public Task HandleMessageAsync(JsonRpcMessage message, CancellationToken cancellationToken)
+            => Transport.HandleMessageAsync(message, cancellationToken);
+
+        private async Task StartPingCoreAsync(CancellationToken cancellationToken)
         {
             if (Server is null)
             {
@@ -69,8 +86,10 @@ internal sealed class McpClientSessionManager : IMcpClientSessionManager
             }
         }
 
-        private Task CancelAndDisposePingAsync()
+        private async Task CancelAndDisposePingAsync()
         {
+            using var _ = await _pingSemaphore.LockAsync().ConfigureAwait(false);
+
             if (_pingTokenSource is not null)
             {
                 _pingTokenSource.Cancel();
@@ -78,24 +97,32 @@ internal sealed class McpClientSessionManager : IMcpClientSessionManager
                 _pingTokenSource = null;
             }
 
-            if (_pingTask is not null)
-            {
-                return Interlocked.Exchange(ref _pingTask, null);
-            }
+            var pingTask = Interlocked.Exchange(ref _pingTask, null);
 
-            return Task.CompletedTask;
+            if (pingTask is not null)
+            {
+                await pingTask.ConfigureAwait(false);
+            }
         }
 
-        public TTransport Transport { get; } = transport;
+        public async Task StartPingAsync(CancellationToken cancellationToken)
+        {
+            using var _ = await _pingSemaphore.LockAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
 
-        public string ClientId { get; } = clientId;
+            if (_pingTask is not null && !_pingTask.IsCompleted)
+            {
+                // Ping is already running, no need to start it again.
+                return;
+            }
 
-        public string InstanceId { get; } = instanceId;
+            _pingTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            _pingTask = StartPingCoreAsync(_pingTokenSource.Token);
+        }
 
-        public IMcpServer? Server { get; set; }
-
-        public Task HandleMessageAsync(JsonRpcMessage message, CancellationToken cancellationToken)
-            => Transport.HandleMessageAsync(message, cancellationToken);
+        public async Task StopPingAsync()
+        {
+            await CancelAndDisposePingAsync();
+        }
 
         public async ValueTask DisposeAsync()
         {
@@ -119,27 +146,8 @@ internal sealed class McpClientSessionManager : IMcpClientSessionManager
             await CancelAndDisposePingAsync()
                 .ConfigureAwait(false);
 
-            await Transport.DisposeAsync();
-        }
-
-        public void StartPing(CancellationToken cancellationToken)
-        {
-            lock (_pingLock)
-            {
-                var pingTokenSource = new CancellationTokenSource();
-                Interlocked.Exchange(ref _pingTokenSource, pingTokenSource);
-
-                var token = CancellationTokenSource.CreateLinkedTokenSource(_pingTokenSource!.Token, cancellationToken).Token;
-                _pingTask = StartPingAsync(token);
-            }
-        }
-
-        public void StopPing()
-        {
-            lock (_pingLock)
-            {
-                _ = CancelAndDisposePingAsync();
-            }
+            await Transport.DisposeAsync()
+                .ConfigureAwait(false);
         }
     }
 }

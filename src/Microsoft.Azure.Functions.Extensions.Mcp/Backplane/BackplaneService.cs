@@ -1,14 +1,13 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using ModelContextProtocol.Protocol.Messages;
 using System.Threading.Channels;
 
 namespace Microsoft.Azure.Functions.Extensions.Mcp.Backplane
 {
-    internal sealed class BackplaneService(IMcpClientSessionManager sessionManager, IMcpBackplane backplane, IMcpInstanceIdProvider instanceIdProvider, ILogger<BackplaneService> logger) : IHostedService, IMcpBackplaneService
+    internal sealed class BackplaneService(IMcpClientSessionManager sessionManager, IMcpBackplane backplane, IMcpInstanceIdProvider instanceIdProvider, ILogger<BackplaneService> logger) : IMcpBackplaneService
     {
         private Task? _backplaneProcessingTask;
         private readonly string _instanceId = instanceIdProvider.InstanceId;
@@ -17,7 +16,7 @@ namespace Microsoft.Azure.Functions.Extensions.Mcp.Backplane
         {
             _backplaneProcessingTask = InitializeBackplaneProcessing(backplane.Messages);
 
-            return _backplaneProcessingTask;
+            return Task.CompletedTask;
         }
 
         public Task StopAsync(CancellationToken cancellationToken)

@@ -56,9 +56,8 @@ public static class McpWebJobsBuilderExtensions
             {
                 var toolRegistry = c.Services?.GetRequiredService<IToolRegistry>();
 
-                return toolRegistry is null
-                    ? throw new InvalidOperationException("Tool registry not properly registered.")
-                    : toolRegistry.ListToolsAsync(ct);
+                return toolRegistry?.ListToolsAsync(ct)
+                       ?? throw new InvalidOperationException("Tool registry not properly registered.");
             })
             .WithCallToolHandler(static async (c, ct) =>
             {

@@ -8,6 +8,7 @@
     <SignAssembly>true</SignAssembly>
     <NoWarn>$(NoWarn);NU1701;NU5104</NoWarn>
     <DebugType>embedded</DebugType>
+    <RootNamespace>Microsoft.Azure.Functions.$(MSBuildProjectName.Replace(" ", "_"))</RootNamespace>
   </PropertyGroup>
 
   <Import Project="$(MSBuildThisFileDirectory)Release.props" />

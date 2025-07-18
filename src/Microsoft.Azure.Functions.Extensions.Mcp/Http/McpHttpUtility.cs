@@ -7,7 +7,7 @@ using Microsoft.Extensions.Primitives;
 using System.Diagnostics.CodeAnalysis;
 using static Microsoft.Azure.Functions.Extensions.Mcp.McpConstants;
 
-namespace Microsoft.Azure.Functions.Extensions.Mcp;
+namespace Microsoft.Azure.Functions.Extensions.Mcp.Http;
 
 internal sealed class McpHttpUtility
 {
@@ -32,10 +32,11 @@ internal sealed class McpHttpUtility
     internal static void SetSseContext(HttpContext context)
     {
         // Set the appropriate headers for SSE.
-        context.Response.Headers.Append("Content-Type", "text/event-stream");
-        context.Response.Headers.Append("Cache-Control", "no-cache,no-store");
-        context.Response.Headers.Append("Connection", "keep-alive");
+        context.Response.Headers.ContentType = "text/event-stream";
+        context.Response.Headers.CacheControl = "no-cache,no-store";
+        context.Response.Headers.Connection = "keep-alive";
         context.Response.Headers.ContentEncoding = "identity";
+
         context.Features.GetRequiredFeature<IHttpResponseBodyFeature>().DisableBuffering();
     }
 }
