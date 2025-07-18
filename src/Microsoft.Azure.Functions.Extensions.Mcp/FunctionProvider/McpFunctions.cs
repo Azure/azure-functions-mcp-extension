@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
 using Microsoft.AspNetCore.Http;
@@ -8,21 +8,19 @@ namespace Microsoft.Azure.Functions.Extensions.Mcp;
 
 public class McpFunctions
 {
-    public static async Task HandleSseRequest(HttpRequest request)
-    {
-        ArgumentNullException.ThrowIfNull(request);
+    public static Task HandleSseRequest(HttpRequest request)
+        => HandleRequest(request.HttpContext);
 
-        var requestHandler = request.HttpContext.RequestServices.GetService(typeof(IRequestHandler)) as IRequestHandler
+    public static Task HandleMessageRequest(HttpRequest request)
+        => HandleRequest(request.HttpContext);
+
+    private static Task HandleRequest(HttpContext context)
+    {
+        ArgumentNullException.ThrowIfNull(context);
+
+        var requestHandler = context.RequestServices.GetService(typeof(ISseRequestHandler)) as ISseRequestHandler
             ?? throw new InvalidOperationException("Request handler not found.");
 
-        await requestHandler.HandleSseRequest(request.HttpContext);
-    }
-
-    public static async Task HandleMessageRequest(HttpRequest request)
-    {
-        var requestHandler = request.HttpContext.RequestServices.GetService(typeof(IRequestHandler)) as IRequestHandler
-            ?? throw new InvalidOperationException("Request handler not found.");
-
-        await requestHandler.HandleMessageRequest(request.HttpContext);
+        return requestHandler.HandleRequest(context);
     }
 }

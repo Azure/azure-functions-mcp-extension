@@ -13,4 +13,10 @@
     <ProjectReference Include="$(SrcRoot)Microsoft.Azure.Functions.Extensions.Mcp\Extensions.Mcp.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Update="host.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
 </Project>

@@ -2,92 +2,47 @@
 // Licensed under the MIT License.
 
 using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Options;
-using Microsoft.Azure.Functions.Extensions.Mcp.Configuration;
 using Moq;
-using Microsoft.Azure.WebJobs.Extensions.Mcp;
-using Microsoft.Extensions.Logging.Abstractions;
-using Microsoft.Extensions.Primitives;
 
 namespace Microsoft.Azure.Functions.Extensions.Mcp.Tests;
 
 public class DefaultRequestHandlerTests
 {
-    private readonly IMcpInstanceIdProvider _instanceIdProvider;
+    private readonly Mock<IStreamableHttpRequestHandler> _streamableHttpRequestHandlerMock;
+    private readonly Mock<ISseRequestHandler> _sseRequestHandlerMock;    
+    private readonly DefaultRequestHandler _defaultRequestHandler;
 
     public DefaultRequestHandlerTests()
     {
-        var idProviderMock = new Mock<IMcpInstanceIdProvider>();
-        idProviderMock.Setup(p => p.InstanceId)
-            .Returns("instance");
-        _instanceIdProvider = idProviderMock.Object;
-    }
-
-    private static IOptions<McpOptions> CreateOptions(bool useAbsoluteUri)
-    {
-        return Options.Create(new McpOptions
-        {
-            EncryptClientState = false,
-            MessageOptions = new MessageOptions { UseAbsoluteUriForEndpoint = useAbsoluteUri }
-        });
+        _streamableHttpRequestHandlerMock = new Mock<IStreamableHttpRequestHandler>();
+        _sseRequestHandlerMock = new Mock<ISseRequestHandler>();
+        
+        _defaultRequestHandler = new DefaultRequestHandler(
+            _streamableHttpRequestHandlerMock.Object,
+            _sseRequestHandlerMock.Object);
     }
 
     [Fact]
-    public void WriteEndpoint_ReturnsRelativeUri_WhenUseAbsoluteUriForEndpointIsFalse()
+    public async Task HandleRequest_CallsSseRequestHandler_WhenIsSseRequestIsTrue()
     {
-        var options = CreateOptions(false);
-        var handler = new DefaultRequestHandler(null!, _instanceIdProvider, options, NullLogger<Logs.DefaultRequestHandler>.Instance);
-        var context = new DefaultHttpContext
-        {
-            Request =
-            {
-                Path = "/api/sse",
-                PathBase = ""
-            }
-        };
+        var context = new DefaultHttpContext();
+        _sseRequestHandlerMock.Setup(handler => handler.IsSseRequest(context)).Returns(true);
 
-        var endpoint = handler.WriteEndpoint("client", context);
+        await _defaultRequestHandler.HandleRequest(context);
 
-        Assert.StartsWith("message?azmcpcs=", endpoint);
-        Assert.DoesNotContain("http://", endpoint, StringComparison.OrdinalIgnoreCase);
+        _sseRequestHandlerMock.Verify(handler => handler.HandleRequest(context), Times.Once);
+        _streamableHttpRequestHandlerMock.Verify(handler => handler.HandleRequest(context), Times.Never);
     }
 
     [Fact]
-    public void WriteEndpoint_ReturnsAbsoluteUri_WhenUseAbsoluteUriForEndpointIsTrue()
+    public async Task HandleRequest_CallsStreamableHttpRequestHandler_WhenIsSseRequestIsFalse()
     {
-        var options = CreateOptions(true);
-        var handler = new DefaultRequestHandler(null!, _instanceIdProvider, options, NullLogger<Logs.DefaultRequestHandler>.Instance);
-        var context = new DefaultHttpContext
-        {
-            Request =
-            {
-                Scheme = "https",
-                Host = new HostString("example.com"),
-                Path = "/runtime/webhooks/sse",
-                PathBase = ""
-            }
-        };
+        var context = new DefaultHttpContext();
+        _sseRequestHandlerMock.Setup(handler => handler.IsSseRequest(context)).Returns(false);
 
-        var endpoint = handler.WriteEndpoint("client", context);
-        Assert.StartsWith("https://example.com/runtime/webhooks/message?azmcpcs=", endpoint);
-    }
+        await _defaultRequestHandler.HandleRequest(context);
 
-    [Fact]
-    public void WriteEndpoint_AppendsFunctionKey_WhenPresent()
-    {
-        var options = CreateOptions(false);
-        var handler = new DefaultRequestHandler(null!, _instanceIdProvider, options, NullLogger<Logs.DefaultRequestHandler>.Instance);
-        var context = new DefaultHttpContext
-        {
-            Request =
-            {
-                QueryString = new QueryString("?code=abc123"),
-                Query = new QueryCollection(new Dictionary<string, StringValues> { { "code", new StringValues("abc123") } })
-            }
-        };
-
-        var endpoint = handler.WriteEndpoint("client", context);
-
-        Assert.Contains("code=abc123", endpoint);
+        _streamableHttpRequestHandlerMock.Verify(handler => handler.HandleRequest(context), Times.Once);
+        _sseRequestHandlerMock.Verify(handler => handler.HandleRequest(context), Times.Never);
     }
 }
