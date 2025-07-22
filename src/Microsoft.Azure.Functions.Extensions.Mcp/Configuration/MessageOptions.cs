@@ -6,7 +6,7 @@ namespace Microsoft.Azure.Functions.Extensions.Mcp.Configuration;
 /// <summary>
 /// Options for configuring message handling in the Model Context Protocol (MCP) extension.
 /// </summary>
-public sealed class MessageOptions 
+public sealed class MessageOptions
 {
     /// <summary>
     /// Gets or sets a value indicating whether to use the absolute URI in the endpoint MCP message.

@@ -27,14 +27,14 @@ internal sealed class RequestActivityFactory
 
     public Activity? CreateActivity(string name, JsonRpcRequest request)
     {
-        // The use of ActivityContext with ActivityTraceId.CreateRandom() is intentional; otherwise, all tool calls would be correlated to the GET /runtime/webhooks/mcp/sse request. 
+        // The use of ActivityContext with ActivityTraceId.CreateRandom() is intentional; otherwise, all tool calls would be correlated to the GET /runtime/webhooks/mcp/sse request.
         var rootContext = new ActivityContext(
             ActivityTraceId.CreateRandom(),
             ActivitySpanId.CreateRandom(),
             ActivityTraceFlags.None);
 
         return _activityHelper.StartServerActivity(name,
-            request, rootContext, 
+            request, rootContext,
             activity => {
                 foreach (var provider in _tagProviders)
                 {

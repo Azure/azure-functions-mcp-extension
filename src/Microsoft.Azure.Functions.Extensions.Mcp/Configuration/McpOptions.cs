@@ -39,6 +39,6 @@ public sealed class McpOptions
     {
         get => _messageOptions;
         set => _messageOptions = value
-                                 ?? throw new ArgumentNullException(nameof(value),"Message options cannot be null.");
+                                 ?? throw new ArgumentNullException(nameof(value), "Message options cannot be null.");
     }
 }

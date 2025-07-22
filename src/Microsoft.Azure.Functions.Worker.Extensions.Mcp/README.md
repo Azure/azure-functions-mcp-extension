@@ -5,6 +5,7 @@ This package provides triggers and bindings to support exposing Azure Functions 
 ## Example usage
 
 The following is an example of how to use the MCP tool trigger in an Azure Functions application:
+
 ``` csharp
 [Function(nameof(GetSnippet))]
 public object GetSnippet(
@@ -16,6 +17,7 @@ public object GetSnippet(
 ```
 
 You can also bind to the MCP tool property arguments using the `McpToolProperty` input binding as follows:
+
 ``` csharp
 [Function(nameof(SaveSnippet))]
 [BlobOutput(BlobPath)]
@@ -31,6 +33,7 @@ public string SaveSnippet(
 The above example will automatically expose the `name` and `snippet` parameters as properties for the MCP tool.
 
 Alternatively, you can define properties when creating your application as follows:
+
 ``` csharp
 builder.EnableMcpToolMetadata();
 

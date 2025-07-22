@@ -114,7 +114,7 @@ internal sealed class TokenUtility
         {
             return true;
         }
-        
+
         return false;
     }
 

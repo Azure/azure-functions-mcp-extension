@@ -24,5 +24,5 @@ internal sealed class ActivityHelper
         }
 
         return activity;
-    }        
+    }
 }

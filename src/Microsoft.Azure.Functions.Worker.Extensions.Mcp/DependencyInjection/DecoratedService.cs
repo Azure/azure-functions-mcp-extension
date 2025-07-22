@@ -33,7 +33,7 @@ internal static class DecoratedService
             return ActivatorUtilities.CreateInstance<TImplementation>(p, decoratedType!);
         });
 
-        return collection; ;
+        return collection;
     }
 
     private class Decorator<TService>(Func<IServiceProvider, object> factory)

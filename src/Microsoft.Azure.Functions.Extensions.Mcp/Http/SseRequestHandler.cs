@@ -76,7 +76,7 @@ internal sealed class SseRequestHandler(
                 context.Features.Set(mcpServer);
 
                 _ = clientSession.StartPingAsync(context.RequestAborted);
-                
+
                 await mcpServer.RunAsync(context.RequestAborted);
             }
             finally
