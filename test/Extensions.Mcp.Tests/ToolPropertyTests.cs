@@ -11,17 +11,17 @@ public class ToolPropertyTests
     {
         // Arrange & Act
         var attribute = new McpToolPropertyAttribute("name", "string", "description");
-        
+
         // Assert
         Assert.False(attribute.Required);
     }
-    
+
     [Fact]
     public void Required_WhenExplicitlySet_ReturnsCorrectValue()
     {
         // Arrange & Act
         var attribute = new McpToolPropertyAttribute("name", "string", "description", true);
-        
+
         // Assert
         Assert.True(attribute.Required);
     }

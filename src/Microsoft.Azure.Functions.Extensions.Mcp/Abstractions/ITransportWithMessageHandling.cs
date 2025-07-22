@@ -8,5 +8,5 @@ namespace Microsoft.Azure.Functions.Extensions.Mcp;
 
 internal interface ITransportWithMessageHandling : ITransport
 {
-       Task HandleMessageAsync(JsonRpcMessage message, CancellationToken cancellationToken);
+    Task HandleMessageAsync(JsonRpcMessage message, CancellationToken cancellationToken);
 }
