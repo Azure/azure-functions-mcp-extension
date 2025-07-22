@@ -45,7 +45,14 @@ internal class PocoConverter : IInputConverter
                 return ConversionResult.Unhandled();
             }
 
-            var result = await ConvertCore(context.TargetType, json, cancellationToken);
+            using var document = JsonDocument.Parse(json);
+            if (!document.RootElement.TryGetProperty("arguments", out var argumentsElement))
+            {
+                return ConversionResult.Unhandled();
+            }
+
+            var argumentsJson = argumentsElement.GetRawText();
+            var result = await DeserializeToTargetType(context.TargetType, argumentsJson, cancellationToken);
             return ConversionResult.Success(result);
         }
         catch (Exception ex)
@@ -54,17 +61,9 @@ internal class PocoConverter : IInputConverter
         }
     }
 
-    private async Task<object> ConvertCore(Type targetType, string json, CancellationToken cancellationToken)
+    private async Task<object> DeserializeToTargetType(Type targetType, string json, CancellationToken cancellationToken)
     {
-        using var document = JsonDocument.Parse(json);
-        if (!document.RootElement.TryGetProperty("arguments", out var argumentsElement))
-        {
-            throw new InvalidOperationException("No 'arguments' property found.");
-        }
-
-        var argumentsJson = argumentsElement.GetRawText();
-        using var stream = ToStream(argumentsJson);
-
+        using var stream = ToStream(json);
         var result = await _serializer.DeserializeAsync(stream, targetType, cancellationToken);
 
         if (result is null)

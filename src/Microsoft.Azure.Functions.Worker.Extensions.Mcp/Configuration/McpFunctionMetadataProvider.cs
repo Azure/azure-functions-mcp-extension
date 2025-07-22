@@ -139,18 +139,19 @@ public sealed class McpFunctionMetadataProvider(IFunctionMetadataProvider inner,
             }
 
             var triggerAttribute = parameter.GetCustomAttribute<McpToolTriggerAttribute>();
-            if (triggerAttribute is not null && IsPoco(parameter.ParameterType) && parameter.ParameterType != typeof(ToolInvocationContext))
+            if (triggerAttribute is not null && parameter.ParameterType.IsPoco() && parameter.ParameterType != typeof(ToolInvocationContext))
             {
-                // Extract POCO properties as ToolProperties
                 foreach (var prop in parameter.ParameterType.GetProperties(BindingFlags.Instance | BindingFlags.Public))
                 {
                     if (!prop.CanRead || !prop.CanWrite)
+                    {
                         continue;
+                    }
 
                     var name = prop.Name;
-                    var typeNameStr = MapToToolPropertyType(prop.PropertyType);
-                    var isRequired = IsRequired(prop);
-                    var description = GetDescription(prop);
+                    var typeNameStr = prop.PropertyType.MapToToolPropertyType();
+                    var isRequired = prop.IsRequired();
+                    var description = prop.GetDescription();
 
                     properties.Add(new ToolProperty(name, typeNameStr, description, isRequired));
                 }
@@ -169,54 +170,5 @@ public sealed class McpFunctionMetadataProvider(IFunctionMetadataProvider inner,
     private static JsonNode? GetPropertiesJson(string functionName, List<ToolProperty> properties)
     {
         return JsonSerializer.Serialize(properties);
-    }
-
-    private static string? GetDescription(PropertyInfo property)
-    {
-        return property.GetCustomAttribute<DescriptionAttribute>()?.Description;
-    }
-
-    private static bool IsRequired(PropertyInfo property)
-    {
-        return property.GetCustomAttributes()
-                    .Any(attr => attr.GetType().Name == "RequiredMemberAttribute");
-    }
-
-    private static string MapToToolPropertyType(Type type)
-    {
-        if (type == typeof(string)) return "string";
-        if (type == typeof(int) || type == typeof(int?)) return "int";
-        if (type == typeof(bool) || type == typeof(bool?)) return "bool";
-        if (type == typeof(double) || type == typeof(double?)) return "double";
-        // Add additional mappings as needed
-        return "object";
-    }
-
-    /// <summary>
-    /// Checks if the given type qualifies as a POCO for JSON deserialization.
-    /// Excludes:
-    /// - string
-    /// - abstract types and interfaces
-    /// - collection types (IEnumerable)
-    /// - types without a public parameterless constructor
-    /// </summary>
-    private static bool IsPoco(Type type)
-    {
-        if (type == typeof(string))
-            return false;
-
-        if (type.IsAbstract || type.IsInterface)
-            return false;
-
-        if (typeof(IEnumerable).IsAssignableFrom(type))
-            return false;
-
-        if (!type.IsClass)
-            return false;
-
-        if (type.GetConstructor(Type.EmptyTypes) == null)
-            return false;
-
-        return true;
     }
 }
