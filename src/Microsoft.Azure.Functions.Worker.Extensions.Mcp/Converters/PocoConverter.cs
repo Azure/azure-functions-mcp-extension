@@ -1,0 +1,82 @@
+// Copyright (c) .NET Foundation. All rights reserved.
+// Licensed under the MIT License. See License.txt in the project root for license information.
+
+using System.Text;
+using System.Text.Json;
+using Azure.Core.Serialization;
+using Microsoft.Azure.Functions.Worker.Converters;
+using Microsoft.Extensions.Options;
+
+namespace Microsoft.Azure.Functions.Worker.Extensions.Mcp.DependencyInjection.Converters;
+
+internal class PocoConverter : IInputConverter
+{
+    private readonly ObjectSerializer _serializer;
+
+    public PocoConverter(IOptions<WorkerOptions> workerOptions)
+    {
+        ArgumentNullException.ThrowIfNull(workerOptions);
+        ArgumentNullException.ThrowIfNull(workerOptions.Value?.Serializer);
+
+        _serializer = workerOptions.Value.Serializer;
+    }
+
+    public async ValueTask<ConversionResult> ConvertAsync(ConverterContext context)
+    {
+        return await ConvertAsync(context, CancellationToken.None);
+    }
+
+    public async ValueTask<ConversionResult> ConvertAsync(ConverterContext context, CancellationToken cancellationToken = default)
+    {
+        if (context is null)
+        {
+            throw new ArgumentNullException(nameof(context));
+        }
+
+        try
+        {
+            if (context.TargetType == typeof(string) || context.TargetType == typeof(ToolInvocationContext))
+            {
+                return ConversionResult.Unhandled();
+            }
+
+            if (context.Source is not string json)
+            {
+                return ConversionResult.Unhandled();
+            }
+
+            var result = await ConvertCore(context.TargetType, json, cancellationToken);
+            return ConversionResult.Success(result);
+        }
+        catch (Exception ex)
+        {
+            return ConversionResult.Failed(ex);
+        }
+    }
+
+    private async Task<object> ConvertCore(Type targetType, string json, CancellationToken cancellationToken)
+    {
+        using var document = JsonDocument.Parse(json);
+        if (!document.RootElement.TryGetProperty("arguments", out var argumentsElement))
+        {
+            throw new InvalidOperationException("No 'arguments' property found.");
+        }
+
+        var argumentsJson = argumentsElement.GetRawText();
+        using var stream = ToStream(argumentsJson);
+
+        var result = await _serializer.DeserializeAsync(stream, targetType, cancellationToken);
+
+        if (result is null)
+        {
+            throw new InvalidOperationException($"Unable to convert to {targetType}.");
+        }
+
+        return result;
+    }
+
+    private Stream ToStream(string json)
+    {
+        return new MemoryStream(Encoding.UTF8.GetBytes(json));
+    }
+}
