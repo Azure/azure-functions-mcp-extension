@@ -22,4 +22,3 @@ internal static class SemaphoreSlimExtensions
         public void Dispose() => semaphore.Release();
     }
 }
-
