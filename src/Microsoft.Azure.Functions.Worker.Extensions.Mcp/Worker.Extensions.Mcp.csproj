@@ -14,7 +14,7 @@
   <Target Name="IncludeExtensionInformationAttribute" BeforeTargets="GenerateAdditionalSources">
     <ItemGroup>
       <AssemblyAttribute Include="Microsoft.Azure.Functions.Worker.Extensions.Abstractions.ExtensionInformationAttribute">
-        <_Parameter1>Microsoft.Azure.Functions.Worker.Extensions.Mcp</_Parameter1>
+        <_Parameter1>Microsoft.Azure.Functions.Extensions.Mcp</_Parameter1>
         <_Parameter2>$(Version)</_Parameter2>
       </AssemblyAttribute>
     </ItemGroup>
