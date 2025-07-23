@@ -9,14 +9,14 @@ namespace Microsoft.Azure.Functions.Extensions.Mcp.Tests;
 public class DefaultRequestHandlerTests
 {
     private readonly Mock<IStreamableHttpRequestHandler> _streamableHttpRequestHandlerMock;
-    private readonly Mock<ISseRequestHandler> _sseRequestHandlerMock;    
+    private readonly Mock<ISseRequestHandler> _sseRequestHandlerMock;
     private readonly DefaultRequestHandler _defaultRequestHandler;
 
     public DefaultRequestHandlerTests()
     {
         _streamableHttpRequestHandlerMock = new Mock<IStreamableHttpRequestHandler>();
         _sseRequestHandlerMock = new Mock<ISseRequestHandler>();
-        
+
         _defaultRequestHandler = new DefaultRequestHandler(
             _streamableHttpRequestHandlerMock.Object,
             _sseRequestHandlerMock.Object);

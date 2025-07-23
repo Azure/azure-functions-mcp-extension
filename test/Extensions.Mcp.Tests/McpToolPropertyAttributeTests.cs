@@ -17,7 +17,7 @@ public class McpToolPropertyAttributeTests
         Assert.Equal("description", attribute.Description);
         Assert.False(attribute.Required); // Default value should be false
     }
-    
+
     [Fact]
     public void Constructor_WithRequired_SetsPropertiesCorrectly()
     {

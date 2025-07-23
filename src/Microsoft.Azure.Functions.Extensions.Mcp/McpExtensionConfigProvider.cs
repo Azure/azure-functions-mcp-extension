@@ -35,9 +35,9 @@ internal sealed class McpExtensionConfigProvider(IToolRegistry toolRegistry, IMc
         context.AddBindingRule<McpToolPropertyAttribute>()
             .Bind(new McpToolPropertyBindingProvider());
 
-       backplaneService.StartAsync(CancellationToken.None)
-           .GetAwaiter()
-           .GetResult();
+        backplaneService.StartAsync(CancellationToken.None)
+            .GetAwaiter()
+            .GetResult();
     }
 
     public async Task<HttpResponseMessage> ConvertAsync(HttpRequestMessage input, CancellationToken cancellationToken)
