@@ -2,11 +2,9 @@
 // Licensed under the MIT License.
 
 using Microsoft.Extensions.Logging;
-using ModelContextProtocol.Protocol.Messages;
+using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 using System.Collections.Concurrent;
-using System.Diagnostics.CodeAnalysis;
-using System.Threading.Tasks;
 
 namespace Microsoft.Azure.Functions.Extensions.Mcp;
 
@@ -25,28 +23,44 @@ internal sealed class McpClientSessionManager(ILogger<McpClientSessionManager> l
         logger.LogInformation("Removed session for client '{ClientId}'.", clientId);
     }
 
-    public IMcpClientSession<TTransport> CreateSession<TTransport>(string clientId, string instanceId, TTransport transport) where TTransport : ITransportWithMessageHandling
+    public ValueTask<IMcpClientSession<TTransport>> CreateSessionAsync<TTransport>(string clientId, string instanceId, TTransport transport) where TTransport : IMcpExtensionTransport
     {
-        var clientSession = new McpClientSessionImplementation<TTransport>(this, clientId, instanceId, transport);
+        IMcpClientSession<TTransport> clientSession = new McpClientSessionImplementation<TTransport>(this, clientId, instanceId, transport);
 
-        if (!_sessions.TryAdd(clientId, clientSession))
+        if (!transport.IsStateless)
         {
-            // This condition should never happen
-            throw new InvalidOperationException($"A session for client '{clientId}' already exists.");
+            if (!_sessions.TryAdd(clientId, clientSession))
+            {
+                // This condition should never happen
+                throw new InvalidOperationException($"A session for client '{clientId}' already exists.");
+            }
         }
 
         logger.LogInformation("Created session for client '{ClientId}' with instance '{InstanceId}'.", clientId, instanceId);
 
-        return clientSession;
+        return ValueTask.FromResult(clientSession);
     }
 
-    public bool TryGetSession(string clientId, [NotNullWhen(true)] out IMcpClientSession? clientSession)
+    public ValueTask<GetSessionResult> TryGetSessionAsync(string clientId)
     {
-        return _sessions.TryGetValue(clientId, out clientSession);
+        var result = _sessions.TryGetValue(clientId, out var session)
+                    ? GetSessionResult.Success(session)
+                    : GetSessionResult.NotFound;
+
+        return ValueTask.FromResult(result);
+    }
+
+    public ValueTask<GetSessionResult<TTransport>> TryGetSessionAsync<TTransport>(string clientId) where TTransport : IMcpExtensionTransport
+    {
+        var result = _sessions.TryGetValue(clientId, out var session)
+            ? GetSessionResult<TTransport>.Success((IMcpClientSession<TTransport>)session)
+            : GetSessionResult<TTransport>.NotFound;
+
+        return ValueTask.FromResult(result);
     }
 
     private sealed class McpClientSessionImplementation<TTransport>(McpClientSessionManager manager, string clientId, string instanceId, TTransport transport) : IMcpClientSession<TTransport>
-        where TTransport : ITransportWithMessageHandling
+        where TTransport : IMcpExtensionTransport
     {
         private readonly SemaphoreSlim _pingSemaphore = new(1, 1);
         private CancellationTokenSource? _pingTokenSource;
@@ -133,7 +147,10 @@ internal sealed class McpClientSessionManager(ILogger<McpClientSessionManager> l
 
             _disposed = true;
 
-            manager.RemoveSession(ClientId);
+            if (!Transport.IsStateless)
+            {
+                manager.RemoveSession(ClientId);
+            }
 
             if (Server is not null)
             {

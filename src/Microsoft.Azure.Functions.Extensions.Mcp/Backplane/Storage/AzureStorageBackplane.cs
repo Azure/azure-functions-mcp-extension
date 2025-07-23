@@ -8,7 +8,7 @@ using Azure.Storage.Queues.Models;
 using Microsoft.Azure.Functions.Extensions.Mcp.Serialization;
 using Microsoft.Azure.WebJobs.Extensions.Mcp;
 using Microsoft.Extensions.Logging;
-using ModelContextProtocol.Protocol.Messages;
+using ModelContextProtocol.Protocol;
 
 namespace Microsoft.Azure.Functions.Extensions.Mcp.Backplane.Storage;
 

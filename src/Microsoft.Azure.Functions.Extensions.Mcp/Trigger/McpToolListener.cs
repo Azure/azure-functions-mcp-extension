@@ -3,7 +3,7 @@
 
 using Microsoft.Azure.WebJobs.Host.Executors;
 using Microsoft.Azure.WebJobs.Host.Listeners;
-using ModelContextProtocol.Protocol.Types;
+using ModelContextProtocol.Protocol;
 
 namespace Microsoft.Azure.Functions.Extensions.Mcp;
 
@@ -31,7 +31,7 @@ internal sealed class McpToolListener(ITriggeredFunctionExecutor executor,
 
     public void Cancel() { }
 
-    public async Task<CallToolResponse> RunAsync(CallToolRequestParams callToolRequest, CancellationToken cancellationToken)
+    public async Task<CallToolResult> RunAsync(CallToolRequestParams callToolRequest, CancellationToken cancellationToken)
     {
         var execution = new CallToolExecutionContext(callToolRequest);
 
@@ -51,17 +51,16 @@ internal sealed class McpToolListener(ITriggeredFunctionExecutor executor,
 
         if (toolResult is null)
         {
-            return new CallToolResponse { Content = [] };
+            return new CallToolResult { Content = [] };
         }
 
-        return new CallToolResponse
+        return new CallToolResult
         {
             Content =
             [
-                new Content
+                new TextContentBlock
                 {
                     Text = toolResult.ToString(),
-                    Type = "text"
                 }
             ]
         };

@@ -8,7 +8,7 @@
     Condition="'$([MSBuild]::GetDirectoryNameOfFileAbove($(MSBuildProjectDirectory), Directory.Version.props))' != ''" />
 
   <PropertyGroup>
-    <VersionPrefix Condition="'$(VersionPrefix)' == ''">1.0.0</VersionPrefix>
+    <VersionPrefix Condition="'$(VersionPrefix)' == ''">1.1.0</VersionPrefix>
     <_BuildNumber>$([System.DateTime]::Now.ToString(yyyyMMdd))</_BuildNumber>
     <_BuildNumberYY>$(_BuildNumber.Substring(2, 2))</_BuildNumberYY>
     <_BuildNumberMM>$(_BuildNumber.Substring(4, 2))</_BuildNumberMM>
@@ -26,7 +26,7 @@
 
   <PropertyGroup Condition="'$(CI)' != 'true'">
     <!-- Constant file version for local dev. -->
-    <FileVersion>42.42.42.4242</FileVersion>
+    <FileVersion>42.42.42.4243</FileVersion>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(CI)' == 'true'">

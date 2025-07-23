@@ -125,7 +125,7 @@ public class SseRequestHandlerTests
             }
         };
 
-        var result = handler.IsSseRequest(context);
+        var result = handler.IsLegacySseRequest(context);
 
         Assert.Equal(expectedResult, result);
     }
