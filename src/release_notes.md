@@ -8,7 +8,7 @@
 
 - Adding configurable support for absolute URIs in endpoint message.
 - Adding instrumentation to emit a server span for the tools/call. (#47)
-- Add support for configuring required properties in tool metadata. 
+- Add support for configuring required properties in tool metadata.
   NOTE: This introduces a change in behavior as existing properties will no longer be required by default. (#54)
 
 ### Microsoft.Azure.Functions.Worker.Extensions.Mcp 1.0.0-preview.7

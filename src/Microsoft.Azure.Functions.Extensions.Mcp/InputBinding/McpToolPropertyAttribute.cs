@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
 using Microsoft.Azure.WebJobs.Description;
@@ -14,7 +14,7 @@ namespace Microsoft.Azure.Functions.Extensions.Mcp
         public string PropertyType { get; set; } = propertyType;
 
         public string? Description { get; set; } = description;
-        
+
         public bool Required { get; set; } = required;
     }
 }

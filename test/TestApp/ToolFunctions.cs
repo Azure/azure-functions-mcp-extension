@@ -33,7 +33,7 @@ public class TestFunction
     {
         SnippetsCache.Snippets[name] = snippet;
     }
-    
+
     [FunctionName(nameof(SearchSnippets))]
     public object SearchSnippets(
         [McpToolTrigger("searchSnippets", "Search for snippets by name pattern")]

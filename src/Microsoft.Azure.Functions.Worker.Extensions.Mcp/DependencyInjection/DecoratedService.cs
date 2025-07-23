@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
 using Microsoft.Extensions.DependencyInjection;
@@ -33,7 +33,7 @@ internal static class DecoratedService
             return ActivatorUtilities.CreateInstance<TImplementation>(p, decoratedType!);
         });
 
-        return collection; ;
+        return collection;
     }
 
     private class Decorator<TService>(Func<IServiceProvider, object> factory)

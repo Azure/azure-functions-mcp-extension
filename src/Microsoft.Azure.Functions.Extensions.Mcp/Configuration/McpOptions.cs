@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
 namespace Microsoft.Azure.Functions.Extensions.Mcp.Configuration;
@@ -39,6 +39,6 @@ public sealed class McpOptions
     {
         get => _messageOptions;
         set => _messageOptions = value
-                                 ?? throw new ArgumentNullException(nameof(value),"Message options cannot be null.");
+                                 ?? throw new ArgumentNullException(nameof(value), "Message options cannot be null.");
     }
 }
