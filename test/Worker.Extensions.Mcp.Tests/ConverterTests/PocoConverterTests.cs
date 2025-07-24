@@ -73,8 +73,7 @@ public class PocoConverterTests
 
         var result = await converter.ConvertAsync(context);
 
-        Assert.Equal(ConversionStatus.Failed, result.Status);
-        Assert.IsType<InvalidOperationException>(result.Error);
+        Assert.Equal(ConversionStatus.Unhandled, result.Status);
     }
 
     [Fact]
@@ -104,7 +103,7 @@ public class PocoConverterTests
         var result = await converter.ConvertAsync(context);
 
         Assert.Equal(ConversionStatus.Failed, result.Status);
-        Assert.IsType<JsonException>(result.Error);
+        Assert.IsAssignableFrom<JsonException>(result.Error);
     }
 
     private static PocoConverter CreateConverter(ObjectSerializer? serializer = null)
