@@ -59,7 +59,7 @@
 			"type": "func",
 			"dependsOn": "build (functions)",
 			"options": {
-				"cwd": "${workspaceFolder}/out/bin/TestApp/debug"
+				"cwd": "${workspaceFolder}/out/bin/TestAppIsolated/debug"
 			},
 			"command": "host start",
 			"isBackground": true,

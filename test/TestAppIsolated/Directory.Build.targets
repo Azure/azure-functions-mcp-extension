@@ -1,0 +1,40 @@
+<Project>
+
+    <!-- When the worker SDK generates the WorkerExtensions.csproj, it references the version of the
+    Microsoft.Azure.Functions.Extensions.Mcp package that is defined in this project. This means
+    it will include any of the BuildReason suffixes (e.g. .dev, .ci, .pr) that are defined in the
+    Directory.Build.props. This is an issue as these local builds are not available anywhere to pull
+    from a nuget feed. This target modifies the generated WorkerExtensions.csproj to remove the PackageReference
+    and add a ProjectReference for Extensions.Mcp.csproj instead. -->
+
+    <PropertyGroup>
+        <_WorkerExtensionsPath>$(BaseIntermediateOutputPath)$(Configuration)\WorkerExtensions\WorkerExtensions.csproj</_WorkerExtensionsPath>
+        <_McpProjectPath>$(SrcRoot)Microsoft.Azure.Functions.Extensions.Mcp\Extensions.Mcp.csproj</_McpProjectPath>
+
+        <!-- Regex to remove the whole PackageReference block for Extensions.Mcp -->
+        <_PkgBlockRegex><![CDATA[(?s)\s*<PackageReference\s+Include="Microsoft\.Azure\.Functions\.Extensions\.Mcp"[\s\S]*?\/>\s*]]></_PkgBlockRegex>
+
+        <!-- Regex to find the closing </Project> -->
+        <_CloseProjRegex><![CDATA[(?m)^\s*</Project>\s*$]]></_CloseProjRegex>
+
+        <!-- xml block to inject before </Project> to add  ProjectReference -->
+        <_InjectBlock>
+<![CDATA[
+    <ItemGroup>
+        <ProjectReference Include="$(_McpProjectPath)" GlobalPropertiesToRemove="IsRestoring;RestoreSources;ImportDirectoryBuildProps;ImportDirectoryBuildTargets;ImportDirectoryPackagesProps;Configuration" />
+    </ItemGroup>
+</Project>]]>
+        </_InjectBlock>
+    </PropertyGroup>
+
+    <Target Name="FixWorkerExtensionsProject" BeforeTargets="_WorkerExtensionsRestore" Condition="Exists('$(_WorkerExtensionsPath)')">
+        <PropertyGroup>
+            <_Text>$([System.IO.File]::ReadAllText('$(_WorkerExtensionsPath)'))</_Text>
+            <_Text>$([System.Text.RegularExpressions.Regex]::Replace('$(_Text)', '$(_PkgBlockRegex)', ''))</_Text>
+            <_Text>$([System.Text.RegularExpressions.Regex]::Replace('$(_Text)', '$(_CloseProjRegex)', '$(_InjectBlock)'))</_Text>
+        </PropertyGroup>
+
+        <WriteLinesToFile File="$(_WorkerExtensionsPath)" Lines="$(_Text)" Overwrite="true" />
+    </Target>
+
+</Project>
