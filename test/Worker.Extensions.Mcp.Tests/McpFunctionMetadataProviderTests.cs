@@ -26,11 +26,20 @@ public class McpFunctionMetadataProviderTests
 
         // Act
         var result = await provider.GetFunctionMetadataAsync(string.Empty);
+        var metadata = result.SingleOrDefault();
+        Assert.NotNull(metadata);
 
-        // Assert
-        var json = JsonNode.Parse(result.Single().RawBindings[0]);
-        var toolPropertiesJson = json["toolProperties"]!.GetValue<string>();
-        Assert.Equal("[{\"propertyName\":\"name\",\"propertyType\":\"string\",\"description\":\"Name of the snippet to retrieve\",\"required\":true}]", toolPropertiesJson);
+        if (metadata?.RawBindings?.Count > 0 && metadata.RawBindings[0] is string binding)
+        {
+            var json = JsonNode.Parse(binding);
+            Assert.NotNull(json);
+            var toolPropertiesJson = json["toolProperties"]!.GetValue<string>();
+            Assert.Equal("[{\"propertyName\":\"name\",\"propertyType\":\"string\",\"description\":\"Name of the snippet to retrieve\",\"required\":true}]", toolPropertiesJson);
+        }
+        else
+        {
+            Assert.Fail("Metadata or RawBindings is null or empty.");
+        }
     }
 
     [Fact]
@@ -49,11 +58,20 @@ public class McpFunctionMetadataProviderTests
 
         // Act
         var result = await provider.GetFunctionMetadataAsync(string.Empty);
+        var metadata = result.SingleOrDefault();
+        Assert.NotNull(metadata);
 
-        // Assert
-        var json = JsonNode.Parse(result.Single().RawBindings[0]);
-        var toolPropertiesJson = json["toolProperties"]!.GetValue<string>();
-        Assert.Equal("[{\"propertyName\":\"Name\",\"propertyType\":\"string\",\"description\":\"The name of the snippet\",\"required\":true},{\"propertyName\":\"Content\",\"propertyType\":\"string\",\"description\":\"The content of the snippet\",\"required\":false}]", toolPropertiesJson);
+        if (metadata?.RawBindings?.Count > 0 && metadata.RawBindings[0] is string binding)
+        {
+            var json = JsonNode.Parse(binding);
+            Assert.NotNull(json);
+            var toolPropertiesJson = json["toolProperties"]!.GetValue<string>();
+            Assert.Equal("[{\"propertyName\":\"Name\",\"propertyType\":\"string\",\"description\":\"The name of the snippet\",\"required\":true},{\"propertyName\":\"Content\",\"propertyType\":\"string\",\"description\":\"The content of the snippet\",\"required\":false}]", toolPropertiesJson);
+        }
+        else
+        {
+            Assert.Fail("Metadata or RawBindings is null or empty.");
+        }
     }
 
     private static (string EntryPoint, string ScriptFile, string OutputDir) GetFunctionMetadataInfo<T>(string methodName)

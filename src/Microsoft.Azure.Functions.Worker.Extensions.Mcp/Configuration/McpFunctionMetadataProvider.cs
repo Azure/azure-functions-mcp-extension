@@ -11,6 +11,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 using Microsoft.Azure.Functions.Worker.Core.FunctionMetadata;
+using Microsoft.Azure.Functions.Worker.Extensions.Mcp.Reflection;
 using Microsoft.Extensions.Options;
 
 //[assembly: WorkerExtensionStartup(typeof(McpExtensionStartup))]
@@ -127,40 +128,13 @@ public sealed class McpFunctionMetadataProvider(IFunctionMetadataProvider inner,
 
         foreach (var parameter in method.GetParameters())
         {
-            var toolAttribute = parameter.GetCustomAttribute<McpToolPropertyAttribute>();
-            if (toolAttribute is not null)
+            if (GetToolPropertyFromToolPropertyAttribute(parameter) is ToolProperty toolProperty)
             {
-                properties.Add(new ToolProperty(
-                    toolAttribute.PropertyName,
-                    toolAttribute.PropertyType,
-                    toolAttribute.Description,
-                    toolAttribute.Required));
+                properties.Add(toolProperty);
                 continue;
             }
 
-            var triggerAttribute = parameter.GetCustomAttribute<McpToolTriggerAttribute>();
-            if (triggerAttribute is not null && parameter.ParameterType.IsPoco() && parameter.ParameterType != typeof(ToolInvocationContext))
-            {
-                foreach (var prop in parameter.ParameterType.GetProperties(BindingFlags.Instance | BindingFlags.Public))
-                {
-                    if (!prop.CanRead || !prop.CanWrite)
-                    {
-                        continue;
-                    }
-
-                    var name = prop.Name;
-                    var typeNameStr = prop.PropertyType.MapToToolPropertyType();
-                    var isRequired = prop.IsRequired();
-                    var description = prop.GetDescription();
-
-                    properties.Add(new ToolProperty(name, typeNameStr, description, isRequired));
-                }
-            }
-        }
-
-        if (properties.Count == 0)
-        {
-            return false;
+            properties.AddRange(GetToolPropertiesFromToolTriggerAttribute(parameter));
         }
 
         toolProperties = properties;
@@ -170,5 +144,43 @@ public sealed class McpFunctionMetadataProvider(IFunctionMetadataProvider inner,
     private static JsonNode? GetPropertiesJson(string functionName, List<ToolProperty> properties)
     {
         return JsonSerializer.Serialize(properties);
+    }
+
+    private static ToolProperty? GetToolPropertyFromToolPropertyAttribute(ParameterInfo parameter)
+    {
+        var toolAttribute = parameter.GetCustomAttribute<McpToolPropertyAttribute>();
+        if (toolAttribute is null)
+        {
+            return null;
+        }
+
+        return new ToolProperty(
+            toolAttribute.PropertyName,
+            toolAttribute.PropertyType,
+            toolAttribute.Description,
+            toolAttribute.Required);
+    }
+
+    private static IEnumerable<ToolProperty> GetToolPropertiesFromToolTriggerAttribute(ParameterInfo parameter)
+    {
+        if (parameter.GetCustomAttribute<McpToolTriggerAttribute>() is null
+            || !parameter.ParameterType.IsPoco()
+            || parameter.ParameterType == typeof(ToolInvocationContext))
+        {
+            yield break;
+        }
+
+        foreach (var property in parameter.ParameterType.GetProperties(BindingFlags.Instance | BindingFlags.Public))
+        {
+            if (!property.CanRead || !property.CanWrite)
+                continue;
+
+            yield return new ToolProperty(
+                name:        property.Name,
+                type:        property.PropertyType.MapToToolPropertyType(),
+                description: property.GetDescription(),
+                required:    property.IsRequired()
+            );
+        }
     }
 }

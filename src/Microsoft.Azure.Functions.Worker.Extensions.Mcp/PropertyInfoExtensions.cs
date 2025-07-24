@@ -3,10 +3,11 @@
 
 using System.ComponentModel;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 
-namespace Microsoft.Azure.Functions.Worker.Extensions.Mcp;
+namespace Microsoft.Azure.Functions.Worker.Extensions.Mcp.Reflection;
 
-public static class PropertyInfoExtensions
+internal static class PropertyInfoExtensions
 {
     /// <summary>
     /// Checks if the given property has a <see cref="DescriptionAttribute"/>.
@@ -18,12 +19,11 @@ public static class PropertyInfoExtensions
     }
 
     /// <summary>
-    /// Checks if the given property has a 'RequiredMemberAttribute'.
+    /// Checks if the given property has a <see cref="RequiredMemberAttribute"/>.
     /// </summary>
     /// <returns>Returns true if the property is required, otherwise false.</returns>
     public static bool IsRequired(this PropertyInfo property)
     {
-        return property.GetCustomAttributes()
-                    .Any(attr => attr.GetType().Name == "RequiredMemberAttribute");
+        return property.GetCustomAttribute<RequiredMemberAttribute>() is not null;
     }
 }

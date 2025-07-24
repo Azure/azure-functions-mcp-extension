@@ -16,31 +16,26 @@ internal class PocoConverter : IInputConverter
     public PocoConverter(IOptions<WorkerOptions> workerOptions)
     {
         ArgumentNullException.ThrowIfNull(workerOptions);
-        ArgumentNullException.ThrowIfNull(workerOptions.Value?.Serializer);
+
+        if (workerOptions.Value.Serializer is null)
+        {
+            throw new ArgumentException(nameof(workerOptions.Value.Serializer), "Serializer cannot be null.");
+        }
 
         _serializer = workerOptions.Value.Serializer;
     }
 
-    public async ValueTask<ConversionResult> ConvertAsync(ConverterContext context)
-    {
-        return await ConvertAsync(context, CancellationToken.None);
-    }
+    ValueTask<ConversionResult> IInputConverter.ConvertAsync(ConverterContext context) => ConvertAsync(context, CancellationToken.None);
 
     public async ValueTask<ConversionResult> ConvertAsync(ConverterContext context, CancellationToken cancellationToken = default)
     {
-        if (context is null)
-        {
-            throw new ArgumentNullException(nameof(context));
-        }
+        ArgumentNullException.ThrowIfNull(context);
 
         try
         {
-            if (context.TargetType == typeof(string) || context.TargetType == typeof(ToolInvocationContext))
-            {
-                return ConversionResult.Unhandled();
-            }
-
-            if (context.Source is not string json)
+            if (context.TargetType == typeof(string)
+                || context.TargetType == typeof(ToolInvocationContext)
+                || context.Source is not string json)
             {
                 return ConversionResult.Unhandled();
             }

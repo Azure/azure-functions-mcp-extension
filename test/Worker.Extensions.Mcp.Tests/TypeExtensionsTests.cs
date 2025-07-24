@@ -1,6 +1,6 @@
-using Microsoft.Azure.Functions.Worker.Extensions.Mcp;
+using Microsoft.Azure.Functions.Worker.Extensions.Mcp.Reflection;
 
-namespace Worker.Extensions.Mcp.Tests.ExtensionsTests;
+namespace Worker.Extensions.Mcp.Tests;
 
 public class TypeExtensionsTests
 {
