@@ -35,9 +35,10 @@ internal static class TypeExtensions
     public static string MapToToolPropertyType(this Type type) => type switch
     {
         { } when type == typeof(string) => "string",
-        { } when type == typeof(int) || type == typeof(int?) => "int",
-        { } when type == typeof(bool) || type == typeof(bool?) => "bool",
-        { } when type == typeof(double) || type == typeof(double?) => "double",
+        { } when typeof(IEnumerable).IsAssignableFrom(type) => "array",
+        { } when type == typeof(int) || type == typeof(int?) => "integer",
+        { } when type == typeof(bool) || type == typeof(bool?) => "boolean",
+        { } when type == typeof(double) || type == typeof(double?) => "number",
         _ => "object"
     };
 }
