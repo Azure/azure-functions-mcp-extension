@@ -66,7 +66,7 @@ public class McpFunctionMetadataProviderTests
             var json = JsonNode.Parse(binding);
             Assert.NotNull(json);
             var toolPropertiesJson = json["toolProperties"]!.GetValue<string>();
-            Assert.Equal("[{\"propertyName\":\"Name\",\"propertyType\":\"string\",\"description\":\"The name of the snippet\",\"required\":true},{\"propertyName\":\"Content\",\"propertyType\":\"string\",\"description\":\"The content of the snippet\",\"required\":false}]", toolPropertiesJson);
+            Assert.Equal("[{\"propertyName\":\"Content\",\"propertyType\":\"string\",\"description\":\"The content of the snippet\",\"required\":false},{\"propertyName\":\"Name\",\"propertyType\":\"string\",\"description\":\"The name of the snippet\",\"required\":true}]", toolPropertiesJson);
         }
         else
         {
@@ -111,11 +111,14 @@ public class McpFunctionMetadataProviderTests
 
     internal class TestFunction
     {
-        public class Snippet
+        public class NameClass
         {
             [Description("The name of the snippet")]
             public required string Name { get; set; }
+        }
 
+        public class Snippet : NameClass
+        {
             [Description("The content of the snippet")]
             public string? Content { get; set; }
         }

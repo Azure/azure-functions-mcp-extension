@@ -173,14 +173,16 @@ public sealed class McpFunctionMetadataProvider(IFunctionMetadataProvider inner,
         foreach (var property in parameter.ParameterType.GetProperties(BindingFlags.Instance | BindingFlags.Public))
         {
             if (!property.CanRead || !property.CanWrite)
+            {
                 continue;
+            }
 
             yield return new ToolProperty(
-                name:        property.Name,
-                type:        property.PropertyType.MapToToolPropertyType(),
-                description: property.GetDescription(),
-                required:    property.IsRequired()
-            );
+                    name: property.Name,
+                    type: property.PropertyType.MapToToolPropertyType(),
+                    description: property.GetDescription(),
+                    required: property.IsRequired()
+                );
         }
     }
 }

@@ -20,10 +20,17 @@ internal static class PropertyInfoExtensions
 
     /// <summary>
     /// Checks if the given property has a <see cref="RequiredMemberAttribute"/>.
+    /// This method checks both the property itself and its base classes to determine
+    /// if the property is required.
     /// </summary>
     /// <returns>Returns true if the property is required, otherwise false.</returns>
     public static bool IsRequired(this PropertyInfo property)
     {
-        return property.GetCustomAttribute<RequiredMemberAttribute>() is not null;
+        if (property.GetCustomAttribute<RequiredMemberAttribute>() is not null)
+        {
+            return true;
+        }
+
+        return false;
     }
 }
