@@ -42,7 +42,7 @@ internal class PocoConverter : IInputConverter
 
     private async Task<object> DeserializeToTargetType(Type targetType, string json, CancellationToken cancellationToken)
     {
-        using var stream = ToStream(json);
+        await using var stream = new MemoryStream(Encoding.UTF8.GetBytes(json));
         var result = await JsonSerializer.DeserializeAsync(stream, targetType, cancellationToken: cancellationToken);
 
         if (result is null)
@@ -51,10 +51,5 @@ internal class PocoConverter : IInputConverter
         }
 
         return result;
-    }
-
-    private Stream ToStream(string json)
-    {
-        return new MemoryStream(Encoding.UTF8.GetBytes(json));
     }
 }
