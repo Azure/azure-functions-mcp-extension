@@ -9,9 +9,8 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 using Microsoft.Azure.Functions.Worker.Core.FunctionMetadata;
+using Microsoft.Azure.Functions.Worker.Extensions.Mcp.Reflection;
 using Microsoft.Extensions.Options;
-
-//[assembly: WorkerExtensionStartup(typeof(McpExtensionStartup))]
 
 namespace Microsoft.Azure.Functions.Worker.Extensions.Mcp.Configuration;
 
@@ -96,8 +95,9 @@ public sealed class McpFunctionMetadataProvider(IFunctionMetadataProvider inner,
         var typeName = match.Groups["typename"].Value;
         var methodName = match.Groups["methodname"].Value;
 
+        var scriptRoot = Environment.GetEnvironmentVariable(FunctionsApplicationDirectoryKey)
+                        ?? Environment.GetEnvironmentVariable(FunctionsWorkerDirectoryKey);
 
-        var scriptRoot = Environment.GetEnvironmentVariable(FunctionsApplicationDirectoryKey) ?? Environment.GetEnvironmentVariable(FunctionsWorkerDirectoryKey);
         if (string.IsNullOrWhiteSpace(scriptRoot))
         {
             throw new InvalidOperationException($"The '{FunctionsApplicationDirectoryKey}' environment variable value is not defined. This is a required environment variable that is automatically set by the Azure Functions runtime.");
@@ -105,9 +105,9 @@ public sealed class McpFunctionMetadataProvider(IFunctionMetadataProvider inner,
 
         var scriptFile = Path.Combine(scriptRoot, functionMetadata.ScriptFile ?? string.Empty);
         var assemblyPath = Path.GetFullPath(scriptFile);
-
         var assembly = AssemblyLoadContext.Default.LoadFromAssemblyPath(assemblyPath);
         var type = assembly.GetType(typeName);
+
         if (type is null)
         {
             return false;
@@ -121,16 +121,17 @@ public sealed class McpFunctionMetadataProvider(IFunctionMetadataProvider inner,
         }
 
         var properties = new List<ToolProperty>();
+
         foreach (var parameter in method.GetParameters())
         {
-            var toolAttribute = parameter.GetCustomAttribute<McpToolPropertyAttribute>();
-
-            if (toolAttribute is null)
+            if (TryGetToolPropertyFromToolPropertyAttribute(parameter, out var toolProperty))
             {
-                continue;
+                properties.Add(toolProperty);
             }
-
-            properties.Add(new ToolProperty(toolAttribute.PropertyName, toolAttribute.PropertyType, toolAttribute.Description, toolAttribute.Required));
+            else if (TryGetToolPropertiesFromToolTriggerAttribute(parameter, out var triggerProperties))
+            {
+                properties.AddRange(triggerProperties);
+            }
         }
 
         toolProperties = properties;
@@ -141,12 +142,52 @@ public sealed class McpFunctionMetadataProvider(IFunctionMetadataProvider inner,
     {
         return JsonSerializer.Serialize(properties);
     }
-}
 
-//public sealed class McpExtensionStartup : WorkerExtensionStartup
-//{
-//    public override void Configure(IFunctionsWorkerApplicationBuilder applicationBuilder)
-//    {
-//        applicationBuilder.Services.Decorate<IFunctionMetadataProvider, McpFunctionMetadataProvider>();
-//    }
-//}
+    private static bool TryGetToolPropertyFromToolPropertyAttribute(ParameterInfo parameter, out ToolProperty toolProperty)
+    {
+        var toolAttribute = parameter.GetCustomAttribute<McpToolPropertyAttribute>();
+        if (toolAttribute is null)
+        {
+            toolProperty = default!;
+            return false;
+        }
+
+        toolProperty = new ToolProperty(
+            toolAttribute.PropertyName,
+            toolAttribute.PropertyType,
+            toolAttribute.Description,
+            toolAttribute.Required);
+
+        return true;
+    }
+
+    private static bool TryGetToolPropertiesFromToolTriggerAttribute(ParameterInfo parameter, out List<ToolProperty> toolProperties)
+    {
+        toolProperties = new List<ToolProperty>();
+
+        var triggerAttribute = parameter.GetCustomAttribute<McpToolTriggerAttribute>();
+        if (triggerAttribute is null
+            || !parameter.ParameterType.IsPoco()
+            || parameter.ParameterType == typeof(ToolInvocationContext))
+        {
+            return false;
+        }
+
+        foreach (var property in parameter.ParameterType.GetProperties(BindingFlags.Instance | BindingFlags.Public))
+        {
+            if (!property.CanRead || !property.CanWrite)
+            {
+                continue;
+            }
+
+            toolProperties.Add(new ToolProperty(
+                property.Name,
+                property.PropertyType.MapToToolPropertyType(),
+                property.GetDescription(),
+                property.IsRequired()
+            ));
+        }
+
+        return toolProperties.Count > 0;
+    }
+}

@@ -3,10 +3,11 @@
 
 using Microsoft.Azure.Functions.Worker.Converters;
 using Microsoft.Azure.Functions.Worker.Extensions.Abstractions;
-
+using Microsoft.Azure.Functions.Worker.Extensions.Mcp.Converters;
 
 namespace Microsoft.Azure.Functions.Worker.Extensions.Mcp;
 
+[InputConverter(typeof(PocoConverter))]
 [ConverterFallbackBehavior(ConverterFallbackBehavior.Default)]
 public sealed class McpToolTriggerAttribute(string toolName, string? description = null) : TriggerBindingAttribute
 {

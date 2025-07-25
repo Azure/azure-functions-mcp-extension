@@ -1,7 +1,5 @@
 using Microsoft.Azure.Functions.Worker.Builder;
-using Microsoft.Azure.Functions.Worker.Extensions.Mcp;
 using Microsoft.Extensions.Hosting;
-using System.Diagnostics;
 
 var builder = FunctionsApplication.CreateBuilder(args);
 
