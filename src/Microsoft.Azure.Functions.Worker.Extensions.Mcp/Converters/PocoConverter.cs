@@ -7,7 +7,7 @@ using Azure.Core.Serialization;
 using Microsoft.Azure.Functions.Worker.Converters;
 using Microsoft.Extensions.Options;
 
-namespace Microsoft.Azure.Functions.Worker.Extensions.Mcp.DependencyInjection.Converters;
+namespace Microsoft.Azure.Functions.Worker.Extensions.Mcp.Converters;
 
 internal class PocoConverter : IInputConverter
 {

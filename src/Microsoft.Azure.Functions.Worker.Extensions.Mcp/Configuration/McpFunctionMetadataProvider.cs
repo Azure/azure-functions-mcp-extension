@@ -1,9 +1,7 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-using System.Collections;
 using System.Collections.Immutable;
-using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Runtime.Loader;
@@ -13,8 +11,6 @@ using System.Text.RegularExpressions;
 using Microsoft.Azure.Functions.Worker.Core.FunctionMetadata;
 using Microsoft.Azure.Functions.Worker.Extensions.Mcp.Reflection;
 using Microsoft.Extensions.Options;
-
-//[assembly: WorkerExtensionStartup(typeof(McpExtensionStartup))]
 
 namespace Microsoft.Azure.Functions.Worker.Extensions.Mcp.Configuration;
 
@@ -128,13 +124,14 @@ public sealed class McpFunctionMetadataProvider(IFunctionMetadataProvider inner,
 
         foreach (var parameter in method.GetParameters())
         {
-            if (GetToolPropertyFromToolPropertyAttribute(parameter) is ToolProperty toolProperty)
+            if (TryGetToolPropertyFromToolPropertyAttribute(parameter, out var toolProperty))
             {
                 properties.Add(toolProperty);
-                continue;
             }
-
-            properties.AddRange(GetToolPropertiesFromToolTriggerAttribute(parameter));
+            else if (TryGetToolPropertiesFromToolTriggerAttribute(parameter, out var triggerProperties))
+            {
+                properties.AddRange(triggerProperties);
+            }
         }
 
         toolProperties = properties;
@@ -146,28 +143,34 @@ public sealed class McpFunctionMetadataProvider(IFunctionMetadataProvider inner,
         return JsonSerializer.Serialize(properties);
     }
 
-    private static ToolProperty? GetToolPropertyFromToolPropertyAttribute(ParameterInfo parameter)
+    private static bool TryGetToolPropertyFromToolPropertyAttribute(ParameterInfo parameter, out ToolProperty toolProperty)
     {
         var toolAttribute = parameter.GetCustomAttribute<McpToolPropertyAttribute>();
         if (toolAttribute is null)
         {
-            return null;
+            toolProperty = default!;
+            return false;
         }
 
-        return new ToolProperty(
+        toolProperty = new ToolProperty(
             toolAttribute.PropertyName,
             toolAttribute.PropertyType,
             toolAttribute.Description,
             toolAttribute.Required);
+
+        return true;
     }
 
-    private static IEnumerable<ToolProperty> GetToolPropertiesFromToolTriggerAttribute(ParameterInfo parameter)
+    private static bool TryGetToolPropertiesFromToolTriggerAttribute(ParameterInfo parameter, out List<ToolProperty> toolProperties)
     {
-        if (parameter.GetCustomAttribute<McpToolTriggerAttribute>() is null
+        toolProperties = new List<ToolProperty>();
+
+        var triggerAttribute = parameter.GetCustomAttribute<McpToolTriggerAttribute>();
+        if (triggerAttribute is null
             || !parameter.ParameterType.IsPoco()
             || parameter.ParameterType == typeof(ToolInvocationContext))
         {
-            yield break;
+            return false;
         }
 
         foreach (var property in parameter.ParameterType.GetProperties(BindingFlags.Instance | BindingFlags.Public))
@@ -177,12 +180,14 @@ public sealed class McpFunctionMetadataProvider(IFunctionMetadataProvider inner,
                 continue;
             }
 
-            yield return new ToolProperty(
-                    name: property.Name,
-                    type: property.PropertyType.MapToToolPropertyType(),
-                    description: property.GetDescription(),
-                    required: property.IsRequired()
-                );
+            toolProperties.Add(new ToolProperty(
+                property.Name,
+                property.PropertyType.MapToToolPropertyType(),
+                property.GetDescription(),
+                property.IsRequired()
+            ));
         }
+
+        return toolProperties.Count > 0;
     }
 }

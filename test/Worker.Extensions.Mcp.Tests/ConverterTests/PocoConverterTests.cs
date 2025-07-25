@@ -3,7 +3,7 @@ using Azure.Core.Serialization;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Converters;
 using Microsoft.Azure.Functions.Worker.Extensions.Mcp;
-using Microsoft.Azure.Functions.Worker.Extensions.Mcp.DependencyInjection.Converters;
+using Microsoft.Azure.Functions.Worker.Extensions.Mcp.Converters;
 using Microsoft.Extensions.Options;
 using Moq;
 

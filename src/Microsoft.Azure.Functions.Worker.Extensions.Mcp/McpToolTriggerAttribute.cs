@@ -3,7 +3,7 @@
 
 using Microsoft.Azure.Functions.Worker.Converters;
 using Microsoft.Azure.Functions.Worker.Extensions.Abstractions;
-using Microsoft.Azure.Functions.Worker.Extensions.Mcp.DependencyInjection.Converters;
+using Microsoft.Azure.Functions.Worker.Extensions.Mcp.Converters;
 
 namespace Microsoft.Azure.Functions.Worker.Extensions.Mcp;
 
