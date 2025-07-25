@@ -3,28 +3,12 @@
 
 using System.Text;
 using System.Text.Json;
-using Azure.Core.Serialization;
 using Microsoft.Azure.Functions.Worker.Converters;
-using Microsoft.Extensions.Options;
 
 namespace Microsoft.Azure.Functions.Worker.Extensions.Mcp.Converters;
 
 internal class PocoConverter : IInputConverter
 {
-    private readonly ObjectSerializer _serializer;
-
-    public PocoConverter(IOptions<WorkerOptions> workerOptions)
-    {
-        ArgumentNullException.ThrowIfNull(workerOptions);
-
-        if (workerOptions.Value.Serializer is null)
-        {
-            throw new ArgumentException(nameof(workerOptions.Value.Serializer), "Serializer cannot be null.");
-        }
-
-        _serializer = workerOptions.Value.Serializer;
-    }
-
     ValueTask<ConversionResult> IInputConverter.ConvertAsync(ConverterContext context) => ConvertAsync(context, CancellationToken.None);
 
     public async ValueTask<ConversionResult> ConvertAsync(ConverterContext context, CancellationToken cancellationToken = default)
@@ -59,7 +43,7 @@ internal class PocoConverter : IInputConverter
     private async Task<object> DeserializeToTargetType(Type targetType, string json, CancellationToken cancellationToken)
     {
         using var stream = ToStream(json);
-        var result = await _serializer.DeserializeAsync(stream, targetType, cancellationToken);
+        var result = await JsonSerializer.DeserializeAsync(stream, targetType, cancellationToken: cancellationToken);
 
         if (result is null)
         {
