@@ -17,3 +17,9 @@
 
 - Add support for configuring required properties in tool metadata. (#54)
 - Add support for POCO bindings. (#77)
+- Add support for binding to `ToolInvocationContext` without a binding attribute (#83)
+- Nullable properties on a `McpToolPropertyAttribute` now correctly return null when not set. (#83)
+
+#### Breaking Changes
+
+- The values in the `ToolInvocationContext.Arguments` dictionary is now returning the resolved types instead of JsonValueKind. (#83)

@@ -7,7 +7,7 @@ using Microsoft.Azure.Functions.Worker.Extensions.Mcp.Converters;
 
 namespace Microsoft.Azure.Functions.Worker.Extensions.Mcp;
 
-[InputConverter(typeof(PocoConverter))]
+[InputConverter(typeof(ToolInvocationPocoConverter))]
 [ConverterFallbackBehavior(ConverterFallbackBehavior.Default)]
 public sealed class McpToolTriggerAttribute(string toolName, string? description = null) : TriggerBindingAttribute
 {

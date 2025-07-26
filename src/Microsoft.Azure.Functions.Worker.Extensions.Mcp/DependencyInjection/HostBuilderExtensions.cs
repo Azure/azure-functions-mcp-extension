@@ -2,8 +2,12 @@
 // Licensed under the MIT License.
 
 using Microsoft.Azure.Functions.Worker.Core.FunctionMetadata;
+using Microsoft.Azure.Functions.Worker.Extensions.Mcp;
 using Microsoft.Azure.Functions.Worker.Extensions.Mcp.Configuration;
+using Microsoft.Azure.Functions.Worker.Extensions.Mcp.Converters;
 using Microsoft.Azure.Functions.Worker.Extensions.Mcp.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 
 namespace Microsoft.Azure.Functions.Worker.Builder;
 
@@ -17,6 +21,20 @@ public static class McpHostBuilderExtensions
     public static IFunctionsWorkerApplicationBuilder EnableMcpToolMetadata(this IFunctionsWorkerApplicationBuilder builder)
     {
         builder.Services.Decorate<IFunctionMetadataProvider, McpFunctionMetadataProvider>();
+
+        return builder;
+    }
+
+    public static IFunctionsWorkerApplicationBuilder ConfigureMcpExtension(this IFunctionsWorkerApplicationBuilder builder)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        builder.UseMiddleware<FunctionsMcpContextMiddleware>();
+
+        builder.Services.Configure<WorkerOptions>(static (workerOption) =>
+        {
+            workerOption.InputConverters.RegisterAt<ToolInvocationContextConverter>(0);
+        });
 
         return builder;
     }
