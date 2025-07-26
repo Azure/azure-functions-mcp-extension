@@ -11,5 +11,6 @@ builder.ConfigureFunctionsWebApplication();
 //     .ConfigureFunctionsApplicationInsights();
 
 builder.EnableMcpToolMetadata();
+builder.UseMcpTool();
 
 builder.Build().Run();
