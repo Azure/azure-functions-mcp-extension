@@ -57,17 +57,13 @@ public class PocoConverterTests
     }
 
     [Fact]
-    public async Task ConvertAsync_ToolInvocationContextNotFound_ReturnsFailed()
+    public async Task ConvertAsync_ToolInvocationContextNotFound_ReturnsUnhandled()
     {
         var converter = new PocoConverter();
-
         var functionContext = CreateEmptyFunctionContext();
         var context = CreateConverterContext(typeof(TestPoco), null, functionContext);
-
         var result = await converter.ConvertAsync(context);
-
-        Assert.Equal(ConversionStatus.Failed, result.Status);
-        Assert.IsType<InvalidOperationException>(result.Error);
+        Assert.Equal(ConversionStatus.Unhandled, result.Status);
     }
 
     [Fact]
