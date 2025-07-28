@@ -15,14 +15,15 @@ internal class PocoConverter : IInputConverter
     {
         ArgumentNullException.ThrowIfNull(context);
 
-        if (context.TargetType == typeof(string) || context.TargetType == typeof(ToolInvocationContext))
+        if (context.TargetType == typeof(string)
+            || context.TargetType == typeof(ToolInvocationContext)
+            || !context.FunctionContext.TryGetToolInvocationContext(out ToolInvocationContext? toolContext))
         {
             return ConversionResult.Unhandled();
         }
 
         try
         {
-            context.FunctionContext.TryGetToolInvocationContext(out ToolInvocationContext? toolContext);
             var argumentsJson = JsonSerializer.Serialize(toolContext?.Arguments);
             var result = await DeserializeToTargetType(context.TargetType, argumentsJson, cancellationToken);
 
