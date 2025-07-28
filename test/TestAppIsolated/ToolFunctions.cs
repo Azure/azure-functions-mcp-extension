@@ -26,9 +26,11 @@ public class TestFunction
     }
 
     [Function(nameof(SaveSnippet))]
-    public void SaveSnippet([McpToolTrigger(SaveSnippetToolName, SaveSnippetToolDescription)] ToolInvocationContext context, Snippet snippet)
+    public void SaveSnippet(
+        [McpToolTrigger(SaveSnippetToolName, SaveSnippetToolDescription)] Snippet snippet,
+        ToolInvocationContext context)
     {
-        Console.WriteLine($"Function name: {context.Name}");
+        _logger.LogInformation($"Tool name: {context.Name}");
         SnippetsCache.Snippets[snippet.Name] = snippet.Content ?? string.Empty;
     }
 
