@@ -2,15 +2,15 @@ using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Converters;
 using Moq;
 
-namespace Worker.Extensions.Mcp.Tests.ConverterTests;
+namespace Worker.Extensions.Mcp.Tests.Helpers;
 
 public static class ConverterContextHelper
 {
-    public static ConverterContext CreateConverterContext(Type targetType, object source, FunctionContext? functionContext = null, Dictionary<string, object>? properties = null)
+    public static ConverterContext CreateConverterContext(Type targetType, object? source = null, FunctionContext? functionContext = null, Dictionary<string, object>? properties = null)
     {
         functionContext ??= Mock.Of<FunctionContext>();
         properties ??= new Dictionary<string, object>();
-        return new TestConverterContext(targetType, source, functionContext, properties);
+        return new TestConverterContext(targetType, source ?? string.Empty, functionContext, properties);
     }
 
     public class TestConverterContext : ConverterContext

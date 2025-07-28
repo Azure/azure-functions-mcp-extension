@@ -8,8 +8,6 @@ namespace Microsoft.Azure.Functions.Worker.Extensions.Mcp;
 
 internal class FunctionsMcpContextMiddleware : IFunctionsWorkerMiddleware
 {
-    const string BindingAttribute = "bindingAttribute";
-
     private readonly JsonSerializerOptions _serializerOptions = new JsonSerializerOptions
     {
         PropertyNameCaseInsensitive = true
@@ -22,7 +20,7 @@ internal class FunctionsMcpContextMiddleware : IFunctionsWorkerMiddleware
         ArgumentNullException.ThrowIfNull(context);
 
         // Get the tool invocation context via the name of the trigger binding
-        if (TryGetMcpToolTriggerName(context, out string triggerName)
+        if (context.TryGetMcpToolTriggerName(out string triggerName)
             && context.BindingContext.BindingData.TryGetValue(triggerName, out var mcpToolContext))
         {
             var toolInvocationContext = JsonSerializer.Deserialize<ToolInvocationContext>(mcpToolContext?.ToString()!, _serializerOptions);
@@ -36,21 +34,5 @@ internal class FunctionsMcpContextMiddleware : IFunctionsWorkerMiddleware
         finally
         {
         }
-    }
-
-    private bool TryGetMcpToolTriggerName(FunctionContext context, out string triggerName)
-    {
-        foreach (var param in context.FunctionDefinition.Parameters)
-        {
-            if (param.Properties.TryGetValue(BindingAttribute, out var attr) &&
-                attr?.GetType() == typeof(McpToolTriggerAttribute))
-            {
-                triggerName = param.Name;
-                return true;
-            }
-        }
-
-        triggerName = string.Empty;
-        return false;
     }
 }

@@ -8,8 +8,10 @@ namespace Microsoft.Azure.Functions.Worker.Extensions.Mcp;
 /// <summary>
 /// Provides extension methods to work with <see cref="FunctionContext"/>.
 /// </summary>
-public static class FunctionContextExtensions
+internal static class FunctionContextExtensions
 {
+    private const string BindingAttribute = "bindingAttribute";
+
     /// <summary>
     /// Gets the <see cref="ToolInvocationContext"/> for the <see cref="FunctionContext"/>.
     /// </summary>
@@ -27,5 +29,27 @@ public static class FunctionContextExtensions
         }
 
         return toolContext is not null;
+    }
+
+    /// <summary>
+    /// Gets the name of the function with the <see cref="McpToolTriggerAttribute"/> from the <see cref="FunctionContext"/>.
+    /// </summary>
+    /// <param name="context">The <see cref="FunctionContext"/>.</param>
+    /// <param name="triggerName">The name of the MCP tool trigger.</param>
+    /// <returns></returns>
+    internal static bool TryGetMcpToolTriggerName(this FunctionContext context, out string triggerName)
+    {
+        foreach (var param in context.FunctionDefinition.Parameters)
+        {
+            if (param.Properties.TryGetValue(BindingAttribute, out var attr) &&
+                attr?.GetType() == typeof(McpToolTriggerAttribute))
+            {
+                triggerName = param.Name;
+                return true;
+            }
+        }
+
+        triggerName = string.Empty;
+        return false;
     }
 }
