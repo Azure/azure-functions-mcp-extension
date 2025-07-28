@@ -5,6 +5,7 @@ using Microsoft.Azure.Functions.Worker.Converters;
 
 namespace Microsoft.Azure.Functions.Worker.Extensions.Mcp.Converters;
 
+[SupportedTargetType(typeof(ToolInvocationContext))]
 internal class ToolInvocationContextConverter : IInputConverter
 {
     public ValueTask<ConversionResult> ConvertAsync(ConverterContext context)
