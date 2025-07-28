@@ -15,6 +15,17 @@ public class TestFunction
         _logger = logger;
     }
 
+    [Function(nameof(SayHello))]
+    public string SayHello(
+        [McpToolTrigger(nameof(SayHello), "Responds to the user with a hello message.")] ToolInvocationContext context,
+        [McpToolProperty(nameof(name), "string", "The name of the person to greet.")] string? name
+    )
+    {
+        _logger.LogInformation("C# MCP tool trigger function processed a request.");
+        var entityToGreet = context?.Arguments?.GetValueOrDefault("name") ?? "world";
+        return $"Hello, {entityToGreet}! This is an MCP Tool!";
+    }
+
     [Function(nameof(GetSnippet))]
     public object GetSnippet(
         [McpToolTrigger(GetSnippetToolName, GetSnippetToolDescription)] ToolInvocationContext context,
@@ -35,7 +46,9 @@ public class TestFunction
     }
 
     [Function(nameof(SearchSnippets))]
-    public object SearchSnippets([McpToolTrigger(SearchSnippetsToolName, SearchSnippetsToolDescription)] SnippetSearchRequest searchRequest)
+    public object SearchSnippets(
+        [McpToolTrigger(SearchSnippetsToolName, SearchSnippetsToolDescription)] SnippetSearchRequest searchRequest,
+        ToolInvocationContext context)
     {
         var comparisonType = searchRequest.CaseSensitive ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase;
         return SnippetsCache.Snippets
