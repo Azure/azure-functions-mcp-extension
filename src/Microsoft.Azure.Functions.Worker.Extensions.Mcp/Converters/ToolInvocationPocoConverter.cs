@@ -1,19 +1,15 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the MIT License. See License.txt in the project root for license information.
 
-using System.Reflection;
-using System.Text;
-using System.Text.Json;
 using Microsoft.Azure.Functions.Worker.Converters;
 using Microsoft.Azure.Functions.Worker.Extensions.Mcp.Reflection;
+using static Microsoft.Azure.Functions.Worker.Extensions.Mcp.Converters.TargetTypeConversionHelper;
 
 namespace Microsoft.Azure.Functions.Worker.Extensions.Mcp.Converters;
 
-internal class PocoConverter : IInputConverter
+internal class ToolInvocationPocoConverter : IInputConverter
 {
-    ValueTask<ConversionResult> IInputConverter.ConvertAsync(ConverterContext context) => ConvertAsync(context, CancellationToken.None);
-
-    public ValueTask<ConversionResult> ConvertAsync(ConverterContext context, CancellationToken cancellationToken = default)
+    public ValueTask<ConversionResult> ConvertAsync(ConverterContext context)
     {
         ArgumentNullException.ThrowIfNull(context);
 
@@ -43,17 +39,11 @@ internal class PocoConverter : IInputConverter
 
     private object? CreatePocoFromArguments(IDictionary<string, object?> arguments, Type targetType)
     {
-        if (arguments is null)
-        {
-            throw new ArgumentNullException(nameof(arguments));
-        }
-
-        if (targetType is null)
-        {
-            throw new ArgumentNullException(nameof(targetType));
-        }
+        ArgumentNullException.ThrowIfNull(arguments);
+        ArgumentNullException.ThrowIfNull(targetType);
 
         var poco = Activator.CreateInstance(targetType);
+
         foreach (var kvp in arguments)
         {
             var property = targetType.GetProperty(kvp.Key);
@@ -64,25 +54,10 @@ internal class PocoConverter : IInputConverter
 
             try
             {
-                var propertyTargetType = Nullable.GetUnderlyingType(property.PropertyType) ?? property.PropertyType;
-
-                object? convertedValue;
-                if (propertyTargetType.IsEnum)
+                if (TryConvertToTargetType(kvp.Value, property.PropertyType, out var convertedValue))
                 {
-                    convertedValue = Enum.Parse(propertyTargetType, kvp.Value?.ToString()!);
+                    property.SetValue(poco, convertedValue);
                 }
-                else if (kvp.Value is IConvertible)
-                {
-                    convertedValue = Convert.ChangeType(kvp.Value, propertyTargetType);
-                }
-                else
-                {
-                    // Fallback for complex types
-                    var json = JsonSerializer.Serialize(kvp.Value);
-                    convertedValue = JsonSerializer.Deserialize(json, propertyTargetType);
-                }
-
-                property.SetValue(poco, convertedValue);
             }
             catch (Exception ex)
             {

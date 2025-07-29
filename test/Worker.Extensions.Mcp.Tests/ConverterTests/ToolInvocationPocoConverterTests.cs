@@ -8,12 +8,12 @@ using static Worker.Extensions.Mcp.Tests.Helpers.FunctionContextHelper;
 
 namespace Worker.Extensions.Mcp.Tests.ConverterTests;
 
-public class PocoConverterTests
+public class ToolInvocationPocoConverterTests
 {
     [Fact]
     public async Task ConvertAsync_ValidArguments_ReturnsPoco()
     {
-        var converter = new PocoConverter();
+        var converter = new ToolInvocationPocoConverter();
         var arguments = new Dictionary<string, object> { { "Name", "foo" }, { "Description", "bar" } };
         var toolContext = new ToolInvocationContext { Name = "test", Arguments = arguments };
 
@@ -31,14 +31,14 @@ public class PocoConverterTests
     [Fact]
     public async Task ConvertAsync_ContextIsNull_ThrowsArgumentNullException()
     {
-        var converter = new PocoConverter();
+        var converter = new ToolInvocationPocoConverter();
         await Assert.ThrowsAsync<ArgumentNullException>(async () => await converter.ConvertAsync(null!));
     }
 
     [Fact]
     public async Task ConvertAsync_TargetTypeString_ReturnsUnhandled()
     {
-        var converter = new PocoConverter();
+        var converter = new ToolInvocationPocoConverter();
         var functionContext = new Mock<FunctionContext>();
         var context = CreateConverterContext(typeof(string), null, functionContext.Object);
         var result = await converter.ConvertAsync(context);
@@ -48,7 +48,7 @@ public class PocoConverterTests
     [Fact]
     public async Task ConvertAsync_TargetTypeToolInvocationContext_ReturnsUnhandled()
     {
-        var converter = new PocoConverter();
+        var converter = new ToolInvocationPocoConverter();
         var functionContext = new Mock<FunctionContext>();
         var context = CreateConverterContext(typeof(ToolInvocationContext), null, functionContext.Object);
         var result = await converter.ConvertAsync(context);
@@ -58,7 +58,7 @@ public class PocoConverterTests
     [Fact]
     public async Task ConvertAsync_ToolInvocationContextNotFound_ReturnsUnhandled()
     {
-        var converter = new PocoConverter();
+        var converter = new ToolInvocationPocoConverter();
         var functionContext = CreateEmptyFunctionContext();
         var context = CreateConverterContext(typeof(TestPoco), null, functionContext);
         var result = await converter.ConvertAsync(context);
@@ -68,7 +68,7 @@ public class PocoConverterTests
     [Fact]
     public async Task ConvertAsync_ArgumentsNull_ReturnsFailed()
     {
-        var converter = new PocoConverter();
+        var converter = new ToolInvocationPocoConverter();
 
         var toolContext = new ToolInvocationContext
         {
@@ -88,7 +88,7 @@ public class PocoConverterTests
     [Fact]
     public async Task ConvertAsync_WithEnumValue_SuccessfullyConverts()
     {
-        var converter = new PocoConverter();
+        var converter = new ToolInvocationPocoConverter();
         var arguments = new Dictionary<string, object>
         {
             { "Status", "Active" }
@@ -113,7 +113,7 @@ public class PocoConverterTests
     [Fact]
     public async Task ConvertAsync_WithNullableInt_SuccessfullyConverts()
     {
-        var converter = new PocoConverter();
+        var converter = new ToolInvocationPocoConverter();
         var arguments = new Dictionary<string, object>
         {
             { "Age", 30 }
@@ -138,7 +138,7 @@ public class PocoConverterTests
     [Fact]
     public async Task ConvertAsync_PropertyIsMissingOrReadOnly_IgnoresAndContinues()
     {
-        var converter = new PocoConverter();
+        var converter = new ToolInvocationPocoConverter();
         var arguments = new Dictionary<string, object>
         {
             { "ReadOnlyProperty", "test" },

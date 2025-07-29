@@ -15,15 +15,18 @@ public class TestFunction
         _logger = logger;
     }
 
-    [Function(nameof(SayHello))]
-    public string SayHello(
-        [McpToolTrigger(nameof(SayHello), "Responds to the user with a hello message.")] ToolInvocationContext context,
-        [McpToolProperty(nameof(name), "string", "The name of the person to greet.")] string? name
+    [Function(nameof(HappyFunction))]
+    public string HappyFunction(
+        [McpToolTrigger(nameof(HappyFunction), "Responds to the user with a hello message.")] ToolInvocationContext context,
+        [McpToolProperty(nameof(name), "string", "The name of the person to greet.")] string name,
+        [McpToolProperty(nameof(job), "string", "The job of the person.")] string? job,
+        [McpToolProperty(nameof(age), "number", "The age of the person.")] int age,
+        [McpToolProperty(nameof(isHappy), "boolean", "The happiness of the person.")] bool isHappy
     )
     {
-        _logger.LogInformation("C# MCP tool trigger function processed a request.");
-        var entityToGreet = context?.Arguments?.GetValueOrDefault("name") ?? "world";
-        return $"Hello, {entityToGreet}! This is an MCP Tool!";
+        _logger.LogInformation("C# MCP tool trigger function processed a request: {ToolName}", context.Name);
+        var entityToGreet = name ?? "world";
+        return $"Hello, {entityToGreet}! Job: {job ?? "Unemployed"} | Age: {age} | Happy? {isHappy}.";
     }
 
     [Function(nameof(GetSnippet))]

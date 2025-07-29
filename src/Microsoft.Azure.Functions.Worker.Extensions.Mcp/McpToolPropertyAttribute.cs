@@ -7,7 +7,7 @@ using Microsoft.Azure.Functions.Worker.Extensions.Mcp.Converters;
 
 namespace Microsoft.Azure.Functions.Worker.Extensions.Mcp;
 
-[InputConverter(typeof(TypeConverter))]
+[InputConverter(typeof(ToolInvocationArgumentTypeConverter))]
 [ConverterFallbackBehavior(ConverterFallbackBehavior.Disallow)]
 public sealed class McpToolPropertyAttribute(string propertyName, string propertyType, string description, bool required = false) : InputBindingAttribute
 {
