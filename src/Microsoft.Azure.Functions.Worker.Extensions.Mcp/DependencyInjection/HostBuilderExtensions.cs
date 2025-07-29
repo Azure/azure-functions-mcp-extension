@@ -25,13 +25,9 @@ public static class McpHostBuilderExtensions
         return builder;
     }
 
-    // TODO: Better naming
-    public static IFunctionsWorkerApplicationBuilder UseMcpTool(this IFunctionsWorkerApplicationBuilder builder)
+    public static IFunctionsWorkerApplicationBuilder ConfigureMcpExtension(this IFunctionsWorkerApplicationBuilder builder)
     {
-        if (builder is null)
-        {
-            throw new ArgumentNullException(nameof(builder));
-        }
+        ArgumentNullException.ThrowIfNull(builder);
 
         builder.UseMiddleware<FunctionsMcpContextMiddleware>();
 
