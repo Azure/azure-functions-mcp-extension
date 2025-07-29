@@ -12,19 +12,17 @@ internal class ToolInvocationContextConverter : IInputConverter
     {
         ArgumentNullException.ThrowIfNull(context);
 
-        object? target = null;
-
-        if (context.TargetType == typeof(ToolInvocationContext)
-            && context.FunctionContext.TryGetToolInvocationContext(out var toolContext))
+        if (context.TargetType != typeof(ToolInvocationContext))
         {
-            target = toolContext;
+            return new ValueTask<ConversionResult>(ConversionResult.Unhandled());
         }
 
-        if (target is not null)
+        if (context.FunctionContext.TryGetToolInvocationContext(out var toolContext)
+            && toolContext is not null)
         {
-            return new ValueTask<ConversionResult>(ConversionResult.Success(target));
+            return new ValueTask<ConversionResult>(ConversionResult.Success(toolContext));
         }
 
-        return new ValueTask<ConversionResult>(ConversionResult.Unhandled());
+        return new ValueTask<ConversionResult>(ConversionResult.Failed(new InvalidOperationException($"{nameof(ToolInvocationContext)} was not available or was null in the current FunctionContext.")));
     }
 }

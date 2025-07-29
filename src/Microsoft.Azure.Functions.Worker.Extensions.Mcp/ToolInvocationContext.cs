@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 using System.Text.Json.Serialization;
-
+using Microsoft.Azure.Functions.Worker.Extensions.Mcp.JsonConverters;
 
 namespace Microsoft.Azure.Functions.Worker.Extensions.Mcp;
 
@@ -21,5 +21,6 @@ public class ToolInvocationContext
     /// Optional arguments to pass to the tool.
     /// </summary>
     [JsonPropertyName("arguments")]
+    [JsonConverter(typeof(DictionaryStringObjectJsonConverter))]
     public Dictionary<string, object>? Arguments { get; init; }
 }
