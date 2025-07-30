@@ -10,6 +10,6 @@ builder.ConfigureFunctionsWebApplication();
 //     .AddApplicationInsightsTelemetryWorkerService()
 //     .ConfigureFunctionsApplicationInsights();
 
-builder.EnableMcpToolMetadata();
+builder.ConfigureMcpExtension();
 
 builder.Build().Run();

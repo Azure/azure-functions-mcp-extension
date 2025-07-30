@@ -3,9 +3,11 @@
 
 using Microsoft.Azure.Functions.Worker.Converters;
 using Microsoft.Azure.Functions.Worker.Extensions.Abstractions;
+using Microsoft.Azure.Functions.Worker.Extensions.Mcp.Converters;
 
 namespace Microsoft.Azure.Functions.Worker.Extensions.Mcp;
 
+[InputConverter(typeof(ToolInvocationArgumentTypeConverter))]
 [ConverterFallbackBehavior(ConverterFallbackBehavior.Default)]
 public sealed class McpToolPropertyAttribute(string propertyName, string propertyType, string description, bool required = false) : InputBindingAttribute
 {
@@ -19,6 +21,6 @@ public sealed class McpToolPropertyAttribute(string propertyName, string propert
     public string PropertyType { get; set; } = propertyType;
 
     public string? Description { get; set; } = description;
-    
+
     public bool Required { get; set; } = required;
 }
