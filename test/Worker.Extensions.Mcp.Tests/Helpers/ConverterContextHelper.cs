@@ -17,7 +17,7 @@ public static class ConverterContextHelper
         properties ??= new Dictionary<string, object>();
 
         // If binding attribute is provided, add it to the properties bag
-        if (bindingAttribute != null)
+        if (bindingAttribute is not null)
         {
             properties["bindingAttribute"] = bindingAttribute;
         }

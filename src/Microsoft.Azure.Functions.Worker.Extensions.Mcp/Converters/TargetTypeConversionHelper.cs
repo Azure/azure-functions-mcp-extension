@@ -41,7 +41,7 @@ internal static class TargetTypeConversionHelper
 
             var json = JsonSerializer.Serialize(value);
             result = JsonSerializer.Deserialize(json, underlyingType);
-            return result != null || !underlyingType.IsValueType;
+            return result is not null || !underlyingType.IsValueType;
         }
         catch
         {
