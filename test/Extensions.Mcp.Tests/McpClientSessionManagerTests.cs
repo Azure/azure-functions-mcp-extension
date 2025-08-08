@@ -1,6 +1,5 @@
 using Microsoft.Extensions.Logging;
 using Microsoft.Azure.Functions.Extensions.Mcp;
-using ModelContextProtocol.Protocol.Messages;
 using ModelContextProtocol.Server;
 using Moq;
 using Xunit;

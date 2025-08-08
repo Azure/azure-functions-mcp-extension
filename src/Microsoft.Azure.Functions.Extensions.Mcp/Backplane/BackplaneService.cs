@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 using Microsoft.Extensions.Logging;
-using ModelContextProtocol.Protocol.Messages;
+using ModelContextProtocol.Protocol;
 using System.Threading.Channels;
 
 namespace Microsoft.Azure.Functions.Extensions.Mcp.Backplane

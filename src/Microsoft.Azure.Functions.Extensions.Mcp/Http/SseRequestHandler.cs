@@ -9,7 +9,7 @@ using Microsoft.Azure.Functions.Extensions.Mcp.Serialization;
 using Microsoft.Azure.WebJobs.Extensions.Mcp;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using ModelContextProtocol.Protocol.Messages;
+using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 using static Microsoft.Azure.Functions.Extensions.Mcp.McpConstants;
 
@@ -76,7 +76,7 @@ internal sealed class SseRequestHandler(
                 context.Features.Set(mcpServer);
 
                 _ = clientSession.StartPingAsync(context.RequestAborted);
-                
+
                 await mcpServer.RunAsync(context.RequestAborted);
             }
             finally

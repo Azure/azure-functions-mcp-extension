@@ -2,11 +2,10 @@
 // Licensed under the MIT License.
 
 using Microsoft.Extensions.Logging;
-using ModelContextProtocol.Protocol.Messages;
+using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
-using System.Threading.Tasks;
 
 namespace Microsoft.Azure.Functions.Extensions.Mcp;
 
