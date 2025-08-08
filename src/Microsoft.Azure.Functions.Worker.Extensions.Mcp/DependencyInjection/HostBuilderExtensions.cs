@@ -5,7 +5,6 @@ using Microsoft.Azure.Functions.Worker.Core.FunctionMetadata;
 using Microsoft.Azure.Functions.Worker.Extensions.Mcp;
 using Microsoft.Azure.Functions.Worker.Extensions.Mcp.Configuration;
 using Microsoft.Azure.Functions.Worker.Extensions.Mcp.Converters;
-using Microsoft.Azure.Functions.Worker.Extensions.Mcp.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
@@ -18,18 +17,13 @@ public static class McpHostBuilderExtensions
         return new McpToolBuilder(builder, toolName);
     }
 
-    public static IFunctionsWorkerApplicationBuilder EnableMcpToolMetadata(this IFunctionsWorkerApplicationBuilder builder)
-    {
-        builder.Services.Decorate<IFunctionMetadataProvider, McpFunctionMetadataProvider>();
-
-        return builder;
-    }
-
     public static IFunctionsWorkerApplicationBuilder ConfigureMcpExtension(this IFunctionsWorkerApplicationBuilder builder)
     {
         ArgumentNullException.ThrowIfNull(builder);
 
         builder.UseMiddleware<FunctionsMcpContextMiddleware>();
+
+        builder.Services.AddSingleton<IFunctionMetadataTransformer, McpFunctionMetadataTransformer>();
 
         builder.Services.Configure<WorkerOptions>(static (workerOption) =>
         {

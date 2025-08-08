@@ -14,56 +14,46 @@ using Microsoft.Extensions.Options;
 
 namespace Microsoft.Azure.Functions.Worker.Extensions.Mcp.Configuration;
 
-public sealed class McpFunctionMetadataProvider(IFunctionMetadataProvider inner, IOptionsSnapshot<ToolOptions> toolOptionsSnapshot)
-    : IFunctionMetadataProvider
+public sealed class McpFunctionMetadataTransformer(IOptionsMonitor<ToolOptions> toolOptionsMonitor)
+    : IFunctionMetadataTransformer
 {
     private const string FunctionsWorkerDirectoryKey = "FUNCTIONS_WORKER_DIRECTORY";
     private const string FunctionsApplicationDirectoryKey = "FUNCTIONS_APPLICATION_DIRECTORY";
 
     private static readonly Regex EntryPointRegex = new(@"^(?<typename>.*)\.(?<methodname>\S*)$");
 
-    public async Task<ImmutableArray<IFunctionMetadata>> GetFunctionMetadataAsync(string directory)
+    public IFunctionMetadata Transform(IFunctionMetadata function)
     {
-        var metadata = await inner.GetFunctionMetadataAsync(directory);
-
-        foreach (var function in metadata)
+        if (function.RawBindings is null || function.Name is null)
         {
-            if (function.RawBindings is null
-                || function.Name is null)
+            return function;
+        }
+
+        for (int i = 0; i < function.RawBindings.Count; i++)
+        {
+            var binding = function.RawBindings[i];
+            if (!binding.Contains("mcpToolTrigger"))
             {
                 continue;
             }
 
-            for (int i = 0; i < function.RawBindings.Count; i++)
+            if (JsonNode.Parse(binding) is not JsonObject jsonObject)
             {
-                var binding = function.RawBindings[i];
-                if (!binding.Contains("mcpToolTrigger"))
-                {
-                    continue;
-                }
+                continue;
+            }
 
-                var node = JsonNode.Parse(binding);
-
-                if (node is not JsonObject jsonObject)
-                {
-                    continue;
-                }
-
-                if (jsonObject.TryGetPropertyValue("type", out var triggerType)
-                    && triggerType?.ToString() == "mcpToolTrigger"
-                    && jsonObject.TryGetPropertyValue("toolName", out var toolName)
-                    && GetToolProperties(toolName?.ToString(), function, out var toolProperties))
-                {
-                    jsonObject["toolProperties"] = GetPropertiesJson(function.Name, toolProperties);
-
-                    function.RawBindings[i] = jsonObject.ToJsonString();
-
-                    break;
-                }
+            if (jsonObject.TryGetPropertyValue("type", out var typeNode)
+                && typeNode?.ToString() == "mcpToolTrigger"
+                && jsonObject.TryGetPropertyValue("toolName", out var nameNode)
+                && GetToolProperties(nameNode?.ToString(), function, out var props))
+            {
+                jsonObject["toolProperties"] = JsonSerializer.Serialize(props);
+                function.RawBindings[i] = jsonObject.ToJsonString();
+                break;
             }
         }
 
-        return metadata;
+        return function;
     }
 
     private bool GetToolProperties(string? toolName, IFunctionMetadata functionMetadata, [NotNullWhen(true)] out List<ToolProperty>? toolProperties)
@@ -71,7 +61,7 @@ public sealed class McpFunctionMetadataProvider(IFunctionMetadataProvider inner,
         toolProperties = null;
 
         // Get from configured options first:
-        var toolOptions = toolOptionsSnapshot.Get(toolName);
+        var toolOptions = toolOptionsMonitor.Get(toolName);
 
         if (toolOptions.Properties.Count != 0)
         {
