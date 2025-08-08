@@ -26,7 +26,7 @@ public class DefaultRequestHandlerTests
     public async Task HandleRequest_CallsSseRequestHandler_WhenIsSseRequestIsTrue()
     {
         var context = new DefaultHttpContext();
-        _sseRequestHandlerMock.Setup(handler => handler.IsSseRequest(context)).Returns(true);
+        _sseRequestHandlerMock.Setup(handler => handler.IsLegacySseRequest(context)).Returns(true);
 
         await _defaultRequestHandler.HandleRequest(context);
 
@@ -38,7 +38,7 @@ public class DefaultRequestHandlerTests
     public async Task HandleRequest_CallsStreamableHttpRequestHandler_WhenIsSseRequestIsFalse()
     {
         var context = new DefaultHttpContext();
-        _sseRequestHandlerMock.Setup(handler => handler.IsSseRequest(context)).Returns(false);
+        _sseRequestHandlerMock.Setup(handler => handler.IsLegacySseRequest(context)).Returns(false);
 
         await _defaultRequestHandler.HandleRequest(context);
 
