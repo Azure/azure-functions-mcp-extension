@@ -25,7 +25,7 @@ internal sealed class SseRequestHandler(
 {
     private readonly ILogger _logger = loggerFactory.CreateLogger<Logs.SseRequestHandler>();
 
-    public bool IsSseRequest(HttpContext context)
+    public bool IsLegacySseRequest(HttpContext context)
     {
         var pathSpan = context.Request.Path.Value.AsSpan().TrimEnd('/');
 
@@ -59,9 +59,9 @@ internal sealed class SseRequestHandler(
 
         var clientId = Utility.CreateId();
         var messageEndpoint = GetMessageEndpoint(clientId, context);
-        var transport = new SseStreamTransportWithMessageHandling(context.Response.Body, messageEndpoint);
+        var transport = new SseStreamTransport(context.Response.Body, messageEndpoint);
 
-        await using var clientSession = clientSessionManager.CreateSession(clientId, instanceIdProvider.InstanceId, transport);
+        await using var clientSession = await clientSessionManager.CreateSessionAsync(clientId, instanceIdProvider.InstanceId, transport);
 
         try
         {
@@ -113,9 +113,11 @@ internal sealed class SseRequestHandler(
             return;
         }
 
-        if (clientSessionManager.TryGetSession(clientId, out var clientSession))
+        var result = await clientSessionManager.TryGetSessionAsync(clientId);
+
+        if (result.Succeeded)
         {
-            await clientSession.HandleMessageAsync(message, context.RequestAborted);
+            await result.Session.HandleMessageAsync(message, context.RequestAborted);
         }
         else
         {
@@ -134,9 +136,8 @@ internal sealed class SseRequestHandler(
         await context.Response.WriteAsync("Accepted");
 
         static Task WriteInvalidSessionResponse(string message, HttpContext httpContext)
-        {
-            return Results.BadRequest($"{message} Please connect to the /sse endpoint to initiate your session.").ExecuteAsync(httpContext);
-        }
+            => Results.BadRequest($"{message} Please connect to the /sse endpoint to initiate your session.")
+                .ExecuteAsync(httpContext);
     }
 
     internal string GetMessageEndpoint(string clientId, HttpContext context)

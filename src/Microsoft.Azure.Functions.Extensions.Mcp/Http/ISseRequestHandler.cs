@@ -9,5 +9,5 @@ internal interface ISseRequestHandler
 {
     Task HandleRequest(HttpContext context);
 
-    bool IsSseRequest(HttpContext context);
+    bool IsLegacySseRequest(HttpContext context);
 }

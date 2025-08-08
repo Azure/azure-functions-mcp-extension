@@ -6,7 +6,7 @@ using ModelContextProtocol.Server;
 
 namespace Microsoft.Azure.Functions.Extensions.Mcp;
 
-internal interface IMcpClientSession<TTransport> : IMcpClientSession where TTransport : ITransportWithMessageHandling
+internal interface IMcpClientSession<TTransport> : IMcpClientSession where TTransport : IMcpExtensionTransport
 {
     TTransport Transport { get; }
 }

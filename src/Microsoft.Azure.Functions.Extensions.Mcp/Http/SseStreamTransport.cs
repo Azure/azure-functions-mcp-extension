@@ -5,8 +5,8 @@ using Microsoft.Azure.Functions.Extensions.Mcp;
 using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 
-internal sealed class SseStreamTransportWithMessageHandling(Stream sseStream, string? messageEndpoint = "/message")
-           : TransportWithMessageHandling<SseResponseStreamTransport>(new SseResponseStreamTransport(sseStream, messageEndpoint))
+internal sealed class SseStreamTransport(Stream sseStream, string? messageEndpoint = "/message")
+           : McpExtensionTransport<SseResponseStreamTransport>(new(sseStream, messageEndpoint))
 {
     public override Task HandleMessageAsync(JsonRpcMessage message, CancellationToken cancellationToken)
     {
