@@ -2,8 +2,7 @@
 // Licensed under the MIT License.
 
 using Microsoft.Azure.Functions.Extensions.Mcp.Backplane;
-using ModelContextProtocol.Protocol.Messages;
-using Xunit;
+using ModelContextProtocol.Protocol;
 
 namespace Microsoft.Azure.Functions.Extensions.Mcp.Tests;
 
@@ -12,7 +11,7 @@ public class McpBackplaneMessageTests
     [Fact]
     public void Properties_CanBeSetAndRead()
     {
-        var dummy = new TestJsonRpcMessage();
+        var dummy = new JsonRpcRequest {Method = "test"};
         var msg = new McpBackplaneMessage
         {
             ClientId = "client",
@@ -21,6 +20,4 @@ public class McpBackplaneMessageTests
         Assert.Equal("client", msg.ClientId);
         Assert.Same(dummy, msg.Message);
     }
-
-    private class TestJsonRpcMessage : JsonRpcMessage { }
 }

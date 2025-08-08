@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 using Microsoft.Azure.Functions.Extensions.Mcp.Abstractions;
-using ModelContextProtocol.Protocol.Types;
+using ModelContextProtocol.Protocol;
 using System.Diagnostics.CodeAnalysis;
 
 namespace Microsoft.Azure.Functions.Extensions.Mcp;

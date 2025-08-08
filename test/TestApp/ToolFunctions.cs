@@ -1,9 +1,6 @@
 using Microsoft.Azure.Functions.Extensions.Mcp;
 using Microsoft.Azure.WebJobs;
-using ModelContextProtocol.Protocol.Types;
-using System;
-using System.Collections.Generic;
-using System.Linq;
+using ModelContextProtocol.Protocol;
 using static TestApp.ToolsInformation;
 
 namespace TestApp;

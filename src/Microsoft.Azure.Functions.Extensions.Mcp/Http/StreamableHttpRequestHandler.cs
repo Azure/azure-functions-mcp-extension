@@ -2,8 +2,8 @@
 // Licensed under the MIT License.
 
 using Microsoft.AspNetCore.Http;
-using ModelContextProtocol.Protocol.Messages;
-using ModelContextProtocol.Utils.Json;
+using ModelContextProtocol;
+using ModelContextProtocol.Protocol;
 using System.Text.Json.Serialization.Metadata;
 
 namespace Microsoft.Azure.Functions.Extensions.Mcp;

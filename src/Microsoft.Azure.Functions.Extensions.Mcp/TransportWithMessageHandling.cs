@@ -1,8 +1,7 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-using ModelContextProtocol.Protocol.Messages;
-using ModelContextProtocol.Protocol.Transport;
+using ModelContextProtocol.Protocol;
 using System.Threading.Channels;
 
 namespace Microsoft.Azure.Functions.Extensions.Mcp
@@ -17,6 +16,8 @@ namespace Microsoft.Azure.Functions.Extensions.Mcp
             ArgumentNullException.ThrowIfNull(transport);
             _transport = transport;
         }
+
+        public abstract string? SessionId { get; set; }
 
         public abstract Task HandleMessageAsync(JsonRpcMessage message, CancellationToken cancellationToken);
 
