@@ -31,7 +31,7 @@ public class DefaultRequestHandlerTests
         await _defaultRequestHandler.HandleRequest(context);
 
         _sseRequestHandlerMock.Verify(handler => handler.HandleRequest(context), Times.Once);
-        _streamableHttpRequestHandlerMock.Verify(handler => handler.HandleRequest(context), Times.Never);
+        _streamableHttpRequestHandlerMock.Verify(handler => handler.HandleRequestAsync(context), Times.Never);
     }
 
     [Fact]
@@ -42,7 +42,7 @@ public class DefaultRequestHandlerTests
 
         await _defaultRequestHandler.HandleRequest(context);
 
-        _streamableHttpRequestHandlerMock.Verify(handler => handler.HandleRequest(context), Times.Once);
+        _streamableHttpRequestHandlerMock.Verify(handler => handler.HandleRequestAsync(context), Times.Once);
         _sseRequestHandlerMock.Verify(handler => handler.HandleRequest(context), Times.Never);
     }
 }

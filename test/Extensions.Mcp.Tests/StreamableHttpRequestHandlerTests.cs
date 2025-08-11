@@ -45,7 +45,7 @@ public class StreamableHttpRequestHandlerTests
         var context = new DefaultHttpContext();
         context.Request.Method = HttpMethods.Get;
 
-        await _handler.HandleRequest(context);
+        await _handler.HandleRequestAsync(context);
 
         Assert.Equal(StatusCodes.Status405MethodNotAllowed, context.Response.StatusCode);
     }

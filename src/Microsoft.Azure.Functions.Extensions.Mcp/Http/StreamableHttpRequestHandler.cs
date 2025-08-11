@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
+using Microsoft.AspNetCore.Connections.Features;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Azure.Functions.Extensions.Mcp.Configuration;
 using Microsoft.Azure.Functions.Extensions.Mcp.Http;
@@ -26,18 +27,18 @@ internal sealed class StreamableHttpRequestHandler(
     private static readonly JsonTypeInfo<JsonRpcError> ErrorTypeInfo =
         (JsonTypeInfo<JsonRpcError>) McpJsonUtilities.DefaultOptions.GetTypeInfo(typeof(JsonRpcError));
 
-    public Task HandleRequest(HttpContext context)
+    public Task HandleRequestAsync(HttpContext context)
     {
         if (HttpMethods.IsPost(context.Request.Method))
         {
-            return HandlePostRequest(context);
+            return HandlePostRequestAsync(context);
         }
 
         context.Response.StatusCode = StatusCodes.Status405MethodNotAllowed;
         return Task.CompletedTask;
     }
 
-    private async Task HandlePostRequest(HttpContext context)
+    private async Task HandlePostRequestAsync(HttpContext context)
     {
         if (!await PostHasValidMediaTypesAsync(context))
         {
@@ -55,7 +56,7 @@ internal sealed class StreamableHttpRequestHandler(
         {
             McpHttpUtility.SetSseContext(context);
 
-            var responseWritten = await session.Transport.HandlePostRequest(new HttpDuplexPipe(context), context.RequestAborted);
+            var responseWritten = await session.Transport.HandlePostRequestAsync(new HttpDuplexPipe(context), context.RequestAborted);
 
             if (!responseWritten)
             {
@@ -95,10 +96,7 @@ internal sealed class StreamableHttpRequestHandler(
 
     private async ValueTask<IMcpClientSession<StreamableHttpTransport>?> GetOrCreateSessionAsync(HttpContext context, McpOptions mcpOptionsValue, bool stateless = true)
     {
-        if (!stateless)
-        {
-            throw new NotSupportedException("Stateful sessions are not supported.");
-        }
+        ThrowIfNotStatelessSession(stateless);
 
         var sessionId = context.Request.Headers[McpSessionIdHeaderName].ToString();
 
@@ -119,10 +117,7 @@ internal sealed class StreamableHttpRequestHandler(
 
     private async ValueTask<IMcpClientSession<StreamableHttpTransport>> StartNewSessionAsync(HttpContext context, bool stateless)
     {
-        if (!stateless)
-        {
-            throw new NotSupportedException("Stateful mode is not supported.");
-        }
+        ThrowIfNotStatelessSession(stateless);
 
         string clientId = Utility.EmptyId;
         StreamableHttpTransport transport = new()
@@ -146,18 +141,18 @@ internal sealed class StreamableHttpRequestHandler(
         };
 
         // Create a new session with the transport.
-        // this session is currently being persisted in the session manager.
+        // This session is currently being persisted in the session manager.
         return await CreateSessionAsync(context, transport, clientId);
     }
 
-    private async ValueTask<IMcpClientSession<StreamableHttpTransport>> RebuildStatelessSessionAsync(HttpContext context)
+    private async ValueTask<IMcpClientSession<StreamableHttpTransport>?> RebuildStatelessSessionAsync(HttpContext context)
     {
         var sessionId = context.Request.Headers[McpSessionIdHeaderName].ToString();
 
         if (!ClientStateManager.TryParseUriState(sessionId, out var clientId, out var instanceId, mcpOptions.Value.EncryptClientState))
         {
             await WriteJsonRpcErrorAsync(context, "Invalid client state.", StatusCodes.Status400BadRequest);
-            return null!;
+            return null;
         }
 
         var transport = new StreamableHttpTransport
@@ -205,6 +200,14 @@ internal sealed class StreamableHttpRequestHandler(
         };
 
         return Results.Json(jsonRpcError, ErrorTypeInfo, statusCode: statusCode).ExecuteAsync(context);
+    }
+
+    private static void ThrowIfNotStatelessSession(bool stateless)
+    {
+        if (!stateless)
+        {
+            throw new NotSupportedException("Stateful sessions are not supported.");
+        }
     }
 
     private sealed class HttpDuplexPipe(HttpContext context) : IDuplexPipe

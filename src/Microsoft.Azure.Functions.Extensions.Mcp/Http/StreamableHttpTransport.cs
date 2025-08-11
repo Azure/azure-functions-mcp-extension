@@ -22,10 +22,10 @@ internal sealed class StreamableHttpTransport(bool flowExecutionContext = false)
         set => Transport.SessionId = value;
     }
 
-    public Task HandleGetRequest(Stream sseResponseStream, CancellationToken cancellationToken)
+    public Task HandleGetRequestAsync(Stream sseResponseStream, CancellationToken cancellationToken)
         => Transport.HandleGetRequest(sseResponseStream, cancellationToken);
 
-    public Task<bool> HandlePostRequest(IDuplexPipe httpBodies, CancellationToken cancellationToken)
+    public Task<bool> HandlePostRequestAsync(IDuplexPipe httpBodies, CancellationToken cancellationToken)
         => Transport.HandlePostRequest(httpBodies, cancellationToken);
 
     public bool FlowExecutionContextFromRequests => Transport.FlowExecutionContextFromRequests;

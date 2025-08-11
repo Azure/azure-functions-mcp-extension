@@ -37,15 +37,15 @@ internal sealed class SseRequestHandler(
     {
         if (context.Request.Path.Value.AsSpan().TrimEnd('/').EndsWith(SseEndpoint, StringComparison.OrdinalIgnoreCase))
         {
-            await HandleSseRequest(context);
+            await HandleSseRequestAsync(context);
         }
         else
         {
-            await HandleMessageRequest(context, mcpOptions.Value);
+            await HandleMessageRequestAsync(context, mcpOptions.Value);
         }
     }
 
-    public async Task HandleSseRequest(HttpContext context)
+    public async Task HandleSseRequestAsync(HttpContext context)
     {
         if (!HttpMethods.IsGet(context.Request.Method))
         {
@@ -91,7 +91,7 @@ internal sealed class SseRequestHandler(
         }
     }
 
-    public async Task HandleMessageRequest(HttpContext context, McpOptions mcpOptions)
+    public async Task HandleMessageRequestAsync(HttpContext context, McpOptions mcpOptions)
     {
         if (!McpHttpUtility.TryGetQueryValue(context, AzmcpStateQuery, out string? clientState))
         {

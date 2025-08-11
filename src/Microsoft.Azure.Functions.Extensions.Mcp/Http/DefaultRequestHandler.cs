@@ -16,7 +16,7 @@ internal sealed partial class DefaultRequestHandler(IStreamableHttpRequestHandle
         }
         else
         {
-            await streamableHttpRequestHandler.HandleRequest(context);
+            await streamableHttpRequestHandler.HandleRequestAsync(context);
         }
     }
 }
