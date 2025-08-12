@@ -44,12 +44,12 @@ public sealed class McpFunctionMetadataTransformer(IOptionsMonitor<ToolOptions> 
                     continue;
                 }
 
-                if (jsonObject.TryGetPropertyValue("type", out var typeNode)
-                    && typeNode?.ToString() == "mcpToolTrigger"
-                    && jsonObject.TryGetPropertyValue("toolName", out var nameNode)
-                    && GetToolProperties(nameNode?.ToString(), function, out var props))
+                if (jsonObject.TryGetPropertyValue("type", out var triggerType)
+                    && triggerType?.ToString() == "mcpToolTrigger"
+                    && jsonObject.TryGetPropertyValue("toolName", out var toolName)
+                    && GetToolProperties(toolName?.ToString(), function, out var toolProperties))
                 {
-                    jsonObject["toolProperties"] = JsonSerializer.Serialize(props);
+                    jsonObject["toolProperties"] = GetPropertiesJson(function.Name, toolProperties);
                     function.RawBindings[i] = jsonObject.ToJsonString();
                     break;
                 }
