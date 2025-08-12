@@ -22,38 +22,41 @@ public sealed class McpFunctionMetadataTransformer(IOptionsMonitor<ToolOptions> 
 
     private static readonly Regex EntryPointRegex = new(@"^(?<typename>.*)\.(?<methodname>\S*)$");
 
-    public IFunctionMetadata Transform(IFunctionMetadata function)
+    public ImmutableArray<IFunctionMetadata> Transform(ImmutableArray<IFunctionMetadata> metadata)
     {
-        if (function.RawBindings is null || function.Name is null)
+        foreach (var function in metadata)
         {
-            return function;
-        }
-
-        for (int i = 0; i < function.RawBindings.Count; i++)
-        {
-            var binding = function.RawBindings[i];
-            if (!binding.Contains("mcpToolTrigger"))
+            if (function.RawBindings is null || function.Name is null)
             {
                 continue;
             }
 
-            if (JsonNode.Parse(binding) is not JsonObject jsonObject)
+            for (int i = 0; i < function.RawBindings.Count; i++)
             {
-                continue;
-            }
+                var binding = function.RawBindings[i];
+                if (!binding.Contains("mcpToolTrigger"))
+                {
+                    continue;
+                }
 
-            if (jsonObject.TryGetPropertyValue("type", out var typeNode)
-                && typeNode?.ToString() == "mcpToolTrigger"
-                && jsonObject.TryGetPropertyValue("toolName", out var nameNode)
-                && GetToolProperties(nameNode?.ToString(), function, out var props))
-            {
-                jsonObject["toolProperties"] = JsonSerializer.Serialize(props);
-                function.RawBindings[i] = jsonObject.ToJsonString();
-                break;
+                if (JsonNode.Parse(binding) is not JsonObject jsonObject)
+                {
+                    continue;
+                }
+
+                if (jsonObject.TryGetPropertyValue("type", out var typeNode)
+                    && typeNode?.ToString() == "mcpToolTrigger"
+                    && jsonObject.TryGetPropertyValue("toolName", out var nameNode)
+                    && GetToolProperties(nameNode?.ToString(), function, out var props))
+                {
+                    jsonObject["toolProperties"] = JsonSerializer.Serialize(props);
+                    function.RawBindings[i] = jsonObject.ToJsonString();
+                    break;
+                }
             }
         }
 
-        return function;
+        return metadata;
     }
 
     private bool GetToolProperties(string? toolName, IFunctionMetadata functionMetadata, [NotNullWhen(true)] out List<ToolProperty>? toolProperties)
