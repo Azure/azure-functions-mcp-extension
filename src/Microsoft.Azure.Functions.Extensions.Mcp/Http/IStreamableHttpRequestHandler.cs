@@ -7,5 +7,5 @@ namespace Microsoft.Azure.Functions.Extensions.Mcp;
 
 internal interface IStreamableHttpRequestHandler
 {
-    Task HandleRequest(HttpContext context);
+    Task HandleRequestAsync(HttpContext context);
 }

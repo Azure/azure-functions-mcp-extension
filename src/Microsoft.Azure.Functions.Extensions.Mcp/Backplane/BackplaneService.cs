@@ -43,14 +43,16 @@ namespace Microsoft.Azure.Functions.Extensions.Mcp.Backplane
             }
         }
 
-        private Task HandleMessageAsync(string clientId, JsonRpcMessage message, CancellationToken cancellationToken)
+        private async Task HandleMessageAsync(string clientId, JsonRpcMessage message, CancellationToken cancellationToken)
         {
-            if (!sessionManager.TryGetSession(clientId, out IMcpClientSession? session))
+            var result = await sessionManager.TryGetSessionAsync(clientId);
+
+            if (!result.Succeeded)
             {
                 throw new InvalidOperationException($"Invalid client id. The session for client '{clientId}' does not exist in instance '{_instanceId}'.");
             }
 
-            return session.HandleMessageAsync(message, cancellationToken);
+            await result.Session.HandleMessageAsync(message, cancellationToken);
         }
 
         public Task SendMessageAsync(JsonRpcMessage message, string instanceId, string clientId, CancellationToken cancellationToken)

@@ -10,4 +10,5 @@ internal sealed class McpConstants
     public const string FunctionsKeyHeader = "x-functions-key";
     public const string SseEndpoint = "sse";
     public const string MessageEndpoint = "message";
+    public const string McpSessionIdHeaderName = "Mcp-Session-Id";
 }

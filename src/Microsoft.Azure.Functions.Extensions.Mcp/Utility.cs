@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
 using System.Security.Cryptography;
@@ -13,6 +13,9 @@ internal class Utility
     private const string ValidChars = "abcdefghijklmnopqrstuvwxyz0123456789";
     private const int MaxByte = 252; // 252 is the largest multiple of 36 (the valid chars array) under 256
     private const int Length = 16;
+    private const string EmptyIdValue = "0000000000000000";
+
+    public static string EmptyId => EmptyIdValue;
 
     internal static string CreateId()
     {

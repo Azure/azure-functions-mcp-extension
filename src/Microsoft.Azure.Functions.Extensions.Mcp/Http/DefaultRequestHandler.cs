@@ -10,13 +10,13 @@ internal sealed partial class DefaultRequestHandler(IStreamableHttpRequestHandle
 {
     public async Task HandleRequest(HttpContext context)
     {
-        if (sseRequestHandler.IsSseRequest(context))
+        if (sseRequestHandler.IsLegacySseRequest(context))
         {
             await sseRequestHandler.HandleRequest(context);
         }
         else
         {
-            await streamableHttpRequestHandler.HandleRequest(context);
+            await streamableHttpRequestHandler.HandleRequestAsync(context);
         }
     }
 }
