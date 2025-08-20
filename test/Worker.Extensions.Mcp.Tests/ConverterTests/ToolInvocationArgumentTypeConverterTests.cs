@@ -68,6 +68,25 @@ public class ToolInvocationArgumentTypeConverterTests
         Assert.Equal(expectedValue, result.Value);
     }
 
+    [Theory]
+    [InlineData(true, true)]
+    [InlineData(false, false)]
+    public async Task ConvertAsync_WithMissingArgument_ReturnsUnhandled(object inputValue, object expectedValue)
+    {
+        var converter = new ToolInvocationArgumentTypeConverter();
+        var arguments = new Dictionary<string, object> { { "foo", inputValue! } };
+        var toolContext = new ToolInvocationContext { Name = "test", Arguments = arguments };
+
+        var functionContext = CreateFunctionContextWithToolContext(toolContext);
+        var bindingAttribute = new McpToolPropertyAttribute("foo", "boolean", "", false);
+        var context = CreateConverterContext(typeof(bool), bindingAttribute, functionContext);
+
+        var result = await converter.ConvertAsync(context);
+
+        Assert.Equal(ConversionStatus.Succeeded, result.Status);
+        Assert.Equal(expectedValue, result.Value);
+    }
+
     [Fact]
     public async Task ConvertAsync_ContextIsNull_ThrowsArgumentNullException()
     {

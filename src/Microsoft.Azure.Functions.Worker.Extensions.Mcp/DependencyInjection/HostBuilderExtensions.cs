@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
 using Microsoft.Azure.Functions.Worker.Core.FunctionMetadata;
@@ -28,6 +28,8 @@ public static class McpHostBuilderExtensions
     public static IFunctionsWorkerApplicationBuilder ConfigureMcpExtension(this IFunctionsWorkerApplicationBuilder builder)
     {
         ArgumentNullException.ThrowIfNull(builder);
+
+        builder.EnableMcpToolMetadata();
 
         builder.UseMiddleware<FunctionsMcpContextMiddleware>();
 

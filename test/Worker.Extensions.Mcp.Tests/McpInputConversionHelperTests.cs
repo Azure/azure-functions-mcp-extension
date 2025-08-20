@@ -10,6 +10,8 @@ public class McpInputConversionHelperTests
     [InlineData(null, typeof(string), null, true)]
     [InlineData(null, typeof(int?), null, true)]
     [InlineData(null, typeof(int), null, false)]
+    [InlineData(null, typeof(StatusEnum), null, false)]
+    [InlineData(null, typeof(StatusEnum?), null, true)]
     public void TryConvertToTargetType_NullValues(object? input, Type targetType, object? expected, bool expectedSuccess)
     {
         var success = McpInputConversionHelper.TryConvertArgumentToTargetType(input, targetType, out var result);

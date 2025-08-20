@@ -27,12 +27,14 @@ internal static class McpInputConversionHelper
     {
         result = null;
 
-        targetType = Nullable.GetUnderlyingType(targetType) ?? targetType;
+        
 
         if (value is null)
         {
-            return !targetType.IsValueType || targetType is not null;
+            return !targetType.IsValueType || Nullable.GetUnderlyingType(targetType) is not null;
         }
+
+        targetType = Nullable.GetUnderlyingType(targetType) ?? targetType;
 
         if (targetType.IsEnum)
         {
