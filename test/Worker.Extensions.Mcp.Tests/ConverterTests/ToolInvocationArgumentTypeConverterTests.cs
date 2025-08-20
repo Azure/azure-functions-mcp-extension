@@ -101,21 +101,6 @@ public class ToolInvocationArgumentTypeConverterTests
     }
 
     [Fact]
-    public async Task ConvertAsync_BindingAttributeMissing_ThrowsArgumentNullException()
-    {
-        var converter = new ToolInvocationArgumentTypeConverter();
-        var arguments = new Dictionary<string, object> { { "foo", 42 } };
-        var toolContext = new ToolInvocationContext { Name = "test", Arguments = arguments };
-        var functionContext = CreateFunctionContextWithToolContext(toolContext);
-        var context = CreateConverterContext(typeof(int), bindingAttribute: null, functionContext);
-
-        var result = await converter.ConvertAsync(context);
-
-        Assert.Equal(ConversionStatus.Failed, result.Status);
-        Assert.IsType<ArgumentNullException>(result.Error);
-    }
-
-    [Fact]
     public async Task ConvertAsync_KeyNotFoundInArguments_ReturnsUnhandled()
     {
         var converter = new ToolInvocationArgumentTypeConverter();

@@ -11,6 +11,7 @@ internal class DictionaryStringObjectJsonConverter : JsonConverter<Dictionary<st
     public override Dictionary<string, object> Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
         using var doc = JsonDocument.ParseValue(ref reader);
+
         return ReadObject(doc.RootElement);
     }
 
@@ -21,14 +22,18 @@ internal class DictionaryStringObjectJsonConverter : JsonConverter<Dictionary<st
         {
             result[property.Name] = ReadValue(property.Value)!;
         }
+
         return result;
     }
 
     private object? ReadValue(JsonElement element) => element.ValueKind switch
     {
         JsonValueKind.String => element.GetString(),
-        JsonValueKind.Number => element.TryGetInt64(out var l) ? l :
-                                element.TryGetDouble(out var d) ? d : null,
+        JsonValueKind.Number => element switch {
+            _ when element.TryGetInt64(out var l) => l,
+            _ when element.TryGetDouble(out var d) => d,
+            _ => null
+        },
         JsonValueKind.True => true,
         JsonValueKind.False => false,
         JsonValueKind.Null => null,
