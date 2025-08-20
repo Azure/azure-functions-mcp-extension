@@ -3,7 +3,8 @@
 
 using Microsoft.Azure.Functions.Worker.Converters;
 using Microsoft.Azure.Functions.Worker.Extensions.Abstractions;
-using static Microsoft.Azure.Functions.Worker.Extensions.Mcp.Converters.TargetTypeConversionHelper;
+using System.Diagnostics.CodeAnalysis;
+using static Microsoft.Azure.Functions.Worker.Extensions.Mcp.Converters.McpInputConversionHelper;
 
 namespace Microsoft.Azure.Functions.Worker.Extensions.Mcp.Converters;
 
@@ -13,28 +14,9 @@ internal class ToolInvocationArgumentTypeConverter : IInputConverter
     {
         ArgumentNullException.ThrowIfNull(context);
 
-        if (!context.FunctionContext.TryGetToolInvocationContext(out ToolInvocationContext? toolContext)
-            || toolContext.Arguments?.Count <= 0)
-        {
-            return new ValueTask<ConversionResult>(ConversionResult.Unhandled());
-        }
-
         try
         {
-            if (!context.TryGetBindingAttribute<BindingAttribute>(out object? bindingAttribute))
-            {
-                ArgumentNullException.ThrowIfNull(bindingAttribute, nameof(bindingAttribute));
-            }
-
-            var bindingKey = GetBindingKeyFromAttribute(bindingAttribute as BindingAttribute);
-            var argument = toolContext.Arguments?.FirstOrDefault(a => a.Key.Equals(bindingKey, StringComparison.OrdinalIgnoreCase));
-
-            if (TryConvertToTargetType(argument?.Value, context.TargetType, out var convertedValue))
-            {
-                return new ValueTask<ConversionResult>(ConversionResult.Success(convertedValue));
-            }
-
-            return new ValueTask<ConversionResult>(ConversionResult.Unhandled());
+            return ConvertAsyncCore(context);
         }
         catch (Exception ex)
         {
@@ -42,15 +24,44 @@ internal class ToolInvocationArgumentTypeConverter : IInputConverter
         }
     }
 
-    private string? GetBindingKeyFromAttribute(BindingAttribute? bindingAttribute)
+    private static ValueTask<ConversionResult> ConvertAsyncCore(ConverterContext context)
     {
-        ArgumentNullException.ThrowIfNull(bindingAttribute);
+        if (context.FunctionContext.TryGetToolInvocationContext(out var toolContext)
+            && TryGetBindingAttribute(context, out var mcpBindingAttribute)
+            && TryConvertArgument(toolContext, mcpBindingAttribute, context.TargetType, out var convertedValue))
 
-        return bindingAttribute switch
         {
-            McpToolPropertyAttribute a => a.PropertyName,
-            McpToolTriggerAttribute a => a.ToolName,
-            _ => null
-        };
+            return new ValueTask<ConversionResult>(ConversionResult.Success(convertedValue));
+        }
+
+        return new ValueTask<ConversionResult>(ConversionResult.Unhandled());
+    }
+
+    private static bool TryGetBindingAttribute(ConverterContext context, [NotNullWhen(true)] out IMcpBindingAttribute? mcpBindingAttribute)
+    {
+        mcpBindingAttribute = null;
+
+        if (!context.TryGetBindingAttribute<BindingAttribute>(out var bindingAttribute)
+            || bindingAttribute is not IMcpBindingAttribute mcpAttribute
+            || mcpAttribute.BindingName is null)
+        {
+            return false;
+        }
+
+        mcpBindingAttribute = mcpAttribute;
+        return true;
+    }
+
+    private static bool TryConvertArgument(ToolInvocationContext toolContext, IMcpBindingAttribute mcpBindingAttribute, Type targetType, out object? convertedValue)
+    {
+        convertedValue = null;
+
+        if (toolContext.Arguments is null
+            || !toolContext.Arguments.TryGetValue(mcpBindingAttribute.BindingName, out var argumentValue))
+        {
+            return false;
+        }
+
+        return TryConvertArgumentToTargetType(argumentValue, targetType, out convertedValue);
     }
 }
