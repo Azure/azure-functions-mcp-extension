@@ -32,24 +32,17 @@ internal static class FunctionContextExtensions
     }
 
     /// <summary>
-    /// Gets the name of the function with the <see cref="McpToolTriggerAttribute"/> from the <see cref="FunctionContext"/>.
+    /// Gets the name of the trigger binding with the <see cref="McpToolTriggerAttribute"/> from the <see cref="FunctionContext"/>.
     /// </summary>
     /// <param name="context">The <see cref="FunctionContext"/>.</param>
     /// <param name="triggerName">The name of the MCP tool trigger.</param>
-    /// <returns></returns>
-    internal static bool TryGetMcpToolTriggerName(this FunctionContext context, out string triggerName)
+    /// <returns>true if the trigger name was found; otherwise, false.</returns>
+    internal static bool TryGetMcpToolTriggerName(this FunctionContext context, [NotNullWhen(true)] out string? triggerName)
     {
-        foreach (var param in context.FunctionDefinition.Parameters)
-        {
-            if (param.Properties.TryGetValue(BindingAttribute, out var attr) &&
-                attr?.GetType() == typeof(McpToolTriggerAttribute))
-            {
-                triggerName = param.Name;
-                return true;
-            }
-        }
+        triggerName = context.FunctionDefinition.InputBindings.Values
+            .FirstOrDefault(b => b.Type.Equals(Constants.McpToolTriggerBindingType, StringComparison.OrdinalIgnoreCase))
+            ?.Name;
 
-        triggerName = string.Empty;
-        return false;
+        return triggerName is not null;
     }
 }

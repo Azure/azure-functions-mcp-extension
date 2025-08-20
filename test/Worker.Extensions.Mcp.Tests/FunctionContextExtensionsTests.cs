@@ -1,6 +1,7 @@
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Extensions.Mcp;
 using Moq;
+using System.Collections.Immutable;
 
 namespace Worker.Extensions.Mcp.Tests;
 
@@ -66,54 +67,22 @@ public class FunctionContextExtensionsTests
     }
 
     [Fact]
-    public void TryGetMcpToolTriggerName_ReturnsTrue_WhenAttributeExists()
+    public void TryGetMcpToolTriggerName_ReturnsTrue_WhenTriggerBindingIsPresent()
     {
-        // Arrange
-        var parameter = new FunctionParameter(
-            name: "myTrigger",
-            type: typeof(string),
-            properties: new Dictionary<string, object>
-            {
-                { "bindingAttribute", new McpToolTriggerAttribute("TestTool", null) }
-            }
-        );
+        var bindingMetadataMock = new Mock<BindingMetadata>();
+        bindingMetadataMock.Setup(b => b.Type).Returns(Constants.McpToolTriggerBindingType);
+        bindingMetadataMock.Setup(b=>b.Name).Returns("myTrigger");
 
         var functionDefinitionMock = new Mock<FunctionDefinition>();
-        functionDefinitionMock.Setup(f => f.Parameters)
-            .Returns([parameter]);
+        functionDefinitionMock.Setup(f => f.InputBindings)
+            .Returns(ImmutableDictionary.Create<string, BindingMetadata>().Add("myTrigger", bindingMetadataMock.Object));
 
         var contextMock = new Mock<FunctionContext>();
         contextMock.Setup(c => c.FunctionDefinition).Returns(functionDefinitionMock.Object);
 
-        // Act
         var result = contextMock.Object.TryGetMcpToolTriggerName(out var triggerName);
 
-        // Assert
         Assert.True(result);
         Assert.Equal("myTrigger", triggerName);
-    }
-
-    [Fact]
-    public void TryGetMcpToolTriggerName_ReturnsFalse_WhenAttributeIsMissing()
-    {
-        // Arrange
-        var parameter = new FunctionParameter(
-            name: "myTrigger",
-            type: typeof(string)
-        );
-
-        var functionDefinitionMock = new Mock<FunctionDefinition>();
-        functionDefinitionMock.Setup(f => f.Parameters)
-            .Returns([parameter]);
-
-        var contextMock = new Mock<FunctionContext>();
-        contextMock.Setup(c => c.FunctionDefinition).Returns(functionDefinitionMock.Object);
-
-        // Act
-        var result = contextMock.Object.TryGetMcpToolTriggerName(out var triggerName);
-
-        // Assert
-        Assert.False(result);
-        Assert.Equal(string.Empty, triggerName);
     }
 }

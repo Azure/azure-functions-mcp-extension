@@ -11,7 +11,6 @@ public class FunctionsMcpContextMiddlewareTests
     [Fact]
     public async Task Invoke_AddsToolInvocationContext_WhenTriggerPresent()
     {
-        // Arrange
         var triggerName = "myTrigger";
         var toolContext = new ToolInvocationContext
         {
@@ -26,15 +25,12 @@ public class FunctionsMcpContextMiddlewareTests
 
         var context = CreateFunctionContext(
             triggerName,
-            new McpToolTriggerAttribute("tool"),
             bindingData,
             out var items);
 
-        // Act
         var nextCalled = false;
         await _middleware.Invoke(context, _ => { nextCalled = true; return Task.CompletedTask; });
 
-        // Assert
         Assert.True(nextCalled);
         Assert.True(items.ContainsKey(Constants.ToolInvocationContextKey));
 
@@ -48,17 +44,14 @@ public class FunctionsMcpContextMiddlewareTests
     [Fact]
     public async Task Invoke_DoesNotAddContext_WhenTriggerMissing()
     {
-        // Arrange
         var context = CreateFunctionContext(
-            parameters: [],
+            bindings: [],
             bindingData: [],
             out var items);
 
-        // Act
         var nextCalled = false;
         await _middleware.Invoke(context, _ => { nextCalled = true; return Task.CompletedTask; });
 
-        // Assert
         Assert.True(nextCalled);
         Assert.False(items.ContainsKey(Constants.ToolInvocationContextKey));
     }

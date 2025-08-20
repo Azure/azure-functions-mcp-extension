@@ -3,7 +3,7 @@
 
 using Microsoft.Azure.Functions.Worker.Converters;
 using Microsoft.Azure.Functions.Worker.Extensions.Mcp.Reflection;
-using static Microsoft.Azure.Functions.Worker.Extensions.Mcp.Converters.TargetTypeConversionHelper;
+using static Microsoft.Azure.Functions.Worker.Extensions.Mcp.Converters.McpInputConversionHelper;
 
 namespace Microsoft.Azure.Functions.Worker.Extensions.Mcp.Converters;
 
@@ -54,7 +54,7 @@ internal class ToolInvocationPocoConverter : IInputConverter
 
             try
             {
-                if (TryConvertToTargetType(kvp.Value, property.PropertyType, out var convertedValue))
+                if (TryConvertArgumentToTargetType(kvp.Value, property.PropertyType, out var convertedValue))
                 {
                     property.SetValue(poco, convertedValue);
                 }

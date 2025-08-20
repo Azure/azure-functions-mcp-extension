@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
 using Microsoft.Azure.Functions.Worker.Converters;
@@ -7,9 +7,10 @@ using Microsoft.Azure.Functions.Worker.Extensions.Mcp.Converters;
 
 namespace Microsoft.Azure.Functions.Worker.Extensions.Mcp;
 
+[InputConverter(typeof(ToolInvocationContextConverter))]
 [InputConverter(typeof(ToolInvocationPocoConverter))]
-[ConverterFallbackBehavior(ConverterFallbackBehavior.Default)]
-public sealed class McpToolTriggerAttribute(string toolName, string? description = null) : TriggerBindingAttribute
+[ConverterFallbackBehavior(ConverterFallbackBehavior.Disallow)]
+public sealed class McpToolTriggerAttribute(string toolName, string? description = null) : TriggerBindingAttribute, IMcpBindingAttribute
 {
     /// <summary>
     /// Gets or sets the name of the MCP tool.
@@ -20,4 +21,7 @@ public sealed class McpToolTriggerAttribute(string toolName, string? description
     /// Gets or sets the description of the MCP tool.
     /// </summary>
     public string? Description { get; set; } = description;
+
+    /// <inheritdoc />
+    string IMcpBindingAttribute.BindingName => ToolName;
 }
