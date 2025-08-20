@@ -23,6 +23,8 @@ internal class ToolInvocationContextConverter : IInputConverter
             return new ValueTask<ConversionResult>(ConversionResult.Success(toolContext));
         }
 
-        return new ValueTask<ConversionResult>(ConversionResult.Failed(new InvalidOperationException($"{nameof(ToolInvocationContext)} was not available or was null in the current FunctionContext.")));
+        var conversionError = $"{nameof(ToolInvocationContext)} was not available or was null in the current FunctionContext.";
+        var conversionResult = ConversionResult.Failed(new InvalidOperationException(conversionError));
+        return new ValueTask<ConversionResult>(conversionResult);
     }
 }
