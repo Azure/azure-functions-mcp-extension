@@ -13,7 +13,7 @@ internal class FunctionsMcpContextMiddleware : IFunctionsWorkerMiddleware
         ArgumentNullException.ThrowIfNull(context);
 
         // Get the tool invocation context via the name of the trigger binding
-        if (context.TryGetMcpToolTriggerName(out string triggerName)
+        if (context.TryGetMcpToolTriggerName(out string? triggerName)
             && context.BindingContext.BindingData.TryGetValue(triggerName, out var mcpToolContext))
         {
             var toolInvocationContext = JsonSerializer.Deserialize(mcpToolContext?.ToString()!, McpJsonContext.Default.ToolInvocationContext);

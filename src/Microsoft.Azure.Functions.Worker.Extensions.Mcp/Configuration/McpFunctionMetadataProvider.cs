@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
 using System.Collections.Immutable;
@@ -37,7 +37,7 @@ public sealed class McpFunctionMetadataProvider(IFunctionMetadataProvider inner,
             for (int i = 0; i < function.RawBindings.Count; i++)
             {
                 var binding = function.RawBindings[i];
-                if (!binding.Contains("mcpToolTrigger"))
+                if (!binding.Contains(Constants.McpToolTriggerBindingType))
                 {
                     continue;
                 }
@@ -50,7 +50,7 @@ public sealed class McpFunctionMetadataProvider(IFunctionMetadataProvider inner,
                 }
 
                 if (jsonObject.TryGetPropertyValue("type", out var triggerType)
-                    && triggerType?.ToString() == "mcpToolTrigger"
+                    && triggerType?.ToString() == Constants.McpToolTriggerBindingType
                     && jsonObject.TryGetPropertyValue("toolName", out var toolName)
                     && GetToolProperties(toolName?.ToString(), function, out var toolProperties))
                 {
