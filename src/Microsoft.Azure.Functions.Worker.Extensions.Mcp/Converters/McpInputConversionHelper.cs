@@ -27,8 +27,6 @@ internal static class McpInputConversionHelper
     {
         result = null;
 
-        
-
         if (value is null)
         {
             return !targetType.IsValueType || Nullable.GetUnderlyingType(targetType) is not null;
