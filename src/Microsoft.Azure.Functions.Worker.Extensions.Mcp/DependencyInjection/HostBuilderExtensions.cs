@@ -8,6 +8,7 @@ using Microsoft.Azure.Functions.Worker.Extensions.Mcp.Converters;
 using Microsoft.Azure.Functions.Worker.Extensions.Mcp.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using System.ComponentModel;
 
 namespace Microsoft.Azure.Functions.Worker.Builder;
 
@@ -25,11 +26,10 @@ public static class McpHostBuilderExtensions
         return builder;
     }
 
+    [EditorBrowsable(EditorBrowsableState.Never)]
     public static IFunctionsWorkerApplicationBuilder ConfigureMcpExtension(this IFunctionsWorkerApplicationBuilder builder)
     {
         ArgumentNullException.ThrowIfNull(builder);
-
-        builder.EnableMcpToolMetadata();
 
         builder.UseMiddleware<FunctionsMcpContextMiddleware>();
 
