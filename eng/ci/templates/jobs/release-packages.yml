@@ -38,7 +38,7 @@ extends:
           steps:
           - checkout: none
           - pwsh: |
-              Write-Host "##vso[build.updatebuildnumber]$(resources.pipeline.build.runeName)"
+              Write-Host "##vso[build.updatebuildnumber]$(resources.pipeline.build.runName)"
             displayName: Get package version
 
     - stage: Release
