@@ -49,27 +49,17 @@ jobs:
     - template: ci/sign-files.yml@eng
       parameters:
         displayName: Sign assemblies
-        folderPath: out/bin/Worker.Extensions.Mcp/
-        pattern: Microsoft.Azure.Functions.Worker.Extensions.Mcp.dll
+        folderPath: out/bin
+        minimatch: true
+        pattern:  |
+          **/Microsoft.Azure.Functions.*.Mcp.dll
+          !**/*Test*.dll
         signType: dll
 
     - task: DeleteFiles@1
       displayName: Delete CodeSignSummary files
       inputs:
         sourceFolder: out/bin/Worker.Extensions.Mcp/
-        contents: '**/CodeSignSummary-*.md'
-
-    - template: ci/sign-files.yml@eng
-      parameters:
-        displayName: Sign extension assemblies
-        folderPath: out/bin/Extensions.Mcp/
-        pattern: Microsoft.Azure.Functions.Extensions.Mcp.dll
-        signType: dll
-
-    - task: DeleteFiles@1
-      displayName: Delete CodeSignSummary files
-      inputs:
-        sourceFolder: out/bin/Extensions.Mcp/
         contents: '**/CodeSignSummary-*.md'
 
     - task: DotNetCoreCLI@2
