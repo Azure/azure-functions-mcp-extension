@@ -102,7 +102,7 @@ public class McpFunctionMetadataProviderTests
         mockInner.Setup(i => i.GetFunctionMetadataAsync(It.IsAny<string>()))
             .ReturnsAsync([functionMetadata.Object]);
 
-        var mockOptions = new Mock<IOptionsSnapshot<ToolOptions>>();
+        var mockOptions = new Mock<IOptionsMonitor<ToolOptions>>();
         mockOptions.Setup(o => o.Get(It.IsAny<string>()))
             .Returns(new ToolOptions { Properties = toolProperties ?? new List<ToolProperty>() });
 

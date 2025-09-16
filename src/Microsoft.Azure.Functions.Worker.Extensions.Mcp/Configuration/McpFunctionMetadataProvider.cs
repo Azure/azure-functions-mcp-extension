@@ -14,7 +14,7 @@ using Microsoft.Extensions.Options;
 
 namespace Microsoft.Azure.Functions.Worker.Extensions.Mcp.Configuration;
 
-public sealed class McpFunctionMetadataProvider(IFunctionMetadataProvider inner, IOptionsSnapshot<ToolOptions> toolOptionsSnapshot)
+public sealed class McpFunctionMetadataProvider(IFunctionMetadataProvider inner, IOptionsMonitor<ToolOptions> toolOptionsSnapshot)
     : IFunctionMetadataProvider
 {
     private const string FunctionsWorkerDirectoryKey = "FUNCTIONS_WORKER_DIRECTORY";
