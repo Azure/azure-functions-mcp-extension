@@ -9,7 +9,7 @@
 
 ### Microsoft.Azure.Functions.Worker.Extensions.Mcp 1.0.0-preview.8
 
-- Changing IOptionsMonitor to IOptionsSnapshotto fix bug with DI service not resolving (#101)
+- Changing IOptionsMonitor to IOptionsSnapshot to fix bug with DI service not resolving (#101)
 
 #### Breaking Changes
 
