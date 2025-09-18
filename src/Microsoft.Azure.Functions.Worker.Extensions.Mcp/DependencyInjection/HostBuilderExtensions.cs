@@ -5,8 +5,8 @@ using Microsoft.Azure.Functions.Worker.Core.FunctionMetadata;
 using Microsoft.Azure.Functions.Worker.Extensions.Mcp;
 using Microsoft.Azure.Functions.Worker.Extensions.Mcp.Configuration;
 using Microsoft.Azure.Functions.Worker.Extensions.Mcp.Converters;
-using Microsoft.Azure.Functions.Worker.Extensions.Mcp.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using System.ComponentModel;
 
@@ -19,17 +19,12 @@ public static class McpHostBuilderExtensions
         return new McpToolBuilder(builder, toolName);
     }
 
-    public static IFunctionsWorkerApplicationBuilder EnableMcpToolMetadata(this IFunctionsWorkerApplicationBuilder builder)
-    {
-        builder.Services.Decorate<IFunctionMetadataProvider, McpFunctionMetadataProvider>();
-
-        return builder;
-    }
-
     [EditorBrowsable(EditorBrowsableState.Never)]
     public static IFunctionsWorkerApplicationBuilder ConfigureMcpExtension(this IFunctionsWorkerApplicationBuilder builder)
     {
         ArgumentNullException.ThrowIfNull(builder);
+
+        builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IFunctionMetadataTransformer, McpFunctionMetadataTransformer>());
 
         builder.UseMiddleware<FunctionsMcpContextMiddleware>();
 

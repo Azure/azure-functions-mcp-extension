@@ -1,7 +1,6 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Runtime.Loader;
@@ -14,19 +13,19 @@ using Microsoft.Extensions.Options;
 
 namespace Microsoft.Azure.Functions.Worker.Extensions.Mcp.Configuration;
 
-public sealed class McpFunctionMetadataProvider(IFunctionMetadataProvider inner, IOptionsMonitor<ToolOptions> toolOptionsSnapshot)
-    : IFunctionMetadataProvider
+public sealed class McpFunctionMetadataTransformer(IOptionsMonitor<ToolOptions> toolOptionsMonitor)
+    : IFunctionMetadataTransformer
 {
     private const string FunctionsWorkerDirectoryKey = "FUNCTIONS_WORKER_DIRECTORY";
     private const string FunctionsApplicationDirectoryKey = "FUNCTIONS_APPLICATION_DIRECTORY";
 
     private static readonly Regex EntryPointRegex = new(@"^(?<typename>.*)\.(?<methodname>\S*)$");
 
-    public async Task<ImmutableArray<IFunctionMetadata>> GetFunctionMetadataAsync(string directory)
-    {
-        var metadata = await inner.GetFunctionMetadataAsync(directory);
+    public string Name => nameof(McpFunctionMetadataTransformer);
 
-        foreach (var function in metadata)
+    public void Transform(IList<IFunctionMetadata> original)
+    {
+        foreach (var function in original)
         {
             if (function.RawBindings is null
                 || function.Name is null)
@@ -62,8 +61,6 @@ public sealed class McpFunctionMetadataProvider(IFunctionMetadataProvider inner,
                 }
             }
         }
-
-        return metadata;
     }
 
     private bool GetToolProperties(string? toolName, IFunctionMetadata functionMetadata, [NotNullWhen(true)] out List<ToolProperty>? toolProperties)
@@ -71,7 +68,7 @@ public sealed class McpFunctionMetadataProvider(IFunctionMetadataProvider inner,
         toolProperties = null;
 
         // Get from configured options first:
-        var toolOptions = toolOptionsSnapshot.Get(toolName);
+        var toolOptions = toolOptionsMonitor.Get(toolName);
 
         if (toolOptions.Properties.Count != 0)
         {
