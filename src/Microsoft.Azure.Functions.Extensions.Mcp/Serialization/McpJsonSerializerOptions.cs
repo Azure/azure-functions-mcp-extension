@@ -1,6 +1,7 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
+using Microsoft.Extensions.AI;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -17,6 +18,8 @@ internal static class McpJsonSerializerOptions
         // Add custom converters
         options.Converters.Add(new JsonRpcMessageConverter());
         options.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase));
+
+        options.TypeInfoResolverChain.Add(AIJsonUtilities.DefaultOptions.TypeInfoResolver!);
 
         // Configure general options
         options.PropertyNameCaseInsensitive = true;
