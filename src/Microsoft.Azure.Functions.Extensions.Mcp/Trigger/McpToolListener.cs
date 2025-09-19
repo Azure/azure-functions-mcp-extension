@@ -94,6 +94,7 @@ internal sealed class McpToolListener(ITriggeredFunctionExecutor executor,
                 missing.Add(prop.PropertyName);
             }
         }
+
         if (missing.Count > 0)
         {
             // Fail early with an MCP InvalidParams error so the client sees a validation error instead of
