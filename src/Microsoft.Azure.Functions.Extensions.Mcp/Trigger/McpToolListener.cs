@@ -39,20 +39,25 @@ internal sealed class McpToolListener(ITriggeredFunctionExecutor executor,
         ValidateArgumentsHaveRequiredProperties(Properties, callToolRequest);
 
         var execution = new CallToolExecutionContext(callToolRequest);
+
         var input = new TriggeredFunctionData
         {
             TriggerValue = execution
         };
+
         var result = await Executor.TryExecuteAsync(input, cancellationToken);
+
         if (!result.Succeeded)
         {
             throw result.Exception;
         }
+
         var toolResult = await execution.ResultTask;
         if (toolResult is null)
         {
             return new CallToolResult { Content = [] };
         }
+
         return new CallToolResult
         {
             Content =
@@ -67,41 +72,42 @@ internal sealed class McpToolListener(ITriggeredFunctionExecutor executor,
 
     internal static void ValidateArgumentsHaveRequiredProperties(ICollection<IMcpToolProperty> properties, CallToolRequestParams callToolRequest)
     {
-        if (properties is not null && properties.Any(p => p.Required))
+        var requiredProps = properties?
+                            .Where(p => p.Required)
+                            .ToArray();
+
+        if (requiredProps is null || requiredProps.Length == 0)
         {
-            var missing = new List<string>();
-            foreach (var prop in properties.Where(p => p.Required))
+            return;
+        }
+
+        var missing = new List<string>();
+        var args = callToolRequest?.Arguments;
+
+        foreach (var prop in requiredProps)
+        {
+            if (args == null
+                || !args.TryGetValue(prop.PropertyName, out JsonElement value)
+                || IsValueNullOrUndefined(value))
             {
-                if (callToolRequest.Arguments == null
-                    || !callToolRequest.Arguments.TryGetValue(prop.PropertyName, out JsonElement value)
-                    || IsValueNullMissingOrEmpty(value))
-                {
-                    missing.Add(prop.PropertyName);
-                    continue;
-                }
+                missing.Add(prop.PropertyName);
             }
-            if (missing.Count > 0)
-            {
-                // Fail early with an MCP InvalidParams error so the client sees a validation error instead of
-                // the invocation proceeding to the worker with null values.
-                throw new McpException($"Missing required tool properties: {string.Join(", ", missing)}", McpErrorCode.InvalidParams);
-            }
+        }
+        if (missing.Count > 0)
+        {
+            // Fail early with an MCP InvalidParams error so the client sees a validation error instead of
+            // the invocation proceeding to the worker with null values.
+            throw new McpException($"One or more required tool properties are missing values. Please provide: {string.Join(", ", missing)}", McpErrorCode.InvalidParams);
         }
     }
 
-    private static bool IsValueNullMissingOrEmpty(JsonElement value)
+    private static bool IsValueNullOrUndefined(JsonElement value)
     {
         return value.ValueKind switch
         {
             JsonValueKind.Null => true,
             JsonValueKind.Undefined => true,
-            JsonValueKind.String => string.IsNullOrWhiteSpace(value.GetString()),
-            JsonValueKind.Array => value.GetArrayLength() == 0,
-            JsonValueKind.Object => value.EnumerateObject().Any() == false,
-            JsonValueKind.Number => false, // Numbers can be 0, which is valid
-            JsonValueKind.True => false,   // Boolean true is valid
-            JsonValueKind.False => false,  // Boolean false is valid
-            _ => true
+            _ => false
         };
     }
 }

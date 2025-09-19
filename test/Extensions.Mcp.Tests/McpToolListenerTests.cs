@@ -37,7 +37,7 @@ public class McpToolListenerTests
 
         var ex = await Assert.ThrowsAsync<McpException>(() =>
             listener.RunAsync(request, CancellationToken.None));
-        Assert.Contains("Missing required tool properties: foo", ex.Message);
+        Assert.Contains("One or more required tool properties are missing values. Please provide: foo", ex.Message);
         Assert.Equal(McpErrorCode.InvalidParams, ex.ErrorCode);
     }
 
@@ -52,21 +52,7 @@ public class McpToolListenerTests
 
         var ex = await Assert.ThrowsAsync<McpException>(() =>
             listener.RunAsync(request, CancellationToken.None));
-        Assert.Contains("Missing required tool properties: foo", ex.Message);
-    }
-
-    [Fact]
-    public async Task RunAsync_Throws_WhenRequiredPropertyIsEmptyString()
-    {
-        var executor = new Mock<ITriggeredFunctionExecutor>().Object;
-        var properties = new[] { CreateProperty("foo", true) };
-        var listener = new McpToolListener(executor, "func", "tool", null, properties);
-
-        var request = CreateRequest(("foo", JsonDocument.Parse("\"\"").RootElement));
-
-        var ex = await Assert.ThrowsAsync<McpException>(() =>
-            listener.RunAsync(request, CancellationToken.None));
-        Assert.Contains("Missing required tool properties: foo", ex.Message);
+        Assert.Contains("One or more required tool properties are missing values. Please provide: foo", ex.Message);
     }
 
     [Fact]
@@ -77,7 +63,7 @@ public class McpToolListenerTests
 
         var ex = Assert.Throws<McpException>(() =>
             McpToolListener.ValidateArgumentsHaveRequiredProperties(properties, request));
-        Assert.Contains("Missing required tool properties: foo", ex.Message);
+        Assert.Contains("One or more required tool properties are missing values. Please provide: foo", ex.Message);
         Assert.Equal(McpErrorCode.InvalidParams, ex.ErrorCode);
     }
 
@@ -89,7 +75,7 @@ public class McpToolListenerTests
 
         var ex = Assert.Throws<McpException>(() =>
             McpToolListener.ValidateArgumentsHaveRequiredProperties(properties, request));
-        Assert.Contains("Missing required tool properties: foo", ex.Message);
+        Assert.Contains("One or more required tool properties are missing values. Please provide: foo", ex.Message);
     }
 
     [Fact]
@@ -98,9 +84,9 @@ public class McpToolListenerTests
         var properties = new[] { CreateProperty("foo", true) };
         var request = CreateRequest(("foo", JsonDocument.Parse("\"\"").RootElement));
 
-        var ex = Assert.Throws<McpException>(() =>
+        var ex = Record.Exception(() =>
             McpToolListener.ValidateArgumentsHaveRequiredProperties(properties, request));
-        Assert.Contains("Missing required tool properties: foo", ex.Message);
+        Assert.Null(ex);
     }
 
     [Fact]
@@ -120,9 +106,9 @@ public class McpToolListenerTests
         var properties = new[] { CreateProperty("foo", true) };
         var request = CreateRequest(("foo", JsonDocument.Parse("[]").RootElement));
 
-        var ex = Assert.Throws<McpException>(() =>
+        var ex = Record.Exception(() =>
             McpToolListener.ValidateArgumentsHaveRequiredProperties(properties, request));
-        Assert.Contains("Missing required tool properties: foo", ex.Message);
+        Assert.Null(ex);
     }
 
     [Fact]
@@ -142,9 +128,9 @@ public class McpToolListenerTests
         var properties = new[] { CreateProperty("foo", true) };
         var request = CreateRequest(("foo", JsonDocument.Parse("{}").RootElement));
 
-        var ex = Assert.Throws<McpException>(() =>
+        var ex = Record.Exception(() =>
             McpToolListener.ValidateArgumentsHaveRequiredProperties(properties, request));
-        Assert.Contains("Missing required tool properties: foo", ex.Message);
+        Assert.Null(ex);
     }
 
     [Fact]
