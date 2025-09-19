@@ -3,7 +3,9 @@
 
 using Microsoft.Azure.WebJobs.Host.Executors;
 using Microsoft.Azure.WebJobs.Host.Listeners;
+using ModelContextProtocol;
 using ModelContextProtocol.Protocol;
+using System.Text.Json;
 
 namespace Microsoft.Azure.Functions.Extensions.Mcp;
 
@@ -33,27 +35,24 @@ internal sealed class McpToolListener(ITriggeredFunctionExecutor executor,
 
     public async Task<CallToolResult> RunAsync(CallToolRequestParams callToolRequest, CancellationToken cancellationToken)
     {
-        var execution = new CallToolExecutionContext(callToolRequest);
+        // Validate required properties are present in the incoming request and are not null or empty.
+        ValidateArgumentsHaveRequiredProperties(Properties, callToolRequest);
 
+        var execution = new CallToolExecutionContext(callToolRequest);
         var input = new TriggeredFunctionData
         {
             TriggerValue = execution
         };
-
         var result = await Executor.TryExecuteAsync(input, cancellationToken);
-
         if (!result.Succeeded)
         {
             throw result.Exception;
         }
-
         var toolResult = await execution.ResultTask;
-
         if (toolResult is null)
         {
             return new CallToolResult { Content = [] };
         }
-
         return new CallToolResult
         {
             Content =
@@ -64,7 +63,45 @@ internal sealed class McpToolListener(ITriggeredFunctionExecutor executor,
                 }
             ]
         };
+    }
 
+    internal static void ValidateArgumentsHaveRequiredProperties(ICollection<IMcpToolProperty> properties, CallToolRequestParams callToolRequest)
+    {
+        if (properties is not null && properties.Any(p => p.Required))
+        {
+            var missing = new List<string>();
+            foreach (var prop in properties.Where(p => p.Required))
+            {
+                if (callToolRequest.Arguments == null
+                    || !callToolRequest.Arguments.TryGetValue(prop.PropertyName, out JsonElement value)
+                    || IsValueNullMissingOrEmpty(value))
+                {
+                    missing.Add(prop.PropertyName);
+                    continue;
+                }
+            }
+            if (missing.Count > 0)
+            {
+                // Fail early with an MCP InvalidParams error so the client sees a validation error instead of
+                // the invocation proceeding to the worker with null values.
+                throw new McpException($"Missing required tool properties: {string.Join(", ", missing)}", McpErrorCode.InvalidParams);
+            }
+        }
+    }
 
+    private static bool IsValueNullMissingOrEmpty(JsonElement value)
+    {
+        return value.ValueKind switch
+        {
+            JsonValueKind.Null => true,
+            JsonValueKind.Undefined => true,
+            JsonValueKind.String => string.IsNullOrWhiteSpace(value.GetString()),
+            JsonValueKind.Array => value.GetArrayLength() == 0,
+            JsonValueKind.Object => value.EnumerateObject().Any() == false,
+            JsonValueKind.Number => false, // Numbers can be 0, which is valid
+            JsonValueKind.True => false,   // Boolean true is valid
+            JsonValueKind.False => false,  // Boolean false is valid
+            _ => true
+        };
     }
 }
