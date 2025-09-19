@@ -40,6 +40,7 @@ public class TestFunction
     [Function(nameof(SingleArgumentWithDefaultFunction))]
     public string SingleArgumentWithDefaultFunction(
        [McpToolTrigger(nameof(SingleArgumentWithDefaultFunction), "Echoes a single argument passed into the tool.")] ToolInvocationContext context,
+       [McpToolProperty("items", "array", "List of order items.")] List<object> items,
        [McpToolProperty(nameof(argument), "string", "The name of the person to greet.")] string argument = "(no-argument)")
     {
         _logger.LogInformation("C# MCP tool trigger function processed a request: {ToolName}", context.Name);
@@ -74,6 +75,34 @@ public class TestFunction
         return SnippetsCache.Snippets
             .Where(kvp => kvp.Key.Contains(searchRequest.Pattern, comparisonType))
             .ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+    }
+
+    public enum CsvOperation
+    {
+        Sum,
+        Average,
+        Count
+    }
+
+    [Function(nameof(AnalyzeCsvWithEnumFunction))]
+    public string AnalyzeCsvWithEnumFunction(
+        [McpToolTrigger(nameof(AnalyzeCsvWithEnumFunction), "Analyze a CSV file with enum operations")] ToolInvocationContext context,
+        [McpToolProperty("filepath", "string", "Path to the CSV file to analyze")] string filepath,
+        [McpToolProperty("operations", "array", "List of operations to perform")] IList<CsvOperation> operations,
+        [McpToolProperty("items", "array", "List of order items. Each item must include 'itemId' (integer) and 'quantity' (integer). Example: [{\"itemId\": 2, \"quantity\": 1}].")] List<OrderItemInput> items)
+    {
+        _logger.LogInformation("Analyzing CSV: {FilePath} with operations: {Operations}",
+            filepath, string.Join(", ", operations));
+        return $"Analyzed {filepath} with operations: {string.Join(", ", operations)}";
+    }
+
+    public class OrderItemInput
+    {
+        [Description("Item id")]
+        public required int itemId { get; set; }
+
+        [Description("Quantity")]
+        public required int quantity { get; set; }
     }
 
     public class Snippet

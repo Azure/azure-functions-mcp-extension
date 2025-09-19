@@ -13,7 +13,9 @@ namespace Microsoft.Azure.Functions.Worker.Extensions.Mcp.Converters
         {
             object? target = null;
             // Ensure requested type is an array
-            if (context.TargetType.IsArray)
+            if (context.TargetType.IsArray ||
+               context.TargetType.GetInterfaces()
+                   .Any(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IEnumerable<>)))
             {
                 Type? elementType = context.TargetType.GetElementType();
                 if (elementType is not null)
