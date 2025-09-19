@@ -6,6 +6,7 @@
 
 ### Microsoft.Azure.Functions.Extensions 1.0.0-preview.8
 
+- Enforcing required properties in MCP Extension (#105)
 
 ### Microsoft.Azure.Functions.Worker.Extensions.Mcp 1.0.0-preview.8
 
