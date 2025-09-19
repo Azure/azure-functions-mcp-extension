@@ -53,6 +53,7 @@ internal sealed class McpToolListener(ITriggeredFunctionExecutor executor,
         }
 
         var toolResult = await execution.ResultTask;
+
         if (toolResult is null)
         {
             return new CallToolResult { Content = [] };
