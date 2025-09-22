@@ -43,12 +43,16 @@ internal sealed class McpHttpUtility
         context.Features.GetRequiredFeature<IHttpResponseBodyFeature>().DisableBuffering();
     }
 
-    internal static async ValueTask<JsonRpcMessage?> ExtractJsonRpcMessageAsync(HttpRequest request, JsonSerializerOptions options, CancellationToken cancellationToken)
+    internal static async ValueTask<JsonRpcMessage?> ProcessJsonRpcPayloadAsync(HttpRequest request, JsonSerializerOptions options, CancellationToken cancellationToken, bool unwrapOnly = false)
     {
-        // Attempt to parse the incoming request body as JSON. Support both raw JSON-RPC messages and
+        // Process the incoming request body as JSON. Support both raw JSON-RPC messages and
         // wrapped payloads with the shape: { "isFunctionsMcpResult": true, "content": <JSON-RPC message> }
-        // If the wrapper is present, deserialize the inner "content" as the JsonRpcMessage. Otherwise,
-        // deserialize the root object directly as a JsonRpcMessage.
+        // 
+        // When unwrapOnly is false: If the wrapper is present, deserialize the inner "content" as the JsonRpcMessage. 
+        // Otherwise, deserialize the root object directly as a JsonRpcMessage and return it.
+        //
+        // When unwrapOnly is true: If the wrapper is present, replace the request.Body stream with a memory stream 
+        // containing only the inner content. If no wrapper is present, leave the original body intact.
 
         // If the body is empty, return null.
         if (request.ContentLength == null || request.ContentLength == 0)
@@ -64,6 +68,7 @@ internal sealed class McpHttpUtility
             var root = doc.RootElement;
 
             JsonElement messageElement = root;
+            bool isWrapped = false;
 
             if (root.ValueKind == JsonValueKind.Object &&
                 root.TryGetProperty("isFunctionsMcpResult", out var marker) &&
@@ -71,57 +76,48 @@ internal sealed class McpHttpUtility
                 root.TryGetProperty("content", out var content))
             {
                 messageElement = content;
+                isWrapped = true;
             }
 
-            var raw = messageElement.GetRawText();
-
-            return JsonSerializer.Deserialize<JsonRpcMessage>(raw, options);
-        }
-        finally
-        {
-            // Reset the request body so it can be read later by other components if necessary.
-            request.Body.Seek(0, System.IO.SeekOrigin.Begin);
-        }
-    }
-
-    internal static async ValueTask UnwrapFunctionsMcpPayloadAsync(HttpRequest request, CancellationToken cancellationToken)
-    {
-        // For transports that operate on the raw HTTP request body (non-SSE streaming), some worker
-        // implementations may wrap a single JSON-RPC message inside the { isFunctionsMcpResult: true, content: ... }
-        // envelope. The underlying server transport expects the raw JSON-RPC payload, so when the wrapper is
-        // present we replace the request.Body stream with a memory stream containing only the inner content.
-        // If the wrapper is not present, the original body is left intact.
-
-        if (request.ContentLength == null || request.ContentLength == 0)
-        {
-            return;
-        }
-
-        request.EnableBuffering();
-        try
-        {
-            using var doc = await JsonDocument.ParseAsync(request.Body, cancellationToken: cancellationToken);
-            var root = doc.RootElement;
-
-            if (root.ValueKind == JsonValueKind.Object &&
-                root.TryGetProperty("isFunctionsMcpResult", out var marker) &&
-                marker.ValueKind == JsonValueKind.True &&
-                root.TryGetProperty("content", out var content))
+            if (unwrapOnly)
             {
-                var inner = content.GetRawText();
-                var bytes = System.Text.Encoding.UTF8.GetBytes(inner);
-                request.Body = new System.IO.MemoryStream(bytes);
-                request.ContentLength = bytes.Length;
+                if (isWrapped)
+                {
+                    var inner = messageElement.GetRawText();
+                    var bytes = System.Text.Encoding.UTF8.GetBytes(inner);
+                    request.Body = new MemoryStream(bytes);
+                    request.ContentLength = bytes.Length;
+                }
+                else
+                {
+                    // Reset position so downstream readers can consume the original body.
+                    request.Body.Seek(0, SeekOrigin.Begin);
+                }
+                return null;
             }
             else
             {
-                // Reset position so downstream readers can consume the original body.
-                request.Body.Seek(0, System.IO.SeekOrigin.Begin);
+                var raw = messageElement.GetRawText();
+                return JsonSerializer.Deserialize<JsonRpcMessage>(raw, options);
             }
         }
         finally
         {
-            // no-op; body position already reset when not replaced
+            if (!unwrapOnly)
+            {
+                // Reset the request body so it can be read later by other components if necessary.
+                request.Body.Seek(0, SeekOrigin.Begin);
+            }
         }
+    }
+
+    internal static async ValueTask<JsonRpcMessage?> ExtractJsonRpcMessageSseAsync(HttpRequest request, JsonSerializerOptions options, CancellationToken cancellationToken)
+    {
+        return await ProcessJsonRpcPayloadAsync(request, options, cancellationToken, unwrapOnly: false);
+    }
+
+    internal static async ValueTask ExtractJsonRpcMessageHttpStreamableAsync(HttpRequest request, CancellationToken cancellationToken)
+    {
+        await ProcessJsonRpcPayloadAsync(request, JsonSerializerOptions.Default, cancellationToken, unwrapOnly: true);
     }
 }
