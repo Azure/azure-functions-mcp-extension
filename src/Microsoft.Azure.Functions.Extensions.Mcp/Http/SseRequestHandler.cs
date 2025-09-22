@@ -105,7 +105,7 @@ internal sealed class SseRequestHandler(
             return;
         }
 
-        var message = await context.Request.ReadFromJsonAsync<JsonRpcMessage>(McpJsonSerializerOptions.DefaultOptions, context.RequestAborted);
+        var message = await McpHttpUtility.ExtractJsonRpcMessageAsync(context.Request, McpJsonSerializerOptions.DefaultOptions, context.RequestAborted);
 
         if (message is null)
         {

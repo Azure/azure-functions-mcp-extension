@@ -45,6 +45,10 @@ internal sealed class StreamableHttpRequestHandler(
             return;
         }
 
+        // If the worker wrapped the JSON-RPC message in the { isFunctionsMcpResult: true, content: ... }
+        // envelope, unwrap it so the underlying transport receives the raw JSON-RPC payload it expects.
+        await McpHttpUtility.UnwrapFunctionsMcpPayloadAsync(context.Request, context.RequestAborted);
+
         var session = await GetOrCreateSessionAsync(context, mcpOptions.Value);
 
         if (session is null)
