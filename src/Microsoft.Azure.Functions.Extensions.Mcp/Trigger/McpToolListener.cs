@@ -73,33 +73,27 @@ internal sealed class McpToolListener(ITriggeredFunctionExecutor executor,
 
     internal static void ValidateArgumentsHaveRequiredProperties(ICollection<IMcpToolProperty> properties, CallToolRequestParams callToolRequest)
     {
-        var requiredProps = properties?
-                            .Where(p => p.Required)
-                            .ToArray();
-
-        if (requiredProps is null || requiredProps.Length == 0)
+        if (properties is not null && properties.Count > 0)
         {
-            return;
-        }
+            var missing = new List<string>();
+            var args = callToolRequest?.Arguments;
 
-        var missing = new List<string>();
-        var args = callToolRequest?.Arguments;
-
-        foreach (var prop in requiredProps)
-        {
-            if (args == null
-                || !args.TryGetValue(prop.PropertyName, out JsonElement value)
-                || IsValueNullOrUndefined(value))
+            foreach (var prop in properties.Where(p => p.Required))
             {
-                missing.Add(prop.PropertyName);
+                if (args == null
+                    || !args.TryGetValue(prop.PropertyName, out JsonElement value)
+                    || IsValueNullOrUndefined(value))
+                {
+                    missing.Add(prop.PropertyName);
+                }
             }
-        }
 
-        if (missing.Count > 0)
-        {
-            // Fail early with an MCP InvalidParams error so the client sees a validation error instead of
-            // the invocation proceeding to the worker with null values.
-            throw new McpException($"One or more required tool properties are missing values. Please provide: {string.Join(", ", missing)}", McpErrorCode.InvalidParams);
+            if (missing.Count > 0)
+            {
+                // Fail early with an MCP InvalidParams error so the client sees a validation error instead of
+                // the invocation proceeding to the worker with null values.
+                throw new McpException($"One or more required tool properties are missing values. Please provide: {string.Join(", ", missing)}", McpErrorCode.InvalidParams);
+            }
         }
     }
 
