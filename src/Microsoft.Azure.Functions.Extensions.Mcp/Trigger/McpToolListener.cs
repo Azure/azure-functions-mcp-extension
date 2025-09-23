@@ -73,27 +73,34 @@ internal sealed class McpToolListener(ITriggeredFunctionExecutor executor,
 
     internal static void ValidateArgumentsHaveRequiredProperties(ICollection<IMcpToolProperty> properties, CallToolRequestParams callToolRequest)
     {
-        if (properties is not null && properties.Count > 0)
+        if (properties is null || properties.Count == 0)
         {
-            var missing = new List<string>();
-            var args = callToolRequest?.Arguments;
+            return;
+        }
 
-            foreach (var prop in properties.Where(p => p.Required))
+        var missing = new List<string>();
+        var args = callToolRequest?.Arguments;
+
+        foreach (var prop in properties)
+        {
+            if (!prop.Required)
             {
-                if (args == null
-                    || !args.TryGetValue(prop.PropertyName, out JsonElement value)
-                    || IsValueNullOrUndefined(value))
-                {
-                    missing.Add(prop.PropertyName);
-                }
+                continue;
             }
 
-            if (missing.Count > 0)
+            if (args == null
+                || !args.TryGetValue(prop.PropertyName, out JsonElement value)
+                || IsValueNullOrUndefined(value))
             {
-                // Fail early with an MCP InvalidParams error so the client sees a validation error instead of
-                // the invocation proceeding to the worker with null values.
-                throw new McpException($"One or more required tool properties are missing values. Please provide: {string.Join(", ", missing)}", McpErrorCode.InvalidParams);
+                missing.Add(prop.PropertyName);
             }
+        }
+
+        if (missing.Count > 0)
+        {
+            // Fail early with an MCP InvalidParams error so the client sees a validation error instead of
+            // the invocation proceeding to the worker with null values.
+            throw new McpException($"One or more required tool properties are missing values. Please provide: {string.Join(", ", missing)}", McpErrorCode.InvalidParams);
         }
     }
 
