@@ -3,7 +3,9 @@
 
 using Microsoft.Azure.WebJobs.Host.Executors;
 using Microsoft.Azure.WebJobs.Host.Listeners;
+using ModelContextProtocol;
 using ModelContextProtocol.Protocol;
+using System.Text.Json;
 
 namespace Microsoft.Azure.Functions.Extensions.Mcp;
 
@@ -33,6 +35,9 @@ internal sealed class McpToolListener(ITriggeredFunctionExecutor executor,
 
     public async Task<CallToolResult> RunAsync(CallToolRequestParams callToolRequest, CancellationToken cancellationToken)
     {
+        // Validate required properties are present in the incoming request and are not null or empty.
+        ValidateArgumentsHaveRequiredProperties(Properties, callToolRequest);
+
         var execution = new CallToolExecutionContext(callToolRequest);
 
         var input = new TriggeredFunctionData
@@ -64,7 +69,48 @@ internal sealed class McpToolListener(ITriggeredFunctionExecutor executor,
                 }
             ]
         };
+    }
 
+    internal static void ValidateArgumentsHaveRequiredProperties(ICollection<IMcpToolProperty> properties, CallToolRequestParams callToolRequest)
+    {
+        if (properties is null || properties.Count == 0)
+        {
+            return;
+        }
 
+        var missing = new List<string>();
+        var args = callToolRequest?.Arguments;
+
+        foreach (var prop in properties)
+        {
+            if (!prop.Required)
+            {
+                continue;
+            }
+
+            if (args == null
+                || !args.TryGetValue(prop.PropertyName, out JsonElement value)
+                || IsValueNullOrUndefined(value))
+            {
+                missing.Add(prop.PropertyName);
+            }
+        }
+
+        if (missing.Count > 0)
+        {
+            // Fail early with an MCP InvalidParams error so the client sees a validation error instead of
+            // the invocation proceeding to the worker with null values.
+            throw new McpException($"One or more required tool properties are missing values. Please provide: {string.Join(", ", missing)}", McpErrorCode.InvalidParams);
+        }
+    }
+
+    private static bool IsValueNullOrUndefined(JsonElement value)
+    {
+        return value.ValueKind switch
+        {
+            JsonValueKind.Null => true,
+            JsonValueKind.Undefined => true,
+            _ => false
+        };
     }
 }
