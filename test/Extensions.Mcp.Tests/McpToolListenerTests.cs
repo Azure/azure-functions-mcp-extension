@@ -4,6 +4,7 @@
 using Microsoft.Azure.WebJobs.Host.Executors;
 using ModelContextProtocol;
 using ModelContextProtocol.Protocol;
+using ModelContextProtocol.Server;
 using Moq;
 using System.Text.Json;
 using Xunit;
@@ -20,10 +21,16 @@ public class McpToolListenerTests
         return mock.Object;
     }
 
-    private static CallToolRequestParams CreateRequest(params (string key, JsonElement value)[] args)
+    private static RequestContext<CallToolRequestParams> CreateRequest(params (string key, JsonElement value)[] args)
     {
         var dict = args?.ToDictionary(x => x.key, x => x.value) ?? new Dictionary<string, JsonElement>();
-        return new CallToolRequestParams { Name = "params", Arguments = dict };
+        var server = new Mock<IMcpServer>().Object;
+        var parameters = new CallToolRequestParams { Name = "params", Arguments = dict };
+
+        return new RequestContext<CallToolRequestParams>(server)
+        {
+            Params = parameters
+        };
     }
 
     [Fact]
@@ -62,7 +69,7 @@ public class McpToolListenerTests
         var request = CreateRequest(); // No arguments
 
         var ex = Assert.Throws<McpException>(() =>
-            McpToolListener.ValidateArgumentsHaveRequiredProperties(properties, request));
+            McpToolListener.ValidateArgumentsHaveRequiredProperties(properties, request.Params));
         Assert.Contains("One or more required tool properties are missing values. Please provide: foo", ex.Message);
         Assert.Equal(McpErrorCode.InvalidParams, ex.ErrorCode);
     }
@@ -74,7 +81,7 @@ public class McpToolListenerTests
         var request = CreateRequest(("foo", JsonDocument.Parse("null").RootElement));
 
         var ex = Assert.Throws<McpException>(() =>
-            McpToolListener.ValidateArgumentsHaveRequiredProperties(properties, request));
+            McpToolListener.ValidateArgumentsHaveRequiredProperties(properties, request.Params));
         Assert.Contains("One or more required tool properties are missing values. Please provide: foo", ex.Message);
     }
 
@@ -85,7 +92,7 @@ public class McpToolListenerTests
         var request = CreateRequest(("foo", JsonDocument.Parse("\"\"").RootElement));
 
         var ex = Record.Exception(() =>
-            McpToolListener.ValidateArgumentsHaveRequiredProperties(properties, request));
+            McpToolListener.ValidateArgumentsHaveRequiredProperties(properties, request.Params));
         Assert.Null(ex);
     }
 
@@ -96,7 +103,7 @@ public class McpToolListenerTests
         var request = CreateRequest(("foo", JsonDocument.Parse("\"bar\"").RootElement));
 
         var ex = Record.Exception(() =>
-            McpToolListener.ValidateArgumentsHaveRequiredProperties(properties, request));
+            McpToolListener.ValidateArgumentsHaveRequiredProperties(properties, request.Params));
         Assert.Null(ex);
     }
 
@@ -107,7 +114,7 @@ public class McpToolListenerTests
         var request = CreateRequest(("foo", JsonDocument.Parse("[]").RootElement));
 
         var ex = Record.Exception(() =>
-            McpToolListener.ValidateArgumentsHaveRequiredProperties(properties, request));
+            McpToolListener.ValidateArgumentsHaveRequiredProperties(properties, request.Params));
         Assert.Null(ex);
     }
 
@@ -118,7 +125,7 @@ public class McpToolListenerTests
         var request = CreateRequest(("foo", JsonDocument.Parse("[1]").RootElement));
 
         var ex = Record.Exception(() =>
-            McpToolListener.ValidateArgumentsHaveRequiredProperties(properties, request));
+            McpToolListener.ValidateArgumentsHaveRequiredProperties(properties, request.Params));
         Assert.Null(ex);
     }
 
@@ -129,7 +136,7 @@ public class McpToolListenerTests
         var request = CreateRequest(("foo", JsonDocument.Parse("{}").RootElement));
 
         var ex = Record.Exception(() =>
-            McpToolListener.ValidateArgumentsHaveRequiredProperties(properties, request));
+            McpToolListener.ValidateArgumentsHaveRequiredProperties(properties, request.Params));
         Assert.Null(ex);
     }
 
@@ -140,7 +147,7 @@ public class McpToolListenerTests
         var request = CreateRequest(("foo", JsonDocument.Parse("{\"bar\":1}").RootElement));
 
         var ex = Record.Exception(() =>
-            McpToolListener.ValidateArgumentsHaveRequiredProperties(properties, request));
+            McpToolListener.ValidateArgumentsHaveRequiredProperties(properties, request.Params));
         Assert.Null(ex);
     }
 
@@ -151,7 +158,7 @@ public class McpToolListenerTests
         var request = CreateRequest(("foo", JsonDocument.Parse("123").RootElement));
 
         var ex = Record.Exception(() =>
-            McpToolListener.ValidateArgumentsHaveRequiredProperties(properties, request));
+            McpToolListener.ValidateArgumentsHaveRequiredProperties(properties, request.Params));
         Assert.Null(ex);
     }
 
@@ -164,7 +171,7 @@ public class McpToolListenerTests
         var request = CreateRequest(("foo", JsonDocument.Parse(boolValue).RootElement));
 
         var ex = Record.Exception(() =>
-            McpToolListener.ValidateArgumentsHaveRequiredProperties(properties, request));
+            McpToolListener.ValidateArgumentsHaveRequiredProperties(properties, request.Params));
         Assert.Null(ex);
     }
 }

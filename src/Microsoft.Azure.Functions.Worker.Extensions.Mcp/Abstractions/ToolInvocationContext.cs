@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
 using System.Text.Json.Serialization;
@@ -23,4 +23,18 @@ public class ToolInvocationContext
     [JsonPropertyName("arguments")]
     [JsonConverter(typeof(DictionaryStringObjectJsonConverter))]
     public Dictionary<string, object>? Arguments { get; init; }
+
+
+    /// <summary>
+    /// Gets the session ID associated with the current tool invocation.
+    /// </summary>
+    [JsonPropertyName("sessionid")]
+    public string? SessionId { get; init; }
+
+
+    /// <summary>
+    /// Gets the transport information.
+    /// </summary>
+    [JsonPropertyName("transport")]
+    public Transport? Transport { get; init; }
 }

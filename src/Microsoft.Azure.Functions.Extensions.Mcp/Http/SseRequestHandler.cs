@@ -35,6 +35,8 @@ internal sealed class SseRequestHandler(
 
     public async Task HandleRequest(HttpContext context)
     {
+        context.Items[McpTransportName] = "http-sse";
+
         if (context.Request.Path.Value.AsSpan().TrimEnd('/').EndsWith(SseEndpoint, StringComparison.OrdinalIgnoreCase))
         {
             await HandleSseRequestAsync(context);

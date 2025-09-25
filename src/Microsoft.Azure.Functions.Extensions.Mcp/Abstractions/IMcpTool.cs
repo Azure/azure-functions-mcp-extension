@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 using ModelContextProtocol.Protocol;
+using ModelContextProtocol.Server;
 
 namespace Microsoft.Azure.Functions.Extensions.Mcp;
 
@@ -13,5 +14,5 @@ internal interface IMcpTool
 
     public ICollection<IMcpToolProperty> Properties { get; set; }
 
-    Task<CallToolResult> RunAsync(CallToolRequestParams callToolRequest, CancellationToken cancellationToken);
+    Task<CallToolResult> RunAsync(RequestContext<CallToolRequestParams> callToolRequest, CancellationToken cancellationToken);
 }

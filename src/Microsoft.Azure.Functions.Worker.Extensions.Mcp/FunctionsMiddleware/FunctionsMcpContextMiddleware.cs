@@ -16,7 +16,8 @@ internal class FunctionsMcpContextMiddleware : IFunctionsWorkerMiddleware
         if (context.TryGetMcpToolTriggerName(out string? triggerName)
             && context.BindingContext.BindingData.TryGetValue(triggerName, out var mcpToolContext))
         {
-            var toolInvocationContext = JsonSerializer.Deserialize(mcpToolContext?.ToString()!, McpJsonContext.Default.ToolInvocationContext);
+            ToolInvocationContext? toolInvocationContext = JsonSerializer.Deserialize(mcpToolContext?.ToString()!, McpJsonContext.Default.ToolInvocationContext);
+
             context.Items.Add(Constants.ToolInvocationContextKey, toolInvocationContext!);
         }
 

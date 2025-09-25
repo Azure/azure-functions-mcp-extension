@@ -1,15 +1,18 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
 using ModelContextProtocol.Protocol;
+using ModelContextProtocol.Server;
 
 namespace Microsoft.Azure.Functions.Extensions.Mcp;
 
-internal class CallToolExecutionContext(CallToolRequestParams request)
+internal class CallToolExecutionContext(RequestContext<CallToolRequestParams> requestContext)
 {
     private readonly TaskCompletionSource<object?> _taskCompletionSource = new();
 
-    public CallToolRequestParams Request { get; init; } = request;
+    public CallToolRequestParams Request => requestContext.Params!;
+
+    public RequestContext<CallToolRequestParams> RequestContext => requestContext;
 
     public Task<object?> ResultTask => _taskCompletionSource.Task;
 
