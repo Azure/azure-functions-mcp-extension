@@ -11,5 +11,5 @@ internal sealed class McpConstants
     public const string SseEndpoint = "sse";
     public const string MessageEndpoint = "message";
     public const string McpSessionIdHeaderName = "Mcp-Session-Id";
-    public const string McpTransportName = "__mcptransportname";
+    public const string McpTransportName = "functions_mcp:transportname";
 }

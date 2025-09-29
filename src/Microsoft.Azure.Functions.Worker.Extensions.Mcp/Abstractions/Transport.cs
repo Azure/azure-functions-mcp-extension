@@ -1,9 +1,7 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-using Microsoft.Azure.Functions.Worker.Extensions.Mcp.JsonConverters;
 using Microsoft.Azure.Functions.Worker.Extensions.Mcp.Serialization;
-using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace Microsoft.Azure.Functions.Worker.Extensions.Mcp;
@@ -20,5 +18,5 @@ public abstract class Transport
     /// Gets the transport name.
     /// </summary>
     [JsonPropertyName("name")]
-    public string Name { get; set; } = string.Empty;
+    public string Name { get; init; } = string.Empty;
 }

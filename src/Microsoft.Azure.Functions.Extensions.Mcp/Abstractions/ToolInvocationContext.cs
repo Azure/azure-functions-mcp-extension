@@ -7,7 +7,7 @@ using System.Text.Json.Serialization;
 
 namespace Microsoft.Azure.Functions.Extensions.Mcp;
 
-public class ToolInvocationContext
+internal sealed class ToolInvocationContext
 {
     /// <summary>
     /// Gets or sets the name of the tool to invoke.
