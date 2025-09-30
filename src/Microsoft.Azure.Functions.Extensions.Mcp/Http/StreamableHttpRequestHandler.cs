@@ -1,7 +1,6 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-using Microsoft.AspNetCore.Connections.Features;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Azure.Functions.Extensions.Mcp.Configuration;
 using Microsoft.Azure.Functions.Extensions.Mcp.Http;
@@ -31,6 +30,7 @@ internal sealed class StreamableHttpRequestHandler(
     {
         if (HttpMethods.IsPost(context.Request.Method))
         {
+            context.Items[McpTransportName] = "http-streamable";
             return HandlePostRequestAsync(context);
         }
 

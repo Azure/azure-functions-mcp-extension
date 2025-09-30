@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
 using Microsoft.Azure.WebJobs.Host.Bindings;
@@ -14,7 +14,7 @@ public class ToolPropertyInputBinding(McpToolPropertyAttribute attribute) : IBin
         // Access the trigger's binding data
         var bindingData = context.BindingData;
 
-        if (bindingData["mcptoolcontext"] is not CallToolRequestParams toolContext)
+        if (bindingData["mcptoolcontext"] is not ToolInvocationContext toolContext)
         {
             throw new InvalidOperationException("Tool context is not available.");
         }

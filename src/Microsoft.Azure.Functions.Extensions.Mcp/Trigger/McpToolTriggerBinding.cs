@@ -3,13 +3,14 @@
 
 using System.Reflection;
 using System.Text.Json;
+using System.Transactions;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Azure.Functions.Extensions.Mcp.Abstractions;
 using Microsoft.Azure.Functions.Extensions.Mcp.Serialization;
 using Microsoft.Azure.WebJobs.Host.Bindings;
 using Microsoft.Azure.WebJobs.Host.Listeners;
 using Microsoft.Azure.WebJobs.Host.Protocols;
 using Microsoft.Azure.WebJobs.Host.Triggers;
-using ModelContextProtocol.Protocol;
 
 namespace Microsoft.Azure.Functions.Extensions.Mcp;
 
@@ -30,7 +31,8 @@ internal sealed class McpToolTriggerBinding : ITriggerBinding
         BindingDataContract = new Dictionary<string, Type>
         {
             { triggerParameter.Name!, triggerParameter.ParameterType },
-            { "mcptoolcontext", typeof(CallToolRequestParams) },
+            { "mcptoolcontext", typeof(ToolInvocationContext) },
+            { "mcpsessionid", typeof(string) },
             { "mcptoolargs", typeof(IDictionary<string, string>)},
             { "$return", typeof(object).MakeByRefType() }
         };
@@ -47,17 +49,25 @@ internal sealed class McpToolTriggerBinding : ITriggerBinding
             throw new InvalidOperationException($"Cannot execute a tool without a value of type {nameof(CallToolExecutionContext)}.");
         }
 
-        object? triggerValue = executionContext.Request;
+        ToolInvocationContext invocationContext = CreateInvocationContext(executionContext);
+
+        object? triggerValue = invocationContext;
         if (_triggerParameter.ParameterType == typeof(string))
         {
-            triggerValue = JsonSerializer.Serialize(executionContext.Request, McpJsonSerializerOptions.DefaultOptions);
+            triggerValue = JsonSerializer.Serialize(invocationContext, McpJsonSerializerOptions.DefaultOptions);
         }
 
         var bindingData = new Dictionary<string, object>
         {
-            ["mcptoolcontext"] = executionContext.Request,
+            ["mcptoolcontext"] = invocationContext,
             [_triggerParameter.Name!] = triggerValue,
         };
+
+        
+        if (invocationContext.SessionId is not null)
+        {
+            bindingData["mcpsessionid"] = invocationContext.SessionId;
+        }
 
         if (executionContext.Request.Arguments is { } arguments)
         {
@@ -72,6 +82,51 @@ internal sealed class McpToolTriggerBinding : ITriggerBinding
         };
 
         return Task.FromResult<ITriggerData>(data);
+    }
+
+    private ToolInvocationContext CreateInvocationContext(CallToolExecutionContext executionContext)
+    {
+        Transport transport = GetTransportInformation(executionContext);
+
+        var invocationContext = new ToolInvocationContext
+        {
+            Name = executionContext.Request.Name,
+            Arguments = executionContext.Request.Arguments,
+            SessionId = transport.SessionId ?? executionContext.RequestContext.Server.SessionId,
+            ClientInfo = executionContext.RequestContext.Server.ClientInfo,
+            Transport = transport
+        };
+
+        return invocationContext;
+    }
+
+    private Transport GetTransportInformation(CallToolExecutionContext context)
+    {
+        if (context.RequestContext.Services?.GetService(typeof(IHttpContextAccessor)) is IHttpContextAccessor contextAccessor
+            && contextAccessor.HttpContext is not null)
+        {
+            var name = contextAccessor.HttpContext.Items[McpConstants.McpTransportName] as string ?? "http";
+
+            var transport = new Transport
+            {
+                Name = name
+            };
+
+            var headers = contextAccessor.HttpContext.Request.Headers.ToDictionary(h => h.Key, h => string.Join(",", h.Value!), StringComparer.OrdinalIgnoreCase);
+            transport.Properties.Add("headers", headers);
+
+            if (headers.TryGetValue(McpConstants.McpSessionIdHeaderName, out var sessionId))
+            {
+                transport.SessionId = sessionId;
+            }
+
+            return transport;
+        }
+
+        return new Transport
+        {
+            Name = "unknown"
+        };
     }
 
     public Task<IListener> CreateListenerAsync(ListenerFactoryContext context)

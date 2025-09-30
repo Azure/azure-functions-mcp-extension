@@ -66,7 +66,7 @@ public static class McpWebJobsBuilderExtensions
                 if (c.Params is not null
                     && toolRegistry.TryGetTool(c.Params.Name, out var tool))
                 {
-                    return await tool.RunAsync(c.Params, ct);
+                    return await tool.RunAsync(c, ct);
                 }
 
                 throw new McpException($"Unknown tool: '{c.Params?.Name}'", McpErrorCode.InvalidParams);

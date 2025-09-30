@@ -1,0 +1,158 @@
+// Copyright (c) Microsoft Corporation. All rights reserved.
+// Licensed under the MIT License.
+
+using System.Reflection;
+using System.Text.Json;
+using Microsoft.AspNetCore.Http;
+using Microsoft.Azure.Functions.Extensions.Mcp.Abstractions;
+using Microsoft.Azure.Functions.Extensions.Mcp.Serialization;
+using Microsoft.Azure.WebJobs.Host.Bindings;
+using Microsoft.Azure.WebJobs.Host.Triggers;
+using ModelContextProtocol.Protocol;
+using ModelContextProtocol.Server;
+using Moq;
+using Microsoft.Extensions.DependencyInjection;
+
+namespace Microsoft.Azure.Functions.Extensions.Mcp.Tests;
+
+public class McpToolTriggerBindingTests
+{
+    private static (McpToolTriggerBinding binding, ParameterInfo parameter) CreateBinding(ParameterInfo? parameter = null)
+    {
+        if (parameter is null)
+        {
+            var method = typeof(McpToolTriggerBindingTests).GetMethod(nameof(DummyMethod), BindingFlags.NonPublic | BindingFlags.Static)!;
+            parameter = method.GetParameters()[0];
+        }
+
+        var toolRegistry = new Mock<IToolRegistry>();
+        var attrribute = new McpToolTriggerAttribute("MyTool", "desc");
+
+        var binding = new McpToolTriggerBinding(parameter, toolRegistry.Object, attrribute);
+
+        return (binding, parameter);
+    }
+
+    private static void DummyMethod([McpToolTrigger("MyTool", "desc")] ToolInvocationContext ctx) { }
+
+    private static void DummyStringMethod([McpToolTrigger("MyTool", "desc")] string ctx) { }
+
+    private static CallToolExecutionContext CreateExecutionContext(string toolName = "MyTool",
+                                                                   IReadOnlyDictionary<string, JsonElement>? args = null,
+                                                                   string? sessionId = "session-123",
+                                                                   Implementation? clientInfo = null,
+                                                                   IHttpContextAccessor? httpContextAccessor = null)
+    {
+        args ??= new Dictionary<string, JsonElement>
+        {
+            ["arg1"] = JsonDocument.Parse("\"value1\"").RootElement,
+            ["num"] = JsonDocument.Parse("1").RootElement
+        };
+
+        clientInfo ??= new Implementation { Name = "client", Version = "1.0" };
+
+        var requestParams = new CallToolRequestParams
+        {
+            Name = toolName,
+            Arguments = args
+        };
+
+        var services = new ServiceCollection();
+
+        if (httpContextAccessor is not null)
+        {
+            services.AddSingleton(httpContextAccessor);
+        }
+
+        var mockServer = new Mock<IMcpServer>();
+        mockServer.Setup(s=> s.SessionId).Returns(sessionId);
+        mockServer.Setup(s => s.ClientInfo).Returns(clientInfo);
+
+        RequestContext<CallToolRequestParams> requestContext = new(mockServer.Object)
+        {
+            Params = requestParams,
+            Services = services.BuildServiceProvider()
+        };
+
+        CallToolExecutionContext executionContext = new(requestContext);
+
+        return executionContext;
+    }
+
+    private static ValueBindingContext CreateValueBindingContext()
+    {
+        var functionContext = new FunctionBindingContext(Guid.NewGuid(), CancellationToken.None);
+        return new ValueBindingContext(functionContext, CancellationToken.None);
+    }
+
+    [Fact]
+    public async Task BindAsync_BasicBinding_PopulatesBindingData()
+    {
+        var (binding, param) = CreateBinding();
+        CallToolExecutionContext executionContext = CreateExecutionContext();
+        var triggerData = await binding.BindAsync(executionContext, CreateValueBindingContext());
+
+        Assert.True(triggerData.BindingData.ContainsKey("mcptoolcontext"));
+        Assert.True(triggerData.BindingData.ContainsKey(param.Name!));
+        Assert.True(triggerData.BindingData.ContainsKey("mcptoolargs"));
+        Assert.True(triggerData.BindingData.ContainsKey("mcpsessionid"));
+
+        var ctx = Assert.IsType<ToolInvocationContext>(triggerData.BindingData["mcptoolcontext"]);
+        Assert.Equal("MyTool", ctx.Name);
+        Assert.Equal("session-123", ctx.SessionId);
+    }
+
+    [Fact]
+    public async Task BindAsync_StringParameter_SerializesContext()
+    {
+        var method = typeof(McpToolTriggerBindingTests).GetMethod(nameof(DummyStringMethod), BindingFlags.NonPublic | BindingFlags.Static)!;
+        var param = method.GetParameters()[0];
+
+        var (binding, _) = CreateBinding(param);
+        CallToolExecutionContext executionContext = CreateExecutionContext();
+        ITriggerData triggerData = await binding.BindAsync(executionContext, CreateValueBindingContext());
+
+        var serialized = Assert.IsType<string>(triggerData.BindingData[param.Name!]);
+        var deserialized = JsonSerializer.Deserialize<ToolInvocationContext>(serialized, McpJsonSerializerOptions.DefaultOptions);
+        Assert.Equal("MyTool", deserialized!.Name);
+    }
+
+    [Fact]
+    public async Task BindAsync_WithHttpContextAccessor_SetsHttpTransportAndHeaders()
+    {
+        var (binding, _) = CreateBinding();
+
+        var httpContext = new DefaultHttpContext();
+        httpContext.Request.Headers["X-Test"] = "abc";
+        httpContext.Items[McpConstants.McpTransportName] = "http-sse";
+
+        var accessor = new HttpContextAccessor { HttpContext = httpContext };
+
+        CallToolExecutionContext executionContext = CreateExecutionContext(httpContextAccessor: accessor);
+        ITriggerData triggerData = await binding.BindAsync(executionContext, CreateValueBindingContext());
+
+        var toolInvocationContext = (ToolInvocationContext)triggerData.BindingData["mcptoolcontext"];
+        Assert.Equal("http-sse", toolInvocationContext.Transport!.Name);
+
+        var headers = Assert.IsType<Dictionary<string, string>>(toolInvocationContext.Transport.Properties["headers"]);
+        Assert.Equal("abc", headers["X-Test"]);
+    }
+
+    [Fact]
+    public async Task BindAsync_InvalidValue_Throws()
+    {
+        var (binding, _) = CreateBinding();
+        await Assert.ThrowsAsync<InvalidOperationException>(() => binding.BindAsync("wrong", CreateValueBindingContext()));
+    }
+
+    [Fact]
+    public void BindingDataContract_ContainsExpectedKeys()
+    {
+        var (binding, param) = CreateBinding();
+        Assert.Contains("mcptoolcontext", binding.BindingDataContract.Keys);
+        Assert.Contains("mcptoolargs", binding.BindingDataContract.Keys);
+        Assert.Contains("mcpsessionid", binding.BindingDataContract.Keys);
+        Assert.Contains(param.Name!, binding.BindingDataContract.Keys);
+        Assert.Contains("$return", binding.BindingDataContract.Keys);
+    }
+}

@@ -5,6 +5,7 @@ using Microsoft.Azure.WebJobs.Host.Executors;
 using Microsoft.Azure.WebJobs.Host.Listeners;
 using ModelContextProtocol;
 using ModelContextProtocol.Protocol;
+using ModelContextProtocol.Server;
 using System.Text.Json;
 
 namespace Microsoft.Azure.Functions.Extensions.Mcp;
@@ -33,10 +34,10 @@ internal sealed class McpToolListener(ITriggeredFunctionExecutor executor,
 
     public void Cancel() { }
 
-    public async Task<CallToolResult> RunAsync(CallToolRequestParams callToolRequest, CancellationToken cancellationToken)
+    public async Task<CallToolResult> RunAsync(RequestContext<CallToolRequestParams> callToolRequest, CancellationToken cancellationToken)
     {
-        // Validate required properties are present in the incoming request and are not null or empty.
-        ValidateArgumentsHaveRequiredProperties(Properties, callToolRequest);
+        // Validate required properties are present in the incoming request.
+        ValidateArgumentsHaveRequiredProperties(Properties, callToolRequest.Params);
 
         var execution = new CallToolExecutionContext(callToolRequest);
 
@@ -71,7 +72,7 @@ internal sealed class McpToolListener(ITriggeredFunctionExecutor executor,
         };
     }
 
-    internal static void ValidateArgumentsHaveRequiredProperties(ICollection<IMcpToolProperty> properties, CallToolRequestParams callToolRequest)
+    internal static void ValidateArgumentsHaveRequiredProperties(ICollection<IMcpToolProperty> properties, CallToolRequestParams? callToolRequest)
     {
         if (properties is null || properties.Count == 0)
         {
