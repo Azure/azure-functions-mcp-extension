@@ -1,8 +1,0 @@
-{
-  "profiles": {
-    "CustomServer": {
-      "commandName": "Project",
-      "commandLineArgs": "--port 7236"
-    }
-  }
-}
