@@ -241,14 +241,14 @@ public class McpFunctionMetadataTransformerTests
 
         public void WithToolProperty(
             [McpToolTrigger("WithToolProperty", "desc")] ToolInvocationContext ctx,
-            [McpToolProperty("name", "string", "Name value", true)] string name) { }
+            [McpToolProperty("name", "Name value", true)] string name) { }
 
         public void WithTriggerPoco(
             [McpToolTrigger("WithTriggerPoco", "desc")] Snippet snippet) { }
 
         public void WithContextAndPoco(
             [McpToolTrigger("WithContextAndPoco", "desc")] ToolInvocationContext context,
-            [McpToolProperty("Name", "string", "Name", true)] string name,
+            [McpToolProperty("Name", "Name", true)] string name,
             ExtraPoco ignored) { }
     }
 

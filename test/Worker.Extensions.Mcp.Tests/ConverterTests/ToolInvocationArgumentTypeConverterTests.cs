@@ -19,7 +19,7 @@ public class ToolInvocationArgumentTypeConverterTests
         var toolContext = new ToolInvocationContext { Name = "test", Arguments = arguments };
 
         var functionContext = CreateFunctionContextWithToolContext(toolContext);
-        var bindingAttribute = new McpToolPropertyAttribute("foo", "string", "", false);
+        var bindingAttribute = new McpToolPropertyAttribute("foo", "", false);
         var context = CreateConverterContext(typeof(string), bindingAttribute, functionContext);
 
         var result = await converter.ConvertAsync(context);
@@ -40,7 +40,7 @@ public class ToolInvocationArgumentTypeConverterTests
         var toolContext = new ToolInvocationContext { Name = "test", Arguments = arguments };
 
         var functionContext = CreateFunctionContextWithToolContext(toolContext);
-        var bindingAttribute = new McpToolPropertyAttribute("foo", "number", "", false);
+        var bindingAttribute = new McpToolPropertyAttribute("foo", "", false);
         var context = CreateConverterContext(targetType, bindingAttribute, functionContext);
 
         var result = await converter.ConvertAsync(context);
@@ -59,7 +59,7 @@ public class ToolInvocationArgumentTypeConverterTests
         var toolContext = new ToolInvocationContext { Name = "test", Arguments = arguments };
 
         var functionContext = CreateFunctionContextWithToolContext(toolContext);
-        var bindingAttribute = new McpToolPropertyAttribute("foo", "boolean", "", false);
+        var bindingAttribute = new McpToolPropertyAttribute("foo", "", false);
         var context = CreateConverterContext(typeof(bool), bindingAttribute, functionContext);
 
         var result = await converter.ConvertAsync(context);
@@ -78,7 +78,7 @@ public class ToolInvocationArgumentTypeConverterTests
         var toolContext = new ToolInvocationContext { Name = "test", Arguments = arguments };
 
         var functionContext = CreateFunctionContextWithToolContext(toolContext);
-        var bindingAttribute = new McpToolPropertyAttribute("foo", "boolean", "", false);
+        var bindingAttribute = new McpToolPropertyAttribute("foo", "", false);
         var context = CreateConverterContext(typeof(bool), bindingAttribute, functionContext);
 
         var result = await converter.ConvertAsync(context);
@@ -99,7 +99,7 @@ public class ToolInvocationArgumentTypeConverterTests
     {
         var converter = new ToolInvocationArgumentTypeConverter();
         var functionContext = CreateEmptyFunctionContext();
-        var context = CreateConverterContext(typeof(string), new McpToolPropertyAttribute("string", "foo", "", false), functionContext);
+        var context = CreateConverterContext(typeof(string), new McpToolPropertyAttribute( "foo", "", false), functionContext);
 
         var result = await converter.ConvertAsync(context);
 
@@ -112,7 +112,7 @@ public class ToolInvocationArgumentTypeConverterTests
         var converter = new ToolInvocationArgumentTypeConverter();
         var toolContext = new ToolInvocationContext { Name = "test", Arguments = new Dictionary<string, object>() };
         var functionContext = CreateFunctionContextWithToolContext(toolContext);
-        var context = CreateConverterContext(typeof(string), new McpToolPropertyAttribute("string", "foo", "", false), functionContext);
+        var context = CreateConverterContext(typeof(string), new McpToolPropertyAttribute("foo", "", false), functionContext);
 
         var result = await converter.ConvertAsync(context);
 
@@ -126,7 +126,7 @@ public class ToolInvocationArgumentTypeConverterTests
         var arguments = new Dictionary<string, object> { { "bar", 123 } };
         var toolContext = new ToolInvocationContext { Name = "test", Arguments = arguments };
         var functionContext = CreateFunctionContextWithToolContext(toolContext);
-        var context = CreateConverterContext(typeof(int), bindingAttribute: new McpToolPropertyAttribute("int", "foo", "", false), functionContext);
+        var context = CreateConverterContext(typeof(int), bindingAttribute: new McpToolPropertyAttribute("foo", "", false), functionContext);
 
         var result = await converter.ConvertAsync(context);
 
@@ -140,7 +140,7 @@ public class ToolInvocationArgumentTypeConverterTests
         var arguments = new Dictionary<string, object> { { "foo", 123 } };
         var toolContext = new ToolInvocationContext { Name = "test", Arguments = arguments };
         var functionContext = CreateFunctionContextWithToolContext(toolContext);
-        var context = CreateConverterContext(typeof(int), new McpToolPropertyAttribute("int", "foo", "", false), functionContext);
+        var context = CreateConverterContext(typeof(int), new McpToolPropertyAttribute("foo", "", false), functionContext);
 
         var result = await converter.ConvertAsync(context);
 

@@ -149,9 +149,11 @@ public sealed class McpFunctionMetadataTransformer(IOptionsMonitor<ToolOptions> 
             return false;
         }
 
+        McpToolPropertyType propertyType = parameter.ParameterType.MapToToolPropertyType();
+
         toolProperty = new ToolProperty(
             toolAttribute.PropertyName,
-            toolAttribute.PropertyType,
+            propertyType.TypeName,
             toolAttribute.Description,
             toolAttribute.Required);
 
@@ -177,9 +179,11 @@ public sealed class McpFunctionMetadataTransformer(IOptionsMonitor<ToolOptions> 
                 continue;
             }
 
+            McpToolPropertyType propertyType = property.PropertyType.MapToToolPropertyType();
+
             toolProperties.Add(new ToolProperty(
                 property.Name,
-                property.PropertyType.MapToToolPropertyType(),
+                propertyType.TypeName,
                 property.GetDescription(),
                 property.IsRequired()
             ));
