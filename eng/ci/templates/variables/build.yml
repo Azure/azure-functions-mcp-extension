@@ -5,3 +5,5 @@ variables:
   value: Microsoft.Azure.Functions.Extensions.Mcp.sln
 - name: Build.Counter
   value: $[counter(format('{0:yyyyMMdd}', pipeline.startTime), 0)]
+- name: RepoRoot
+  value: $(Build.SourcesDirectory)
