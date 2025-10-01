@@ -1,7 +1,6 @@
-﻿// Copyright (c) .NET Foundation. All rights reserved.
+// Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the MIT License. See License.txt in the project root for license information.
 
-using System;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 
@@ -46,7 +45,7 @@ namespace Microsoft.Azure.Functions.Tests.E2ETests
         }
 
         [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
-        private static extern IntPtr CreateJobObject(object a, string lpName);
+        private static extern IntPtr CreateJobObject(object? a, string? lpName);
 
         [DllImport("kernel32.dll", SetLastError = true)]
         private static extern bool SetInformationJobObject(IntPtr hJob, JobObjectInfoType infoType, IntPtr lpJobObjectInfo, uint cbJobObjectInfoLength);

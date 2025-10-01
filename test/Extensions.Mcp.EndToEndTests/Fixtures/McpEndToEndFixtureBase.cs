@@ -1,24 +1,23 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-
-using Extensions.Mcp.EndToEnd.AbstractionOverCoreTools;
+using Extensions.Mcp.EndToEndTests.Abstractions;
+using Extensions.Mcp.EndToEndTests.AbstractionOverCoreTools;
 using Microsoft.Extensions.Logging;
 using ModelContextProtocol.Client;
 using ModelContextProtocol.Protocol;
-using Xunit.Abstractions;
 
 // Prevent multiple instances of Core Tools from interfering with one another.
 // If any new collection definitions are added, they should have parallelization disabled.
 [assembly: CollectionBehavior(CollectionBehavior.CollectionPerAssembly)]
 
-namespace Extensions.Mcp.EndToEnd.Fixtures
+namespace Extensions.Mcp.EndToEndTests.Fixtures
 {
-    public abstract class McpEndToEndFixtureBase : CoreToolsProjectFixtureBase
+    public abstract class McpEndToEndFixtureBase : CoreToolsProjectBase
     {
         private List<IMcpClient> _clients = [];
 
-        protected McpEndToEndFixtureBase(IMessageSink messageSink, EndToEndTestProject project) : base(messageSink, project) { }
+        protected McpEndToEndFixtureBase(EndToEndTestProject project) : base(project) { }
 
         public async Task<IMcpClient> CreateClientAsync(HttpTransportMode transportMode = HttpTransportMode.AutoDetect,
             McpClientOptions? clientOptions = null,

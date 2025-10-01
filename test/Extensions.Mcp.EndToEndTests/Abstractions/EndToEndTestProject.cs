@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-namespace Extensions.Mcp.EndToEnd.AbstractionOverCoreTools
+namespace Extensions.Mcp.EndToEndTests.AbstractionOverCoreTools
 {
     public class EndToEndTestProject
     {
@@ -31,6 +31,7 @@ namespace Extensions.Mcp.EndToEnd.AbstractionOverCoreTools
             {
                 _launchEnvironmentVariables["FUNCTIONS_WORKER_RUNTIME"] = FunctionsWorkerRuntime;
             }
+            Environment.SetEnvironmentVariable("FUNCTIONS_WORKER_RUNTIME", FunctionsWorkerRuntime);
 
         }
 
