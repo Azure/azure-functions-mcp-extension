@@ -38,6 +38,14 @@ jobs:
       arguments: -c $(configuration)
       projects: $(project)
 
+  - task: PowerShell@2
+    displayName: 'Setup E2E tests'
+    inputs:
+      targetType: filePath
+      filePath: $(Build.SourcesDirectory)/eng/ci/templates/scripts/setup-e2e-tests.ps1
+      arguments: '-RepoRoot $(RepoRoot)'
+      pwsh: true
+
   - task: DotNetCoreCLI@2
     displayName: Run tests
     inputs:
