@@ -18,20 +18,25 @@ public class TestFunction
     [Function(nameof(HappyFunction))]
     public string HappyFunction(
         [McpToolTrigger(nameof(HappyFunction), "Responds to the user with a hello message.")] ToolInvocationContext context,
-        [McpToolProperty(nameof(name), "string", "The name of the person to greet.")] string name,
-        [McpToolProperty(nameof(job), "string", "The job of the person.")] string? job,
-        [McpToolProperty(nameof(age), "number", "The age of the person.")] int age = 20,
-        [McpToolProperty(nameof(isHappy), "boolean", "The happiness of the person.")] bool isHappy = true)
+        [McpToolProperty(nameof(name), "The name of the person to greet.")] string name,
+        [McpToolProperty(nameof(job), "The job of the person.")] string? job,
+        [McpToolProperty("attributes", "Attributes of the person.")] IEnumerable<string> attributes,
+        [McpToolProperty("numbers", "Attributes of the person.")] IEnumerable<int> numbers,
+        [McpToolProperty(nameof(age), "The age of the person.")] int age = 20,
+        [McpToolProperty(nameof(isHappy), "The happiness of the person.")] bool isHappy = true)
     {
         _logger.LogInformation("C# MCP tool trigger function processed a request: {ToolName}", context.Name);
         var entityToGreet = name ?? "world";
-        return $"Hello, {entityToGreet}! Job: {job ?? "Unemployed"} | Age: {age} | Happy? {isHappy}.";
+        return $"""
+            Hello, {entityToGreet}! Job: {job ?? "Unemployed"} | Age: {age} | Happy? {isHappy}.
+            Attributes: {(attributes.Any() ? string.Join(", ", attributes) : "(none)")}
+            """;
     }
 
     [Function(nameof(SingleArgumentFunction))]
     public string SingleArgumentFunction(
        [McpToolTrigger(nameof(SingleArgumentFunction), "Echoes a single argument passed into the tool.")] ToolInvocationContext context,
-       [McpToolProperty(nameof(argument), "string", "The name of the person to greet.")] string argument)
+       [McpToolProperty(nameof(argument), "The name of the person to greet.")] string argument)
     {
         _logger.LogInformation("C# MCP tool trigger function processed a request: {ToolName}", context.Name);
         return argument ?? "(null argument)";
@@ -40,7 +45,7 @@ public class TestFunction
     [Function(nameof(SingleArgumentWithDefaultFunction))]
     public string SingleArgumentWithDefaultFunction(
        [McpToolTrigger(nameof(SingleArgumentWithDefaultFunction), "Echoes a single argument passed into the tool.")] ToolInvocationContext context,
-       [McpToolProperty(nameof(argument), "string", "The name of the person to greet.")] string argument = "(no-argument)")
+       [McpToolProperty(nameof(argument), "The name of the person to greet.")] string argument = "(no-argument)")
     {
         _logger.LogInformation("C# MCP tool trigger function processed a request: {ToolName}", context.Name);
         return argument;
@@ -49,7 +54,7 @@ public class TestFunction
     [Function(nameof(GetSnippet))]
     public object GetSnippet(
         [McpToolTrigger(GetSnippetToolName, GetSnippetToolDescription)] ToolInvocationContext context,
-        [McpToolProperty(SnippetNamePropertyName, StringPropertyType, SnippetNamePropertyDescription, true)] string name)
+        [McpToolProperty(SnippetNamePropertyName, SnippetNamePropertyDescription, true)] string name)
     {
         return SnippetsCache.Snippets.TryGetValue(name, out var snippet)
             ? snippet

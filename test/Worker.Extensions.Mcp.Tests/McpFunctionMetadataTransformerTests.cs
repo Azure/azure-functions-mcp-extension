@@ -113,7 +113,7 @@ public class McpFunctionMetadataTransformerTests
         var json = JsonNode.Parse(fn.Object.RawBindings![0])!.AsObject();
         var tp = json["toolProperties"]!.GetValue<string>();
 
-        Assert.Equal("[{\"propertyName\":\"name\",\"propertyType\":\"string\",\"description\":\"Name value\",\"required\":true}]", tp);
+        Assert.Equal("[{\"propertyName\":\"name\",\"propertyType\":\"string\",\"description\":\"Name value\",\"required\":true,\"isArray\":false}]", tp);
     }
 
     [Fact]
@@ -241,14 +241,14 @@ public class McpFunctionMetadataTransformerTests
 
         public void WithToolProperty(
             [McpToolTrigger("WithToolProperty", "desc")] ToolInvocationContext ctx,
-            [McpToolProperty("name", "string", "Name value", true)] string name) { }
+            [McpToolProperty("name", "Name value", true)] string name) { }
 
         public void WithTriggerPoco(
             [McpToolTrigger("WithTriggerPoco", "desc")] Snippet snippet) { }
 
         public void WithContextAndPoco(
             [McpToolTrigger("WithContextAndPoco", "desc")] ToolInvocationContext context,
-            [McpToolProperty("Name", "string", "Name", true)] string name,
+            [McpToolProperty("Name", "Name", true)] string name,
             ExtraPoco ignored) { }
     }
 
