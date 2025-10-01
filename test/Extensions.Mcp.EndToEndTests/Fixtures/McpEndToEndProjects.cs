@@ -1,14 +1,19 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-using Extensions.Mcp.EndToEnd.AbstractionOverCoreTools;
+using Extensions.Mcp.EndToEndTests.AbstractionOverCoreTools;
 
-namespace Microsoft.Azure.Functions.Extensions.Mcp.EndToEnd.Fixtures;
+namespace Microsoft.Azure.Functions.Extensions.Mcp.EndToEndTests.Fixtures;
 
 internal class McpEndToEndProjects
 {
-    private static string RepoRoot = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, @"../../../.."));
-    private static string RelativePathForTestName(string projectName) => Path.Combine(RepoRoot, "out", "bin", projectName, "debug");
+    private static string RepoRoot =>
+        Environment.GetEnvironmentVariable("RepoRoot")
+        ?? Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, @"../../../.."));
+
+    private static string BuildConfiguration = Environment.GetEnvironmentVariable("configuration") ?? "debug";
+
+    private static string RelativePathForTestName(string projectName) => Path.Combine(RepoRoot, "out", "bin", projectName, BuildConfiguration);
 
     internal class DotnetWorkerProject : EndToEndTestProject
     {
