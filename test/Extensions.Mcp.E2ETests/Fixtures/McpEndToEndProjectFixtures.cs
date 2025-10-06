@@ -1,10 +1,9 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-using Xunit.Abstractions;
-using static Microsoft.Azure.Functions.Extensions.Mcp.EndToEndTests.Fixtures.McpEndToEndProjects;
+using static Microsoft.Azure.Functions.Extensions.Mcp.E2ETests.Fixtures.McpEndToEndProjects;
 
-namespace Extensions.Mcp.EndToEndTests.Fixtures;
+namespace Extensions.Mcp.E2ETests.Fixtures;
 
 public class McpEndToEndProjectFixtures
 {

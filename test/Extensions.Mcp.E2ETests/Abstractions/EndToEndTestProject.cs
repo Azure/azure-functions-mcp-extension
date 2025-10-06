@@ -1,7 +1,9 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-namespace Extensions.Mcp.EndToEndTests.AbstractionOverCoreTools
+using Microsoft.Azure.Functions.Extensions.Mcp.E2ETests;
+
+namespace Extensions.Mcp.E2ETests.AbstractionOverCoreTools
 {
     public class EndToEndTestProject
     {
@@ -21,25 +23,26 @@ namespace Extensions.Mcp.EndToEndTests.AbstractionOverCoreTools
 
             _launchEnvironmentVariables = environmentVariables;
 
-            if (!_launchEnvironmentVariables.ContainsKey("AzureWebJobsStorage"))
+            if (!_launchEnvironmentVariables.ContainsKey(Constants.AzureWebJobsStorage))
             {
-                _launchEnvironmentVariables["AzureWebJobsStorage"] = "UseDevelopmentStorage=true";
+                _launchEnvironmentVariables[Constants.AzureWebJobsStorage] = "UseDevelopmentStorage=true";
             }
 
             // User setting the environment variable should win over the property value.
-            if (!_launchEnvironmentVariables.ContainsKey("FUNCTIONS_WORKER_RUNTIME"))
+            if (!_launchEnvironmentVariables.ContainsKey(Constants.FunctionsWorkerRuntime))
             {
-                _launchEnvironmentVariables["FUNCTIONS_WORKER_RUNTIME"] = FunctionsWorkerRuntime;
+                _launchEnvironmentVariables[Constants.FunctionsWorkerRuntime] = FunctionsWorkerRuntime;
             }
-            Environment.SetEnvironmentVariable("FUNCTIONS_WORKER_RUNTIME", FunctionsWorkerRuntime);
+
+            Environment.SetEnvironmentVariable(Constants.FunctionsWorkerRuntime, FunctionsWorkerRuntime);
 
         }
 
         public IDictionary<string, string> LaunchEnvironmentVariables {
             get => _launchEnvironmentVariables ??= new Dictionary<string, string>
             {
-                { "AzureWebJobsStorage", "UseDevelopmentStorage=true" },
-                { "FUNCTIONS_WORKER_RUNTIME", FunctionsWorkerRuntime }
+                { Constants.AzureWebJobsStorage, "UseDevelopmentStorage=true" },
+                { Constants.FunctionsWorkerRuntime, FunctionsWorkerRuntime }
             };
             set => SetLaunchEnvironmentVariables(value ?? new Dictionary<string, string>());
         }
