@@ -31,12 +31,14 @@ else
   if ($IsWindows) {
       $os = "win"
   }
+  elseif ($IsMacOS) {
+      $os = "osx"
+  }
+  elseif ($IsLinux) {
+      $os = "linux"
+  }
   else {
-      if ($IsMacOS) {
-          $os = "osx"
-      } else {
-          $os = "linux"
-      }
+    throw "Unsupported operating system detected. Please run this script on Windows, macOS, or Linux."
   }
 
   Write-Host ""
@@ -60,6 +62,9 @@ else
   }
 
   $coreToolsURL = $asset.browser_download_url
+
+  # Add query string to avoid caching issues
+  $coreToolsURL = $coreToolsURL + "?raw=true"
 
   Write-Host ""
   Write-Host "---Downloading the Core Tools for Functions V$FunctionsRuntimeVersion---"

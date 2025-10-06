@@ -1,15 +1,15 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-using Extensions.Mcp.EndToEndTests.AbstractionOverCoreTools;
+using Extensions.Mcp.E2ETests.AbstractionOverCoreTools;
 
-namespace Microsoft.Azure.Functions.Extensions.Mcp.EndToEndTests.Fixtures;
+namespace Microsoft.Azure.Functions.Extensions.Mcp.E2ETests.Fixtures;
 
 internal class McpEndToEndProjects
 {
     private static string RepoRoot =>
         Environment.GetEnvironmentVariable("RepoRoot")
-        ?? Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, @"../../../.."));
+        ?? Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, Path.Combine("..", "..", "..", "..")));
 
     private static string BuildConfiguration = Environment.GetEnvironmentVariable("configuration") ?? "debug";
 
@@ -33,7 +33,6 @@ internal class McpEndToEndProjects
             ProjectDirectoryPath = Path.Combine(RepoRoot, RelativePathForTestName(projectName));
             FunctionsWorkerRuntime = "dotnet";
             AdditionalCoreToolsArguments = ["--runtime", "inproc8"];
-            LaunchEnvironmentVariables = new Dictionary<string, string> { { "FUNCTIONS_INPROC_NET8_ENABLED", "1" } }; // This needs to be in the local.settings.json. Cannot rely on env var for now.
         }
     }
 }

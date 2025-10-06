@@ -1,15 +1,15 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-using Extensions.Mcp.EndToEndTests.AbstractionOverCoreTools;
+using Extensions.Mcp.E2ETests.AbstractionOverCoreTools;
 using Microsoft.Azure.Functions.Tests.E2ETests;
 using Microsoft.Extensions.Logging;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 
-namespace Extensions.Mcp.EndToEndTests.Abstractions;
+namespace Extensions.Mcp.E2ETests.Abstractions;
 
-public abstract class CoreToolsProjectBase: IAsyncLifetime
+public abstract class CoreToolsProjectBase : IAsyncLifetime
 {
     private readonly EndToEndTestProject? _project;
 
