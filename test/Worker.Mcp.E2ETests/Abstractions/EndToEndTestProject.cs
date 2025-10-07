@@ -3,7 +3,7 @@
 
 using Microsoft.Azure.Functions.Worker.Mcp.E2ETests;
 
-namespace Worker.Mcp.E2ETests.AbstractionOverCoreTools
+namespace Microsoft.Azure.Functions.Worker.Mcp.E2ETests.Abstractions
 {
     public class EndToEndTestProject
     {

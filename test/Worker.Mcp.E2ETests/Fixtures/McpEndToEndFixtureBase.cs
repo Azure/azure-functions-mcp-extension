@@ -2,16 +2,16 @@
 // Licensed under the MIT License.
 
 using Worker.Mcp.E2ETests.Abstractions;
-using Worker.Mcp.E2ETests.AbstractionOverCoreTools;
 using Microsoft.Extensions.Logging;
 using ModelContextProtocol.Client;
 using ModelContextProtocol.Protocol;
+using Microsoft.Azure.Functions.Worker.Mcp.E2ETests.Abstractions;
 
 // Prevent multiple instances of Core Tools from interfering with one another.
 // If any new collection definitions are added, they should have parallelization disabled.
 [assembly: CollectionBehavior(CollectionBehavior.CollectionPerAssembly)]
 
-namespace Worker.Mcp.E2ETests.Fixtures
+namespace Microsoft.Azure.Functions.Worker.Mcp.E2ETests.Fixtures
 {
     public abstract class McpEndToEndFixtureBase : CoreToolsProjectBase
     {

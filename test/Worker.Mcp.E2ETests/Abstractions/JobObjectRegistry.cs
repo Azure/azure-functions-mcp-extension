@@ -4,7 +4,7 @@
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 
-namespace Microsoft.Azure.Functions.Tests.E2ETests
+namespace Microsoft.Azure.Functions.Worker.Mcp.E2ETests.Abstractions
 {
     // Taken from: https://github.com/Azure/azure-functions-host/blob/69111926ee920d4ba10829c8fa34303bb8165a42/src/WebJobs.Script/Workers/ProcessManagement/JobObjectRegistry.cs
     // This kills child func.exe even if tests are killed from VS mid-run.
@@ -12,7 +12,7 @@ namespace Microsoft.Azure.Functions.Tests.E2ETests
     // Registers processes on windows with a job object to ensure disposal after parent exit.
     internal class JobObjectRegistry : IDisposable
     {
-        private IntPtr _handle;
+        private nint _handle;
         private bool _disposed = false;
 
         public JobObjectRegistry()
@@ -30,7 +30,7 @@ namespace Microsoft.Azure.Functions.Tests.E2ETests
             };
 
             int length = Marshal.SizeOf(typeof(JOBOBJECT_EXTENDED_LIMIT_INFORMATION));
-            IntPtr extendedInfoPtr = Marshal.AllocHGlobal(length);
+            nint extendedInfoPtr = Marshal.AllocHGlobal(length);
             Marshal.StructureToPtr(extendedInfo, extendedInfoPtr, false);
 
             if (!SetInformationJobObject(_handle, JobObjectInfoType.ExtendedLimitInformation, extendedInfoPtr, (uint)length))
@@ -45,16 +45,16 @@ namespace Microsoft.Azure.Functions.Tests.E2ETests
         }
 
         [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
-        private static extern IntPtr CreateJobObject(object? a, string? lpName);
+        private static extern nint CreateJobObject(object? a, string? lpName);
 
         [DllImport("kernel32.dll", SetLastError = true)]
-        private static extern bool SetInformationJobObject(IntPtr hJob, JobObjectInfoType infoType, IntPtr lpJobObjectInfo, uint cbJobObjectInfoLength);
+        private static extern bool SetInformationJobObject(nint hJob, JobObjectInfoType infoType, nint lpJobObjectInfo, uint cbJobObjectInfoLength);
 
         [DllImport("kernel32.dll", SetLastError = true)]
-        private static extern bool AssignProcessToJobObject(IntPtr job, IntPtr process);
+        private static extern bool AssignProcessToJobObject(nint job, nint process);
 
         [DllImport("kernel32.dll", SetLastError = true)]
-        private static extern bool CloseHandle(IntPtr job);
+        private static extern bool CloseHandle(nint job);
 
         public void Dispose()
         {
@@ -80,11 +80,11 @@ namespace Microsoft.Azure.Functions.Tests.E2ETests
 
         public void Close()
         {
-            if (_handle != IntPtr.Zero)
+            if (_handle != nint.Zero)
             {
                 CloseHandle(_handle);
             }
-            _handle = IntPtr.Zero;
+            _handle = nint.Zero;
         }
     }
 
@@ -116,10 +116,10 @@ namespace Microsoft.Azure.Functions.Tests.E2ETests
         public long PerProcessUserTimeLimit;
         public long PerJobUserTimeLimit;
         public uint LimitFlags;
-        public UIntPtr MinimumWorkingSetSize;
-        public UIntPtr MaximumWorkingSetSize;
+        public nuint MinimumWorkingSetSize;
+        public nuint MaximumWorkingSetSize;
         public uint ActiveProcessLimit;
-        public UIntPtr Affinity;
+        public nuint Affinity;
         public uint PriorityClass;
         public uint SchedulingClass;
     }
@@ -128,7 +128,7 @@ namespace Microsoft.Azure.Functions.Tests.E2ETests
     public struct SECURITY_ATTRIBUTES
     {
         public uint nLength;
-        public IntPtr lpSecurityDescriptor;
+        public nint lpSecurityDescriptor;
         public int bInheritHandle;
     }
 
@@ -137,9 +137,9 @@ namespace Microsoft.Azure.Functions.Tests.E2ETests
     {
         public JOBOBJECT_BASIC_LIMIT_INFORMATION BasicLimitInformation;
         public IO_COUNTERS IoInfo;
-        public UIntPtr ProcessMemoryLimit;
-        public UIntPtr JobMemoryLimit;
-        public UIntPtr PeakProcessMemoryUsed;
-        public UIntPtr PeakJobMemoryUsed;
+        public nuint ProcessMemoryLimit;
+        public nuint JobMemoryLimit;
+        public nuint PeakProcessMemoryUsed;
+        public nuint PeakJobMemoryUsed;
     }
 }

@@ -3,7 +3,7 @@
 
 using static Microsoft.Azure.Functions.Worker.Mcp.E2ETests.Fixtures.McpEndToEndProjectSetup;
 
-namespace Worker.Mcp.E2ETests.Fixtures;
+namespace Microsoft.Azure.Functions.Worker.Mcp.E2ETests.Fixtures;
 
 public class DefaultProjectFixture() : McpEndToEndFixtureBase(new DotnetWorkerProject("TestAppIsolated"))
 {

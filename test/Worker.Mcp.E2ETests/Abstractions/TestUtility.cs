@@ -5,7 +5,7 @@ using System.Diagnostics;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 
-namespace Worker.Mcp.E2ETests.Abstractions;
+namespace Microsoft.Azure.Functions.Worker.Mcp.E2ETests.Abstractions;
 
 public static class TestUtility
 {
@@ -16,7 +16,7 @@ public static class TestUtility
         {
             await Task.Delay(pollingInterval);
 
-            bool shouldThrow = !Debugger.IsAttached || (Debugger.IsAttached && throwWhenDebugging);
+            bool shouldThrow = !Debugger.IsAttached || Debugger.IsAttached && throwWhenDebugging;
             if (shouldThrow && (DateTime.Now - start).TotalMilliseconds > timeout)
             {
                 string error = "Condition not reached within timeout.";
