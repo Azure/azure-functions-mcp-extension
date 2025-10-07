@@ -5,7 +5,7 @@ using System.Diagnostics;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 
-namespace Extensions.Mcp.E2ETests.Abstractions;
+namespace Worker.Mcp.E2ETests.Abstractions;
 
 public static class TestUtility
 {

@@ -7,7 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Microsoft.Azure.Functions.Extensions.Mcp.E2ETests
+namespace Microsoft.Azure.Functions.Worker.Mcp.E2ETests
 {
     internal static class Constants
     {

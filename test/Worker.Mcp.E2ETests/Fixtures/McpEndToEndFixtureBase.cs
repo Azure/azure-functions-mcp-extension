@@ -1,8 +1,8 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-using Extensions.Mcp.E2ETests.Abstractions;
-using Extensions.Mcp.E2ETests.AbstractionOverCoreTools;
+using Worker.Mcp.E2ETests.Abstractions;
+using Worker.Mcp.E2ETests.AbstractionOverCoreTools;
 using Microsoft.Extensions.Logging;
 using ModelContextProtocol.Client;
 using ModelContextProtocol.Protocol;
@@ -11,7 +11,7 @@ using ModelContextProtocol.Protocol;
 // If any new collection definitions are added, they should have parallelization disabled.
 [assembly: CollectionBehavior(CollectionBehavior.CollectionPerAssembly)]
 
-namespace Extensions.Mcp.E2ETests.Fixtures
+namespace Worker.Mcp.E2ETests.Fixtures
 {
     public abstract class McpEndToEndFixtureBase : CoreToolsProjectBase
     {

@@ -1,11 +1,11 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-using Extensions.Mcp.E2ETests.AbstractionOverCoreTools;
+using Worker.Mcp.E2ETests.AbstractionOverCoreTools;
 
-namespace Microsoft.Azure.Functions.Extensions.Mcp.E2ETests.Fixtures;
+namespace Microsoft.Azure.Functions.Worker.Mcp.E2ETests.Fixtures;
 
-internal class McpEndToEndProjects
+internal class McpEndToEndProjectSetup
 {
     private static string RepoRoot =>
         Environment.GetEnvironmentVariable("RepoRoot")
@@ -22,17 +22,6 @@ internal class McpEndToEndProjects
         {
             ProjectDirectoryPath = Path.Combine(RepoRoot, RelativePathForTestName(projectName));
             FunctionsWorkerRuntime = "dotnet-isolated";
-        }
-    }
-
-    internal class InProcNet8Project : EndToEndTestProject
-    {
-        [System.Diagnostics.CodeAnalysis.SetsRequiredMembers]
-        public InProcNet8Project(string projectName) : base()
-        {
-            ProjectDirectoryPath = Path.Combine(RepoRoot, RelativePathForTestName(projectName));
-            FunctionsWorkerRuntime = "dotnet";
-            AdditionalCoreToolsArguments = ["--runtime", "inproc8"];
         }
     }
 }
