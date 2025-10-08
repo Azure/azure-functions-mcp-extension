@@ -7,22 +7,22 @@ namespace Extensions.Mcp.Tests;
 public class ToolPropertyTests
 {
     [Fact]
-    public void Required_DefaultValue_IsFalse()
+    public void IsRequired_DefaultValue_IsFalse()
     {
         // Arrange & Act
         var attribute = new McpToolPropertyAttribute("name", "string", "description");
         
         // Assert
-        Assert.False(attribute.Required);
+        Assert.False(attribute.IsRequired);
     }
     
     [Fact]
-    public void Required_WhenExplicitlySet_ReturnsCorrectValue()
+    public void IsRequired_WhenExplicitlySet_ReturnsCorrectValue()
     {
         // Arrange & Act
         var attribute = new McpToolPropertyAttribute("name", "string", "description", true);
         
         // Assert
-        Assert.True(attribute.Required);
+        Assert.True(attribute.IsRequired);
     }
 }

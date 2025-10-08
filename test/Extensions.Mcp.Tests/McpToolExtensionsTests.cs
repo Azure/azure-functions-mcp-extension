@@ -27,7 +27,7 @@ public class McpToolExtensionsTests
         mock.Object.PropertyName = name;
         mock.Object.PropertyType = type;
         mock.Object.Description = description;
-        mock.Object.Required = required;
+        mock.Object.IsRequired = required;
         mock.Object.IsArray = isArray;
         return mock.Object;
     }

@@ -15,7 +15,7 @@ public class McpToolPropertyAttributeTests
         Assert.Equal("name", attribute.PropertyName);
         Assert.Equal("string", attribute.PropertyType);
         Assert.Equal("description", attribute.Description);
-        Assert.False(attribute.Required); // Default value should be false
+        Assert.False(attribute.IsRequired); // Default value should be false
     }
     
     [Fact]
@@ -26,6 +26,6 @@ public class McpToolPropertyAttributeTests
         Assert.Equal("name", attribute.PropertyName);
         Assert.Equal("string", attribute.PropertyType);
         Assert.Equal("description", attribute.Description);
-        Assert.True(attribute.Required);
+        Assert.True(attribute.IsRequired);
     }
 }

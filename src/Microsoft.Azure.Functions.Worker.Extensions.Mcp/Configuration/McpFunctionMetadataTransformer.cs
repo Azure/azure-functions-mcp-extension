@@ -183,7 +183,7 @@ public sealed partial class McpFunctionMetadataTransformer(IOptionsMonitor<ToolO
         McpToolPropertyType propertyType = parameter.ParameterType.MapToToolPropertyType();
 
         toolProperty = new(toolAttribute.PropertyName, propertyType.TypeName, toolAttribute.Description,
-                           toolAttribute.Required, propertyType.IsArray);
+                           toolAttribute.IsRequired, propertyType.IsArray);
 
         return true;
     }

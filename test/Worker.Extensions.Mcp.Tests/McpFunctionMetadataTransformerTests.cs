@@ -113,7 +113,7 @@ public class McpFunctionMetadataTransformerTests
         var json = JsonNode.Parse(fn.Object.RawBindings![0])!.AsObject();
         var tp = json["toolProperties"]!.GetValue<string>();
 
-        Assert.Equal("[{\"propertyName\":\"name\",\"propertyType\":\"string\",\"description\":\"Name value\",\"required\":true,\"isArray\":false}]", tp);
+        Assert.Equal("[{\"propertyName\":\"name\",\"propertyType\":\"string\",\"description\":\"Name value\",\"isRequired\":true,\"isArray\":false}]", tp);
     }
 
     [Fact]

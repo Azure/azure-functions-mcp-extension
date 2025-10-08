@@ -8,7 +8,7 @@ namespace Microsoft.Azure.Functions.Extensions.Mcp
     [AttributeUsage(AttributeTargets.Parameter)]
     [Binding]
     public sealed class McpToolPropertyAttribute(string propertyName, string propertyType, string description,
-                                                 bool required = false)
+                                                 bool isRequired = false)
         : Attribute, IMcpToolProperty
     {
         public string PropertyName { get; set; } = propertyName;
@@ -17,7 +17,7 @@ namespace Microsoft.Azure.Functions.Extensions.Mcp
 
         public string? Description { get; set; } = description;
 
-        public bool Required { get; set; } = required;
+        public bool IsRequired { get; set; } = isRequired;
 
         public bool IsArray { get; set; }
     }

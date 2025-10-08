@@ -84,7 +84,7 @@ internal sealed class McpToolListener(ITriggeredFunctionExecutor executor,
 
         foreach (var prop in properties)
         {
-            if (!prop.Required)
+            if (!prop.IsRequired)
             {
                 continue;
             }

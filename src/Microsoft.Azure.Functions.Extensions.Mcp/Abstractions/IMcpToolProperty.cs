@@ -11,7 +11,7 @@ public interface IMcpToolProperty
 
     public string? Description { get; set; }
     
-    public bool Required { get; set; }
+    public bool IsRequired { get; set; }
 
     public bool IsArray { get; set; }
 }

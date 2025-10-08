@@ -56,7 +56,7 @@ internal static class McpToolExtensions
             writer.WriteEndObject();
 
             var required = props
-                .Where(p => p.Required)
+                .Where(p => p.IsRequired)
                 .Select(p => p.PropertyName)
                 .Distinct()
                 .ToArray();

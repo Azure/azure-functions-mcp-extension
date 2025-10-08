@@ -6,7 +6,7 @@ using System.Text.Json.Serialization;
 namespace Microsoft.Azure.Functions.Worker.Extensions.Mcp.Configuration;
 
 public sealed class ToolProperty(string name, string type, string? description,
-                                 bool required = false, bool isArray = false)
+                                 bool isRequired = false, bool isArray = false)
 {
     [JsonPropertyName("propertyName")]
     public string Name { get; init; } = name;
@@ -17,8 +17,8 @@ public sealed class ToolProperty(string name, string type, string? description,
     [JsonPropertyName("description")]
     public string? Description { get; init; } = description;
 
-    [JsonPropertyName("required")]
-    public bool Required { get; init; } = required;
+    [JsonPropertyName("isRequired")]
+    public bool IsRequired { get; init; } = isRequired;
 
     [JsonPropertyName("isArray")]
     public bool IsArray { get; init; } = isArray;

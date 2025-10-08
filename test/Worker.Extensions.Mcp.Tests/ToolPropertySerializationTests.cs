@@ -18,7 +18,7 @@ public class ToolPropertySerializationTests
         Assert.Contains("\"propertyName\":\"name\"", json);
         Assert.Contains("\"propertyType\":\"string\"", json);
         Assert.Contains("\"description\":\"description\"", json);
-        Assert.Contains("\"required\":false", json);
+        Assert.Contains("\"isRequired\":false", json);
     }
     
     [Fact]
@@ -34,7 +34,7 @@ public class ToolPropertySerializationTests
         Assert.Contains("\"propertyName\":\"name\"", json);
         Assert.Contains("\"propertyType\":\"string\"", json);
         Assert.Contains("\"description\":\"description\"", json);
-        Assert.Contains("\"required\":true", json);
+        Assert.Contains("\"isRequired\":true", json);
     }
     
     [Fact]
@@ -47,7 +47,7 @@ public class ToolPropertySerializationTests
         var json = JsonSerializer.Serialize(property);
         
         // Assert
-        Assert.Contains("\"required\":false", json);
+        Assert.Contains("\"isRequired\":false", json);
     }
 
     [Fact]
@@ -65,8 +65,8 @@ public class ToolPropertySerializationTests
         
         // Assert
         Assert.Contains("\"propertyName\":\"required-prop\"", json);
-        Assert.Contains("\"required\":true", json);
+        Assert.Contains("\"isRequired\":true", json);
         Assert.Contains("\"propertyName\":\"optional-prop\"", json);
-        Assert.Contains("\"required\":false", json);
+        Assert.Contains("\"isRequired\":false", json);
     }
 }
