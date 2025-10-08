@@ -1,10 +1,10 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-using Microsoft.Azure.Functions.Extensions.Mcp.Configuration;
-using Microsoft.Azure.WebJobs.Hosting;
 using System.Linq;
 using System.Text.Json;
+using Microsoft.Azure.Functions.Extensions.Mcp.Configuration;
+using Microsoft.Azure.WebJobs.Hosting;
 using Xunit;
 
 namespace Microsoft.Azure.Functions.Extensions.Mcp.Tests;
