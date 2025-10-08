@@ -12,6 +12,11 @@ namespace Microsoft.Azure.Functions.Extensions.Mcp.Configuration;
 /// </summary>
 public sealed class McpOptions : IOptionsFormatter
 {
+    private static readonly JsonSerializerOptions _serializerOptions = new()
+    {
+        WriteIndented = true
+    };
+
     private MessageOptions _messageOptions = new();
 
     /// <summary>
@@ -61,9 +66,6 @@ public sealed class McpOptions : IOptionsFormatter
             }
         };
 
-        return JsonSerializer.Serialize(options, new JsonSerializerOptions
-        {
-            WriteIndented = true
-        });
+        return JsonSerializer.Serialize(options, _serializerOptions);
     }
 }
