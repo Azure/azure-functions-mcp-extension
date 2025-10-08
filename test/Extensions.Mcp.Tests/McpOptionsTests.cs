@@ -3,6 +3,7 @@
 
 using Microsoft.Azure.Functions.Extensions.Mcp.Configuration;
 using Microsoft.Azure.WebJobs.Hosting;
+using System.Linq;
 using System.Text.Json;
 using Xunit;
 
@@ -50,6 +51,10 @@ public class McpOptionsTests
         // Verify Instructions is NOT included (sensitive data)
         Assert.DoesNotContain("Instructions", formatted);
         Assert.DoesNotContain("Sensitive instructions", formatted);
+
+        // Verify exactly 4 top-level properties are logged
+        using var doc = JsonDocument.Parse(formatted);
+        Assert.Equal(4, doc.RootElement.EnumerateObject().Count());
     }
 
     [Fact]
