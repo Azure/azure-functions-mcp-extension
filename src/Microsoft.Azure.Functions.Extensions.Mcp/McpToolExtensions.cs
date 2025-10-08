@@ -2,17 +2,11 @@
 // Licensed under the MIT License.
 
 using System.Text.Json;
-using System.Text.Json.Serialization;
 
 namespace Microsoft.Azure.Functions.Extensions.Mcp;
 
 internal static class McpToolExtensions
 {
-    private static readonly JsonSerializerOptions ToolSerializerOptions = new()
-    {
-        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
-    };
-
     internal static JsonElement GetPropertiesInputSchema(this IMcpTool tool)
     {
         ArgumentNullException.ThrowIfNull(tool);

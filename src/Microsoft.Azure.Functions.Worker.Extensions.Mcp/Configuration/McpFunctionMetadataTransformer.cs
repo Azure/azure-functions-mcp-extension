@@ -48,14 +48,14 @@ public sealed partial class McpFunctionMetadataTransformer(IOptionsMonitor<ToolO
 
                 var bindingType = bindingTypeNode?.ToString();
 
-                if (string.Equals(bindingType, McpToolTriggerBindingType, StringComparison.Ordinal)
+                if (string.Equals(bindingType, McpToolTriggerBindingType, StringComparison.OrdinalIgnoreCase)
                     && jsonObject.TryGetPropertyValue("toolName", out var toolNameNode)
                     && GetToolProperties(toolNameNode?.ToString(), function, out toolProperties))
                 {
                     jsonObject["toolProperties"] = GetPropertiesJson(function.Name, toolProperties);
                     function.RawBindings[i] = jsonObject.ToJsonString();
                 }
-                else if (string.Equals(bindingType, McpToolPropertyBindingType, StringComparison.Ordinal)
+                else if (string.Equals(bindingType, McpToolPropertyBindingType, StringComparison.OrdinalIgnoreCase)
                     && jsonObject.TryGetPropertyValue(McpToolPropertyName, out var propertyNameNode)
                     && propertyNameNode is not null)
                 {
