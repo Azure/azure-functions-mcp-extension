@@ -40,6 +40,17 @@ public class McpInputConversionHelperCollectionTests
     }
 
     [Fact]
+    public void ConvertToCollection_IEnumerableOfInt_TargetDictionary()
+    {
+        var source = MakeList(new KeyValuePair<string, string>("test", "test"));
+
+        var result = McpInputConversionHelper.ConvertToCollection(source, typeof(IDictionary<string, string>));
+
+        var list = Assert.IsType<List<KeyValuePair<string, string>>>(result);
+        Assert.Equal([new KeyValuePair<string, string>("test", "test")], list);
+    }
+
+    [Fact]
     public void ConvertToCollection_NonGenericIEnumerable_TargetEnumerable()
     {
         var source = MakeList(10, 11);

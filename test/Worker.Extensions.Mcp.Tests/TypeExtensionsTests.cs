@@ -44,6 +44,7 @@ public class TypeExtensionsTests
     [InlineData(typeof(int[]), "integer", true)]
     [InlineData(typeof(List<string>), "string", true)]
     [InlineData(typeof(IEnumerable<bool>), "boolean", true)]
+    [InlineData(typeof(IEnumerable<bool?>), "boolean", true)]
     [InlineData(typeof(CollectionClass), "integer", true)]
     [InlineData(typeof(DateTime), "string", false)]
     [InlineData(typeof(Guid), "string", false)]

@@ -11,6 +11,7 @@ namespace Microsoft.Azure.Functions.Worker.Extensions.Mcp.Converters;
 internal static class McpInputConversionHelper
 {
     private static readonly ConcurrentDictionary<Type, Func<int, IList>> _listFactoryCache = new();
+    private static readonly ConcurrentDictionary<Type, Type> _elementTypeCache = new();
 
     public static bool TryConvertArgumentToTargetType(object? value, Type targetType, out object? result)
     {
@@ -178,17 +179,34 @@ internal static class McpInputConversionHelper
 
     private static Type? GetElementType(Type collectionType)
     {
-        if (collectionType.IsArray)
+        return _elementTypeCache.GetOrAdd(collectionType, static t => GetElementTypeCore(t));
+
+        static Type GetElementTypeCore(Type t)
         {
-            return collectionType.GetElementType();
+            if (t.IsArray)
+            {
+                return t.GetElementType()!;
+            }
+
+            if (MatchGenericEnumerable(t, null))
+            {
+                return t.GetGenericArguments()[0];
+            }
+
+            var enumerableType = t
+                .FindInterfaces(MatchGenericEnumerable, null)
+                .FirstOrDefault();
+
+            if (enumerableType is not null)
+            {
+                return enumerableType.GetGenericArguments()[0];
+            }
+
+            return typeof(object);
         }
 
-        if (collectionType.IsGenericType)
-        {
-            return collectionType.GetGenericArguments().FirstOrDefault();
-        }
-
-        return typeof(object);
+        static bool MatchGenericEnumerable(Type type, object? _)
+            => type.IsGenericType && type.GetGenericTypeDefinition() == typeof(IEnumerable<>);
     }
 }
 
