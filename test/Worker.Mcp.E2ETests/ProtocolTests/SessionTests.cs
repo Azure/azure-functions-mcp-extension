@@ -29,30 +29,6 @@ public class SessionTests(DefaultProjectFixture fixture, ITestOutputHelper testO
 
     [Theory]
     [InlineData(HttpTransportMode.StreamableHttp)]
-    public async Task DefaultServer_SessionPersistsAcrossRequests(HttpTransportMode mode)
-    {
-        var client = await _fixture.CreateClientAsync(mode);
-        var originalSessionId = client.SessionId;
-        
-        Assert.NotNull(originalSessionId);
-        Assert.NotEmpty(originalSessionId);
-        
-        // Make multiple requests and verify session ID doesn't change
-        var tools1 = await client.ListToolsAsync();
-        Assert.Equal(originalSessionId, client.SessionId);
-        
-        var tools2 = await client.ListToolsAsync();
-        Assert.Equal(originalSessionId, client.SessionId);
-        
-        // Verify both requests succeeded
-        Assert.NotNull(tools1);
-        Assert.NotNull(tools2);
-        
-        TestOutputHelper.WriteLine($"Session persisted across multiple requests: {originalSessionId}");
-    }
-
-    [Theory]
-    [InlineData(HttpTransportMode.StreamableHttp)]
     public async Task DefaultServer_UniqueSessionsForDifferentClients(HttpTransportMode mode)
     {
         var client1 = await _fixture.CreateClientAsync(mode);

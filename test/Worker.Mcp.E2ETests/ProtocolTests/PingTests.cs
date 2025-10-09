@@ -3,9 +3,7 @@
 
 using Microsoft.Azure.Functions.Worker.Mcp.E2ETests.Fixtures;
 using ModelContextProtocol.Client;
-using ModelContextProtocol.Protocol;
-using System.Net.Http;
-using Xunit.Abstractions;
+using System.Text.Json;
 
 namespace Microsoft.Azure.Functions.Worker.Mcp.E2ETests.ProtocolTests;
 
@@ -27,6 +25,7 @@ public class PingTests(DefaultProjectFixture fixture) : IClassFixture<DefaultPro
 
     [Theory]
     [InlineData(HttpTransportMode.Sse)]
+    [InlineData(HttpTransportMode.AutoDetect)]
     public async Task DefaultServerSendsPingsWithinSixMinutes(HttpTransportMode mode)
     {
         var handler = new PingResponseHandler();
@@ -48,13 +47,13 @@ public class PingTests(DefaultProjectFixture fixture) : IClassFixture<DefaultPro
 
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
-            if (request.Content != null &&
+            if (request.Content is not null &&
                 request.Content.Headers.ContentType?.MediaType == "application/json")
             {
                 var contentString = await request.Content.ReadAsStringAsync(cancellationToken);
                 try
                 {
-                    using var doc = System.Text.Json.JsonDocument.Parse(contentString);
+                    using var doc = JsonDocument.Parse(contentString);
                     var root = doc.RootElement;
                     
                     if (
@@ -66,7 +65,7 @@ public class PingTests(DefaultProjectFixture fixture) : IClassFixture<DefaultPro
                         PingReceived = true;
                     }
                 }
-                catch (System.Text.Json.JsonException)
+                catch (JsonException)
                 {
                     // Ignore invalid JSON
                 }

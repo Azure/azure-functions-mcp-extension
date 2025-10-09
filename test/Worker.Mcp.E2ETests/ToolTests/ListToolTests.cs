@@ -4,9 +4,9 @@
 using Microsoft.Azure.Functions.Worker.Mcp.E2ETests.Fixtures;
 using ModelContextProtocol.Client;
 
-namespace Microsoft.Azure.Functions.Worker.Mcp.E2ETests.ProtocolTests;
+namespace Microsoft.Azure.Functions.Worker.Mcp.E2ETests.ToolTests;
 
-public class ToolTests(DefaultProjectFixture fixture) : IClassFixture<DefaultProjectFixture>
+public class ListToolTests(DefaultProjectFixture fixture) : IClassFixture<DefaultProjectFixture>
 {
     private readonly DefaultProjectFixture _fixture = fixture;
 
