@@ -25,7 +25,7 @@ namespace Microsoft.Azure.Functions.Worker.Mcp.E2ETests.Abstractions
 
             if (!_launchEnvironmentVariables.ContainsKey(Constants.AzureWebJobsStorage))
             {
-                _launchEnvironmentVariables[Constants.AzureWebJobsStorage] = "UseDevelopmentStorage=true";
+                _launchEnvironmentVariables[Constants.AzureWebJobsStorage] = Constants.UseDevelopmentStorage;
             }
 
             // User setting the environment variable should win over the property value.
@@ -41,7 +41,7 @@ namespace Microsoft.Azure.Functions.Worker.Mcp.E2ETests.Abstractions
         public IDictionary<string, string> LaunchEnvironmentVariables {
             get => _launchEnvironmentVariables ??= new Dictionary<string, string>
             {
-                { Constants.AzureWebJobsStorage, "UseDevelopmentStorage=true" },
+                { Constants.AzureWebJobsStorage, Constants.UseDevelopmentStorage},
                 { Constants.FunctionsWorkerRuntime, FunctionsWorkerRuntime }
             };
             set => SetLaunchEnvironmentVariables(value ?? new Dictionary<string, string>());

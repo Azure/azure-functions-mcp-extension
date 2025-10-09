@@ -7,5 +7,6 @@ namespace Microsoft.Azure.Functions.Worker.Mcp.E2ETests
     {
         public const string FunctionsWorkerRuntime = "FUNCTIONS_WORKER_RUNTIME";
         public const string AzureWebJobsStorage = "AzureWebJobsStorage";
+        public const string UseDevelopmentStorage = "UseDevelopmentStorage=true";
     }
 }
