@@ -8,6 +8,7 @@
 
 - Enforcing required properties in MCP Extension (#105)
 - Built-in array support (#117)
+- Updated binding data to ensure payload and contracts are case insensitive (#121)
 
 ### Microsoft.Azure.Functions.Worker.Extensions.Mcp 1.0.0-preview.8
 
