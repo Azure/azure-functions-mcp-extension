@@ -1,13 +1,22 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
+using System.ComponentModel;
+using System.Text.Json;
+using Microsoft.Azure.WebJobs.Hosting;
+
 namespace Microsoft.Azure.Functions.Extensions.Mcp.Configuration;
 
 /// <summary>
 /// Options for configuring the Model Context Protocol (MCP) extension in Azure Functions.
 /// </summary>
-public sealed class McpOptions
+public sealed class McpOptions : IOptionsFormatter
 {
+    private static readonly JsonSerializerOptions _serializerOptions = new()
+    {
+        WriteIndented = true
+    };
+
     private MessageOptions _messageOptions = new();
 
     /// <summary>
@@ -40,5 +49,23 @@ public sealed class McpOptions
         get => _messageOptions;
         set => _messageOptions = value
                                  ?? throw new ArgumentNullException(nameof(value),"Message options cannot be null.");
+    }
+
+    /// <inheritdoc/>
+    [EditorBrowsable(EditorBrowsableState.Never)]
+    string IOptionsFormatter.Format()
+    {
+        var options = new
+        {
+            ServerName,
+            ServerVersion,
+            EncryptClientState,
+            MessageOptions = new
+            {
+                MessageOptions.UseAbsoluteUriForEndpoint
+            }
+        };
+
+        return JsonSerializer.Serialize(options, _serializerOptions);
     }
 }
