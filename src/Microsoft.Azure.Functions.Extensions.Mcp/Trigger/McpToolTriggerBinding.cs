@@ -28,7 +28,7 @@ internal sealed class McpToolTriggerBinding : ITriggerBinding
         _toolAttribute = toolAttribute;
         _triggerParameter = triggerParameter;
 
-        BindingDataContract = new Dictionary<string, Type>
+        BindingDataContract = new Dictionary<string, Type>(StringComparer.OrdinalIgnoreCase)
         {
             { triggerParameter.Name!, triggerParameter.ParameterType },
             { "mcptoolcontext", typeof(ToolInvocationContext) },
@@ -57,7 +57,7 @@ internal sealed class McpToolTriggerBinding : ITriggerBinding
             triggerValue = JsonSerializer.Serialize(invocationContext, McpJsonSerializerOptions.DefaultOptions);
         }
 
-        var bindingData = new Dictionary<string, object>
+        var bindingData = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase)
         {
             ["mcptoolcontext"] = invocationContext,
             [_triggerParameter.Name!] = triggerValue,

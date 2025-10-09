@@ -155,4 +155,42 @@ public class McpToolTriggerBindingTests
         Assert.Contains(param.Name!, binding.BindingDataContract.Keys);
         Assert.Contains("$return", binding.BindingDataContract.Keys);
     }
+
+    [Fact]
+    public async Task BindAsync_BindingData_IsCaseInsensitive()
+    {
+        var (binding, param) = CreateBinding();
+        CallToolExecutionContext executionContext = CreateExecutionContext();
+        var triggerData = await binding.BindAsync(executionContext, CreateValueBindingContext());
+
+        // Access using different casings
+        var ctxLower = triggerData.BindingData["mcptoolcontext"];
+        var ctxMixed = triggerData.BindingData["McpToolContext"];
+        var ctxUpper = triggerData.BindingData["MCPTOOLCONTEXT"];
+
+        Assert.Same(ctxLower, ctxMixed);
+        Assert.Same(ctxLower, ctxUpper);
+
+        // Parameter name
+        var paramValueOriginal = triggerData.BindingData[param.Name!];
+        var paramValueUpper = triggerData.BindingData[param.Name!.ToUpperInvariant()];
+        Assert.Same(paramValueOriginal, paramValueUpper);
+
+        // mcptoolargs and mcpsessionid
+        Assert.NotNull(triggerData.BindingData["McpToolArgs"]);
+        Assert.NotNull(triggerData.BindingData["McpSessionId"]);
+    }
+
+    [Fact]
+    public void BindingDataContract_IsCaseInsensitive()
+    {
+        var (binding, param) = CreateBinding();
+
+        // Verify case-insensitive ContainsKey behavior
+        Assert.True(binding.BindingDataContract.ContainsKey("McpToolContext"));
+        Assert.True(binding.BindingDataContract.ContainsKey("McpToolArgs"));
+        Assert.True(binding.BindingDataContract.ContainsKey("McpSessionId"));
+        Assert.True(binding.BindingDataContract.ContainsKey(param.Name!.ToUpperInvariant()));
+        Assert.True(binding.BindingDataContract.ContainsKey("$RETURN")); // different case
+    }
 }
