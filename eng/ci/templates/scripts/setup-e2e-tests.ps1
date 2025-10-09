@@ -32,11 +32,11 @@ else
       $os = "win"
   }
   elseif ($IsMacOS) {
-          $os = "osx"
+      $os = "osx"
   }
   elseif ($IsLinux) {
-          $os = "linux"
-      }
+      $os = "linux"
+  }
   else {
     throw "Unsupported operating system detected. Please run this script on Windows, macOS, or Linux."
   }
