@@ -55,7 +55,7 @@ public sealed class McpOptions : IOptionsFormatter
     [EditorBrowsable(EditorBrowsableState.Never)]
     string IOptionsFormatter.Format()
     {
-        McpOptions options = new
+        var options = new
         {
             ServerName,
             ServerVersion,
