@@ -27,7 +27,7 @@ public abstract class CoreToolsProjectBase : IAsyncLifetime
         _project = project;
     }
 
-    public Uri? AppRootEndpoint { get; set; } = new Uri("http://localhost:7071");
+    internal Uri? AppRootEndpoint { get; set; } = new Uri("http://localhost:7071");
 
     public async Task InitializeAsync()
     {
