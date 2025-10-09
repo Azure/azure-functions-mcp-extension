@@ -9,23 +9,69 @@ internal static class McpToolExtensions
 {
     internal static JsonElement GetPropertiesInputSchema(this IMcpTool tool)
     {
-        var schema = new
-        {
-            type = "object",
-            properties = tool.Properties.ToDictionary(
-                prop => prop.PropertyName,
-                prop => new
-                {
-                    type = prop.PropertyType,
-                    description = prop.Description ?? string.Empty
-                }
-            ),
-            required = tool.Properties.Where(prop => prop.Required)
-                .Select(prop => prop.PropertyName).ToArray()
-        };
+        ArgumentNullException.ThrowIfNull(tool);
 
-        var jsonString = JsonSerializer.Serialize(schema);
-        using var document = JsonDocument.Parse(jsonString);
-        return document.RootElement.Clone();
+        var props = (tool.Properties ?? [])
+            .Where(p => p is not null && !string.IsNullOrWhiteSpace(p.PropertyName))
+            .ToArray();
+
+        using var ms = new MemoryStream();
+        using (var writer = new Utf8JsonWriter(ms))
+        {
+            writer.WriteStartObject();
+            writer.WriteString("type", "object");
+
+            writer.WritePropertyName("properties");
+            writer.WriteStartObject();
+
+            foreach (var p in props)
+            {
+                writer.WritePropertyName(p.PropertyName);
+                writer.WriteStartObject();
+
+                if (p.IsArray)
+                {
+                    writer.WriteString("type", "array");
+                    writer.WritePropertyName("items");
+                    writer.WriteStartObject();
+                    writer.WriteString("type", p.PropertyType);
+                    writer.WriteEndObject();
+                }
+                else
+                {
+                    writer.WriteString("type", p.PropertyType);
+                }
+
+                writer.WriteString("description", p.Description ?? string.Empty);
+
+                writer.WriteEndObject();
+            }
+
+            writer.WriteEndObject();
+
+            var required = props
+                .Where(p => p.IsRequired)
+                .Select(p => p.PropertyName)
+                .Distinct()
+                .ToArray();
+
+
+            // Always write the "required" property, even if there are no required properties.
+            writer.WritePropertyName("required");
+            writer.WriteStartArray();
+
+            foreach (var r in required)
+            {
+                writer.WriteStringValue(r);
+            }
+
+            writer.WriteEndArray();
+
+            writer.WriteEndObject();
+        }
+
+        ms.Position = 0;
+        using var doc = JsonDocument.Parse(ms);
+        return doc.RootElement.Clone();
     }
 }

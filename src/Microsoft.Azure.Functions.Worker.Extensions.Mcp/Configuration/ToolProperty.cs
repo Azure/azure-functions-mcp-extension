@@ -1,21 +1,25 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
 using System.Text.Json.Serialization;
 
 namespace Microsoft.Azure.Functions.Worker.Extensions.Mcp.Configuration;
 
-public class ToolProperty(string name, string type, string? description, bool required = false)
+public sealed class ToolProperty(string name, string type, string? description,
+                                 bool isRequired = false, bool isArray = false)
 {
     [JsonPropertyName("propertyName")]
-    public string Name { get; set; } = name;
+    public string Name { get; init; } = name;
 
     [JsonPropertyName("propertyType")]
-    public string Type { get; set; } = type;
+    public string Type { get; init; } = type;
 
     [JsonPropertyName("description")]
-    public string? Description { get; set; } = description;
+    public string? Description { get; init; } = description;
 
-    [JsonPropertyName("required")]
-    public bool Required { get; set; } = required;
+    [JsonPropertyName("isRequired")]
+    public bool IsRequired { get; init; } = isRequired;
+
+    [JsonPropertyName("isArray")]
+    public bool IsArray { get; init; } = isArray;
 }

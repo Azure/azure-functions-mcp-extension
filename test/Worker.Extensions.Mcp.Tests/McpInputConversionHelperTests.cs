@@ -1,3 +1,6 @@
+// Copyright (c) .NET Foundation. All rights reserved.
+// Licensed under the MIT License. See License.txt in the project root for license information.
+
 using System.ComponentModel;
 using System.Globalization;
 using Microsoft.Azure.Functions.Worker.Extensions.Mcp.Converters;

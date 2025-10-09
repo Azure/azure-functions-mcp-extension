@@ -9,10 +9,10 @@ namespace Microsoft.Azure.Functions.Worker.Extensions.Mcp;
 
 [InputConverter(typeof(ToolInvocationArgumentTypeConverter))]
 [ConverterFallbackBehavior(ConverterFallbackBehavior.Disallow)]
-public sealed class McpToolPropertyAttribute(string propertyName, string propertyType, string description, bool required = false) : InputBindingAttribute, IMcpBindingAttribute
+public sealed class McpToolPropertyAttribute(string propertyName, string description, bool isRequired = false) : InputBindingAttribute, IMcpBindingAttribute
 {
     public McpToolPropertyAttribute()
-    : this(string.Empty, string.Empty, string.Empty)
+        : this(string.Empty, string.Empty)
     {
     }
 
@@ -22,11 +22,6 @@ public sealed class McpToolPropertyAttribute(string propertyName, string propert
     public string PropertyName { get; set; } = propertyName;
 
     /// <summary>
-    /// Gets or sets the type of the MCP tool property.
-    /// </summary>
-    public string PropertyType { get; set; } = propertyType;
-
-    /// <summary>
     /// Gets or sets the description of the MCP tool property.
     /// </summary>
     public string? Description { get; set; } = description;
@@ -34,7 +29,7 @@ public sealed class McpToolPropertyAttribute(string propertyName, string propert
     /// <summary>
     /// Gets or sets a value indicating whether the MCP tool property is required.
     /// </summary>
-    public bool Required { get; set; } = required;
+    public bool IsRequired { get; set; } = isRequired;
 
     /// <inheritdoc />
     string IMcpBindingAttribute.BindingName => PropertyName;

@@ -34,20 +34,28 @@ public class TypeExtensionsTests
     }
 
     [Theory]
-    [InlineData(typeof(string), "string")]
-    [InlineData(typeof(int), "integer")]
-    [InlineData(typeof(int?), "integer")]
-    [InlineData(typeof(bool), "boolean")]
-    [InlineData(typeof(bool?), "boolean")]
-    [InlineData(typeof(double), "number")]
-    [InlineData(typeof(double?), "number")]
-    [InlineData(typeof(int[]), "array")]
-    [InlineData(typeof(List<string>), "array")]
-    [InlineData(typeof(IEnumerable<bool>), "array")]
-    [InlineData(typeof(DateTime), "object")]
-    [InlineData(typeof(PocoClass), "object")]
-    public void MapToToolPropertyType_ReturnsExpectedType(Type type, string expected)
+    [InlineData(typeof(string), "string", false)]
+    [InlineData(typeof(int), "integer", false)]
+    [InlineData(typeof(int?), "integer", false)]
+    [InlineData(typeof(bool), "boolean", false)]
+    [InlineData(typeof(bool?), "boolean", false)]
+    [InlineData(typeof(double), "number", false)]
+    [InlineData(typeof(double?), "number", false)]
+    [InlineData(typeof(int[]), "integer", true)]
+    [InlineData(typeof(List<string>), "string", true)]
+    [InlineData(typeof(IEnumerable<bool>), "boolean", true)]
+    [InlineData(typeof(IEnumerable<bool?>), "boolean", true)]
+    [InlineData(typeof(CollectionClass), "integer", true)]
+    [InlineData(typeof(DateTime), "string", false)]
+    [InlineData(typeof(Guid), "string", false)]
+    [InlineData(typeof(char), "string", false)]
+    [InlineData(typeof(char[]), "string", true)]
+    [InlineData(typeof(DateTimeOffset), "string", false)]
+    [InlineData(typeof(PocoClass), "object", false)]
+    public void MapToToolPropertyType_ReturnsExpectedType(Type type, string expectedType, bool expectedIsArray)
     {
+        var expected = new McpToolPropertyType(expectedType, expectedIsArray);
+
         Assert.Equal(expected, type.MapToToolPropertyType());
     }
 }

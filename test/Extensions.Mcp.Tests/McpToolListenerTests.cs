@@ -17,7 +17,7 @@ public class McpToolListenerTests
         var mock = new Mock<IMcpToolProperty>();
         mock.SetupAllProperties();
         mock.Object.PropertyName = name;
-        mock.Object.Required = required;
+        mock.Object.IsRequired = required;
         return mock.Object;
     }
 
