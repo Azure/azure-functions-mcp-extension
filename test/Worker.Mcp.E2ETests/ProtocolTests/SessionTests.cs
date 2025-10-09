@@ -19,28 +19,6 @@ public class SessionTests(DefaultProjectFixture fixture, ITestOutputHelper testO
     [InlineData(HttpTransportMode.StreamableHttp)]
     public async Task DefaultServer_ClientHasSession(HttpTransportMode mode)
     {
-        await AssertClientHasSession(mode);
-    }
-
-    [Theory]
-    [InlineData(HttpTransportMode.StreamableHttp)]
-    public async Task DefaultServer_SessionPersistsAcrossRequests(HttpTransportMode mode)
-    {
-        await AssertSessionPersistsAcrossRequests(mode);
-    }
-
-    [Theory]
-    [InlineData(HttpTransportMode.StreamableHttp)]
-    public async Task DefaultServer_UniqueSessionsForDifferentClients(HttpTransportMode mode)
-    {
-        await AssertUniqueSessionsForDifferentClients(mode);
-    }
-
-    /// <summary>
-    /// Asserts that a client has a valid session when connecting
-    /// </summary>
-    private async Task AssertClientHasSession(HttpTransportMode mode)
-    {
         var client = await _fixture.CreateClientAsync(mode);
         
         Assert.NotNull(client.SessionId);
@@ -49,10 +27,9 @@ public class SessionTests(DefaultProjectFixture fixture, ITestOutputHelper testO
         TestOutputHelper.WriteLine($"Client session ID: {client.SessionId}");
     }
 
-    /// <summary>
-    /// Asserts that sessions are properly maintained across multiple requests
-    /// </summary>
-    private async Task AssertSessionPersistsAcrossRequests(HttpTransportMode mode)
+    [Theory]
+    [InlineData(HttpTransportMode.StreamableHttp)]
+    public async Task DefaultServer_SessionPersistsAcrossRequests(HttpTransportMode mode)
     {
         var client = await _fixture.CreateClientAsync(mode);
         var originalSessionId = client.SessionId;
@@ -74,10 +51,9 @@ public class SessionTests(DefaultProjectFixture fixture, ITestOutputHelper testO
         TestOutputHelper.WriteLine($"Session persisted across multiple requests: {originalSessionId}");
     }
 
-    /// <summary>
-    /// Asserts that each client gets a unique session
-    /// </summary>
-    private async Task AssertUniqueSessionsForDifferentClients(HttpTransportMode mode)
+    [Theory]
+    [InlineData(HttpTransportMode.StreamableHttp)]
+    public async Task DefaultServer_UniqueSessionsForDifferentClients(HttpTransportMode mode)
     {
         var client1 = await _fixture.CreateClientAsync(mode);
         var client2 = await _fixture.CreateClientAsync(mode);

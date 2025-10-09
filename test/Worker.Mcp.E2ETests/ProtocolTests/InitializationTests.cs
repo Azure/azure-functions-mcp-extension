@@ -15,11 +15,19 @@ public class InitializationTests(DefaultProjectFixture fixture) : IClassFixture<
     [InlineData(HttpTransportMode.Sse)]
     [InlineData(HttpTransportMode.AutoDetect)]
     [InlineData(HttpTransportMode.StreamableHttp)]
-    public async Task DefaultServer_InfoReturnedSuccessfully(HttpTransportMode mode) => await AssertServerInfoEquality(mode, new Implementation()
+    public async Task DefaultServer_InfoReturnedSuccessfully(HttpTransportMode mode)
     {
-        Name = "Test project server",
-        Version = "2.1.0"
-    });
+        var assertedImplementation = new Implementation()
+        {
+            Name = "Test project server",
+            Version = "2.1.0"
+        };
+        
+        var client = await _fixture.CreateClientAsync(mode);
+        Assert.Equal(assertedImplementation.Name, client.ServerInfo.Name);
+        Assert.Equal(assertedImplementation.Version, client.ServerInfo.Version);
+        Assert.Equal(assertedImplementation.Title, client.ServerInfo.Title);
+    }
 
     [Theory]
     [InlineData(HttpTransportMode.Sse)]
@@ -37,26 +45,6 @@ public class InitializationTests(DefaultProjectFixture fixture) : IClassFixture<
     [InlineData(HttpTransportMode.StreamableHttp)]
     public async Task DefaultServer_HasExpectedCapabilities(HttpTransportMode mode)
     {
-        await AssertServerHasExpectedCapabilities(mode);
-    }
-
-    [Theory]
-    [InlineData(HttpTransportMode.StreamableHttp)]
-    public async Task DefaultServer_MaintainsSession(HttpTransportMode mode)
-    {
-        await AssertServerMaintainsSession(mode);
-    }
-
-    private async Task AssertServerInfoEquality(HttpTransportMode mode, Implementation assertedImplementation)
-    {
-        var client = await _fixture.CreateClientAsync(mode);
-        Assert.Equal(assertedImplementation.Name, client.ServerInfo.Name);
-        Assert.Equal(assertedImplementation.Version, client.ServerInfo.Version);
-        Assert.Equal(assertedImplementation.Title, client.ServerInfo.Title);
-    }
-
-    private async Task AssertServerHasExpectedCapabilities(HttpTransportMode mode)
-    {
         var client = await _fixture.CreateClientAsync(mode);
         
         // Verify that the server capabilities are present
@@ -66,7 +54,9 @@ public class InitializationTests(DefaultProjectFixture fixture) : IClassFixture<
         Assert.NotNull(client.ServerCapabilities.Tools);
     }
 
-    private async Task AssertServerMaintainsSession(HttpTransportMode mode)
+    [Theory]
+    [InlineData(HttpTransportMode.StreamableHttp)]
+    public async Task DefaultServer_MaintainsSession(HttpTransportMode mode)
     {
         var client = await _fixture.CreateClientAsync(mode);
         

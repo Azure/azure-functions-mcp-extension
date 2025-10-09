@@ -9,7 +9,7 @@ using Xunit.Abstractions;
 
 namespace Microsoft.Azure.Functions.Worker.Mcp.E2ETests.ProtocolTests;
 
-public class PingTests(DefaultProjectFixture fixture, ITestOutputHelper testOutputHelper) : IClassFixture<DefaultProjectFixture>
+public class PingTests(DefaultProjectFixture fixture) : IClassFixture<DefaultProjectFixture>
 {
     private readonly DefaultProjectFixture _fixture = fixture;
 
@@ -19,24 +19,15 @@ public class PingTests(DefaultProjectFixture fixture, ITestOutputHelper testOutp
     [InlineData(HttpTransportMode.StreamableHttp)]
     public async Task DefaultServerRespondsToClientPing(HttpTransportMode mode)
     {
-        await AssertServerRespondsToClientPing(mode);
+        var client = await _fixture.CreateClientAsync(mode);
+        await client.PingAsync();
+        // completion of this method indicates the server responded to the ping
+        Assert.True(true, "Server responded to ping without exception");
     }
 
     [Theory]
     [InlineData(HttpTransportMode.Sse)]
     public async Task DefaultServerSendsPingsWithinSixMinutes(HttpTransportMode mode)
-    {
-        await AssertServerSendsPingsWithinSixMinutes(mode);
-    }
-
-    private async Task AssertServerRespondsToClientPing(HttpTransportMode mode)
-    {
-        var client = await _fixture.CreateClientAsync(mode);
-        await client.PingAsync();
-        // completion of this method indicates the server responded to the ping
-    }
-
-    private async Task AssertServerSendsPingsWithinSixMinutes(HttpTransportMode mode)
     {
         var handler = new PingResponseHandler();
         var client = await _fixture.CreateClientAsync(mode, delegatingHandler: handler);
