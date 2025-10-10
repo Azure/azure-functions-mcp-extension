@@ -4,12 +4,12 @@
 using Microsoft.Azure.Functions.Worker.Mcp.E2ETests.Fixtures;
 using Xunit.Abstractions;
 
-namespace Microsoft.Azure.Functions.Worker.Mcp.E2ETests.InvocationTests;
+namespace Microsoft.Azure.Functions.Worker.Mcp.E2ETests.ToolTests;
 
 /// <summary>
 /// Tool invocation tests that make direct HTTP requests to the default server
 /// </summary>
-public class ServerToolInvocationTests(DefaultProjectFixture fixture, ITestOutputHelper testOutputHelper) : IClassFixture<DefaultProjectFixture>
+public class CallToolTests(DefaultProjectFixture fixture, ITestOutputHelper testOutputHelper) : IClassFixture<DefaultProjectFixture>
 {
     private readonly DefaultProjectFixture _fixture = fixture;
     protected readonly ITestOutputHelper TestOutputHelper = testOutputHelper;
@@ -94,15 +94,17 @@ public class ServerToolInvocationTests(DefaultProjectFixture fixture, ITestOutpu
             name = "DefaultTestUser",
             job = "QA Engineer",
             age = 28,
-            isHappy = true
+            isHappy = true,
+            attributes = new[] { "diligent", "team-player", "detail-oriented" },
+            numbers = new[] { 7, 14, 21 }
         });
 
         var response = await CallToolHelper.MakeToolCallRequest(AppRootEndpoint, request, TestOutputHelper);
 
+        TestOutputHelper.WriteLine($"Default HappyFunction response: {response}");
         Assert.NotNull(response);
         Assert.Contains("Hello, DefaultTestUser!", response);
         Assert.Contains("QA Engineer", response);
-        TestOutputHelper.WriteLine($"Default HappyFunction response: {response}");
     }
 
     [Fact]

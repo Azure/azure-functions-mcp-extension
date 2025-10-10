@@ -5,7 +5,7 @@ using System.Text;
 using System.Text.Json;
 using Xunit.Abstractions;
 
-namespace Microsoft.Azure.Functions.Worker.Mcp.E2ETests.InvocationTests;
+namespace Microsoft.Azure.Functions.Worker.Mcp.E2ETests.ToolTests;
 
 /// <summary>
 /// Helper class for making server tool invocation requests
