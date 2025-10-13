@@ -33,6 +33,15 @@ public class TestFunction
             """;
     }
 
+    [Function(nameof(BirthdayTracker))]
+    public string BirthdayTracker(
+        [McpToolTrigger(nameof(BirthdayTracker), "Capture user birthday information.")] ToolInvocationContext context,
+        [McpToolProperty(nameof(userId), "User ID")] Guid userId,
+        [McpToolProperty(nameof(birthday), "Birthday")] DateTime birthday)
+    {
+        return $"Hello {userId}, {birthday}";
+    }
+
     [Function(nameof(SingleArgumentFunction))]
     public string SingleArgumentFunction(
        [McpToolTrigger(nameof(SingleArgumentFunction), "Echoes a single argument passed into the tool.")] ToolInvocationContext context,

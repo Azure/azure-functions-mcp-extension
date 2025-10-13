@@ -147,4 +147,22 @@ public class CallToolTests(DefaultProjectFixture fixture, ITestOutputHelper test
         TestOutputHelper.WriteLine($"Default SingleArgumentWithDefaultFunction (default) response: {responseWithoutArg}");
         Assert.Contains("(no-argument)", responseWithoutArg);
     }
+
+    [Fact]
+    public async Task DefaultServer_BirthdayTracker_Success()
+    {
+        // Test calling BirthdayTracker on Default server (TestAppIsolated)
+        var request = CallToolHelper.CreateToolCallRequest(10, "BirthdayTracker", new
+        {
+            userId = "9fe500ac-e415-4c59-a766-d6378ebd7acd",
+            birthday = "1995-10-13 14:45:32Z"
+        });
+
+        var response = await CallToolHelper.MakeToolCallRequest(AppRootEndpoint, request, TestOutputHelper);
+
+        TestOutputHelper.WriteLine($"Default BirthdayTracker response: {response}");
+        Assert.NotNull(response);
+        Assert.Contains("9fe500ac-e415-4c59-a766-d6378ebd7acd", response);
+        Assert.Contains("1995-10-13 14:45:32Z", response);
+    }
 }
