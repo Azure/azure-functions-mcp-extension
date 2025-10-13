@@ -1,6 +1,7 @@
 // Copyright(c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
+using System.Globalization;
 using Microsoft.Azure.Functions.Worker.Mcp.E2ETests.Fixtures;
 using Xunit.Abstractions;
 
@@ -158,11 +159,15 @@ public class CallToolTests(DefaultProjectFixture fixture, ITestOutputHelper test
             birthday = "1995-10-13 14:45:32Z"
         });
 
+        var expectedDate = DateTime.Parse("1995-10-13 14:45:32Z", null, DateTimeStyles.AdjustToUniversal | DateTimeStyles.AssumeUniversal)
+            .ToUniversalTime()
+            .ToString("o", CultureInfo.InvariantCulture);
+
         var response = await CallToolHelper.MakeToolCallRequest(AppRootEndpoint, request, TestOutputHelper);
 
         TestOutputHelper.WriteLine($"Default BirthdayTracker response: {response}");
         Assert.NotNull(response);
         Assert.Contains("9fe500ac-e415-4c59-a766-d6378ebd7acd", response);
-        Assert.Contains("1995-10-13 14:45:32Z", response);
+        Assert.Contains(expectedDate, response);
     }
 }

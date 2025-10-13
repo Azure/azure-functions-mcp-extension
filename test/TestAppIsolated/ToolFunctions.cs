@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.Globalization;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Extensions.Mcp;
 using Microsoft.Extensions.Logging;
@@ -39,7 +40,8 @@ public class TestFunction
         [McpToolProperty(nameof(userId), "User ID")] Guid userId,
         [McpToolProperty(nameof(birthday), "Birthday")] DateTime birthday)
     {
-        return $"Hello {userId}, {birthday}";
+        var date = birthday.ToUniversalTime().ToString("o", CultureInfo.InvariantCulture);
+        return $"Hello {userId}, {date}";
     }
 
     [Function(nameof(SingleArgumentFunction))]
