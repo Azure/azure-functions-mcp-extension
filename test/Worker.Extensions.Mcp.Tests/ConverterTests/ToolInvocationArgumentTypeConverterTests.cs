@@ -70,6 +70,28 @@ public class ToolInvocationArgumentTypeConverterTests
     }
 
     [Theory]
+    [InlineData("d2719f3e-8f5b-4c3a-9c1d-1e2f3a4b5c6d", typeof(Guid))]
+    [InlineData("1995-10-13 14:45:32Z", typeof(DateTime))]
+    [InlineData("2000-01-20 19:15:41Z", typeof(DateTimeOffset))]
+    public async Task ConvertAsync_ValueAlreadyOfTargetType_ReturnsSuccess(object value, Type type)
+    {
+        object inputValue = CreateValueAsTargetType(value, type);
+
+        var converter = new ToolInvocationArgumentTypeConverter();
+        var arguments = new Dictionary<string, object> { { "foo", inputValue! } };
+        var toolContext = new ToolInvocationContext { Name = "test", Arguments = arguments };
+
+        var functionContext = CreateFunctionContextWithToolContext(toolContext);
+        var bindingAttribute = new McpToolPropertyAttribute("foo", "", false);
+        var context = CreateConverterContext(type, bindingAttribute, functionContext);
+
+        var result = await converter.ConvertAsync(context);
+
+        Assert.Equal(ConversionStatus.Succeeded, result.Status);
+        Assert.Equal(inputValue, result.Value);
+    }
+
+    [Theory]
     [InlineData(true, true)]
     [InlineData(false, false)]
     public async Task ConvertAsync_WithMissingArgument_ReturnsUnhandled(object inputValue, object expectedValue)
@@ -138,7 +160,7 @@ public class ToolInvocationArgumentTypeConverterTests
     public async Task ConvertAsync_TypeMismatch_ReturnsUnhandled()
     {
         ToolInvocationArgumentTypeConverter converter = new();
-        Dictionary<string, object> arguments = new() { { "foo", "test"} };
+        Dictionary<string, object> arguments = new() { { "foo", "test" } };
         ToolInvocationContext toolContext = new() { Name = "test", Arguments = arguments };
         FunctionContext functionContext = CreateFunctionContextWithToolContext(toolContext);
         ConverterContext context = CreateConverterContext(typeof(int), new McpToolPropertyAttribute("foo", "", false), functionContext);
@@ -146,5 +168,16 @@ public class ToolInvocationArgumentTypeConverterTests
         var result = await converter.ConvertAsync(context);
 
         Assert.Equal(ConversionStatus.Unhandled, result.Status);
+    }
+
+    private object CreateValueAsTargetType(object value, Type targetType)
+    {
+        return targetType switch
+        {
+            Type t when t == typeof(Guid) => Guid.Parse((string)value),
+            Type t when t == typeof(DateTime) => DateTime.Parse((string)value, null, System.Globalization.DateTimeStyles.AdjustToUniversal | System.Globalization.DateTimeStyles.AssumeUniversal),
+            Type t when t == typeof(DateTimeOffset) => DateTimeOffset.Parse((string)value, null, System.Globalization.DateTimeStyles.AdjustToUniversal | System.Globalization.DateTimeStyles.AssumeUniversal),
+            _ => throw new ArgumentException("Unsupported type", nameof(targetType)),
+        };
     }
 }
