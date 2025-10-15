@@ -1,6 +1,7 @@
 // Copyright(c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
+using System.Globalization;
 using Microsoft.Azure.Functions.Worker.Mcp.E2ETests.Fixtures;
 using Xunit.Abstractions;
 
@@ -146,5 +147,27 @@ public class CallToolTests(DefaultProjectFixture fixture, ITestOutputHelper test
         Assert.NotNull(responseWithoutArg);
         TestOutputHelper.WriteLine($"Default SingleArgumentWithDefaultFunction (default) response: {responseWithoutArg}");
         Assert.Contains("(no-argument)", responseWithoutArg);
+    }
+
+    [Fact]
+    public async Task DefaultServer_BirthdayTracker_Success()
+    {
+        // Test calling BirthdayTracker on Default server (TestAppIsolated)
+        var request = CallToolHelper.CreateToolCallRequest(10, "BirthdayTracker", new
+        {
+            userId = "9fe500ac-e415-4c59-a766-d6378ebd7acd",
+            birthday = "1995-10-13 14:45:32Z"
+        });
+
+        var expectedDate = DateTime.Parse("1995-10-13 14:45:32Z", null, DateTimeStyles.AdjustToUniversal | DateTimeStyles.AssumeUniversal)
+            .ToUniversalTime()
+            .ToString("o", CultureInfo.InvariantCulture);
+
+        var response = await CallToolHelper.MakeToolCallRequest(AppRootEndpoint, request, TestOutputHelper);
+
+        TestOutputHelper.WriteLine($"Default BirthdayTracker response: {response}");
+        Assert.NotNull(response);
+        Assert.Contains("9fe500ac-e415-4c59-a766-d6378ebd7acd", response);
+        Assert.Contains(expectedDate, response);
     }
 }

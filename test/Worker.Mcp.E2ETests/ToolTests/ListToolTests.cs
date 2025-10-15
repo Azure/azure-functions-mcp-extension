@@ -19,7 +19,7 @@ public class ListToolTests(DefaultProjectFixture fixture) : IClassFixture<Defaul
         var client = await _fixture.CreateClientAsync(mode);
         var tools = await client.ListToolsAsync();
 
-        Assert.Equal(6, tools.Count);
+        Assert.Equal(7, tools.Count);
     }
 
     [Theory]
@@ -41,13 +41,13 @@ public class ListToolTests(DefaultProjectFixture fixture) : IClassFixture<Defaul
     [InlineData(HttpTransportMode.StreamableHttp)]
     public async Task DefaultListTools_ContainsExpectedTools(HttpTransportMode mode)
     {
-        // Default server (TestAppIsolated) has these tools: HappyFunction, SingleArgumentFunction, 
-        // SingleArgumentWithDefaultFunction, GetSnippet, SaveSnippet, SearchSnippets
         var client = await _fixture.CreateClientAsync(mode);
         var tools = await client.ListToolsAsync();
 
         Assert.NotNull(tools);
+        // Default server (TestAppIsolated) has these tools registered:
         Assert.Contains(tools, tool => tool.Name == "HappyFunction");
+        Assert.Contains(tools, tool => tool.Name == "BirthdayTracker");
         Assert.Contains(tools, tool => tool.Name == "SingleArgumentFunction");
         Assert.Contains(tools, tool => tool.Name == "SingleArgumentWithDefaultFunction");
         Assert.Contains(tools, tool => tool.Name == "getsnippets");

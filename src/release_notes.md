@@ -10,4 +10,4 @@
 
 ### Microsoft.Azure.Functions.Worker.Extensions.Mcp <version>
 
-- <entry>
+- Fix argument type conversion logic in MCP input binding; now correctly handle Guid and DateTime types (#126)

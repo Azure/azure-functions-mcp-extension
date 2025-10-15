@@ -55,6 +55,12 @@ internal static class McpInputConversionHelper
 
         targetType = Nullable.GetUnderlyingType(targetType) ?? targetType;
 
+        // If the value is already of the target type, return it directly
+        if (targetType.IsAssignableFrom(value.GetType()))
+        {
+            return value;
+        }
+
         if (targetType.IsEnum)
         {
             if (value is int || value is long)
