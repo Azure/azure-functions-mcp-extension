@@ -32,8 +32,6 @@ The above example will automatically expose the `name` and `snippet` parameters 
 
 Alternatively, you can define properties when creating your application as follows:
 ``` csharp
-builder.EnableMcpToolMetadata();
-
 // Define properties for the MCP tool:
 builder.ConfigureMcpTool("SaveSnippet")
     .WithProperty(SnippetNamePropertyName, PropertyType, SnippetNamePropertyDescription);
