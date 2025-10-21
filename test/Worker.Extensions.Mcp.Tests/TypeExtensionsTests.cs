@@ -1,30 +1,31 @@
+using Microsoft.Azure.Functions.Worker.Builder;
 using Microsoft.Azure.Functions.Worker.Extensions.Mcp.Reflection;
 
 namespace Worker.Extensions.Mcp.Tests;
 
 public class TypeExtensionsTests
 {
-    public static IEnumerable<object[]> PocoTestCases => new List<object[]>
-    {
-        new object[] { typeof(PocoClass), true },
-        new object[] { typeof(EmptyClass), true },
-        new object[] { typeof(ClassWithFieldsOnly), true },
-        new object[] { typeof(NestedPocoClass), true },
-        new object[] { typeof(PocoWithPrivateFields), true },
-        new object[] { typeof(GenericClass<string>), true },
-        new object[] { typeof(ClassWithStaticCtor), true },
-        new object[] { typeof(ClassWithInitOnly), true },
+    public static IEnumerable<object[]> PocoTestCases =>
+    [
+        [typeof(PocoClass), true],
+        [typeof(EmptyClass), true],
+        [typeof(ClassWithFieldsOnly), true],
+        [typeof(NestedPocoClass), true],
+        [typeof(PocoWithPrivateFields), true],
+        [typeof(GenericClass<string>), true],
+        [typeof(ClassWithStaticCtor), true],
+        [typeof(ClassWithInitOnly), true],
 
-        new object[] { typeof(string), false },
-        new object[] { typeof(AbstractClass), false },
-        new object[] { typeof(ITest), false },
-        new object[] { typeof(CollectionClass), false },
-        new object[] { typeof(NoDefaultCtor), false },
-        new object[] { typeof(GenericClass<>), false },
-        new object[] { typeof(StructExample), false },
-        new object[] { typeof(RecordExample), false },
-        new object[] { typeof(CollectionDerived), false }
-    };
+        [typeof(string), false],
+        [typeof(AbstractClass), false],
+        [typeof(ITest), false],
+        [typeof(CollectionClass), false],
+        [typeof(NoDefaultCtor), false],
+        [typeof(GenericClass<>), false],
+        [typeof(StructExample), false],
+        [typeof(RecordExample), false],
+        [typeof(CollectionDerived), false]
+    ];
 
     [Theory]
     [MemberData(nameof(PocoTestCases))]
