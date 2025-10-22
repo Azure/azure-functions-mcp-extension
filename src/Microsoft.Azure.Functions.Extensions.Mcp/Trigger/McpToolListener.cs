@@ -60,16 +60,7 @@ internal sealed class McpToolListener(ITriggeredFunctionExecutor executor,
             return new CallToolResult { Content = [] };
         }
 
-        return new CallToolResult
-        {
-            Content =
-            [
-                new TextContentBlock
-                {
-                    Text = toolResult.ToString() ?? string.Empty,
-                }
-            ]
-        };
+        return (CallToolResult)toolResult;
     }
 
     internal static void ValidateArgumentsHaveRequiredProperties(ICollection<IMcpToolProperty> properties, CallToolRequestParams? callToolRequest)

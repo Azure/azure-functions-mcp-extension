@@ -3,7 +3,6 @@
 
 using System.Reflection;
 using System.Text.Json;
-using System.Transactions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Azure.Functions.Extensions.Mcp.Abstractions;
 using Microsoft.Azure.Functions.Extensions.Mcp.Serialization;
@@ -63,7 +62,6 @@ internal sealed class McpToolTriggerBinding : ITriggerBinding
             [_triggerParameter.Name!] = triggerValue,
         };
 
-        
         if (invocationContext.SessionId is not null)
         {
             bindingData["mcpsessionid"] = invocationContext.SessionId;
@@ -74,11 +72,14 @@ internal sealed class McpToolTriggerBinding : ITriggerBinding
             bindingData["mcptoolargs"] = arguments.ToDictionary(kvp => kvp.Key, kvp => kvp.Value.ToString() ?? string.Empty);
         }
 
-        var valueProvider = new ObjectValueProvider(triggerValue, _triggerParameter.ParameterType);
+        IValueProvider valueProvider = new ObjectValueProvider(triggerValue, _triggerParameter.ParameterType);
+        IValueBinder returnValueBinder = _toolAttribute.RichContentTypeSupport
+            ? new McpToolTriggerRichContentReturnValueBinder(executionContext)
+            : new McpToolTriggerReturnValueBinder(executionContext);
 
         var data = new TriggerData(valueProvider, bindingData)
         {
-            ReturnValueProvider = new McpToolTriggerReturnValueBinder(executionContext),
+            ReturnValueProvider = returnValueBinder
         };
 
         return Task.FromResult<ITriggerData>(data);
@@ -197,27 +198,5 @@ internal sealed class McpToolTriggerBinding : ITriggerBinding
                 Prompt = "Enter MCP tool trigger value"
             }
         };
-    }
-
-    internal class McpToolTriggerReturnValueBinder(CallToolExecutionContext executionContext) : IValueBinder
-    {
-        public Type Type { get; } = typeof(object);
-
-        public Task SetValueAsync(object value, CancellationToken cancellationToken)
-        {
-            executionContext.SetResult(value);
-
-            return Task.CompletedTask;
-        }
-
-        public Task<object> GetValueAsync()
-        {
-            throw new NotSupportedException();
-        }
-
-        public string ToInvokeString()
-        {
-            return string.Empty;
-        }
     }
 }
