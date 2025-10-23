@@ -35,11 +35,18 @@ internal static class McpToolExtensions
                     writer.WritePropertyName("items");
                     writer.WriteStartObject();
                     writer.WriteString("type", p.PropertyType);
+                    
+                    // Add enum values for array items if available
+                    WriteEnumValuesIfPresent(writer, p.EnumValues);
+                    
                     writer.WriteEndObject();
                 }
                 else
                 {
                     writer.WriteString("type", p.PropertyType);
+                    
+                    // Add enum values for scalar properties if available
+                    WriteEnumValuesIfPresent(writer, p.EnumValues);
                 }
 
                 writer.WriteString("description", p.Description ?? string.Empty);
@@ -54,7 +61,6 @@ internal static class McpToolExtensions
                 .Select(p => p.PropertyName)
                 .Distinct()
                 .ToArray();
-
 
             // Always write the "required" property, even if there are no required properties.
             writer.WritePropertyName("required");
@@ -73,5 +79,19 @@ internal static class McpToolExtensions
         ms.Position = 0;
         using var doc = JsonDocument.Parse(ms);
         return doc.RootElement.Clone();
+    }
+
+    private static void WriteEnumValuesIfPresent(Utf8JsonWriter writer, IEnumerable<string>? enumValues)
+    {
+        if (enumValues is not null && enumValues.Any())
+        {
+            writer.WritePropertyName("enum");
+            writer.WriteStartArray();
+            foreach (var enumValue in enumValues)
+            {
+                writer.WriteStringValue(enumValue);
+            }
+            writer.WriteEndArray();
+        }
     }
 }
