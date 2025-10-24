@@ -93,7 +93,7 @@ public class CallToolTests(DefaultProjectFixture fixture, ITestOutputHelper test
         var request = CallToolHelper.CreateToolCallRequest(2, "HappyFunction", new
         {
             name = "DefaultTestUser",
-            job = "QA Engineer",
+            job = "Fulltime",
             age = 28,
             isHappy = true,
             attributes = new[] { "diligent", "team-player", "detail-oriented" },
@@ -105,7 +105,7 @@ public class CallToolTests(DefaultProjectFixture fixture, ITestOutputHelper test
         TestOutputHelper.WriteLine($"Default HappyFunction response: {response}");
         Assert.NotNull(response);
         Assert.Contains("Hello, DefaultTestUser!", response);
-        Assert.Contains("QA Engineer", response);
+        Assert.Contains("Fulltime", response);
     }
 
     [Fact]
