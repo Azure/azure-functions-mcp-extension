@@ -34,17 +34,16 @@ internal static class McpToolExtensions
                     writer.WriteString("type", "array");
                     writer.WritePropertyName("items");
                     writer.WriteStartObject();
-                    writer.WriteString("type", p.PropertyType);
-                    
+
                     // Add enum values for array items if available
                     WriteEnumValuesIfPresent(writer, p.EnumValues);
-                    
+
                     writer.WriteEndObject();
                 }
                 else
                 {
                     writer.WriteString("type", p.PropertyType);
-                    
+
                     // Add enum values for scalar properties if available
                     WriteEnumValuesIfPresent(writer, p.EnumValues);
                 }

@@ -20,7 +20,7 @@ public class TestFunction
     public string HappyFunction(
         [McpToolTrigger(nameof(HappyFunction), "Responds to the user with a hello message.")] ToolInvocationContext context,
         [McpToolProperty(nameof(name), "The name of the person to greet.")] string name,
-        [McpToolProperty(nameof(job), "The job of the person.")] string? job,
+        [McpToolProperty(nameof(job), "The job of the person.")] JobType job,
         [McpToolProperty("attributes", "Attributes of the person.")] IEnumerable<string> attributes,
         [McpToolProperty("numbers", "Attributes of the person.")] IEnumerable<int> numbers,
         [McpToolProperty(nameof(age), "The age of the person.")] int age = 20,
@@ -29,7 +29,7 @@ public class TestFunction
         _logger.LogInformation("C# MCP tool trigger function processed a request: {ToolName}", context.Name);
         var entityToGreet = name ?? "world";
         return $"""
-            Hello, {entityToGreet}! Job: {job ?? "Unemployed"} | Age: {age} | Happy? {isHappy}.
+            Hello, {entityToGreet}! Job: {(JobType.Unemployed)} | Age: {age} | Happy? {isHappy}.
             Attributes: {(attributes.Any() ? string.Join(", ", attributes) : "(none)")}
             """;
     }
@@ -109,4 +109,17 @@ public class TestFunction
         [Description("Whether search is case sensitive")]
         public bool CaseSensitive { get; set; }
     }
+
+
+    public enum JobType
+    {
+        FullTime,
+        PartTime,
+        Contract,
+        Internship,
+        Temporary,
+        Freelance,
+        Unemployed
+    }
+
 }

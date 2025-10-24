@@ -11,7 +11,9 @@ namespace Microsoft.Azure.Functions.Worker.Builder;
 /// "integer", "boolean", or "object".</param>
 /// <param name="IsArray">Indicates whether the property type represents an array. Specify <see langword="true"/> for array types; otherwise,
 /// <see langword="false"/>.</param>
-public sealed record McpToolPropertyType(string TypeName, bool IsArray = false)
+/// <param name="EnumValues">Optional collection of enum values when the property type represents an enum. Specify the valid enum values; otherwise,
+/// <see langword="null"/>.</param>
+public sealed record McpToolPropertyType(string TypeName, bool IsArray = false, IEnumerable<string>? EnumValues = null)
 {
     private const string StringTypeName = "string";
     private const string ObjectTypeName = "object";
@@ -108,5 +110,13 @@ public sealed record McpToolPropertyType(string TypeName, bool IsArray = false)
     /// Returns a new instance of the property type representing an array of the current type.
     /// </summary>
     /// <returns>A <see cref="McpToolPropertyType"/> instance configured as an array of the current type.</returns>
-    public McpToolPropertyType AsArray() => new(TypeName, true);
+    public McpToolPropertyType AsArray() => new(TypeName, true, EnumValues);
+
+
+    /// <summary>
+    /// Gets a property type value that represents an enumerable MCP property type.
+    /// </summary>
+    /// <remarks>This property provides a reusable type definition for enumerable properties.
+    /// The returned type is immutable and can be shared across multiple components.</remarks>
+    public static McpToolPropertyType Enum(params string[] enumValues) => new(StringTypeName, false, enumValues);
 }

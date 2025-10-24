@@ -181,14 +181,11 @@ public sealed partial class McpFunctionMetadataTransformer(IOptionsMonitor<ToolO
         }
 
         McpToolPropertyType propertyType = parameter.ParameterType.MapToToolPropertyType();
-        
-        // Get enum values if this is an enum type
-        var enumValues = GetEnumValuesForParameter(parameter.ParameterType);
 
         toolProperty = new(toolAttribute.PropertyName, propertyType.TypeName, toolAttribute.Description,
                            toolAttribute.IsRequired, propertyType.IsArray)
         {
-            EnumValues = enumValues
+            EnumValues = propertyType.EnumValues
         };
 
         return true;
@@ -215,57 +212,15 @@ public sealed partial class McpFunctionMetadataTransformer(IOptionsMonitor<ToolO
             }
 
             McpToolPropertyType propertyType = property.PropertyType.MapToToolPropertyType();
-            
-            // Get enum values if this is an enum type
-            var enumValues = GetEnumValuesForParameter(property.PropertyType);
 
             toolProperties.Add(new(property.Name, propertyType.TypeName, property.GetDescription(),
                                    property.IsRequired(), propertyType.IsArray)
             {
-                EnumValues = enumValues
+                EnumValues = propertyType.EnumValues
             });
         }
 
         return toolProperties.Count > 0;
-    }
-
-    private static IEnumerable<string>? GetEnumValuesForParameter(Type parameterType)
-    {
-        // Handle nullable types
-        var underlyingType = Nullable.GetUnderlyingType(parameterType) ?? parameterType;
-        
-        // Handle array/collection types - get the element type
-        if (underlyingType.IsArray)
-        {
-            underlyingType = underlyingType.GetElementType() ?? underlyingType;
-        }
-        else if (underlyingType.IsGenericType)
-        {
-            var genericDef = underlyingType.GetGenericTypeDefinition();
-            if (genericDef == typeof(IEnumerable<>) || 
-                genericDef == typeof(List<>) || 
-                genericDef == typeof(IList<>) || 
-                genericDef == typeof(ICollection<>))
-            {
-                underlyingType = underlyingType.GetGenericArguments()[0];
-            }
-        }
-        else
-        {
-            // Check for implemented IEnumerable<T>
-            var enumerableInterface = underlyingType.GetInterfaces()
-                .FirstOrDefault(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IEnumerable<>));
-            if (enumerableInterface != null)
-            {
-                underlyingType = enumerableInterface.GetGenericArguments()[0];
-            }
-        }
-        
-        // Strip nullable again after getting collection element type
-        underlyingType = Nullable.GetUnderlyingType(underlyingType) ?? underlyingType;
-        
-        // Return enum values if it's an enum
-        return underlyingType.IsEnum ? Enum.GetNames(underlyingType) : null;
     }
 
     [GeneratedRegex(@"^(?<typename>.*)\.(?<methodname>\S*)$")]
