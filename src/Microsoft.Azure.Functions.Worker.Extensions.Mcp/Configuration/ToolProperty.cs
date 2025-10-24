@@ -22,4 +22,11 @@ public sealed class ToolProperty(string name, string type, string? description,
 
     [JsonPropertyName("isArray")]
     public bool IsArray { get; init; } = isArray;
+
+    /// <summary>
+    /// Optional enum values for the property. Only populated for enum types.
+    /// </summary>
+    [JsonPropertyName("enumValues")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public IEnumerable<string>? EnumValues { get; init; }
 }

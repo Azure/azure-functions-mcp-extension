@@ -55,7 +55,7 @@ internal static class TypeExtensions
 
             { } t when t == typeof(int) => McpToolPropertyType.Integer,
             { } t when t == typeof(bool) => McpToolPropertyType.Boolean,
-            { } t when t.IsEnum => McpToolPropertyType.String,
+            { } t when t.IsEnum => new McpToolPropertyType("string", false, Enum.GetNames(t)),
             { } t when IsSupportedNumber(t) => McpToolPropertyType.Number,
             _ => McpToolPropertyType.Object
         };
