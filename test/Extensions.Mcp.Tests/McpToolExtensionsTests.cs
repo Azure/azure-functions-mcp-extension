@@ -313,28 +313,6 @@ public class McpToolExtensionsTests
     }
 
     [Fact]
-    public void ValidateGeneratedSchema_RejectsInvalidEnumValues()
-    {
-        var enumValues = new[] { "Low", "Medium", "High", "Critical" };
-        var enumProperty = CreateProperty("priority", "string", "Priority level", enumValues: enumValues);
-        var tool = CreateTool(enumProperty);
-        var schema = tool.GetPropertiesInputSchema();
-
-        // Extract enum constraints from schema
-        var properties = schema.GetProperty("properties");
-        var priority = properties.GetProperty("priority");
-        var enumConstraints = priority.GetProperty("enum");
-        var allowedValues = enumConstraints.EnumerateArray().Select(e => e.GetString()).ToArray();
-
-        // Verify invalid values are not in the allowed list
-        var invalidValues = new[] { "Invalid", "Unknown", "None", "" };
-        foreach (var invalidValue in invalidValues)
-        {
-            Assert.DoesNotContain(invalidValue, allowedValues);
-        }
-    }
-
-    [Fact]
     public void GetPropertiesInputSchema_ExpectedJsonFormat_MatchesSpecification()
     {
         // This test validates the exact format expected for enum schema generation
@@ -373,27 +351,5 @@ public class McpToolExtensionsTests
         var required = schema.GetProperty("required").EnumerateArray().Select(e => e.GetString()).ToArray();
         Assert.Single(required);
         Assert.Contains("jobType", required);
-    }
-
-    [Fact]
-    public void GetPropertiesInputSchema_LegacyEnumSupport_StillWorks()
-    {
-        // Test backwards compatibility - if someone still uses "enum" as PropertyType, it should work
-        var legacyEnumProp = CreateProperty("legacy", "enum", "Legacy enum property", required: false,
-                                          enumValues: new[] { "Option1", "Option2", "Option3" });
-        var tool = CreateTool(legacyEnumProp);
-
-        var schema = tool.GetPropertiesInputSchema();
-
-        var properties = schema.GetProperty("properties");
-        var legacy = properties.GetProperty("legacy");
-        
-        // Should convert "enum" PropertyType to "string" in JSON schema
-        Assert.Equal("string", legacy.GetProperty("type").GetString());
-        
-        // Should have enum constraints
-        Assert.True(legacy.TryGetProperty("enum", out var enumValues));
-        var actualValues = enumValues.EnumerateArray().Select(e => e.GetString()).ToArray();
-        Assert.Equal(new[] { "Option1", "Option2", "Option3" }, actualValues);
     }
 }

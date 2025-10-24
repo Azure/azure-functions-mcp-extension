@@ -32,24 +32,24 @@ public class TypeExtensionsTests
         get
         {
             // Basic non-enum types - no enum values expected
-            yield return new object[] { typeof(string), "string", false, null };
-            yield return new object[] { typeof(int), "integer", false, null };
-            yield return new object[] { typeof(int?), "integer", false, null };
-            yield return new object[] { typeof(bool), "boolean", false, null };
-            yield return new object[] { typeof(bool?), "boolean", false, null };
-            yield return new object[] { typeof(double), "number", false, null };
-            yield return new object[] { typeof(double?), "number", false, null };
-            yield return new object[] { typeof(int[]), "integer", true, null };
-            yield return new object[] { typeof(List<string>), "string", true, null };
-            yield return new object[] { typeof(IEnumerable<bool>), "boolean", true, null };
-            yield return new object[] { typeof(IEnumerable<bool?>), "boolean", true, null };
-            yield return new object[] { typeof(CollectionClass), "integer", true, null };
-            yield return new object[] { typeof(DateTime), "string", false, null };
-            yield return new object[] { typeof(Guid), "string", false, null };
-            yield return new object[] { typeof(char), "string", false, null };
-            yield return new object[] { typeof(char[]), "string", true, null };
-            yield return new object[] { typeof(DateTimeOffset), "string", false, null };
-            yield return new object[] { typeof(PocoClass), "object", false, null };
+            yield return new object[] { typeof(string), "string", false };
+            yield return new object[] { typeof(int), "integer", false };
+            yield return new object[] { typeof(int?), "integer", false };
+            yield return new object[] { typeof(bool), "boolean", false };
+            yield return new object[] { typeof(bool?), "boolean", false };
+            yield return new object[] { typeof(double), "number", false };
+            yield return new object[] { typeof(double?), "number", false };
+            yield return new object[] { typeof(int[]), "integer", true };
+            yield return new object[] { typeof(List<string>), "string", true };
+            yield return new object[] { typeof(IEnumerable<bool>), "boolean", true };
+            yield return new object[] { typeof(IEnumerable<bool?>), "boolean", true };
+            yield return new object[] { typeof(CollectionClass), "integer", true };
+            yield return new object[] { typeof(DateTime), "string", false };
+            yield return new object[] { typeof(Guid), "string", false };
+            yield return new object[] { typeof(char), "string", false };
+            yield return new object[] { typeof(char[]), "string", true };
+            yield return new object[] { typeof(DateTimeOffset), "string", false };
+            yield return new object[] { typeof(PocoClass), "object", false };
 
             // TestEnum cases - should return "string" with TestEnum values
             var testEnumValues = new[] { "Value1", "Value2", "Value3" };
@@ -82,7 +82,7 @@ public class TypeExtensionsTests
 
     [Theory]
     [MemberData(nameof(MapToToolPropertyTypeTestCases))]
-    public void MapToToolPropertyType_ReturnsExpectedType(Type type, string expectedType, bool expectedIsArray, string[]? expectedEnumValues)
+    public void MapToToolPropertyType_ReturnsExpectedType(Type type, string expectedType, bool expectedIsArray, string[]? expectedEnumValues = null)
     {
         // Act
         var result = type.MapToToolPropertyType();
