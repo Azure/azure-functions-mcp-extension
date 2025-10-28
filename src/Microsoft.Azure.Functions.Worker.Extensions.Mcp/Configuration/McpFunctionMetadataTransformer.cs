@@ -49,10 +49,20 @@ public sealed partial class McpFunctionMetadataTransformer(IOptionsMonitor<ToolO
                 var bindingType = bindingTypeNode?.ToString();
 
                 if (string.Equals(bindingType, McpToolTriggerBindingType, StringComparison.OrdinalIgnoreCase)
-                    && jsonObject.TryGetPropertyValue("toolName", out var toolNameNode)
-                    && GetToolProperties(toolNameNode?.ToString(), function, out toolProperties))
+                  && jsonObject.TryGetPropertyValue("toolName", out var toolNameNode))
                 {
-                    jsonObject["toolProperties"] = GetPropertiesJson(function.Name, toolProperties);
+                    // Check if UseInputSchemaGeneration is enabled
+                    // When useInputSchemaGeneration is true, inputSchema is already present (added by worker)
+                    bool useInputSchemaGeneration = jsonObject.TryGetPropertyValue("useInputSchemaGeneration", out var useInputSchemaNode)
+                         && useInputSchemaNode is not null
+                            && useInputSchemaNode.GetValue<bool>();
+
+                    // Only generate tool properties if UseInputSchemaGeneration is NOT enabled
+                    if (!useInputSchemaGeneration && GetToolProperties(toolNameNode?.ToString(), function, out toolProperties))
+                    {
+                        jsonObject["toolProperties"] = GetPropertiesJson(function.Name, toolProperties);
+                    }
+
                     function.RawBindings[i] = jsonObject.ToJsonString();
                 }
                 else if (string.Equals(bindingType, McpToolPropertyBindingType, StringComparison.OrdinalIgnoreCase)

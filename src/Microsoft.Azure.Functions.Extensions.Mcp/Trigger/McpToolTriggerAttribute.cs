@@ -16,4 +16,6 @@ public sealed class McpToolTriggerAttribute(string toolName, string? description
     public string? Description { get; set; } = description;
 
     public string? ToolProperties { get; set; }
+
+    public string? InputSchema { get; set; }
 }

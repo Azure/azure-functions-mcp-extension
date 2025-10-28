@@ -16,6 +16,7 @@ public class TestFunction
         _logger = logger;
     }
 
+    /*
     [Function(nameof(HappyFunction))]
     public string HappyFunction(
         [McpToolTrigger(nameof(HappyFunction), "Responds to the user with a hello message.")] ToolInvocationContext context,
@@ -33,6 +34,7 @@ public class TestFunction
             Attributes: {(attributes.Any() ? string.Join(", ", attributes) : "(none)")}
             """;
     }
+    */
 
     [Function(nameof(BirthdayTracker))]
     public string BirthdayTracker(
@@ -92,6 +94,8 @@ public class TestFunction
             .ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
     }
 
+
+
     public class Snippet
     {
         [Description("The name of the snippet")]
@@ -108,5 +112,17 @@ public class TestFunction
 
         [Description("Whether search is case sensitive")]
         public bool CaseSensitive { get; set; }
+    }
+
+    public class UserCreationRequest
+    {
+        [Description("The username for the new user")]
+        public required string Username { get; set; }
+
+        [Description("The email address for the new user")]
+        public required string Email { get; set; }
+
+        [Description("The full name of the user")]
+        public string? FullName { get; set; }
     }
 }

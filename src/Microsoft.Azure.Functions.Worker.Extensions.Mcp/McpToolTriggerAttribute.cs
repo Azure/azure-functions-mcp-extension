@@ -22,6 +22,8 @@ public sealed class McpToolTriggerAttribute(string toolName, string? description
     /// </summary>
     public string? Description { get; set; } = description;
 
+    public bool UseInputSchemaGeneration { get; set; }
+
     /// <inheritdoc />
     string IMcpBindingAttribute.BindingName => ToolName;
 }
