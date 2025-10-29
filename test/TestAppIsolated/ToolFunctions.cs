@@ -38,9 +38,10 @@ public class TestFunction
 
     [Function(nameof(BirthdayTracker))]
     public string BirthdayTracker(
-        [McpToolTrigger(nameof(BirthdayTracker), "Capture user birthday information.")] ToolInvocationContext context,
+        [McpToolTrigger(nameof(BirthdayTracker), "Capture user birthday information.", UseInputSchemaGeneration = true)] ToolInvocationContext context,
         [McpToolProperty(nameof(userId), "User ID")] Guid userId,
-        [McpToolProperty(nameof(birthday), "Birthday")] DateTime birthday)
+        [McpToolProperty(nameof(birthday), "Birthday")] DateTime birthday,
+        [McpToolProperty(nameof(idk), "idk")] BirthdayInfo idk)
     {
         var date = birthday.ToUniversalTime().ToString("o", CultureInfo.InvariantCulture);
         return $"Hello {userId}, {date}";
@@ -114,6 +115,25 @@ public class TestFunction
         public bool CaseSensitive { get; set; }
     }
 
+    public class BirthdayInfo
+    {
+        [Description("User ID")]
+        public required Guid UserId { get; set; }
+
+        [Description("Birthday date")]
+        public required DateTime Birthday { get; set; }
+
+        [Description("Additional notes or tags")]
+        public BirthdayInfoTags Tags { get; set; }
+    }
+
+    public class BirthdayInfoTags
+    {
+        [Description("Tags associated with the birthday info")]
+        public required string[] Tags { get; set; }
+    }
+}
+
     public class UserCreationRequest
     {
         [Description("The username for the new user")]
@@ -125,4 +145,3 @@ public class TestFunction
         [Description("The full name of the user")]
         public string? FullName { get; set; }
     }
-}

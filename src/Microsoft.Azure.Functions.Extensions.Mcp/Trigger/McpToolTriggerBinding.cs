@@ -152,6 +152,8 @@ internal sealed class McpToolTriggerBinding : ITriggerBinding
         }
         else
         {
+            // Fallback: Generate properties from method signature
+            // This happens when UseInputSchemaGeneration=true (metadata has no toolProperties)
             if (triggerParameter.Member is not MethodInfo methodInfo)
             {
                 return toolProperties ?? [];
@@ -162,16 +164,21 @@ internal sealed class McpToolTriggerBinding : ITriggerBinding
             foreach (var parameter in methodInfo.GetParameters())
             {
                 var property = parameter.GetCustomAttribute<McpToolPropertyAttribute>(inherit: false);
-                if (property is null)
+                if (property is not null)
                 {
-                    continue;
+                    toolProperties.Add(property);
                 }
-
-                toolProperties.Add(property);
+                // Also check for POCO parameters with McpToolTriggerAttribute
+                else if (parameter.GetCustomAttribute<McpToolTriggerAttribute>(inherit: false) is not null
+                     && parameter.ParameterType != typeof(ToolInvocationContext)
+                     && IsPocoType(parameter.ParameterType))
+                {
+                    // Generate properties from POCO type
+                    toolProperties.AddRange(GeneratePropertiesFromPoco(parameter.ParameterType));
+                }
             }
 
-            // Set the tool properties string from the attributes found on the method parameters.
-            attribute.ToolProperties = JsonSerializer.Serialize(toolProperties, McpJsonSerializerOptions.DefaultOptions);
+            // Don't set attribute.ToolProperties here - this is runtime generation
         }
 
         return toolProperties ?? [];
@@ -183,6 +190,114 @@ internal sealed class McpToolTriggerBinding : ITriggerBinding
                 toolProperties = properties.Cast<IMcpToolProperty>().ToList();
             }
         }
+    }
+
+    private static bool IsPocoType(Type type)
+    {
+        if (type == typeof(string) || !type.IsClass || type.IsAbstract || type.ContainsGenericParameters)
+        {
+            return false;
+        }
+
+        return !typeof(System.Collections.IEnumerable).IsAssignableFrom(type)
+           && type.GetConstructor(Type.EmptyTypes) is not null;
+    }
+
+    private static List<IMcpToolProperty> GeneratePropertiesFromPoco(Type pocoType)
+    {
+        var properties = new List<IMcpToolProperty>();
+
+        foreach (var property in pocoType.GetProperties(BindingFlags.Instance | BindingFlags.Public))
+        {
+            if (!property.CanRead || !property.CanWrite)
+            {
+                continue;
+            }
+
+            var propertyType = MapTypeToToolPropertyType(property.PropertyType);
+            var description = GetPropertyDescription(property);
+            var isRequired = IsPropertyRequired(property);
+
+            var mcpProperty = new McpToolPropertyAttribute(
+                property.Name,
+                propertyType.typeName,
+                description ?? string.Empty,
+                isRequired)
+            {
+                IsArray = propertyType.isArray
+            };
+
+            properties.Add(mcpProperty);
+        }
+
+        return properties;
+    }
+
+    private static (string typeName, bool isArray) MapTypeToToolPropertyType(Type type)
+    {
+        type = Nullable.GetUnderlyingType(type) ?? type;
+
+        // Check for arrays and collections first
+        if (type.IsArray || typeof(System.Collections.IEnumerable).IsAssignableFrom(type) && type != typeof(string))
+        {
+            var elementType = type.IsArray ? type.GetElementType()! : GetCollectionElementType(type);
+            var baseType = MapTypeToToolPropertyType(elementType);
+            return (baseType.typeName, true);
+        }
+
+        return type switch
+        {
+            Type t when t == typeof(string) || t == typeof(DateTime) || t == typeof(DateTimeOffset) || t == typeof(Guid) || t == typeof(char) => ("string", false),
+            Type t when t == typeof(int) => ("integer", false),
+            Type t when t == typeof(bool) => ("boolean", false),
+            Type t when t.IsEnum => ("string", false),
+            Type t when IsSupportedNumber(t) => ("number", false),
+            _ => ("object", false)
+        };
+    }
+
+    private static Type GetCollectionElementType(Type collectionType)
+    {
+        if (collectionType.IsArray)
+        {
+            return collectionType.GetElementType()!;
+        }
+
+        if (collectionType.IsGenericType && collectionType.GetGenericTypeDefinition() == typeof(IEnumerable<>))
+        {
+            return collectionType.GetGenericArguments()[0];
+        }
+
+        var interfaces = collectionType.GetInterfaces();
+        foreach (var itf in interfaces)
+        {
+            if (itf.IsGenericType && itf.GetGenericTypeDefinition() == typeof(IEnumerable<>))
+            {
+                return itf.GetGenericArguments()[0];
+            }
+        }
+
+        return typeof(object);
+    }
+
+    private static bool IsSupportedNumber(Type type)
+        => Type.GetTypeCode(type) switch
+        {
+            TypeCode.Byte or TypeCode.SByte or TypeCode.Int16 or TypeCode.UInt16 or
+            TypeCode.UInt32 or TypeCode.Int64 or TypeCode.UInt64 or TypeCode.Single or
+       TypeCode.Double or TypeCode.Decimal => true,
+            _ => false,
+        };
+
+    private static string? GetPropertyDescription(PropertyInfo property)
+ {
+        var descriptionAttr = property.GetCustomAttribute<System.ComponentModel.DescriptionAttribute>();
+        return descriptionAttr?.Description;
+    }
+
+    private static bool IsPropertyRequired(PropertyInfo property)
+    {
+  return property.GetCustomAttribute<System.Runtime.CompilerServices.RequiredMemberAttribute>() is not null;
     }
 
     public ParameterDescriptor ToParameterDescriptor()
