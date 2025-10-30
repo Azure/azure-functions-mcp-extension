@@ -133,7 +133,7 @@ internal sealed class McpToolTriggerBinding : ITriggerBinding
     {
         var toolProperties = GetProperties(_toolAttribute, _triggerParameter);
 
-        var listener = new McpToolListener(context.Executor, context.Descriptor.ShortName, _toolAttribute.ToolName, _toolAttribute.Description, toolProperties);
+        var listener = new McpToolListener(context.Executor, context.Descriptor.ShortName, _toolAttribute.ToolName, _toolAttribute.Description, toolProperties, _toolAttribute.InputSchema);
 
         _toolRegistry.Register(listener);
 
@@ -152,8 +152,6 @@ internal sealed class McpToolTriggerBinding : ITriggerBinding
         }
         else
         {
-            // Fallback: Generate properties from method signature
-            // This happens when UseInputSchemaGeneration=true (metadata has no toolProperties)
             if (triggerParameter.Member is not MethodInfo methodInfo)
             {
                 return toolProperties ?? [];
@@ -164,21 +162,16 @@ internal sealed class McpToolTriggerBinding : ITriggerBinding
             foreach (var parameter in methodInfo.GetParameters())
             {
                 var property = parameter.GetCustomAttribute<McpToolPropertyAttribute>(inherit: false);
-                if (property is not null)
+                if (property is null)
                 {
-                    toolProperties.Add(property);
+                    continue;
                 }
-                // Also check for POCO parameters with McpToolTriggerAttribute
-                else if (parameter.GetCustomAttribute<McpToolTriggerAttribute>(inherit: false) is not null
-                     && parameter.ParameterType != typeof(ToolInvocationContext)
-                     && IsPocoType(parameter.ParameterType))
-                {
-                    // Generate properties from POCO type
-                    toolProperties.AddRange(GeneratePropertiesFromPoco(parameter.ParameterType));
-                }
+
+                toolProperties.Add(property);
             }
 
-            // Don't set attribute.ToolProperties here - this is runtime generation
+            // Set the tool properties string from the attributes found on the method parameters.
+            attribute.ToolProperties = JsonSerializer.Serialize(toolProperties, McpJsonSerializerOptions.DefaultOptions);
         }
 
         return toolProperties ?? [];

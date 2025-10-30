@@ -11,11 +11,9 @@ internal static class McpToolExtensions
     {
         ArgumentNullException.ThrowIfNull(tool);
 
-        // Check if the tool already has a pre-generated inputSchema
-        // This happens when UseInputSchemaGeneration=true in the worker
-        if (tool is IHasInputSchema toolWithSchema && toolWithSchema.InputSchema is { } existingSchema)
+        if (tool.InputSchema != null)
         {
-            return existingSchema;
+            return JsonDocument.Parse(tool.InputSchema).RootElement.Clone();
         }
 
         // Fall back to generating from Properties (original behavior)
@@ -84,10 +82,3 @@ internal static class McpToolExtensions
     }
 }
 
-/// <summary>
-/// Interface for tools that have a pre-generated input schema
-/// </summary>
-internal interface IHasInputSchema
-{
-    JsonElement? InputSchema { get; }
-}

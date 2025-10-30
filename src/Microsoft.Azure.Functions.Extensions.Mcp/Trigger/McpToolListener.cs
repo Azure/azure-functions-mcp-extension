@@ -15,7 +15,7 @@ internal sealed class McpToolListener(ITriggeredFunctionExecutor executor,
                                       string toolName,
                                       string? toolDescription,
                                       ICollection<IMcpToolProperty> properties,
-                                      JsonElement? inputSchema = null) : IListener, IMcpTool, IHasInputSchema
+                                      string? inputSchema = null) : IListener, IMcpTool
 {
     public ITriggeredFunctionExecutor Executor { get; } = executor;
 
@@ -27,7 +27,7 @@ internal sealed class McpToolListener(ITriggeredFunctionExecutor executor,
 
     public ICollection<IMcpToolProperty> Properties { get; set; } = properties;
 
-    public JsonElement? InputSchema { get; } = inputSchema;
+    public string? InputSchema { get; set; } = inputSchema;
 
     public void Dispose() { }
 

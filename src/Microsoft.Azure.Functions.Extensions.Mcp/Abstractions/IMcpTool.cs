@@ -12,6 +12,8 @@ internal interface IMcpTool
 
     public string? Description { get; set; }
 
+    public string? InputSchema { get; set; }
+
     public ICollection<IMcpToolProperty> Properties { get; set; }
 
     Task<CallToolResult> RunAsync(RequestContext<CallToolRequestParams> callToolRequest, CancellationToken cancellationToken);
