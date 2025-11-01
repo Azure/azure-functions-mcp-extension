@@ -228,40 +228,4 @@ internal sealed class McpToolTriggerBinding : ITriggerBinding
             return string.Empty;
         }
     }
-
-    internal class McpToolTriggerInputScehmaReturnValueBinder(CallToolExecutionContext executionContext) : IValueBinder
-    {
-        public Type Type { get; } = typeof(object);
-
-        public Task SetValueAsync(object value, CancellationToken cancellationToken)
-        {
-            if (value is null)
-            {
-                executionContext.SetResult(null!);
-                return Task.CompletedTask;
-            }
-
-            if (value is not string jsonString)
-            {
-                throw new ArgumentException("Expected JSON string.", nameof(value));
-            }
-
-            var mcpToolResult = JsonSerializer.Deserialize<McpInputSchema>(jsonString, McpJsonSerializerOptions.DefaultOptions)
-                        ?? throw new InvalidOperationException("The function return value could not be deserialized to a valid McpToolResult.");
-
-            executionContext.SetResult(mcpToolResult);
-
-            return Task.CompletedTask;
-        }
-
-        public Task<object> GetValueAsync()
-        {
-            throw new NotSupportedException();
-        }
-
-        public string ToInvokeString()
-        {
-            return string.Empty;
-        }
-    }
 }
