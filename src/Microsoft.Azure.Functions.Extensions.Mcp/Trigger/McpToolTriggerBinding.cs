@@ -210,4 +210,26 @@ internal sealed class McpToolTriggerBinding : ITriggerBinding
             }
         };
     }
+
+    internal class McpToolTriggerReturnValueBinder(CallToolExecutionContext executionContext) : IValueBinder
+    {
+        public Type Type { get; } = typeof(object);
+
+        public Task SetValueAsync(object value, CancellationToken cancellationToken)
+        {
+            executionContext.SetResult(value);
+
+            return Task.CompletedTask;
+        }
+
+        public Task<object> GetValueAsync()
+        {
+            throw new NotSupportedException();
+        }
+
+        public string ToInvokeString()
+        {
+            return string.Empty;
+        }
+    }
 }
