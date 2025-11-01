@@ -1,16 +1,18 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-using System.Reflection;
-using System.Text.Json;
-using System.Transactions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Azure.Functions.Extensions.Mcp.Abstractions;
 using Microsoft.Azure.Functions.Extensions.Mcp.Serialization;
+using Microsoft.Azure.Functions.Extensions.Mcp.Trigger;
 using Microsoft.Azure.WebJobs.Host.Bindings;
 using Microsoft.Azure.WebJobs.Host.Listeners;
 using Microsoft.Azure.WebJobs.Host.Protocols;
 using Microsoft.Azure.WebJobs.Host.Triggers;
+using ModelContextProtocol.Protocol;
+using System.Reflection;
+using System.Text.Json;
+using System.Transactions;
 
 namespace Microsoft.Azure.Functions.Extensions.Mcp;
 
@@ -131,15 +133,21 @@ internal sealed class McpToolTriggerBinding : ITriggerBinding
 
     public Task<IListener> CreateListenerAsync(ListenerFactoryContext context)
     {
-        var toolProperties = GetProperties(_toolAttribute, _triggerParameter);
+        IList<IMcpToolProperty> toolProperties = [];
 
-        var listener = new McpToolListener(context.Executor, context.Descriptor.ShortName, _toolAttribute.ToolName, _toolAttribute.Description, toolProperties);
+        // Generate tool properties only if input schema was not generated in the worker
+        if (!_toolAttribute.UseWorkerInputSchema)
+        {
+            toolProperties = GetProperties(_toolAttribute, _triggerParameter);
+        }
+
+        var listener = new McpToolListener(context.Executor, context.Descriptor.ShortName, 
+            _toolAttribute.ToolName, _toolAttribute.Description, toolProperties, _toolAttribute.InputSchema);
 
         _toolRegistry.Register(listener);
 
         return Task.FromResult<IListener>(listener);
     }
-
 
     private static List<IMcpToolProperty> GetProperties(McpToolTriggerAttribute attribute, ParameterInfo triggerParameter)
     {
@@ -206,6 +214,42 @@ internal sealed class McpToolTriggerBinding : ITriggerBinding
         public Task SetValueAsync(object value, CancellationToken cancellationToken)
         {
             executionContext.SetResult(value);
+
+            return Task.CompletedTask;
+        }
+
+        public Task<object> GetValueAsync()
+        {
+            throw new NotSupportedException();
+        }
+
+        public string ToInvokeString()
+        {
+            return string.Empty;
+        }
+    }
+
+    internal class McpToolTriggerInputScehmaReturnValueBinder(CallToolExecutionContext executionContext) : IValueBinder
+    {
+        public Type Type { get; } = typeof(object);
+
+        public Task SetValueAsync(object value, CancellationToken cancellationToken)
+        {
+            if (value is null)
+            {
+                executionContext.SetResult(null!);
+                return Task.CompletedTask;
+            }
+
+            if (value is not string jsonString)
+            {
+                throw new ArgumentException("Expected JSON string.", nameof(value));
+            }
+
+            var mcpToolResult = JsonSerializer.Deserialize<McpInputSchema>(jsonString, McpJsonSerializerOptions.DefaultOptions)
+                        ?? throw new InvalidOperationException("The function return value could not be deserialized to a valid McpToolResult.");
+
+            executionContext.SetResult(mcpToolResult);
 
             return Task.CompletedTask;
         }

@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
+using Microsoft.Azure.Functions.Extensions.Mcp.Trigger;
 using Microsoft.Azure.WebJobs.Description;
 
 namespace Microsoft.Azure.Functions.Extensions.Mcp;
@@ -16,4 +17,8 @@ public sealed class McpToolTriggerAttribute(string toolName, string? description
     public string? Description { get; set; } = description;
 
     public string? ToolProperties { get; set; }
+
+    public McpInputSchema? InputSchema { get; set; }
+
+    public bool UseWorkerInputSchema { get; set; } = false;
 }
