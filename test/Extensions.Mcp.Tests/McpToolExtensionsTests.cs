@@ -53,6 +53,18 @@ public class McpToolExtensionsTests
 
     private static IMcpToolProperty CreateProperty(string name, string type, string? description = null, bool required = false, bool isArray = false, string[]? enumValues = null)
     {
+        var mock = new Mock<IMcpTool>();
+        mock.SetupGet(t => t.Properties).Returns(properties);
+        mock.SetupGet(t => t.InputSchema).Returns(inputSchema);
+        mock.SetupGet(t => t.Name).Returns("tool");
+        mock.SetupProperty(t => t.Description, "desc");
+        mock.Setup(t => t.RunAsync(It.IsAny<RequestContext<CallToolRequestParams>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new CallToolResult());
+        return mock.Object;
+    }
+
+    private static IMcpToolProperty CreateProperty(string name, string type, string? description = null, bool required = false, bool isArray = false)
+    {
         var mock = new Mock<IMcpToolProperty>();
         mock.SetupAllProperties();
         mock.Object.PropertyName = name;
