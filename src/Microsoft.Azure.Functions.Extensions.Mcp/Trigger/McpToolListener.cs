@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
+using Microsoft.Azure.Functions.Extensions.Mcp.Trigger;
 using Microsoft.Azure.WebJobs.Host.Executors;
 using Microsoft.Azure.WebJobs.Host.Listeners;
 using ModelContextProtocol;
@@ -14,7 +15,8 @@ internal sealed class McpToolListener(ITriggeredFunctionExecutor executor,
                                       string functionName,
                                       string toolName,
                                       string? toolDescription,
-                                      ICollection<IMcpToolProperty> properties) : IListener, IMcpTool
+                                      ICollection<IMcpToolProperty> properties,
+                                      McpInputSchema? inputSchema) : IListener, IMcpTool
 {
     public ITriggeredFunctionExecutor Executor { get; } = executor;
 
@@ -25,6 +27,8 @@ internal sealed class McpToolListener(ITriggeredFunctionExecutor executor,
     public string? Description { get; set; } = toolDescription;
 
     public ICollection<IMcpToolProperty> Properties { get; set; } = properties;
+
+    public McpInputSchema? InputSchema { get; set; } = inputSchema;
 
     public void Dispose() { }
 
@@ -37,7 +41,7 @@ internal sealed class McpToolListener(ITriggeredFunctionExecutor executor,
     public async Task<CallToolResult> RunAsync(RequestContext<CallToolRequestParams> callToolRequest, CancellationToken cancellationToken)
     {
         // Validate required properties are present in the incoming request.
-        ValidateArgumentsHaveRequiredProperties(Properties, callToolRequest.Params);
+        ValidateArgumentsHaveRequiredProperties(Properties, callToolRequest.Params, InputSchema);
 
         var execution = new CallToolExecutionContext(callToolRequest);
 
@@ -65,28 +69,45 @@ internal sealed class McpToolListener(ITriggeredFunctionExecutor executor,
         return new CallToolResult { Content = [] };
     }
 
-    internal static void ValidateArgumentsHaveRequiredProperties(ICollection<IMcpToolProperty> properties, CallToolRequestParams? callToolRequest)
+    internal static void ValidateArgumentsHaveRequiredProperties(ICollection<IMcpToolProperty> properties, CallToolRequestParams? callToolRequest, McpInputSchema? inputSchema)
     {
-        if (properties is null || properties.Count == 0)
+        var missing = new List<string>();
+        var args = callToolRequest?.Arguments;
+        var requiredProperties = new List<string>();
+
+        // Use InputSchema if available, otherwise fall back to Properties
+        if (inputSchema is not null)
+        {
+            // Extract required properties from the schema
+            requiredProperties.AddRange(inputSchema.Required ?? Array.Empty<string>());
+        }
+        else
+        {
+            // Fall back to the original method using Properties
+            if (properties is null || properties.Count == 0)
+            {
+                return;
+            }
+
+            requiredProperties.AddRange(properties
+                .Where(p => p.IsRequired)
+                .Select(p => p.PropertyName));
+        }
+
+        // If no required properties, return early
+        if (requiredProperties.Count == 0)
         {
             return;
         }
 
-        var missing = new List<string>();
-        var args = callToolRequest?.Arguments;
-
-        foreach (var prop in properties)
+        // Check for missing required properties
+        foreach (var propertyName in requiredProperties)
         {
-            if (!prop.IsRequired)
-            {
-                continue;
-            }
-
             if (args == null
-                || !args.TryGetValue(prop.PropertyName, out JsonElement value)
+                || !args.TryGetValue(propertyName, out JsonElement value)
                 || IsValueNullOrUndefined(value))
             {
-                missing.Add(prop.PropertyName);
+                missing.Add(propertyName);
             }
         }
 

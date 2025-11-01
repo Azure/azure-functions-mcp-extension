@@ -11,6 +11,14 @@ internal static class McpToolExtensions
     {
         ArgumentNullException.ThrowIfNull(tool);
 
+        // If an explicit InputSchema is provided, use it directly.
+        if (tool.InputSchema != null)
+        {
+            var json = JsonSerializer.Serialize(tool.InputSchema);
+            using var document = JsonDocument.Parse(json);
+            return document.RootElement.Clone();
+        }
+
         var props = (tool.Properties ?? [])
             .Where(p => p is not null && !string.IsNullOrWhiteSpace(p.PropertyName))
             .ToArray();
