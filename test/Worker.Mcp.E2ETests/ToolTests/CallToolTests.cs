@@ -105,7 +105,7 @@ public class CallToolTests(DefaultProjectFixture fixture, ITestOutputHelper test
         TestOutputHelper.WriteLine($"Default HappyFunction response: {response}");
         Assert.NotNull(response);
         Assert.Contains("Hello, DefaultTestUser!", response);
-        Assert.Contains("Fulltime", response);
+        Assert.Contains("FullTime", response);
     }
 
     [Fact]
