@@ -13,7 +13,7 @@ namespace Microsoft.Azure.Functions.Worker.Builder;
 /// <see langword="false"/>.</param>
 /// <param name="EnumValues">Optional collection of enum values when the property type represents an enum. Specify the valid enum values; otherwise,
 /// <see langword="null"/>.</param>
-public sealed record McpToolPropertyType(string TypeName, bool IsArray = false, IEnumerable<string>? EnumValues = null)
+public sealed record McpToolPropertyType(string TypeName, bool IsArray = false, IReadOnlyList<string> EnumValues = default!)
 {
     private const string StringTypeName = "string";
     private const string ObjectTypeName = "object";
@@ -41,82 +41,166 @@ public sealed record McpToolPropertyType(string TypeName, bool IsArray = false, 
     /// </summary>
     /// <remarks>This property provides a reusable type definition for string properties.
     /// The returned type is immutable and can be shared across multiple components.</remarks>
-    public static McpToolPropertyType String => _string ??= new(StringTypeName);
+    public static McpToolPropertyType String => _string ??= new(StringTypeName, false, Array.Empty<string>());
 
     /// <summary>
     /// Gets the property type representing an array of <see cref="String"/>.
     /// </summary>
     /// <remarks>This property provides a reusable type definition for string arrays properties.
     /// The returned type is immutable and can be shared across multiple components.</remarks>
-    public static McpToolPropertyType StringArray => _stringArray ??= new(StringTypeName, true);
+    public static McpToolPropertyType StringArray => _stringArray ??= new(StringTypeName, true, Array.Empty<string>());
 
     /// <summary>
     /// Gets a property type value that represents a number MCP property.
     /// </summary>
     /// <remarks>This property provides a reusable type definition for number properties.
     /// The returned type is immutable and can be shared across multiple components.</remarks>
-    public static McpToolPropertyType Number => _number ??= new(NumberTypeName);
+    public static McpToolPropertyType Number => _number ??= new(NumberTypeName, false, Array.Empty<string>());
 
     /// <summary>
     /// Gets the property type representing an array of <see cref="Number"/>.
     /// </summary>
     /// <remarks>This property provides a reusable type definition for number arrays properties.
     /// The returned type is immutable and can be shared across multiple components.</remarks>
-    public static McpToolPropertyType NumberArray => _numberArray ??= new(NumberTypeName, true);
+    public static McpToolPropertyType NumberArray => _numberArray ??= new(NumberTypeName, true, Array.Empty<string>());
 
     /// <summary>
     /// Gets a property type value that represents an integer MCP property.
     /// </summary>
     /// <remarks>This property provides a reusable type definition for integer properties.
     /// The returned type is immutable and can be shared across multiple components.</remarks>
-    public static McpToolPropertyType Integer => _integer ??= new(IntegerTypeName);
+    public static McpToolPropertyType Integer => _integer ??= new(IntegerTypeName, false, Array.Empty<string>());
 
     /// <summary>
     /// Gets the property type representing an array of <see cref="Integer"/>.
     /// </summary>
     /// <remarks>This property provides a reusable type definition for integer arrays properties.
     /// The returned type is immutable and can be shared across multiple components.</remarks>
-    public static McpToolPropertyType IntegerArray => _integerArray ??= new(IntegerTypeName, true);
+    public static McpToolPropertyType IntegerArray => _integerArray ??= new(IntegerTypeName, true, Array.Empty<string>());
 
     /// <summary>
     /// Gets a property type value that represents a boolean MCP property type.
     /// </summary>
     /// <remarks>This property provides a reusable type definition for boolean properties.
     /// The returned type is immutable and can be shared across multiple components.</remarks>
-    public static McpToolPropertyType Boolean => _boolean ??= new(BooleanTypeName);
+    public static McpToolPropertyType Boolean => _boolean ??= new(BooleanTypeName, false, Array.Empty<string>());
 
     /// <summary>
     /// Gets the property type representing an array of <see cref="Boolean"/>.
     /// </summary>
     /// <remarks>This property provides a reusable type definition for boolean arrays properties.
     /// The returned type is immutable and can be shared across multiple components.</remarks>
-    public static McpToolPropertyType BooleanArray => _booleanArray ??= new(BooleanTypeName, true);
+    public static McpToolPropertyType BooleanArray => _booleanArray ??= new(BooleanTypeName, true, Array.Empty<string>());
 
     /// <summary>
     /// Gets a property type value that represents an object MCP property type.
     /// </summary>
     /// <remarks>This property provides a reusable type definition for object properties.
     /// The returned type is immutable and can be shared across multiple components.</remarks>
-    public static McpToolPropertyType Object => _object ??= new(ObjectTypeName);
+    public static McpToolPropertyType Object => _object ??= new(ObjectTypeName, false, Array.Empty<string>());
 
     /// <summary>
     /// Gets the property type representing an array of <see cref="Object"/>.
     /// </summary>
     /// <remarks>This property provides a reusable type definition for object arrays properties.
     /// The returned type is immutable and can be shared across multiple components.</remarks>
-    public static McpToolPropertyType ObjectArray => _objectArray ??= new(ObjectTypeName, true);
+    public static McpToolPropertyType ObjectArray => _objectArray ??= new(ObjectTypeName, true, Array.Empty<string>());
 
     /// <summary>
     /// Returns a new instance of the property type representing an array of the current type.
     /// </summary>
     /// <returns>A <see cref="McpToolPropertyType"/> instance configured as an array of the current type.</returns>
-    public McpToolPropertyType AsArray() => new(TypeName, true, EnumValues);
-
+    public McpToolPropertyType AsArray() => new(TypeName, true, IsEnum ? EnumValues : Array.Empty<string>());
 
     /// <summary>
-    /// Gets a property type value that represents an enumerable MCP property type.
+    /// Checks if the current property type represents an enum.
     /// </summary>
-    /// <remarks>This property provides a reusable type definition for enumerable properties.
-    /// The returned type is immutable and can be shared across multiple components.</remarks>
-    public static McpToolPropertyType Enum(params string[] enumValues) => new(StringTypeName, false, enumValues);
+    /// <returns><c>true</c> if the current property type represents an enum; otherwise, <c>false</c>.</returns>
+    public bool IsEnum => EnumValues is { Count: > 0 };
+
+    /// <summary>
+    /// Determines whether this instance and another specified <see cref="McpToolPropertyType"/> object have the same value.
+    /// </summary>
+    /// <param name="other">The <see cref="McpToolPropertyType"/> to compare with this instance.</param>
+    /// <returns><c>true</c> if the value of <paramref name="other"/> is the same as this instance; otherwise, <c>false</c>.</returns>
+    public bool Equals(McpToolPropertyType? other)
+    {
+        if (other is null)
+        {
+            return false;
+        }
+
+        if (ReferenceEquals(this, other))
+        {
+            return true;
+        }
+
+        // Compare the basic properties
+        if (TypeName != other.TypeName || IsArray != other.IsArray)
+        {
+            return false;
+        }
+
+        // Compare EnumValues using sequence equality
+        return EnumValuesEqual(EnumValues, other.EnumValues);
+    }
+
+    /// <summary>
+    /// Returns the hash code for this instance.
+    /// </summary>
+    /// <returns>A 32-bit signed integer hash code.</returns>
+    public override int GetHashCode()
+    {
+        var hash = new HashCode();
+        hash.Add(TypeName);
+        hash.Add(IsArray);
+
+        // Add each enum value to the hash
+        if (EnumValues is not null)
+        {
+            foreach (var value in EnumValues)
+            {
+                hash.Add(value);
+            }
+        }
+
+        return hash.ToHashCode();
+    }
+
+    /// <summary>
+    /// Compares two enum value collections for sequence equality.
+    /// </summary>
+    /// <param name="first">The first collection to compare.</param>
+    /// <param name="second">The second collection to compare.</param>
+    /// <returns><c>true</c> if the collections contain the same values in the same order; otherwise, <c>false</c>.</returns>
+    private static bool EnumValuesEqual(IReadOnlyList<string>? first, IReadOnlyList<string>? second)
+    {
+        // Handle null cases
+        if (first is null && second is null)
+        {
+            return true;
+        }
+
+        if (first is null || second is null)
+        {
+            return false;
+        }
+
+        // Compare counts first for efficiency
+        if (first.Count != second.Count)
+        {
+            return false;
+        }
+
+        // Compare each element
+        for (int i = 0; i < first.Count; i++)
+        {
+            if (first[i] != second[i])
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
 }

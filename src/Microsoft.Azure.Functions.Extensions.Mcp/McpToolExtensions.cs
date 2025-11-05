@@ -34,23 +34,18 @@ internal static class McpToolExtensions
                     writer.WriteString("type", "array");
                     writer.WritePropertyName("items");
                     writer.WriteStartObject();
-                    writer.WriteString("type", p.PropertyType);
-
-                    // Add enum values for array items if available
-                    WriteEnumValuesIfPresent(writer, p.EnumValues);
-
-                    writer.WriteEndObject();
                 }
-                else
-                {
-                    writer.WriteString("type", p.PropertyType);
 
-                    // Add enum values for scalar properties if available
-                    WriteEnumValuesIfPresent(writer, p.EnumValues);
+                // Write type and enum at the appropriate level
+                writer.WriteString("type", p.PropertyType);
+                WriteEnumArrayIfPresent(writer, p.EnumValues);
+
+                if (p.IsArray)
+                {
+                    writer.WriteEndObject(); // Close items
                 }
 
                 writer.WriteString("description", p.Description ?? string.Empty);
-
                 writer.WriteEndObject();
             }
 
@@ -81,17 +76,20 @@ internal static class McpToolExtensions
         return doc.RootElement.Clone();
     }
 
-    private static void WriteEnumValuesIfPresent(Utf8JsonWriter writer, IEnumerable<string>? enumValues)
+    private static void WriteEnumArrayIfPresent(Utf8JsonWriter writer, IReadOnlyList<string> enumValues)
     {
-        if (enumValues is not null && enumValues.Any())
+        if (enumValues is null || enumValues.Count == 0)
         {
-            writer.WritePropertyName("enum");
-            writer.WriteStartArray();
-            foreach (var enumValue in enumValues)
-            {
-                writer.WriteStringValue(enumValue);
-            }
-            writer.WriteEndArray();
+            return;
         }
+
+        writer.WritePropertyName("enum");
+        writer.WriteStartArray();
+        foreach (var enumValue in enumValues)
+        {
+            writer.WriteStringValue(enumValue);
+        }
+
+        writer.WriteEndArray();
     }
 }

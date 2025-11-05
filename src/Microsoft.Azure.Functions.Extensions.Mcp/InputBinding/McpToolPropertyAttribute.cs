@@ -21,6 +21,6 @@ namespace Microsoft.Azure.Functions.Extensions.Mcp
 
         public bool IsArray { get; set; }
 
-        public IEnumerable<string>? EnumValues { get; set; }
+        public IReadOnlyList<string> EnumValues { get; set; } = Array.Empty<string>();
     }
 }

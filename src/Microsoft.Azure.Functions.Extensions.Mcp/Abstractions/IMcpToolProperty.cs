@@ -15,5 +15,5 @@ public interface IMcpToolProperty
 
     public bool IsArray { get; set; }
 
-    public IEnumerable<string>? EnumValues { get; set; }
+    public IReadOnlyList<string> EnumValues { get; set; }
 }
