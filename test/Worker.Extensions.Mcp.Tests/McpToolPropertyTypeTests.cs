@@ -62,6 +62,30 @@ public class McpToolPropertyTypeTests
     }
 
     [Fact]
+    public void Equality_ByValue_NotByReference()
+    {
+        var expected = new McpToolPropertyType("string", false, Array.Empty<string>());
+        Assert.Equal(expected, McpToolPropertyType.String);
+        Assert.NotSame(expected, McpToolPropertyType.String);
+
+        var expectedArray = new McpToolPropertyType("string", true, Array.Empty<string>());
+        Assert.Equal(expectedArray, McpToolPropertyType.StringArray);
+        Assert.NotSame(expectedArray, McpToolPropertyType.StringArray);
+    }
+
+    [Fact]
+    public void AsArray_OnNonArray_ReturnsArrayWithSameTypeName()
+    {
+        var original = McpToolPropertyType.Integer;
+        var arrayVersion = original.AsArray();
+
+        Assert.Equal(original.TypeName, arrayVersion.TypeName);
+        Assert.True(arrayVersion.IsArray);
+        Assert.NotSame(original, arrayVersion);
+        Assert.Equal(new McpToolPropertyType("integer", true, Array.Empty<string>()), arrayVersion);
+    }
+
+    [Fact]
     public void AsArray_OnArray_ReturnsNewArrayInstance()
     {
         var arrayOriginal = McpToolPropertyType.IntegerArray;

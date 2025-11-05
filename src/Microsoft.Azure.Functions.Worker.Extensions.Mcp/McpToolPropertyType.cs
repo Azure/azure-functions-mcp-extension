@@ -11,8 +11,7 @@ namespace Microsoft.Azure.Functions.Worker.Builder;
 /// "integer", "boolean", or "object".</param>
 /// <param name="IsArray">Indicates whether the property type represents an array. Specify <see langword="true"/> for array types; otherwise,
 /// <see langword="false"/>.</param>
-/// <param name="EnumValues">Optional collection of enum values when the property type represents an enum. Specify the valid enum values; otherwise,
-/// <see langword="null"/>.</param>
+/// <param name="EnumValues">Optional collection of enum values when the property type represents an enum. Specify the valid enum values. </param>
 public sealed record McpToolPropertyType(string TypeName, bool IsArray = false, IReadOnlyList<string> EnumValues = default!)
 {
     private const string StringTypeName = "string";
