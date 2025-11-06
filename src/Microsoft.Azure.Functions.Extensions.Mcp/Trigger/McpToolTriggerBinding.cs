@@ -73,9 +73,9 @@ internal sealed class McpToolTriggerBinding : ITriggerBinding
         }
 
         IValueProvider valueProvider = new ObjectValueProvider(triggerValue, _triggerParameter.ParameterType);
-        IValueBinder returnValueBinder = _toolAttribute.RichContentTypeSupport
-            ? new McpToolTriggerRichContentReturnValueBinder(executionContext)
-            : new McpToolTriggerReturnValueBinder(executionContext);
+        IValueBinder returnValueBinder = _toolAttribute.UseResultSchema
+            ? new ToolReturnValueBinder(executionContext)
+            : new SimpleToolReturnValueBinder(executionContext);
 
         var data = new TriggerData(valueProvider, bindingData)
         {

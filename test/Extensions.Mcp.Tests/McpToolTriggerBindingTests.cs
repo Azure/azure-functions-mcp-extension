@@ -14,7 +14,7 @@ namespace Microsoft.Azure.Functions.Extensions.Mcp.Tests;
 
 public class McpToolTriggerBindingTests
 {
-    private static (McpToolTriggerBinding binding, ParameterInfo parameter) CreateBinding(ParameterInfo? parameter = null, bool richContentSupport = false)
+    private static (McpToolTriggerBinding binding, ParameterInfo parameter) CreateBinding(ParameterInfo? parameter = null)
     {
         if (parameter is null)
         {
@@ -24,11 +24,6 @@ public class McpToolTriggerBindingTests
 
         var toolRegistry = new Mock<IToolRegistry>();
         var attribute = new McpToolTriggerAttribute("MyTool", "desc");
-
-        if (richContentSupport)
-        {
-            attribute.RichContentTypeSupport = true;
-        }
 
         var binding = new McpToolTriggerBinding(parameter, toolRegistry.Object, attribute);
 

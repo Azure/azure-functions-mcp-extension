@@ -6,7 +6,7 @@ using ModelContextProtocol.Protocol;
 
 namespace Microsoft.Azure.Functions.Extensions.Mcp;
 
-internal class McpToolTriggerReturnValueBinder(CallToolExecutionContext executionContext) : IValueBinder
+internal sealed class SimpleToolReturnValueBinder(CallToolExecutionContext executionContext) : IValueBinder
 {
     public Type Type { get; } = typeof(object);
 

@@ -17,6 +17,5 @@ public sealed class McpToolTriggerAttribute(string toolName, string? description
 
     public string? ToolProperties { get; set; }
 
-    // figure out name?
-    public bool RichContentTypeSupport { get; set; } = false;
+    public bool UseResultSchema { get; set; } = false;
 }

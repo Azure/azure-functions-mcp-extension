@@ -5,7 +5,7 @@ using ModelContextProtocol.Protocol;
 
 namespace Microsoft.Azure.Functions.Extensions.Mcp.Tests;
 
-public class McpToolTriggerReturnValueBinderTest
+public class SimpleToolReturnValueBinderTests
 {
 
     [Fact]
@@ -13,7 +13,7 @@ public class McpToolTriggerReturnValueBinderTest
     {
         // Arrange
         var context = CallToolExecutionContextHelper.CreateExecutionContext();
-        var binder = new McpToolTriggerReturnValueBinder(context);
+        var binder = new SimpleToolReturnValueBinder(context);
         string input = "Hello MCP";
 
         // Act
@@ -31,7 +31,7 @@ public class McpToolTriggerReturnValueBinderTest
     public async Task SetValueAsync_SetsNullResult_WhenValueIsNull()
     {
         var context = CallToolExecutionContextHelper.CreateExecutionContext();
-        var binder = new McpToolTriggerReturnValueBinder(context);
+        var binder = new SimpleToolReturnValueBinder(context);
 
         await binder.SetValueAsync(null!, CancellationToken.None);
 
@@ -43,7 +43,7 @@ public class McpToolTriggerReturnValueBinderTest
     public async Task GetValueAsync_ThrowsNotSupportedException()
     {
         var context = CallToolExecutionContextHelper.CreateExecutionContext();
-        var binder = new McpToolTriggerReturnValueBinder(context);
+        var binder = new SimpleToolReturnValueBinder(context);
 
         await Assert.ThrowsAsync<NotSupportedException>(binder.GetValueAsync);
     }
@@ -52,7 +52,7 @@ public class McpToolTriggerReturnValueBinderTest
     public void ToInvokeString_ReturnsEmptyString()
     {
         var context = CallToolExecutionContextHelper.CreateExecutionContext();
-        var binder = new McpToolTriggerReturnValueBinder(context);
+        var binder = new SimpleToolReturnValueBinder(context);
 
         Assert.Equal(string.Empty, binder.ToInvokeString());
     }
