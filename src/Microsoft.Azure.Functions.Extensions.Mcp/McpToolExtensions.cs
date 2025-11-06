@@ -34,15 +34,14 @@ internal static class McpToolExtensions
                     writer.WriteString("type", "array");
                     writer.WritePropertyName("items");
                     writer.WriteStartObject();
+
+                    WriteTypeAndEnum(writer, p.PropertyType, p.EnumValues);
+
+                    writer.WriteEndObject();
                 }
-
-                // Write type and enum at the appropriate level
-                writer.WriteString("type", p.PropertyType);
-                WriteEnumArrayIfPresent(writer, p.EnumValues);
-
-                if (p.IsArray)
+                else
                 {
-                    writer.WriteEndObject(); // Close items
+                    WriteTypeAndEnum(writer, p.PropertyType, p.EnumValues);
                 }
 
                 writer.WriteString("description", p.Description ?? string.Empty);
@@ -74,6 +73,13 @@ internal static class McpToolExtensions
         ms.Position = 0;
         using var doc = JsonDocument.Parse(ms);
         return doc.RootElement.Clone();
+    }
+
+    private static void WriteTypeAndEnum(Utf8JsonWriter writer, string propertyType, IReadOnlyList<string> enumValues)
+    {
+        // Write type and enum at the appropriate level
+        writer.WriteString("type", propertyType);
+        WriteEnumArrayIfPresent(writer, enumValues);
     }
 
     private static void WriteEnumArrayIfPresent(Utf8JsonWriter writer, IReadOnlyList<string> enumValues)

@@ -21,7 +21,7 @@ public class McpToolExtensionsTests
         return mock.Object;
     }
 
-    private static IMcpToolProperty CreateProperty(string name, string type, string? description = null, bool required = false, bool isArray = false, IReadOnlyList<string> enumValues = default!)
+    private static IMcpToolProperty CreateProperty(string name, string type, string? description = null, bool required = false, bool isArray = false, IReadOnlyList<string>? enumValues = default)
     {
         var mock = new Mock<IMcpToolProperty>();
         mock.SetupAllProperties();
@@ -30,7 +30,7 @@ public class McpToolExtensionsTests
         mock.Object.Description = description;
         mock.Object.IsRequired = required;
         mock.Object.IsArray = isArray;
-        mock.Object.EnumValues = enumValues;
+        mock.Object.EnumValues = enumValues ?? [];
         return mock.Object;
     }
 

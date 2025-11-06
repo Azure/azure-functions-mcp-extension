@@ -477,23 +477,23 @@ class PocoClass
 class ClassWithFieldsOnly
 {
     public int Field1;
-    public string Field2;
+    public string? Field2;
 }
 
 class NestedPocoClass
 {
-    public PocoClass Child { get; set; }
+    public PocoClass? Child { get; set; }
 }
 
 class PocoWithPrivateFields
 {
     private int _x;
-    public string Name { get; set; }
+    public string? Name { get; set; }
 }
 
 class GenericClass<T>
 {
-    public T Value { get; set; }
+    public T? Value { get; set; }
 }
 
 class ClassWithStaticCtor

@@ -11,8 +11,8 @@ namespace Microsoft.Azure.Functions.Worker.Builder;
 /// "integer", "boolean", or "object".</param>
 /// <param name="IsArray">Indicates whether the property type represents an array. Specify <see langword="true"/> for array types; otherwise,
 /// <see langword="false"/>.</param>
-/// <param name="EnumValues">Optional collection of enum values when the property type represents an enum. Specify the valid enum values. </param>
-public sealed record McpToolPropertyType(string TypeName, bool IsArray = false, IReadOnlyList<string> EnumValues = default!)
+/// <param name="EnumValues">Optional collection of enum values when the property type represents an enum. Specify the valid enum values. Otherwise, [] </param>
+public sealed record McpToolPropertyType(string TypeName, IReadOnlyList<string> EnumValues, bool IsArray = false)
 {
     private const string StringTypeName = "string";
     private const string ObjectTypeName = "object";
@@ -35,81 +35,86 @@ public sealed record McpToolPropertyType(string TypeName, bool IsArray = false, 
     private static McpToolPropertyType? _object;
     private static McpToolPropertyType? _objectArray;
 
+    public McpToolPropertyType(string typeName, bool isArray)
+       : this(typeName, [], isArray)
+    {
+    }
+
     /// <summary>
     /// Gets a property type value that represents a string MCP property.
     /// </summary>
     /// <remarks>This property provides a reusable type definition for string properties.
     /// The returned type is immutable and can be shared across multiple components.</remarks>
-    public static McpToolPropertyType String => _string ??= new(StringTypeName, false, Array.Empty<string>());
+    public static McpToolPropertyType String => _string ??= new(StringTypeName, false);
 
     /// <summary>
     /// Gets the property type representing an array of <see cref="String"/>.
     /// </summary>
     /// <remarks>This property provides a reusable type definition for string arrays properties.
     /// The returned type is immutable and can be shared across multiple components.</remarks>
-    public static McpToolPropertyType StringArray => _stringArray ??= new(StringTypeName, true, Array.Empty<string>());
+    public static McpToolPropertyType StringArray => _stringArray ??= new(StringTypeName, true);
 
     /// <summary>
     /// Gets a property type value that represents a number MCP property.
     /// </summary>
     /// <remarks>This property provides a reusable type definition for number properties.
     /// The returned type is immutable and can be shared across multiple components.</remarks>
-    public static McpToolPropertyType Number => _number ??= new(NumberTypeName, false, Array.Empty<string>());
+    public static McpToolPropertyType Number => _number ??= new(NumberTypeName, false);
 
     /// <summary>
     /// Gets the property type representing an array of <see cref="Number"/>.
     /// </summary>
     /// <remarks>This property provides a reusable type definition for number arrays properties.
     /// The returned type is immutable and can be shared across multiple components.</remarks>
-    public static McpToolPropertyType NumberArray => _numberArray ??= new(NumberTypeName, true, Array.Empty<string>());
+    public static McpToolPropertyType NumberArray => _numberArray ??= new(NumberTypeName, true);
 
     /// <summary>
     /// Gets a property type value that represents an integer MCP property.
     /// </summary>
     /// <remarks>This property provides a reusable type definition for integer properties.
     /// The returned type is immutable and can be shared across multiple components.</remarks>
-    public static McpToolPropertyType Integer => _integer ??= new(IntegerTypeName, false, Array.Empty<string>());
+    public static McpToolPropertyType Integer => _integer ??= new(IntegerTypeName, false);
 
     /// <summary>
     /// Gets the property type representing an array of <see cref="Integer"/>.
     /// </summary>
     /// <remarks>This property provides a reusable type definition for integer arrays properties.
     /// The returned type is immutable and can be shared across multiple components.</remarks>
-    public static McpToolPropertyType IntegerArray => _integerArray ??= new(IntegerTypeName, true, Array.Empty<string>());
+    public static McpToolPropertyType IntegerArray => _integerArray ??= new(IntegerTypeName, true);
 
     /// <summary>
     /// Gets a property type value that represents a boolean MCP property type.
     /// </summary>
     /// <remarks>This property provides a reusable type definition for boolean properties.
     /// The returned type is immutable and can be shared across multiple components.</remarks>
-    public static McpToolPropertyType Boolean => _boolean ??= new(BooleanTypeName, false, Array.Empty<string>());
+    public static McpToolPropertyType Boolean => _boolean ??= new(BooleanTypeName, false);
 
     /// <summary>
     /// Gets the property type representing an array of <see cref="Boolean"/>.
     /// </summary>
     /// <remarks>This property provides a reusable type definition for boolean arrays properties.
     /// The returned type is immutable and can be shared across multiple components.</remarks>
-    public static McpToolPropertyType BooleanArray => _booleanArray ??= new(BooleanTypeName, true, Array.Empty<string>());
+    public static McpToolPropertyType BooleanArray => _booleanArray ??= new(BooleanTypeName, true);
 
     /// <summary>
     /// Gets a property type value that represents an object MCP property type.
     /// </summary>
     /// <remarks>This property provides a reusable type definition for object properties.
     /// The returned type is immutable and can be shared across multiple components.</remarks>
-    public static McpToolPropertyType Object => _object ??= new(ObjectTypeName, false, Array.Empty<string>());
+    public static McpToolPropertyType Object => _object ??= new(ObjectTypeName, false);
 
     /// <summary>
     /// Gets the property type representing an array of <see cref="Object"/>.
     /// </summary>
     /// <remarks>This property provides a reusable type definition for object arrays properties.
     /// The returned type is immutable and can be shared across multiple components.</remarks>
-    public static McpToolPropertyType ObjectArray => _objectArray ??= new(ObjectTypeName, true, Array.Empty<string>());
+    public static McpToolPropertyType ObjectArray => _objectArray ??= new(ObjectTypeName, true);
 
     /// <summary>
     /// Returns a new instance of the property type representing an array of the current type.
     /// </summary>
     /// <returns>A <see cref="McpToolPropertyType"/> instance configured as an array of the current type.</returns>
-    public McpToolPropertyType AsArray() => new(TypeName, true, IsEnum ? EnumValues : Array.Empty<string>());
+    public McpToolPropertyType AsArray() => new(TypeName, IsEnum ? EnumValues : [], true);
 
     /// <summary>
     /// Checks if the current property type represents an enum.
