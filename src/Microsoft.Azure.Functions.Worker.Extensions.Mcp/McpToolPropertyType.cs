@@ -35,7 +35,7 @@ public sealed record McpToolPropertyType(string TypeName, IReadOnlyList<string> 
     private static McpToolPropertyType? _object;
     private static McpToolPropertyType? _objectArray;
 
-    public McpToolPropertyType(string typeName, bool isArray)
+    public McpToolPropertyType(string typeName, bool isArray = false)
        : this(typeName, [], isArray)
     {
     }
@@ -45,7 +45,7 @@ public sealed record McpToolPropertyType(string TypeName, IReadOnlyList<string> 
     /// </summary>
     /// <remarks>This property provides a reusable type definition for string properties.
     /// The returned type is immutable and can be shared across multiple components.</remarks>
-    public static McpToolPropertyType String => _string ??= new(StringTypeName, false);
+    public static McpToolPropertyType String => _string ??= new(StringTypeName);
 
     /// <summary>
     /// Gets the property type representing an array of <see cref="String"/>.
@@ -59,7 +59,7 @@ public sealed record McpToolPropertyType(string TypeName, IReadOnlyList<string> 
     /// </summary>
     /// <remarks>This property provides a reusable type definition for number properties.
     /// The returned type is immutable and can be shared across multiple components.</remarks>
-    public static McpToolPropertyType Number => _number ??= new(NumberTypeName, false);
+    public static McpToolPropertyType Number => _number ??= new(NumberTypeName);
 
     /// <summary>
     /// Gets the property type representing an array of <see cref="Number"/>.
@@ -73,7 +73,7 @@ public sealed record McpToolPropertyType(string TypeName, IReadOnlyList<string> 
     /// </summary>
     /// <remarks>This property provides a reusable type definition for integer properties.
     /// The returned type is immutable and can be shared across multiple components.</remarks>
-    public static McpToolPropertyType Integer => _integer ??= new(IntegerTypeName, false);
+    public static McpToolPropertyType Integer => _integer ??= new(IntegerTypeName);
 
     /// <summary>
     /// Gets the property type representing an array of <see cref="Integer"/>.
@@ -87,7 +87,7 @@ public sealed record McpToolPropertyType(string TypeName, IReadOnlyList<string> 
     /// </summary>
     /// <remarks>This property provides a reusable type definition for boolean properties.
     /// The returned type is immutable and can be shared across multiple components.</remarks>
-    public static McpToolPropertyType Boolean => _boolean ??= new(BooleanTypeName, false);
+    public static McpToolPropertyType Boolean => _boolean ??= new(BooleanTypeName);
 
     /// <summary>
     /// Gets the property type representing an array of <see cref="Boolean"/>.
@@ -101,7 +101,7 @@ public sealed record McpToolPropertyType(string TypeName, IReadOnlyList<string> 
     /// </summary>
     /// <remarks>This property provides a reusable type definition for object properties.
     /// The returned type is immutable and can be shared across multiple components.</remarks>
-    public static McpToolPropertyType Object => _object ??= new(ObjectTypeName, false);
+    public static McpToolPropertyType Object => _object ??= new(ObjectTypeName);
 
     /// <summary>
     /// Gets the property type representing an array of <see cref="Object"/>.
