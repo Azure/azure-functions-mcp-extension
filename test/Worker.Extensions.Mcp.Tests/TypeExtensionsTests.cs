@@ -468,6 +468,7 @@ public class TestParameters
     public JobType[] JobArray { get; set; } = [];
 }
 
+#pragma warning disable 0649, 0169, 8618
 // Valid POCO classes
 class PocoClass
 {
@@ -477,23 +478,23 @@ class PocoClass
 class ClassWithFieldsOnly
 {
     public int Field1;
-    public string? Field2;
+    public string Field2;
 }
 
 class NestedPocoClass
 {
-    public PocoClass? Child { get; set; }
+    public PocoClass Child { get; set; }
 }
 
 class PocoWithPrivateFields
 {
     private int _x;
-    public string? Name { get; set; }
+    public string Name { get; set; }
 }
 
 class GenericClass<T>
 {
-    public T? Value { get; set; }
+    public T Value { get; set; }
 }
 
 class ClassWithStaticCtor
@@ -529,3 +530,4 @@ class CollectionClass : List<int> { }
 record RecordExample(int Id);
 
 class CollectionDerived : Dictionary<string, int> { }
+#pragma warning restore 0649, 0169, 8618

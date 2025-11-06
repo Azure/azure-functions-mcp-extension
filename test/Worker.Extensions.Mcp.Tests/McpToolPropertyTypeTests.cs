@@ -121,8 +121,8 @@ public class McpToolPropertyTypeTests
     [Fact]
     public void Equality_WithNullEnumValues_AreEqual()
     {
-        var type1 = new McpToolPropertyType("string", null, false);
-        var type2 = new McpToolPropertyType("string", null, false);
+        var type1 = new McpToolPropertyType("string", null!, false);
+        var type2 = new McpToolPropertyType("string", null!, false);
 
         Assert.Equal(type1, type2);
         Assert.True(type1 == type2);
@@ -226,7 +226,7 @@ public class McpToolPropertyTypeTests
     [Fact]
     public void Equality_OneNullOneEmptyEnumValues_AreNotEqual()
     {
-        var type1 = new McpToolPropertyType("string", null, false);
+        var type1 = new McpToolPropertyType("string", null!, false);
         var type2 = new McpToolPropertyType("string", Array.Empty<string>(), false);
 
         Assert.NotEqual(type1, type2);
@@ -237,7 +237,7 @@ public class McpToolPropertyTypeTests
     [Fact]
     public void Equality_OneNullOnePopulatedEnumValues_AreNotEqual()
     {
-        var type1 = new McpToolPropertyType("string", null, false);
+        var type1 = new McpToolPropertyType("string", null!, false);
         var type2 = new McpToolPropertyType("string", new[] { "Active" }, false);
 
         Assert.NotEqual(type1, type2);
@@ -304,7 +304,7 @@ public class McpToolPropertyTypeTests
     [Fact]
     public void IsEnum_WithNullEnumValues_ReturnsFalse()
     {
-        var type = new McpToolPropertyType("string", null, false);
+        var type = new McpToolPropertyType("string", null!, false);
         Assert.False(type.IsEnum);
     }
 
