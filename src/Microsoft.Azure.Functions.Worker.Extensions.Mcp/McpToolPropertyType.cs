@@ -114,7 +114,7 @@ public sealed record McpToolPropertyType(string TypeName, IReadOnlyList<string> 
     /// Returns a new instance of the property type representing an array of the current type.
     /// </summary>
     /// <returns>A <see cref="McpToolPropertyType"/> instance configured as an array of the current type.</returns>
-    public McpToolPropertyType AsArray() => new(TypeName, IsEnum ? EnumValues : [], true);
+    public McpToolPropertyType AsArray() => new(TypeName, EnumValues, true);
 
     /// <summary>
     /// Checks if the current property type represents an enum.
