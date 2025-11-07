@@ -77,7 +77,6 @@ internal static class McpToolExtensions
 
     private static void WriteTypeAndEnum(Utf8JsonWriter writer, string propertyType, IReadOnlyList<string> enumValues)
     {
-        // Write type and enum at the appropriate level
         writer.WriteString("type", propertyType);
         WriteEnumArrayIfPresent(writer, enumValues);
     }
