@@ -151,6 +151,7 @@ public class TypeExtensionsTests
         // Assert
         Assert.Equal("string", result.TypeName);
         Assert.False(result.IsArray);
+        Assert.True(result.IsEnum);
         Assert.NotNull(result.EnumValues);
         Assert.Equal(new[] { "Value1", "Value2", "Value3" }, result.EnumValues);
     }
@@ -164,6 +165,7 @@ public class TypeExtensionsTests
         // Assert
         Assert.Equal("string", result.TypeName);
         Assert.False(result.IsArray);
+        Assert.True(result.IsEnum);
         Assert.NotNull(result.EnumValues);
         
         // Should use the EnumMember values, not the enum names
@@ -184,6 +186,7 @@ public class TypeExtensionsTests
         // Assert
         Assert.Equal("string", result.TypeName);
         Assert.False(result.IsArray);
+        Assert.True(result.IsEnum);
         Assert.NotNull(result.EnumValues);
         
         // Should use custom values where available, default names otherwise
@@ -200,6 +203,7 @@ public class TypeExtensionsTests
         // Assert
         Assert.Equal("string", result.TypeName);
         Assert.True(result.IsArray);
+        Assert.True(result.IsEnum);
         Assert.NotNull(result.EnumValues);
         
         var expectedCustomValues = new[] { "active", "inactive", "suspended", "archived" };
@@ -215,6 +219,7 @@ public class TypeExtensionsTests
         // Assert
         Assert.Equal("string", result.TypeName);
         Assert.False(result.IsArray);
+        Assert.True(result.IsEnum);
         Assert.NotNull(result.EnumValues);
         
         var expectedCustomValues = new[] { "active", "inactive", "suspended", "archived" };
@@ -231,12 +236,14 @@ public class TypeExtensionsTests
         // Assert List<CustomizedStatusEnum>
         Assert.Equal("string", listResult.TypeName);
         Assert.True(listResult.IsArray);
+        Assert.True(listResult.IsEnum);
         var expectedCustomValues = new[] { "active", "inactive", "suspended", "archived" };
         Assert.Equal(expectedCustomValues, listResult.EnumValues);
 
         // Assert IEnumerable<CustomizedStatusEnum>
         Assert.Equal("string", enumerableResult.TypeName);
         Assert.True(enumerableResult.IsArray);
+        Assert.True(enumerableResult.IsEnum);
         Assert.Equal(expectedCustomValues, enumerableResult.EnumValues);
     }
 
@@ -249,6 +256,7 @@ public class TypeExtensionsTests
         // Assert
         Assert.Equal("string", result.TypeName);
         Assert.False(result.IsArray);
+        Assert.True(result.IsEnum);
         Assert.NotNull(result.EnumValues);
         
         // Should use HTTP method names as customized
@@ -265,6 +273,7 @@ public class TypeExtensionsTests
         // Assert
         Assert.Equal("string", result.TypeName);
         Assert.False(result.IsArray);
+        Assert.True(result.IsEnum);
         Assert.NotNull(result.EnumValues);
         
         // Should use numeric priority values
@@ -281,6 +290,7 @@ public class TypeExtensionsTests
         // Assert
         Assert.Equal("string", result.TypeName);
         Assert.False(result.IsArray);
+        Assert.True(result.IsEnum);
         Assert.NotNull(result.EnumValues);
 
         // Should keep empty customized value
@@ -319,6 +329,7 @@ public class TypeExtensionsTests
         Assert.Equal(expectedTypeName, result.TypeName);
         Assert.Equal(expectedIsArray, result.IsArray);
         Assert.NotNull(result.EnumValues);
+        Assert.True(result.IsEnum);
         
         // Verify each property has the expected customized values
         switch (propertyName)
