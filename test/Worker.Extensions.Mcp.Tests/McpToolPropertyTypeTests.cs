@@ -302,34 +302,6 @@ public class McpToolPropertyTypeTests
     }
 
     [Fact]
-    public void IsEnum_WithNullEnumValues_ReturnsFalse()
-    {
-        var type = new McpToolPropertyType("string", null!, false);
-        Assert.False(type.IsEnum);
-    }
-
-    [Fact]
-    public void IsEnum_WithEmptyEnumValues_ReturnsFalse()
-    {
-        var type = new McpToolPropertyType("string", Array.Empty<string>(), false);
-        Assert.False(type.IsEnum);
-    }
-
-    [Fact]
-    public void IsEnum_WithPopulatedEnumValues_ReturnsTrue()
-    {
-        var type = new McpToolPropertyType("string", new[] { "Value1", "Value2" }, false);
-        Assert.True(type.IsEnum);
-    }
-
-    [Fact]
-    public void IsEnum_WithSingleEnumValue_ReturnsTrue()
-    {
-        var type = new McpToolPropertyType("string", new[] { "OnlyValue" }, false);
-        Assert.True(type.IsEnum);
-    }
-
-    [Fact]
     public void AsArray_WithEnumValues_PreservesEnumValues()
     {
         var enumValues = new[] { "Active", "Inactive", "Pending" };
@@ -339,7 +311,6 @@ public class McpToolPropertyTypeTests
         Assert.Equal(original.TypeName, arrayVersion.TypeName);
         Assert.True(arrayVersion.IsArray);
         Assert.Equal(enumValues, arrayVersion.EnumValues);
-        Assert.True(arrayVersion.IsEnum);
     }
 
     [Fact]
@@ -352,7 +323,6 @@ public class McpToolPropertyTypeTests
         Assert.Equal("string", enumArrayType.TypeName);
         Assert.True(enumArrayType.IsArray);
         Assert.Equal(enumValues, enumArrayType.EnumValues);
-        Assert.True(enumArrayType.IsEnum);
         Assert.NotSame(enumType, enumArrayType);
     }
 
