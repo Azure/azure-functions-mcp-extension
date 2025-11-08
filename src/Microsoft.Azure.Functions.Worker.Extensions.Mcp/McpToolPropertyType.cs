@@ -11,7 +11,8 @@ namespace Microsoft.Azure.Functions.Worker.Builder;
 /// "integer", "boolean", or "object".</param>
 /// <param name="IsArray">Indicates whether the property type represents an array. Specify <see langword="true"/> for array types; otherwise,
 /// <see langword="false"/>.</param>
-public sealed record McpToolPropertyType(string TypeName, bool IsArray = false)
+/// <param name="EnumValues">Optional collection of enum values when the property type represents an enum. Specify the valid enum values. Otherwise, [] </param>
+public sealed record McpToolPropertyType(string TypeName, IReadOnlyList<string> EnumValues, bool IsArray = false)
 {
     private const string StringTypeName = "string";
     private const string ObjectTypeName = "object";
@@ -33,6 +34,11 @@ public sealed record McpToolPropertyType(string TypeName, bool IsArray = false)
 
     private static McpToolPropertyType? _object;
     private static McpToolPropertyType? _objectArray;
+
+    public McpToolPropertyType(string typeName, bool isArray = false)
+       : this(typeName, [], isArray)
+    {
+    }
 
     /// <summary>
     /// Gets a property type value that represents a string MCP property.
@@ -108,5 +114,97 @@ public sealed record McpToolPropertyType(string TypeName, bool IsArray = false)
     /// Returns a new instance of the property type representing an array of the current type.
     /// </summary>
     /// <returns>A <see cref="McpToolPropertyType"/> instance configured as an array of the current type.</returns>
-    public McpToolPropertyType AsArray() => new(TypeName, true);
+    public McpToolPropertyType AsArray() => new(TypeName, EnumValues, true);
+
+    /// <summary>
+    /// Checks if the current property type represents an enum.
+    /// </summary>
+    /// <returns><c>true</c> if the current property type represents an enum; otherwise, <c>false</c>.</returns>
+    public bool IsEnum => EnumValues is { Count: > 0 };
+
+    /// <summary>
+    /// Determines whether this instance and another specified <see cref="McpToolPropertyType"/> object have the same value.
+    /// </summary>
+    /// <param name="other">The <see cref="McpToolPropertyType"/> to compare with this instance.</param>
+    /// <returns><c>true</c> if the value of <paramref name="other"/> is the same as this instance; otherwise, <c>false</c>.</returns>
+    public bool Equals(McpToolPropertyType? other)
+    {
+        if (other is null)
+        {
+            return false;
+        }
+
+        if (ReferenceEquals(this, other))
+        {
+            return true;
+        }
+
+        // Compare the basic properties
+        if (TypeName != other.TypeName || IsArray != other.IsArray)
+        {
+            return false;
+        }
+
+        // Compare EnumValues using sequence equality
+        return EnumValuesEqual(EnumValues, other.EnumValues);
+    }
+
+    /// <summary>
+    /// Returns the hash code for this instance.
+    /// </summary>
+    /// <returns>A 32-bit signed integer hash code.</returns>
+    public override int GetHashCode()
+    {
+        var hash = new HashCode();
+        hash.Add(TypeName);
+        hash.Add(IsArray);
+
+        // Add each enum value to the hash
+        if (EnumValues is not null)
+        {
+            foreach (var value in EnumValues)
+            {
+                hash.Add(value);
+            }
+        }
+
+        return hash.ToHashCode();
+    }
+
+    /// <summary>
+    /// Compares two enum value collections for sequence equality.
+    /// </summary>
+    /// <param name="first">The first collection to compare.</param>
+    /// <param name="second">The second collection to compare.</param>
+    /// <returns><c>true</c> if the collections contain the same values in the same order; otherwise, <c>false</c>.</returns>
+    private static bool EnumValuesEqual(IReadOnlyList<string>? first, IReadOnlyList<string>? second)
+    {
+        // Handle null cases
+        if (first is null && second is null)
+        {
+            return true;
+        }
+
+        if (first is null || second is null)
+        {
+            return false;
+        }
+
+        // Compare counts first for efficiency
+        if (first.Count != second.Count)
+        {
+            return false;
+        }
+
+        // Compare each element
+        for (int i = 0; i < first.Count; i++)
+        {
+            if (first[i] != second[i])
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
 }

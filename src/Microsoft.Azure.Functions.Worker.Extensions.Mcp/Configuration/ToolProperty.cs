@@ -6,7 +6,7 @@ using System.Text.Json.Serialization;
 namespace Microsoft.Azure.Functions.Worker.Extensions.Mcp.Configuration;
 
 public sealed class ToolProperty(string name, string type, string? description,
-                                 bool isRequired = false, bool isArray = false)
+                                 bool isRequired = false, bool isArray = false, IReadOnlyList<string>? enumValues = default)
 {
     [JsonPropertyName("propertyName")]
     public string Name { get; init; } = name;
@@ -22,4 +22,10 @@ public sealed class ToolProperty(string name, string type, string? description,
 
     [JsonPropertyName("isArray")]
     public bool IsArray { get; init; } = isArray;
+
+    /// <summary>
+    /// Optional enum values for the property. Only populated for enum types.
+    /// </summary>
+    [JsonPropertyName("enumValues")]
+    public IReadOnlyList<string> EnumValues { get; init; } = enumValues ?? [];
 }

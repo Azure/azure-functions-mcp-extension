@@ -183,7 +183,7 @@ public sealed partial class McpFunctionMetadataTransformer(IOptionsMonitor<ToolO
         McpToolPropertyType propertyType = parameter.ParameterType.MapToToolPropertyType();
 
         toolProperty = new(toolAttribute.PropertyName, propertyType.TypeName, toolAttribute.Description,
-                           toolAttribute.IsRequired, propertyType.IsArray);
+                           toolAttribute.IsRequired, propertyType.IsArray, propertyType.EnumValues);
 
         return true;
     }
@@ -211,7 +211,7 @@ public sealed partial class McpFunctionMetadataTransformer(IOptionsMonitor<ToolO
             McpToolPropertyType propertyType = property.PropertyType.MapToToolPropertyType();
 
             toolProperties.Add(new(property.Name, propertyType.TypeName, property.GetDescription(),
-                                   property.IsRequired(), propertyType.IsArray));
+                                   property.IsRequired(), propertyType.IsArray, propertyType.EnumValues));
         }
 
         return toolProperties.Count > 0;

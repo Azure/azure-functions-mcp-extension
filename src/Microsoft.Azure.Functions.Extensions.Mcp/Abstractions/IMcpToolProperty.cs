@@ -14,4 +14,6 @@ public interface IMcpToolProperty
     public bool IsRequired { get; set; }
 
     public bool IsArray { get; set; }
+
+    public IReadOnlyList<string> EnumValues { get; set; }
 }

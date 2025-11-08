@@ -3,6 +3,8 @@
 
 using Microsoft.Azure.Functions.Worker.Builder;
 using System.Collections;
+using System.Reflection;
+using System.Runtime.Serialization;
 
 namespace Microsoft.Azure.Functions.Worker.Extensions.Mcp.Reflection;
 
@@ -55,11 +57,27 @@ internal static class TypeExtensions
 
             { } t when t == typeof(int) => McpToolPropertyType.Integer,
             { } t when t == typeof(bool) => McpToolPropertyType.Boolean,
-            { } t when t.IsEnum => McpToolPropertyType.String,
+            { } t when t.IsEnum => new McpToolPropertyType("string", GetEnumNames(t), false),
             { } t when IsSupportedNumber(t) => McpToolPropertyType.Number,
             _ => McpToolPropertyType.Object
         };
     }
+
+    private static string[] GetEnumNames(Type enumType)
+    {
+        return Enum.GetValues(enumType)
+            .Cast<Enum>()
+            .Select(enumValue =>
+            {
+                var memberInfo = enumType.GetMember(enumValue.ToString()).FirstOrDefault();
+                var enumMemberAttr = memberInfo?.GetCustomAttribute<EnumMemberAttribute>();
+
+                // Use EnumMember.Value if present, otherwise fall back to enum name
+                return enumMemberAttr?.Value ?? enumValue.ToString();
+            })
+            .ToArray();
+    }
+
 
     private static Type StripNullable(Type type) => Nullable.GetUnderlyingType(type) ?? type;
 
