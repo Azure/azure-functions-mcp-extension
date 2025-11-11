@@ -30,15 +30,9 @@ internal sealed class ToolReturnValueBinder(CallToolExecutionContext executionCo
         var result = JsonSerializer.Deserialize<McpToolResult>(jsonString, McpJsonSerializerOptions.DefaultOptions)
                      ?? throw new InvalidOperationException("The function return value could not be deserialized to a valid McpToolResult.");
 
-
-        if (string.IsNullOrEmpty(result.Type))
-        {
-            throw new InvalidOperationException($"The McpToolResult '{nameof(result.Type)}' cannot be null or empty.");
-        }
-
         try
         {
-            Collection<ContentBlock> contentBlocks = DeserializeToContentBlockCollection(result);
+            IList<ContentBlock> contentBlocks = DeserializeToContentBlockCollection(result);
 
             if (contentBlocks.Count == 0)
             {
@@ -62,44 +56,21 @@ internal sealed class ToolReturnValueBinder(CallToolExecutionContext executionCo
 
     public string ToInvokeString() => string.Empty;
 
-    private static Collection<ContentBlock> DeserializeToContentBlockCollection(McpToolResult result)
+    private static IList<ContentBlock> DeserializeToContentBlockCollection(McpToolResult result)
     {
-        var blocks = new Collection<ContentBlock>();
-
         // Explicit multi-content contract
         if (string.Equals(result.Type, McpConstants.ToolResultContentTypes.MultiContentResult, StringComparison.OrdinalIgnoreCase))
         {
-
-            var collection = JsonSerializer.Deserialize<Collection<ContentBlock>>(result.Content!, McpJsonSerializerOptions.DefaultOptions)
+            var collection = JsonSerializer.Deserialize<IEnumerable<ContentBlock>>(result.Content!, McpJsonUtilities.DefaultOptions)
                 ?? throw new InvalidOperationException("Failed to deserialize multi-content result.");
 
-            foreach (var item in collection)
-            {
-                blocks.Add(item);
-            }
-        }
-        else
-        {
-            // Otherwise, handle single content block
-            var contentBlock = result.Type switch
-            {
-                McpConstants.ToolResultContentTypes.Text => DeserializeContentBlock<TextContentBlock>(result.Content!),
-                McpConstants.ToolResultContentTypes.Audio => DeserializeContentBlock<AudioContentBlock>(result.Content!),
-                McpConstants.ToolResultContentTypes.Image => DeserializeContentBlock<ImageContentBlock>(result.Content!),
-                McpConstants.ToolResultContentTypes.ResourceLink => DeserializeContentBlock<ResourceLinkBlock>(result.Content!),
-                McpConstants.ToolResultContentTypes.Resource => DeserializeContentBlock<EmbeddedResourceBlock>(result.Content!),
-                _ => throw new InvalidOperationException($"Unsupported content type '{result.Type}'."),
-            };
-
-            blocks.Add(contentBlock);
+            return collection as IList<ContentBlock> ?? [.. collection];
         }
 
-        return blocks;
-    }
+        // Otherwise, handle single content block
+        var contentBlock = JsonSerializer.Deserialize<ContentBlock>(result.Content!, McpJsonUtilities.DefaultOptions)
+            ?? throw new InvalidOperationException($"Failed to deserialize content block type {result.Type}.");
 
-    private static ContentBlock DeserializeContentBlock<T>(string json) where T : ContentBlock
-    {
-        var obj = JsonSerializer.Deserialize<T>(json, McpJsonUtilities.DefaultOptions);
-        return obj ?? throw new InvalidOperationException($"Failed to deserialize '{typeof(T).Name}'.");
+        return [contentBlock];
     }
 }

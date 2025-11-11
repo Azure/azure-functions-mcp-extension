@@ -7,7 +7,7 @@ namespace Microsoft.Azure.Functions.Extensions.Mcp;
 /// Represents the result returned by an MCP tool execution.
 /// Utilized when rich content type support is enabled.
 /// </summary>
-public class McpToolResult
+public sealed class McpToolResult
 {
     /// <summary>
     /// The content returned by the tool.
@@ -17,5 +17,5 @@ public class McpToolResult
     /// <summary>
     /// The type of content being returned.
     /// </summary>
-    public string? Type { get; set; }
+    public required string Type { get; init; }
 }
