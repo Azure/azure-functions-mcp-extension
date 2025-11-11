@@ -3,7 +3,9 @@
 
 using Microsoft.Azure.Functions.Worker.Mcp.E2ETests.Fixtures;
 using Microsoft.Azure.Functions.Worker.Mcp.E2ETests.ProtocolTests;
+using ModelContextProtocol.Protocol;
 using System.Globalization;
+using System.Text.Json;
 
 namespace Microsoft.Azure.Functions.Worker.Mcp.E2ETests.ToolTests;
 
@@ -167,5 +169,54 @@ public class CallToolTests(DefaultProjectFixture fixture, ITestOutputHelper test
         Assert.NotNull(response);
         Assert.Contains("9fe500ac-e415-4c59-a766-d6378ebd7acd", response);
         Assert.Contains(expectedDate, response);
+    }
+
+    [Fact]
+    public async Task DefaultServer_RenderImage_Success()
+    {
+        var imageDataPath = Path.Combine(AppContext.BaseDirectory, "TestData", "image-base64.txt");
+        var data = await File.ReadAllTextAsync(imageDataPath);
+
+        // Test calling RenderImage on Default server (TestAppIsolated)
+        var request = CallToolHelper.CreateToolCallRequest(10, "RenderImage", new
+        {
+            data,
+            mimeType = "image/jpeg"
+        });
+
+        var response = await CallToolHelper.MakeToolCallRequest(AppRootEndpoint, request, TestOutputHelper);
+
+        Assert.NotNull(response);
+        TestOutputHelper.WriteLine($"Default RenderImage response: {response}");
+
+        var contentBlock = JsonSerializer.Deserialize<ImageContentBlock>(response);
+        Assert.NotNull(contentBlock);
+        Assert.Equal("image/jpeg", contentBlock.MimeType);
+        Assert.StartsWith(data.Substring(0, 20), contentBlock.Data); // Check part of the base64 data
+    }
+
+    [Fact]
+    public async Task DefaultServer_MultiContentTypeFunction_Success()
+    {
+        var imageDataPath = Path.Combine(AppContext.BaseDirectory, "TestData", "image-base64.txt");
+        var data = await File.ReadAllTextAsync(imageDataPath);
+
+        // Test calling MultiContentTypeFunction on Default server (TestAppIsolated)
+        var request = CallToolHelper.CreateToolCallRequest(10, "MultiContentTypeFunction", new
+        {
+            data,
+            mimeType = "image/jpeg"
+        });
+
+        var response = await CallToolHelper.MakeToolCallRequest(AppRootEndpoint, request, TestOutputHelper);
+
+        Assert.NotNull(response);
+        TestOutputHelper.WriteLine($"Default MultiContentTypeFunction response: {response}");
+
+        var contentBlocks = JsonSerializer.Deserialize<List<ContentBlock>>(response);
+        Assert.NotNull(contentBlocks);
+        Assert.Contains(contentBlocks, block => block is TextContentBlock textBlock && textBlock.Text == "Here is an image for you!");
+        Assert.Contains(contentBlocks, block => block is ResourceLinkBlock linkBlock && linkBlock.Uri == "https://www.google.com/");
+        Assert.Contains(contentBlocks, block => block is ImageContentBlock imageBlock && imageBlock.MimeType == "image/jpeg" && imageBlock.Data.StartsWith(data.Substring(0, 20)));
     }
 }
