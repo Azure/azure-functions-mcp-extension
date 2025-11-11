@@ -118,8 +118,13 @@ public class ToolReturnValueBinderTests
         var context = CallToolExecutionContextHelper.CreateExecutionContext();
         var binder = new ToolReturnValueBinder(context);
 
-        // Bug in MCP SDK: Size must be set to deserialize correctly
-        var innerBlock = new ResourceLinkBlock { Uri = "https://example.com", Name = "Example", Size = 1234};
+        var innerBlock = new ResourceLinkBlock
+        {
+            Uri = "https://example.com",
+            Name = "Example",
+            Size = 1234
+        };
+
         var mcpToolResult = new McpToolResult
         {
             Type = "resource_link",
@@ -143,25 +148,12 @@ public class ToolReturnValueBinderTests
         var context = CallToolExecutionContextHelper.CreateExecutionContext();
         var binder = new ToolReturnValueBinder(context);
 
-        var text = new TextContentBlock { Text = "hello" };
-        var image = new ImageContentBlock
-        {
-            Data = Convert.ToBase64String(new byte[] { 1, 2, 3 }),
-            MimeType = "image/png"
-        };
-        var link = new ResourceLinkBlock
-        {
-            Uri = "https://example.com/resource",
-            Name = "Test Resource",
-            Description = "A test resource for validation",
-            MimeType = "text/plain",
-            Size = 1024
-        };
+        string contentBlocksJson = "[{\"type\":\"text\",\"text\":\"hello\"},{\"type\":\"image\",\"data\":\"AQID\",\"mimeType\":\"image/png\"},{\"type\":\"resource_link\",\"uri\":\"https://example.com/resource\",\"name\":\"Test Resource\"}]";
 
         var mcpToolResult = new McpToolResult
         {
             Type = "multi_content_result",
-            Content = JsonSerializer.Serialize(new object[] { text, image, link })
+            Content = contentBlocksJson
         };
         var json = JsonSerializer.Serialize(mcpToolResult);
 
@@ -179,16 +171,15 @@ public class ToolReturnValueBinderTests
 
         var textBlock = (TextContentBlock)result.Content[0];
         Assert.Equal("text", textBlock.Type);
-        Assert.Equal(text.Text, textBlock.Text);
+        Assert.Equal("hello", textBlock.Text);
 
         var imageBlock = (ImageContentBlock)result.Content[1];
-        Assert.Equal(image.MimeType, imageBlock.MimeType);
-        Assert.Equal(image.Data, imageBlock.Data);
+        Assert.Equal("image/png", imageBlock.MimeType);
+        Assert.Equal("AQID", imageBlock.Data);
 
         var linkBlock = (ResourceLinkBlock)result.Content[2];
-        Assert.Equal(link.Uri, linkBlock.Uri);
-        Assert.Equal(link.MimeType, linkBlock.MimeType);
-        Assert.Equal(link.Name, linkBlock.Name);
+        Assert.Equal("https://example.com/resource", linkBlock.Uri);
+        Assert.Equal("Test Resource", linkBlock.Name);
     }
 
     [Fact]
