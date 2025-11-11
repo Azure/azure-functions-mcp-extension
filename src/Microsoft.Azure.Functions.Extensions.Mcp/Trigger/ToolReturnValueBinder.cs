@@ -69,7 +69,7 @@ internal sealed class ToolReturnValueBinder(CallToolExecutionContext executionCo
 
         // Otherwise, handle single content block
         var contentBlock = JsonSerializer.Deserialize<ContentBlock>(result.Content!, McpJsonUtilities.DefaultOptions)
-            ?? throw new InvalidOperationException($"Failed to deserialize content block type {result.Type}.");
+            ?? throw new InvalidOperationException($"Failed to deserialize content block type '{result.Type}'.");
 
         return [contentBlock];
     }

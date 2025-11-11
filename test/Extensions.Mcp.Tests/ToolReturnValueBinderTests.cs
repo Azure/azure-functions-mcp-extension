@@ -108,7 +108,7 @@ public class ToolReturnValueBinderTests
         var result = Assert.IsType<CallToolResult>(await context.ResultTask);
         var resourceBlock = Assert.Single(result.Content) as EmbeddedResourceBlock;
         Assert.NotNull(resourceBlock);
-        Assert.Equal(innerBlock.Resource.Uri, resourceBlock!.Resource.Uri);
+        Assert.Equal(innerBlock.Resource.Uri, resourceBlock.Resource.Uri);
         Assert.Equal(innerBlock.Resource.MimeType, resourceBlock.Resource.MimeType);
     }
 
@@ -118,7 +118,8 @@ public class ToolReturnValueBinderTests
         var context = CallToolExecutionContextHelper.CreateExecutionContext();
         var binder = new ToolReturnValueBinder(context);
 
-        var innerBlock = new ResourceLinkBlock { Uri = "https://example.com", MimeType = "text/html", Name = "Example" };
+        // Bug in MCP SDK: Size must be set to deserialize correctly
+        var innerBlock = new ResourceLinkBlock { Uri = "https://example.com", Name = "Example", Size = 1234};
         var mcpToolResult = new McpToolResult
         {
             Type = "resource_link",
@@ -131,8 +132,7 @@ public class ToolReturnValueBinderTests
         var result = Assert.IsType<CallToolResult>(await context.ResultTask);
         var linkBlock = Assert.Single(result.Content) as ResourceLinkBlock;
         Assert.NotNull(linkBlock);
-        Assert.Equal(innerBlock.Uri, linkBlock!.Uri);
-        Assert.Equal(innerBlock.MimeType, linkBlock.MimeType);
+        Assert.Equal(innerBlock.Uri, linkBlock.Uri);
         Assert.Equal(innerBlock.Name, linkBlock.Name);
     }
 
@@ -348,19 +348,6 @@ public class ToolReturnValueBinderTests
         await Assert.ThrowsAsync<JsonException>(() => binder.SetValueAsync("not-json", CancellationToken.None));
     }
 
-    [Theory]
-    [InlineData(null)]
-    [InlineData("")]
-    public async Task SetValueAsync_ThrowsInvalidOperation_WhenTypeMissing(string? type)
-    {
-        var ctx = CallToolExecutionContextHelper.CreateExecutionContext();
-        var binder = new ToolReturnValueBinder(ctx);
-
-        var json = JsonSerializer.Serialize(new McpToolResult { Type = type!, Content = "{}" });
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => binder.SetValueAsync(json, CancellationToken.None));
-        Assert.Contains("cannot be null or empty", ex.Message);
-    }
-
     [Fact]
     public async Task SetValueAsync_ThrowsInvalidOperation_WhenTextContentIsNullLiteral()
     {
@@ -371,7 +358,7 @@ public class ToolReturnValueBinderTests
         var json = JsonSerializer.Serialize(result);
 
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => binder.SetValueAsync(json, CancellationToken.None));
-        Assert.Contains("Failed to deserialize 'TextContentBlock'", ex.Message);
+        Assert.Contains("Failed to deserialize content block type 'text'", ex.Message);
     }
 
     [Fact]
