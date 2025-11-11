@@ -19,7 +19,7 @@ public class ListToolTests(DefaultProjectFixture fixture, ITestOutputHelper test
         var client = await Fixture.CreateClientAsync(mode);
         var tools = await client.ListToolsAsync(cancellationToken: TestContext.Current.CancellationToken);
 
-        Assert.Equal(7, tools.Count);
+        Assert.Equal(9, tools.Count);
     }
 
     [Theory]
@@ -47,6 +47,8 @@ public class ListToolTests(DefaultProjectFixture fixture, ITestOutputHelper test
         Assert.NotNull(tools);
         // Default server (TestAppIsolated) has these tools registered:
         Assert.Contains(tools, tool => tool.Name == "HappyFunction");
+        Assert.Contains(tools, tool => tool.Name == "MultiContentTypeFunction");
+        Assert.Contains(tools, tool => tool.Name == "RenderImage");
         Assert.Contains(tools, tool => tool.Name == "BirthdayTracker");
         Assert.Contains(tools, tool => tool.Name == "SingleArgumentFunction");
         Assert.Contains(tools, tool => tool.Name == "SingleArgumentWithDefaultFunction");

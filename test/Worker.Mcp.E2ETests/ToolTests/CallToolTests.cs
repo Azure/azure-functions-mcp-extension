@@ -5,7 +5,7 @@ using Microsoft.Azure.Functions.Worker.Mcp.E2ETests.Fixtures;
 using Microsoft.Azure.Functions.Worker.Mcp.E2ETests.ProtocolTests;
 using ModelContextProtocol.Protocol;
 using System.Globalization;
-using System.Text.Json;
+using ModelContextProtocol;
 
 namespace Microsoft.Azure.Functions.Worker.Mcp.E2ETests.ToolTests;
 
@@ -93,7 +93,7 @@ public class CallToolTests(DefaultProjectFixture fixture, ITestOutputHelper test
         var request = CallToolHelper.CreateToolCallRequest(2, "HappyFunction", new
         {
             name = "DefaultTestUser",
-            job = "Fulltime",
+            job = "FullTime",
             age = 28,
             isHappy = true,
             attributes = new[] { "diligent", "team-player", "detail-oriented" },
@@ -174,8 +174,8 @@ public class CallToolTests(DefaultProjectFixture fixture, ITestOutputHelper test
     [Fact]
     public async Task DefaultServer_RenderImage_Success()
     {
-        var imageDataPath = Path.Combine(AppContext.BaseDirectory, "TestData", "image-base64.txt");
-        var data = await File.ReadAllTextAsync(imageDataPath);
+        var imageDataPath = GetTestDataFilePath("image-base64.txt");
+        var data = await File.ReadAllTextAsync(imageDataPath, TestContext.Current.CancellationToken);
 
         // Test calling RenderImage on Default server (TestAppIsolated)
         var request = CallToolHelper.CreateToolCallRequest(10, "RenderImage", new
@@ -189,17 +189,20 @@ public class CallToolTests(DefaultProjectFixture fixture, ITestOutputHelper test
         Assert.NotNull(response);
         TestOutputHelper.WriteLine($"Default RenderImage response: {response}");
 
-        var contentBlock = JsonSerializer.Deserialize<ImageContentBlock>(response);
-        Assert.NotNull(contentBlock);
-        Assert.Equal("image/jpeg", contentBlock.MimeType);
-        Assert.StartsWith(data.Substring(0, 20), contentBlock.Data); // Check part of the base64 data
+        var result = CallToolResultHelper.ParseSseToCallToolResult(response, McpJsonUtilities.DefaultOptions);
+        Assert.NotNull(result);
+        Assert.Single(result.Content);
+
+        Assert.Contains(result.Content, block => block is ImageContentBlock imageBlock
+            && imageBlock.MimeType == "image/jpeg"
+            && imageBlock.Data.StartsWith(data.Substring(0, 20)));
     }
 
     [Fact]
     public async Task DefaultServer_MultiContentTypeFunction_Success()
     {
-        var imageDataPath = Path.Combine(AppContext.BaseDirectory, "TestData", "image-base64.txt");
-        var data = await File.ReadAllTextAsync(imageDataPath);
+        var imageDataPath = GetTestDataFilePath("image-base64.txt");
+        var data = await File.ReadAllTextAsync(imageDataPath, TestContext.Current.CancellationToken);
 
         // Test calling MultiContentTypeFunction on Default server (TestAppIsolated)
         var request = CallToolHelper.CreateToolCallRequest(10, "MultiContentTypeFunction", new
@@ -213,10 +216,28 @@ public class CallToolTests(DefaultProjectFixture fixture, ITestOutputHelper test
         Assert.NotNull(response);
         TestOutputHelper.WriteLine($"Default MultiContentTypeFunction response: {response}");
 
-        var contentBlocks = JsonSerializer.Deserialize<List<ContentBlock>>(response);
-        Assert.NotNull(contentBlocks);
-        Assert.Contains(contentBlocks, block => block is TextContentBlock textBlock && textBlock.Text == "Here is an image for you!");
-        Assert.Contains(contentBlocks, block => block is ResourceLinkBlock linkBlock && linkBlock.Uri == "https://www.google.com/");
-        Assert.Contains(contentBlocks, block => block is ImageContentBlock imageBlock && imageBlock.MimeType == "image/jpeg" && imageBlock.Data.StartsWith(data.Substring(0, 20)));
+        var result = CallToolResultHelper.ParseSseToCallToolResult(response, McpJsonUtilities.DefaultOptions);
+        Assert.NotNull(result);
+        Assert.Equal(3, result.Content.Count);
+
+        Assert.Contains(result.Content, block => block is TextContentBlock textBlock && textBlock.Text == "Here is an image for you!");
+        Assert.Contains(result.Content, block => block is ResourceLinkBlock linkBlock && linkBlock.Uri == "https://www.google.com/");
+        Assert.Contains(result.Content, block => block is ImageContentBlock imageBlock && imageBlock.MimeType == "image/jpeg" && imageBlock.Data.StartsWith(data.Substring(0, 20)));
+    }
+
+    private static string GetTestDataFilePath(string fileName)
+    {
+        // Use the test assembly location to find test data files
+        var assemblyLocation = Path.GetDirectoryName(typeof(CallToolTests).Assembly.Location) 
+            ?? throw new InvalidOperationException("Could not determine assembly location");
+        
+        var testDataPath = Path.Combine(assemblyLocation, "TestData", fileName);
+        
+        if (!File.Exists(testDataPath))
+        {
+            throw new FileNotFoundException($"Test data file not found at: {testDataPath}", fileName);
+        }
+        
+        return testDataPath;
     }
 }

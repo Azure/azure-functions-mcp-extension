@@ -27,7 +27,7 @@ internal class FunctionsMcpToolResultMiddleware : IFunctionsWorkerMiddleware
         var (type, content) = functionResult switch
         {
             ContentBlock block => (block.Type, JsonSerializer.Serialize(block, McpJsonUtilities.DefaultOptions)),
-            IEnumerable<ContentBlock> blocks => ("multi_content_result", JsonSerializer.Serialize(blocks, McpJsonUtilities.DefaultOptions)),
+            IList<ContentBlock> blocks => ("multi_content_result", JsonSerializer.Serialize(blocks, McpJsonUtilities.DefaultOptions)),
             _ => ("text", BuildTextContentJson(functionResult))
         };
 
