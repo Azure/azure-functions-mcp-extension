@@ -13,3 +13,4 @@
 - Fix argument type conversion logic in MCP input binding; now correctly handle Guid and DateTime types (#126)
 - Added support for collection/array property types in fluent tool definition APIs (#128)
 - Added support for enum property types (#131)
+- Updated MCP SDK reference to 0.4.0-preview.3

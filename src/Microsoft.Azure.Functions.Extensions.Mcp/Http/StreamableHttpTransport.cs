@@ -23,10 +23,10 @@ internal sealed class StreamableHttpTransport(bool flowExecutionContext = false)
     }
 
     public Task HandleGetRequestAsync(Stream sseResponseStream, CancellationToken cancellationToken)
-        => Transport.HandleGetRequest(sseResponseStream, cancellationToken);
+        => Transport.HandleGetRequestAsync(sseResponseStream, cancellationToken);
 
-    public Task<bool> HandlePostRequestAsync(IDuplexPipe httpBodies, CancellationToken cancellationToken)
-        => Transport.HandlePostRequest(httpBodies, cancellationToken);
+    public Task<bool> HandlePostRequestAsync(JsonRpcMessage message, Stream responseStream, CancellationToken cancellationToken)
+        => Transport.HandlePostRequestAsync(message, responseStream, cancellationToken);
 
     public bool FlowExecutionContextFromRequests => Transport.FlowExecutionContextFromRequests;
 

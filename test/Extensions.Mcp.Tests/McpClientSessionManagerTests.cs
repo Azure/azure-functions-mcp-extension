@@ -40,7 +40,7 @@ public class McpClientSessionManagerTests
     public async Task DisposeAsync_RemovesSessionSuccessfully()
     {
         var transportMock = new Mock<IMcpExtensionTransport>();
-        var serverMock = new Mock<IMcpServer>();
+        var serverMock = new Mock<McpServer>();
 
         var session = await _sessionManager.CreateSessionAsync("client1", "instance1", transportMock.Object);
         session.Server = serverMock.Object;
@@ -76,7 +76,7 @@ public class McpClientSessionManagerTests
     public async Task DisposeAsync_CleansUpResources()
     {
         var transportMock = new Mock<IMcpExtensionTransport>();
-        var serverMock = new Mock<IMcpServer>();
+        var serverMock = new Mock<McpServer>();
 
         var session = await _sessionManager.CreateSessionAsync("client1", "instance1", transportMock.Object);
         session.Server = serverMock.Object;
@@ -91,7 +91,7 @@ public class McpClientSessionManagerTests
     public async Task StartPingAsync_StartsPingSuccessfully()
     {
         var transportMock = new Mock<IMcpExtensionTransport>();
-        var serverMock = new Mock<IMcpServer>();
+        var serverMock = new Mock<McpServer>();
 
         var session = await _sessionManager.CreateSessionAsync("client1", "instance1", transportMock.Object);
         session.Server = serverMock.Object;
@@ -106,7 +106,7 @@ public class McpClientSessionManagerTests
     public async Task StopPingAsync_StopsPingSuccessfully()
     {
         var transportMock = new Mock<IMcpExtensionTransport>();
-        var serverMock = new Mock<IMcpServer>();
+        var serverMock = new Mock<McpServer>();
 
         var session = await _sessionManager.CreateSessionAsync("client1", "instance1", transportMock.Object);
         session.Server = serverMock.Object;

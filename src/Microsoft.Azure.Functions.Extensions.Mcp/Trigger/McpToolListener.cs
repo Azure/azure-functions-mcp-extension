@@ -101,7 +101,7 @@ internal sealed class McpToolListener(ITriggeredFunctionExecutor executor,
         {
             // Fail early with an MCP InvalidParams error so the client sees a validation error instead of
             // the invocation proceeding to the worker with null values.
-            throw new McpException($"One or more required tool properties are missing values. Please provide: {string.Join(", ", missing)}", McpErrorCode.InvalidParams);
+            throw new McpProtocolException($"One or more required tool properties are missing values. Please provide: {string.Join(", ", missing)}", McpErrorCode.InvalidParams);
         }
     }
 

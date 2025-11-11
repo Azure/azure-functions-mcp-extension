@@ -64,11 +64,11 @@ public class McpToolTriggerBindingTests
             services.AddSingleton(httpContextAccessor);
         }
 
-        var mockServer = new Mock<IMcpServer>();
+        var mockServer = new Mock<McpServer>();
         mockServer.Setup(s=> s.SessionId).Returns(sessionId);
         mockServer.Setup(s => s.ClientInfo).Returns(clientInfo);
 
-        RequestContext<CallToolRequestParams> requestContext = new(mockServer.Object)
+        RequestContext<CallToolRequestParams> requestContext = new(mockServer.Object, new JsonRpcRequest() { Method = RequestMethods.ToolsCall})
         {
             Params = requestParams,
             Services = services.BuildServiceProvider()

@@ -9,7 +9,6 @@ using Microsoft.Extensions.Options;
 using ModelContextProtocol;
 using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
-using System.IO.Pipelines;
 using System.Text.Json.Serialization.Metadata;
 using static Microsoft.Azure.Functions.Extensions.Mcp.McpConstants;
 
@@ -23,6 +22,9 @@ internal sealed class StreamableHttpRequestHandler(
     IOptions<McpOptions> mcpOptions,
     ILoggerFactory loggerFactory) : IStreamableHttpRequestHandler
 {
+    private static readonly JsonTypeInfo<JsonRpcMessage> MesssageTypeInfo =
+        (JsonTypeInfo<JsonRpcMessage>)McpJsonUtilities.DefaultOptions.GetTypeInfo(typeof(JsonRpcMessage));
+
     private static readonly JsonTypeInfo<JsonRpcError> ErrorTypeInfo =
         (JsonTypeInfo<JsonRpcError>) McpJsonUtilities.DefaultOptions.GetTypeInfo(typeof(JsonRpcError));
 
@@ -54,9 +56,19 @@ internal sealed class StreamableHttpRequestHandler(
 
         try
         {
+            var message = await ReadJsonRpcMessageAsync(context);
+            if (message is null)
+            {
+                await WriteJsonRpcErrorAsync(context,
+                    "Bad Request: The POST body did not contain a valid JSON-RPC message.",
+                    StatusCodes.Status400BadRequest);
+
+                return;
+            }
+
             McpHttpUtility.SetSseContext(context);
 
-            var responseWritten = await session.Transport.HandlePostRequestAsync(new HttpDuplexPipe(context), context.RequestAborted);
+            var responseWritten = await session.Transport.HandlePostRequestAsync(message, context.Response.Body, context.RequestAborted);
 
             if (!responseWritten)
             {
@@ -175,7 +187,7 @@ internal sealed class StreamableHttpRequestHandler(
             sessionServices = context.RequestServices;
         }
 
-        var server = McpServerFactory.Create(transport, serverOptions, loggerFactory, sessionServices);
+        var server = McpServer.Create(transport, serverOptions, loggerFactory, sessionServices);
         context.Features.Set(server);
 
         var session = await clientSessionManager.CreateSessionAsync(sessionId, instanceIdProvider.InstanceId, transport);
@@ -185,6 +197,21 @@ internal sealed class StreamableHttpRequestHandler(
         _ = server.RunAsync(context.RequestAborted);
 
         return session;
+    }
+
+    private static async Task<JsonRpcMessage?> ReadJsonRpcMessageAsync(HttpContext context)
+    {
+        var message = await context.Request.ReadFromJsonAsync(MesssageTypeInfo, context.RequestAborted);
+
+        if (context.User?.Identity?.IsAuthenticated == true && message is not null)
+        {
+            message.Context = new()
+            {
+                User = context.User,
+            };
+        }
+
+        return message;
     }
 
     private static Task WriteJsonRpcErrorAsync(HttpContext context, string errorMessage,
@@ -208,11 +235,5 @@ internal sealed class StreamableHttpRequestHandler(
         {
             throw new NotSupportedException("Stateful sessions are not supported.");
         }
-    }
-
-    private sealed class HttpDuplexPipe(HttpContext context) : IDuplexPipe
-    {
-        public PipeReader Input => context.Request.BodyReader;
-        public PipeWriter Output => context.Response.BodyWriter;
     }
 }
