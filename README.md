@@ -8,10 +8,6 @@ In addition to the host extension which supports all stacks, this repository als
 
 ## Instructions
 
-> [!IMPORTANT]
-> The Azure Functions MCP extension is currently in preview. You can expect changes to the trigger and binding APIs prior to the extension becoming generally available.
-> You should avoid using preview extensions in production apps.
-
 To get started with the extension, please see the following samples:
 
 | Language (Stack) | Repo Location |
