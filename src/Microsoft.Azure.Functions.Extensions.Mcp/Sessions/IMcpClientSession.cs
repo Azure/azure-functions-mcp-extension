@@ -17,7 +17,7 @@ internal interface IMcpClientSession : IAsyncDisposable
 
     string InstanceId { get; }
 
-    IMcpServer? Server { get; set; }
+    McpServer? Server { get; set; }
 
     Task HandleMessageAsync(JsonRpcMessage message, CancellationToken cancellationToken);
 

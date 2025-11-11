@@ -73,7 +73,7 @@ internal sealed class McpClientSessionManager(ILogger<McpClientSessionManager> l
 
         public string InstanceId { get; } = instanceId;
 
-        public IMcpServer? Server { get; set; }
+        public McpServer? Server { get; set; }
 
         public Task HandleMessageAsync(JsonRpcMessage message, CancellationToken cancellationToken)
             => Transport.HandleMessageAsync(message, cancellationToken);

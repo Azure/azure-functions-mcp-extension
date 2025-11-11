@@ -69,7 +69,7 @@ public static class McpWebJobsBuilderExtensions
                     return await tool.RunAsync(c, ct);
                 }
 
-                throw new McpException($"Unknown tool: '{c.Params?.Name}'", McpErrorCode.InvalidParams);
+                throw new McpProtocolException($"Unknown tool: '{c.Params?.Name}'", McpErrorCode.InvalidParams);
             });
 
         // Extension configuration

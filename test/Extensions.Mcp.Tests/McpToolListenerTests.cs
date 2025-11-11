@@ -24,10 +24,10 @@ public class McpToolListenerTests
     private static RequestContext<CallToolRequestParams> CreateRequest(params (string key, JsonElement value)[] args)
     {
         var dict = args?.ToDictionary(x => x.key, x => x.value) ?? new Dictionary<string, JsonElement>();
-        var server = new Mock<IMcpServer>().Object;
+        var server = new Mock<McpServer>().Object;
         var parameters = new CallToolRequestParams { Name = "params", Arguments = dict };
 
-        return new RequestContext<CallToolRequestParams>(server)
+        return new RequestContext<CallToolRequestParams>(server, new JsonRpcRequest() { Method = RequestMethods.ToolsCall })
         {
             Params = parameters
         };
@@ -42,7 +42,7 @@ public class McpToolListenerTests
 
         var request = CreateRequest(); // No arguments
 
-        var ex = await Assert.ThrowsAsync<McpException>(() =>
+        var ex = await Assert.ThrowsAsync<McpProtocolException>(() =>
             listener.RunAsync(request, CancellationToken.None));
         Assert.Contains("One or more required tool properties are missing values. Please provide: foo", ex.Message);
         Assert.Equal(McpErrorCode.InvalidParams, ex.ErrorCode);
@@ -57,7 +57,7 @@ public class McpToolListenerTests
 
         var request = CreateRequest(("foo", JsonDocument.Parse("null").RootElement));
 
-        var ex = await Assert.ThrowsAsync<McpException>(() =>
+        var ex = await Assert.ThrowsAsync<McpProtocolException>(() =>
             listener.RunAsync(request, CancellationToken.None));
         Assert.Contains("One or more required tool properties are missing values. Please provide: foo", ex.Message);
     }
@@ -68,7 +68,7 @@ public class McpToolListenerTests
         var properties = new[] { CreateProperty("foo", true) };
         var request = CreateRequest(); // No arguments
 
-        var ex = Assert.Throws<McpException>(() =>
+        var ex = Assert.Throws<McpProtocolException>(() =>
             McpToolListener.ValidateArgumentsHaveRequiredProperties(properties, request.Params));
         Assert.Contains("One or more required tool properties are missing values. Please provide: foo", ex.Message);
         Assert.Equal(McpErrorCode.InvalidParams, ex.ErrorCode);
@@ -80,7 +80,7 @@ public class McpToolListenerTests
         var properties = new[] { CreateProperty("foo", true) };
         var request = CreateRequest(("foo", JsonDocument.Parse("null").RootElement));
 
-        var ex = Assert.Throws<McpException>(() =>
+        var ex = Assert.Throws<McpProtocolException>(() =>
             McpToolListener.ValidateArgumentsHaveRequiredProperties(properties, request.Params));
         Assert.Contains("One or more required tool properties are missing values. Please provide: foo", ex.Message);
     }
