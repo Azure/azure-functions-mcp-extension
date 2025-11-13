@@ -7,6 +7,7 @@
 ### Microsoft.Azure.Functions.Extensions <version>
 
 - Added support for enum property types (#131)
+- Added support for additional MCP tool result content types, including: audio, image, resource, and resource link. (#130)
 
 ### Microsoft.Azure.Functions.Worker.Extensions.Mcp <version>
 

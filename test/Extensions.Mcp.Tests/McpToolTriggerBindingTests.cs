@@ -8,10 +8,7 @@ using Microsoft.Azure.Functions.Extensions.Mcp.Abstractions;
 using Microsoft.Azure.Functions.Extensions.Mcp.Serialization;
 using Microsoft.Azure.WebJobs.Host.Bindings;
 using Microsoft.Azure.WebJobs.Host.Triggers;
-using ModelContextProtocol.Protocol;
-using ModelContextProtocol.Server;
 using Moq;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace Microsoft.Azure.Functions.Extensions.Mcp.Tests;
 
@@ -26,9 +23,9 @@ public class McpToolTriggerBindingTests
         }
 
         var toolRegistry = new Mock<IToolRegistry>();
-        var attrribute = new McpToolTriggerAttribute("MyTool", "desc");
+        var attribute = new McpToolTriggerAttribute("MyTool", "desc");
 
-        var binding = new McpToolTriggerBinding(parameter, toolRegistry.Object, attrribute);
+        var binding = new McpToolTriggerBinding(parameter, toolRegistry.Object, attribute);
 
         return (binding, parameter);
     }
@@ -36,48 +33,6 @@ public class McpToolTriggerBindingTests
     private static void DummyMethod([McpToolTrigger("MyTool", "desc")] ToolInvocationContext ctx) { }
 
     private static void DummyStringMethod([McpToolTrigger("MyTool", "desc")] string ctx) { }
-
-    private static CallToolExecutionContext CreateExecutionContext(string toolName = "MyTool",
-                                                                   IReadOnlyDictionary<string, JsonElement>? args = null,
-                                                                   string? sessionId = "session-123",
-                                                                   Implementation? clientInfo = null,
-                                                                   IHttpContextAccessor? httpContextAccessor = null)
-    {
-        args ??= new Dictionary<string, JsonElement>
-        {
-            ["arg1"] = JsonDocument.Parse("\"value1\"").RootElement,
-            ["num"] = JsonDocument.Parse("1").RootElement
-        };
-
-        clientInfo ??= new Implementation { Name = "client", Version = "1.0" };
-
-        var requestParams = new CallToolRequestParams
-        {
-            Name = toolName,
-            Arguments = args
-        };
-
-        var services = new ServiceCollection();
-
-        if (httpContextAccessor is not null)
-        {
-            services.AddSingleton(httpContextAccessor);
-        }
-
-        var mockServer = new Mock<McpServer>();
-        mockServer.Setup(s=> s.SessionId).Returns(sessionId);
-        mockServer.Setup(s => s.ClientInfo).Returns(clientInfo);
-
-        RequestContext<CallToolRequestParams> requestContext = new(mockServer.Object, new JsonRpcRequest() { Method = RequestMethods.ToolsCall})
-        {
-            Params = requestParams,
-            Services = services.BuildServiceProvider()
-        };
-
-        CallToolExecutionContext executionContext = new(requestContext);
-
-        return executionContext;
-    }
 
     private static ValueBindingContext CreateValueBindingContext()
     {
@@ -89,7 +44,7 @@ public class McpToolTriggerBindingTests
     public async Task BindAsync_BasicBinding_PopulatesBindingData()
     {
         var (binding, param) = CreateBinding();
-        CallToolExecutionContext executionContext = CreateExecutionContext();
+        CallToolExecutionContext executionContext = CallToolExecutionContextHelper.CreateExecutionContext();
         var triggerData = await binding.BindAsync(executionContext, CreateValueBindingContext());
 
         Assert.True(triggerData.BindingData.ContainsKey("mcptoolcontext"));
@@ -109,7 +64,7 @@ public class McpToolTriggerBindingTests
         var param = method.GetParameters()[0];
 
         var (binding, _) = CreateBinding(param);
-        CallToolExecutionContext executionContext = CreateExecutionContext();
+        CallToolExecutionContext executionContext = CallToolExecutionContextHelper.CreateExecutionContext();
         ITriggerData triggerData = await binding.BindAsync(executionContext, CreateValueBindingContext());
 
         var serialized = Assert.IsType<string>(triggerData.BindingData[param.Name!]);
@@ -128,7 +83,7 @@ public class McpToolTriggerBindingTests
 
         var accessor = new HttpContextAccessor { HttpContext = httpContext };
 
-        CallToolExecutionContext executionContext = CreateExecutionContext(httpContextAccessor: accessor);
+        CallToolExecutionContext executionContext = CallToolExecutionContextHelper.CreateExecutionContext(httpContextAccessor: accessor);
         ITriggerData triggerData = await binding.BindAsync(executionContext, CreateValueBindingContext());
 
         var toolInvocationContext = (ToolInvocationContext)triggerData.BindingData["mcptoolcontext"];
@@ -160,7 +115,7 @@ public class McpToolTriggerBindingTests
     public async Task BindAsync_BindingData_IsCaseInsensitive()
     {
         var (binding, param) = CreateBinding();
-        CallToolExecutionContext executionContext = CreateExecutionContext();
+        CallToolExecutionContext executionContext = CallToolExecutionContextHelper.CreateExecutionContext();
         var triggerData = await binding.BindAsync(executionContext, CreateValueBindingContext());
 
         // Access using different casings

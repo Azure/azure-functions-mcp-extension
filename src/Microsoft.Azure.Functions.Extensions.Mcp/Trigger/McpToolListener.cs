@@ -55,21 +55,14 @@ internal sealed class McpToolListener(ITriggeredFunctionExecutor executor,
 
         var toolResult = await execution.ResultTask;
 
-        if (toolResult is null)
+        if (toolResult is CallToolResult callToolResult)
         {
-            return new CallToolResult { Content = [] };
+            return callToolResult;
         }
 
-        return new CallToolResult
-        {
-            Content =
-            [
-                new TextContentBlock
-                {
-                    Text = toolResult.ToString() ?? string.Empty,
-                }
-            ]
-        };
+        // We did not receive a CallToolResult from the function execution,
+        // return an empty result.
+        return new CallToolResult { Content = [] };
     }
 
     internal static void ValidateArgumentsHaveRequiredProperties(ICollection<IMcpToolProperty> properties, CallToolRequestParams? callToolRequest)

@@ -12,4 +12,14 @@ internal sealed class McpConstants
     public const string MessageEndpoint = "message";
     public const string McpSessionIdHeaderName = "Mcp-Session-Id";
     public const string McpTransportName = "functions_mcp:transportname";
+
+    internal sealed class ToolResultContentTypes
+    {
+        public const string MultiContentResult = "multi_content_result";
+        public const string Audio = "audio";
+        public const string Text = "text";
+        public const string Image = "image";
+        public const string Resource = "resource";
+        public const string ResourceLink = "resource_link";
+    }
 }
