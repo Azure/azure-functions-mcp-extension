@@ -1,21 +1,19 @@
 // Copyright(c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-using System.Globalization;
 using Microsoft.Azure.Functions.Worker.Mcp.E2ETests.Fixtures;
-using Xunit.Abstractions;
+using Microsoft.Azure.Functions.Worker.Mcp.E2ETests.ProtocolTests;
+using System.Globalization;
 
 namespace Microsoft.Azure.Functions.Worker.Mcp.E2ETests.ToolTests;
 
 /// <summary>
 /// Tool invocation tests that make direct HTTP requests to the default server
 /// </summary>
-public class CallToolTests(DefaultProjectFixture fixture, ITestOutputHelper testOutputHelper) : IClassFixture<DefaultProjectFixture>
+public class CallToolTests(DefaultProjectFixture fixture, ITestOutputHelper testOutputHelper)
+    : McpE2ETestBase(fixture, testOutputHelper)
 {
-    private readonly DefaultProjectFixture _fixture = fixture;
-    protected readonly ITestOutputHelper TestOutputHelper = testOutputHelper;
-
-    private Uri AppRootEndpoint => _fixture.AppRootEndpoint ?? throw new InvalidOperationException("AppRootEndpoint is not set. Ensure the fixture is initialized properly.");
+    private Uri AppRootEndpoint => Fixture.AppRootEndpoint ?? throw new InvalidOperationException("AppRootEndpoint is not set. Ensure the fixture is initialized properly.");
 
     [Fact]
     public async Task DefaultServer_GetSnippets_Success()

@@ -30,6 +30,12 @@ jobs:
       packageType: sdk
       useGlobalJson: true
 
+  - task: UseDotNet@2
+    displayName: Install .NET 8 runtime
+    inputs:
+      packageType: runtime
+      version: '8.x'
+
   - task: DotNetCoreCLI@2
     displayName: Build project
     inputs:
@@ -37,6 +43,19 @@ jobs:
       custom: build
       arguments: -c $(configuration)
       projects: $(project)
+
+  - bash: |
+        echo "===== dotnet --info ====="
+        dotnet --info
+
+        echo ""
+        echo "===== Installed SDKs ====="
+        dotnet --list-sdks
+
+        echo ""
+        echo "===== Installed Runtimes ====="
+        dotnet --list-runtimes
+    displayName: 'Display .NET info'
 
   - task: PowerShell@2
     displayName: 'Setup E2E tests'

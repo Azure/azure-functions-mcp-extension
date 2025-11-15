@@ -39,7 +39,7 @@ public static class TestUtility
     /// <param name="pollingInterval">Polling interval in milliseconds (default: 2 seconds)</param>
     /// <returns>Task that completes when the host is running</returns>
     public static async Task WaitForFunctionsHostToBeRunningAsync(
-        Uri appRootEndpoint, 
+        Uri appRootEndpoint,
         Process process,
         ILogger? logger = null,
         int timeout = 60000,
@@ -47,7 +47,7 @@ public static class TestUtility
     {
         using var httpClient = new HttpClient();
         logger?.LogInformation("Waiting for Azure Functions host to be running...");
-        
+
         await RetryAsync(async () =>
         {
             try
@@ -55,7 +55,7 @@ public static class TestUtility
                 var response = await httpClient.GetAsync(new Uri(appRootEndpoint, "admin/host/status"));
                 var content = await response.Content.ReadAsStringAsync();
                 var doc = JsonDocument.Parse(content);
-                
+
                 if (doc.RootElement.TryGetProperty("state", out JsonElement value) &&
                     value.GetString() == "Running")
                 {

@@ -2,22 +2,22 @@
 // Licensed under the MIT License.
 
 using Microsoft.Azure.Functions.Worker.Mcp.E2ETests.Fixtures;
+using Microsoft.Azure.Functions.Worker.Mcp.E2ETests.ProtocolTests;
 using ModelContextProtocol.Client;
 
 namespace Microsoft.Azure.Functions.Worker.Mcp.E2ETests.ToolTests;
 
-public class ListToolTests(DefaultProjectFixture fixture) : IClassFixture<DefaultProjectFixture>
+public class ListToolTests(DefaultProjectFixture fixture, ITestOutputHelper testOutputHelper)
+    : McpE2ETestBase(fixture, testOutputHelper)
 {
-    private readonly DefaultProjectFixture _fixture = fixture;
-
     [Theory]
     [InlineData(HttpTransportMode.Sse)]
     [InlineData(HttpTransportMode.AutoDetect)]
     [InlineData(HttpTransportMode.StreamableHttp)]
     public async Task DefaultListTools_ReturnsAllTools(HttpTransportMode mode)
     {
-        var client = await _fixture.CreateClientAsync(mode);
-        var tools = await client.ListToolsAsync();
+        var client = await Fixture.CreateClientAsync(mode);
+        var tools = await client.ListToolsAsync(cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal(7, tools.Count);
     }
@@ -28,8 +28,8 @@ public class ListToolTests(DefaultProjectFixture fixture) : IClassFixture<Defaul
     [InlineData(HttpTransportMode.StreamableHttp)]
     public async Task DefaultListTools_ReturnsNonEmpty(HttpTransportMode mode)
     {
-        var client = await _fixture.CreateClientAsync(mode);
-        var tools = await client.ListToolsAsync();
+        var client = await Fixture.CreateClientAsync(mode);
+        var tools = await client.ListToolsAsync(cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.NotNull(tools);
         Assert.True(tools.Count > 0, "Expected at least one tool to be returned");
@@ -41,8 +41,8 @@ public class ListToolTests(DefaultProjectFixture fixture) : IClassFixture<Defaul
     [InlineData(HttpTransportMode.StreamableHttp)]
     public async Task DefaultListTools_ContainsExpectedTools(HttpTransportMode mode)
     {
-        var client = await _fixture.CreateClientAsync(mode);
-        var tools = await client.ListToolsAsync();
+        var client = await Fixture.CreateClientAsync(mode);
+        var tools = await client.ListToolsAsync(cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.NotNull(tools);
         // Default server (TestAppIsolated) has these tools registered:
