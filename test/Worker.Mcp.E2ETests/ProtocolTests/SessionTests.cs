@@ -3,23 +3,20 @@
 
 using Microsoft.Azure.Functions.Worker.Mcp.E2ETests.Fixtures;
 using ModelContextProtocol.Client;
-using Xunit.Abstractions;
 
 namespace Microsoft.Azure.Functions.Worker.Mcp.E2ETests.ProtocolTests;
 
 /// <summary>
 /// Default server session tests
 /// </summary>
-public class SessionTests(DefaultProjectFixture fixture, ITestOutputHelper testOutputHelper) : IClassFixture<DefaultProjectFixture>
+public class SessionTests(DefaultProjectFixture fixture, ITestOutputHelper testOutputHelper)
+    : McpE2ETestBase(fixture, testOutputHelper)
 {
-    private readonly DefaultProjectFixture _fixture = fixture;
-    protected readonly ITestOutputHelper TestOutputHelper = testOutputHelper;
-
     [Theory]
     [InlineData(HttpTransportMode.StreamableHttp)]
     public async Task DefaultServer_ClientHasSession(HttpTransportMode mode)
     {
-        var client = await _fixture.CreateClientAsync(mode);
+        var client = await Fixture.CreateClientAsync(mode);
         
         Assert.NotNull(client.SessionId);
         Assert.NotEmpty(client.SessionId);
@@ -31,8 +28,8 @@ public class SessionTests(DefaultProjectFixture fixture, ITestOutputHelper testO
     [InlineData(HttpTransportMode.StreamableHttp)]
     public async Task DefaultServer_UniqueSessionsForDifferentClients(HttpTransportMode mode)
     {
-        var client1 = await _fixture.CreateClientAsync(mode);
-        var client2 = await _fixture.CreateClientAsync(mode);
+        var client1 = await Fixture.CreateClientAsync(mode);
+        var client2 = await Fixture.CreateClientAsync(mode);
         
         Assert.NotNull(client1.SessionId);
         Assert.NotNull(client2.SessionId);

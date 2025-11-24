@@ -13,38 +13,43 @@ using Microsoft.Azure.Functions.Worker.Mcp.E2ETests.Abstractions;
 
 namespace Microsoft.Azure.Functions.Worker.Mcp.E2ETests.Fixtures
 {
-    public abstract class McpEndToEndFixtureBase : CoreToolsProjectBase
+    public abstract class McpEndToEndFixtureBase(EndToEndTestProject project) : CoreToolsProjectBase(project)
     {
-        private List<IMcpClient> _clients = [];
+        private List<McpClient> _clients = [];
 
-        protected McpEndToEndFixtureBase(EndToEndTestProject project) : base(project) { }
-
-        public async Task<IMcpClient> CreateClientAsync(HttpTransportMode transportMode = HttpTransportMode.AutoDetect,
+        public async Task<McpClient> CreateClientAsync(HttpTransportMode transportMode = HttpTransportMode.AutoDetect,
             McpClientOptions? clientOptions = null,
             ILoggerFactory? loggerFactory = null,
             DelegatingHandler? delegatingHandler = null,
             Func<JsonRpcNotification, CancellationToken, ValueTask>? notificationHandler = null)
         {
-            var transportOptions = new SseClientTransportOptions()
+            if (IsFaulted)
+            {
+                LogErrorDetails();
+
+                throw new InvalidOperationException("The test fixture is in a faulted state. See test output for details.");
+            }
+
+            var transportOptions = new HttpClientTransportOptions
             {
                 Endpoint = GetEndpointForTransport(transportMode),
                 TransportMode = transportMode,
                 Name = $"TestClient-{transportMode}"
             };
 
-            SseClientTransport transport;
+            HttpClientTransport transport;
 
             if (delegatingHandler is not null)
             {
                 HttpClient httpClient = new HttpClient(delegatingHandler);
-                transport = new SseClientTransport(transportOptions, httpClient, loggerFactory, true); // letting disposal be handled by the IMcpClient
+                transport = new HttpClientTransport(transportOptions, httpClient, loggerFactory, true); // letting disposal be handled by the IMcpClient
             }
             else
             {
-                transport = new SseClientTransport(transportOptions, loggerFactory);
+                transport = new HttpClientTransport(transportOptions, loggerFactory);
             }
 
-            var client = await McpClientFactory.CreateAsync(transport, clientOptions);
+            var client = await McpClient.CreateAsync(transport, clientOptions);
 
             _clients.Add(client);
 
@@ -69,12 +74,12 @@ namespace Microsoft.Azure.Functions.Worker.Mcp.E2ETests.Fixtures
             };
         }
 
-        public async new Task InitializeAsync()
+        public async override ValueTask InitializeAsync()
         {
             await base.InitializeAsync();
         }
 
-        public async new Task DisposeAsync()
+        public async override ValueTask DisposeAsync()
         {
             await base.DisposeAsync();
 

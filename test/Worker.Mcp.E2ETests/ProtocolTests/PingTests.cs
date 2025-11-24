@@ -7,18 +7,17 @@ using System.Text.Json;
 
 namespace Microsoft.Azure.Functions.Worker.Mcp.E2ETests.ProtocolTests;
 
-public class PingTests(DefaultProjectFixture fixture) : IClassFixture<DefaultProjectFixture>
+public class PingTests(DefaultProjectFixture fixture, ITestOutputHelper testOutputHelper)
+    : McpE2ETestBase(fixture, testOutputHelper)
 {
-    private readonly DefaultProjectFixture _fixture = fixture;
-
     [Theory]
     [InlineData(HttpTransportMode.Sse)]
     [InlineData(HttpTransportMode.AutoDetect)]
     [InlineData(HttpTransportMode.StreamableHttp)]
     public async Task DefaultServerRespondsToClientPing(HttpTransportMode mode)
     {
-        var client = await _fixture.CreateClientAsync(mode);
-        await client.PingAsync();
+        var client = await Fixture.CreateClientAsync(mode);
+        await client.PingAsync(cancellationToken: TestContext.Current.CancellationToken);
         // completion of this method indicates the server responded to the ping
         Assert.True(true, "Server responded to ping without exception");
     }
@@ -29,13 +28,13 @@ public class PingTests(DefaultProjectFixture fixture) : IClassFixture<DefaultPro
     public async Task DefaultServerSendsPingsWithinSixMinutes(HttpTransportMode mode)
     {
         var handler = new PingResponseHandler();
-        var client = await _fixture.CreateClientAsync(mode, delegatingHandler: handler);
+        var client = await Fixture.CreateClientAsync(mode, delegatingHandler: handler);
 
         var timeout = TimeSpan.FromMinutes(6);
         var sw = System.Diagnostics.Stopwatch.StartNew();
         while (!handler.PingReceived && sw.Elapsed < timeout)
         {
-            await Task.Delay(100);
+            await Task.Delay(100, TestContext.Current.CancellationToken);
         }
 
         Assert.True(handler.PingReceived, "Ping was not received from the server within the expected time frame.");

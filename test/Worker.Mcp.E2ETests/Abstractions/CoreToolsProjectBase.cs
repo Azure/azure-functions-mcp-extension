@@ -1,10 +1,11 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
+using Microsoft.Azure.Functions.Worker.Mcp.E2ETests.Abstractions;
 using Microsoft.Extensions.Logging;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
-using Microsoft.Azure.Functions.Worker.Mcp.E2ETests.Abstractions;
+using System.Text;
 
 namespace Worker.Mcp.E2ETests.Abstractions;
 
@@ -12,24 +13,24 @@ public abstract class CoreToolsProjectBase : IAsyncLifetime
 {
     private readonly EndToEndTestProject? _project;
 
-    private readonly ILogger<CoreToolsProjectBase> _logger;
-
     private Process _funcProcess = new Process();
 
     private JobObjectRegistry? _jobObjectRegistry;
 
     private bool _disposed;
 
+    // Buffer for capturing all process output (stdout + stderr)
+    private readonly StringBuilder _capturedOutput = new();
+    private readonly Lock _outputLock = new();
+
     protected CoreToolsProjectBase(EndToEndTestProject project)
     {
-        var loggerFactory = new LoggerFactory();
-        _logger = loggerFactory.CreateLogger<CoreToolsProjectBase>();
         _project = project;
     }
 
     internal Uri? AppRootEndpoint { get; set; } = new Uri("http://localhost:7071");
 
-    public async Task InitializeAsync()
+    public async virtual ValueTask InitializeAsync()
     {
         if (_project is null)
         {
@@ -52,6 +53,23 @@ public abstract class CoreToolsProjectBase : IAsyncLifetime
             catch
             {
                 // Best effort
+            }
+        }
+    }
+
+    public bool IsFaulted { get; private set; }
+
+    public void LogErrorDetails()
+    {
+        lock (_outputLock)
+        {
+            var outputSnapshot = _capturedOutput.ToString();
+            var testContext = TestContext.Current;
+            if (testContext?.Test != null && testContext.PipelineStage == TestPipelineStage.TestExecution && testContext.TestOutputHelper != null)
+            {
+                testContext.TestOutputHelper.WriteLine("==== FUNCTIONS HOST OUTPUT (captured) ====");
+                testContext.TestOutputHelper.WriteLine(outputSnapshot);
+                testContext.AddAttachment("func-host-output.txt", outputSnapshot, true);
             }
         }
     }
@@ -108,12 +126,14 @@ public abstract class CoreToolsProjectBase : IAsyncLifetime
             _funcProcess.StartInfo.Environment[env.Key] = env.Value;
         }
 
-        _funcProcess.ErrorDataReceived += (sender, e) => _logger.LogError(e?.Data);
-        _funcProcess.OutputDataReceived += (sender, e) => _logger.LogInformation(e?.Data);
+        _funcProcess.ErrorDataReceived += (sender, e) => Log(e?.Data ?? string.Empty);
+        _funcProcess.OutputDataReceived += (sender, e) => Log(e?.Data ?? string.Empty);
+
+        Log(e2eAppPath!);
 
         _funcProcess.Start();
 
-        _logger.LogInformation($"Started '{_funcProcess.StartInfo.FileName}'");
+        Log($"Started '{_funcProcess.StartInfo.FileName}'");
 
         _funcProcess.BeginErrorReadLine();
         _funcProcess.BeginOutputReadLine();
@@ -125,16 +145,40 @@ public abstract class CoreToolsProjectBase : IAsyncLifetime
             _jobObjectRegistry.Register(_funcProcess);
         }
 
-        // Use the TestUtility method for waiting for the host to be running
-        await TestUtility.WaitForFunctionsHostToBeRunningAsync(
-            AppRootEndpoint!, 
-            _funcProcess, 
-            _logger, 
-            timeout: 60000, 
-            pollingInterval: 2000);
+        // Avoid using logger tied to TestOutputHelper during initialization since there may be no active test
+        ILogger? logger = null; // can be enhanced later to a buffering logger if needed
+
+        try
+        {
+            // Use the TestUtility method for waiting for the host to be running
+            await TestUtility.WaitForFunctionsHostToBeRunningAsync(
+                AppRootEndpoint!,
+                _funcProcess,
+                logger,
+                timeout: 60000,
+                pollingInterval: 2000);
+        }
+        catch (Exception ex)
+        {
+            Log($"EXCEPTION DETAILS: Exception while starting Functions Host: {ex}");
+            IsFaulted = true;
+        }
     }
 
-    public Task DisposeAsync()
+    private void Log(string data)
+    {
+        if (string.IsNullOrWhiteSpace(data))
+        {
+            return;
+        }
+
+        lock (_outputLock)
+        {
+            _capturedOutput.AppendLine(data);
+        }
+    }
+
+    public virtual ValueTask DisposeAsync()
     {
         if (!_disposed)
         {
@@ -155,6 +199,7 @@ public abstract class CoreToolsProjectBase : IAsyncLifetime
         }
 
         _disposed = true;
-        return Task.CompletedTask;
+
+        return ValueTask.CompletedTask;
     }
 }

@@ -3,7 +3,6 @@
 
 using System.Text;
 using System.Text.Json;
-using Xunit.Abstractions;
 
 namespace Microsoft.Azure.Functions.Worker.Mcp.E2ETests.ToolTests;
 

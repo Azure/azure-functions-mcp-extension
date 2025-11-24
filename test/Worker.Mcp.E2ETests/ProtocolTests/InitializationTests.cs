@@ -7,10 +7,9 @@ using ModelContextProtocol.Protocol;
 
 namespace Microsoft.Azure.Functions.Worker.Mcp.E2ETests.ProtocolTests;
 
-public class InitializationTests(DefaultProjectFixture fixture) : IClassFixture<DefaultProjectFixture>
+public class InitializationTests(DefaultProjectFixture fixture, ITestOutputHelper testOutputHelper)
+    : McpE2ETestBase(fixture, testOutputHelper)
 {
-    private readonly DefaultProjectFixture _fixture = fixture;
-
     [Theory]
     [InlineData(HttpTransportMode.Sse)]
     [InlineData(HttpTransportMode.AutoDetect)]
@@ -23,7 +22,7 @@ public class InitializationTests(DefaultProjectFixture fixture) : IClassFixture<
             Version = "2.1.0"
         };
         
-        var client = await _fixture.CreateClientAsync(mode);
+        var client = await Fixture.CreateClientAsync(mode);
         Assert.Equal(assertedImplementation.Name, client.ServerInfo.Name);
         Assert.Equal(assertedImplementation.Version, client.ServerInfo.Version);
         Assert.Equal(assertedImplementation.Title, client.ServerInfo.Title);
@@ -35,7 +34,7 @@ public class InitializationTests(DefaultProjectFixture fixture) : IClassFixture<
     [InlineData(HttpTransportMode.StreamableHttp)]
     public async Task DefaultInstructions_ReturnedSuccessfully(HttpTransportMode mode)
     {
-        var client = await _fixture.CreateClientAsync(mode);
+        var client = await Fixture.CreateClientAsync(mode);
         Assert.Equal("These instructions are only meant for testing and can be ignored.", client.ServerInstructions);
     }
 
@@ -45,7 +44,7 @@ public class InitializationTests(DefaultProjectFixture fixture) : IClassFixture<
     [InlineData(HttpTransportMode.StreamableHttp)]
     public async Task DefaultServer_HasExpectedCapabilities(HttpTransportMode mode)
     {
-        var client = await _fixture.CreateClientAsync(mode);
+        var client = await Fixture.CreateClientAsync(mode);
         
         // Verify that the server capabilities are present
         Assert.NotNull(client.ServerCapabilities);
@@ -58,15 +57,15 @@ public class InitializationTests(DefaultProjectFixture fixture) : IClassFixture<
     [InlineData(HttpTransportMode.StreamableHttp)]
     public async Task DefaultServer_MaintainsSession(HttpTransportMode mode)
     {
-        var client = await _fixture.CreateClientAsync(mode);
+        var client = await Fixture.CreateClientAsync(mode);
         
         // Verify that the client has a session
         Assert.NotNull(client.SessionId);
         Assert.NotEmpty(client.SessionId);
-        
+
         // Verify that multiple requests work with the same session
-        var tools1 = await client.ListToolsAsync();
-        var tools2 = await client.ListToolsAsync();
+        var tools1 = await client.ListToolsAsync(cancellationToken: TestContext.Current.CancellationToken);
+        var tools2 = await client.ListToolsAsync(cancellationToken: TestContext.Current.CancellationToken);
 
         // Both calls should succeed, indicating session is maintained
         Assert.NotNull(tools1);
