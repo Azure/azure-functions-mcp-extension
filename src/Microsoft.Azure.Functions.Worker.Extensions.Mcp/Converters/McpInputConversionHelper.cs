@@ -91,6 +91,12 @@ internal static class McpInputConversionHelper
             return typeConverter.ConvertFrom(null, CultureInfo.InvariantCulture, value);
         }
 
+        // As a fallback, if the target type is a string, try ToString on the value
+        if (targetType == typeof(string))
+        {
+            return Convert.ToString(value, CultureInfo.InvariantCulture);
+        }
+
         return null;
     }
 

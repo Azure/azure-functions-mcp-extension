@@ -1,3 +1,4 @@
+using System.Collections;
 using System.ComponentModel;
 using System.Globalization;
 using Microsoft.Azure.Functions.Worker;
@@ -30,7 +31,7 @@ public class TestFunction
         var entityToGreet = name ?? "world";
         return $"""
             Hello, {entityToGreet}! Job: {job ?? JobType.Unemployed} | Age: {age} | Happy? {isHappy}.
-            Attributes: {(attributes.Any() ? string.Join(", ", attributes) : "(none)")}
+            Attributes: {(attributes is ICollection { Count: > 0} ? string.Join(", ", attributes) : "(none)")}
             """;
     }
 

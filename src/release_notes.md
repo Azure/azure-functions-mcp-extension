@@ -15,3 +15,4 @@
 - Added support for collection/array property types in fluent tool definition APIs (#128)
 - Added support for enum property types (#131)
 - Updated MCP SDK reference to 0.4.0-preview.3
+- Updating McpInputConversionHelper to handle string target conversions (#145)
