@@ -119,6 +119,25 @@ public class McpInputConversionHelperTests
         Assert.Equal(expected, result);
     }
 
+    [Theory]
+    [MemberData(nameof(StringConversionValues))]
+    public void TryConvertToTargetType_SupportedTypeToString_Success(object input, string expectedResult)
+    {
+        var guid = Guid.NewGuid();
+        var success = McpInputConversionHelper.TryConvertArgumentToTargetType(input, typeof(string), out var result);
+        Assert.True(success);
+        Assert.Equal(expectedResult, result);
+    }
+
+    public static IEnumerable<object[]> StringConversionValues()
+    {
+        return [
+            [Guid.Parse("E3A69220-1099-483A-942F-4877CCB80E21"), "e3a69220-1099-483a-942f-4877ccb80e21"],
+            [DateTime.Parse("01/01/2025"), "01/01/2025 00:00:00"],
+            [DateTimeOffset.Parse("01/01/2025 00:00:00 +00:00"), "01/01/2025 00:00:00 +00:00"]
+        ];
+    }
+
     [TypeConverter(typeof(TestPocoConverter))]
     private class TestPoco
     {
