@@ -55,7 +55,12 @@ public class McpToolExtensionsTests
     {
         var mock = new Mock<IMcpTool>();
         mock.SetupGet(t => t.Properties).Returns(properties);
-        mock.SetupGet(t => t.InputSchema).Returns(inputSchema);
+        
+        JsonElement schema = inputSchemaJson != null 
+            ? McpInputSchemaJsonUtilities.CreateFromJson(inputSchemaJson)
+            : McpInputSchemaJsonUtilities.DefaultMcpToolSchema;
+        
+        mock.SetupGet(t => t.InputSchema).Returns(schema);
         mock.SetupGet(t => t.Name).Returns("tool");
         mock.SetupProperty(t => t.Description, "desc");
         mock.Setup(t => t.RunAsync(It.IsAny<RequestContext<CallToolRequestParams>>(), It.IsAny<CancellationToken>()))
@@ -63,7 +68,7 @@ public class McpToolExtensionsTests
         return mock.Object;
     }
 
-    private static IMcpToolProperty CreateProperty(string name, string type, string? description = null, bool required = false, bool isArray = false)
+    private static IMcpToolProperty CreateProperty(string name, string type, string? description = null, bool required = false, bool isArray = false, string[]? enumValues = null)
     {
         var mock = new Mock<IMcpToolProperty>();
         mock.SetupAllProperties();
@@ -393,10 +398,10 @@ public class McpToolExtensionsTests
         var items = jobs.GetProperty("items");
         Assert.Equal("string", items.GetProperty("type").GetString());
         
-        Assert.True(items.TryGetProperty("enum", out var enumValues));
-        var actualValues = enumValues.EnumerateArray().Select(e => e.GetString()).ToArray();
+        Assert.True(items.TryGetProperty("enum", out var enumProperty));
+        var enumValues = enumProperty.EnumerateArray().Select(e => e.GetString()).ToArray();
         var expectedValues = new[] { "FullTime", "PartTime", "Contract", "Internship", "Temporary", "Freelance", "Unemployed" };
-        Assert.Equal(expectedValues, actualValues);
+        Assert.Equal(expectedValues, enumValues);
         
         // Should not be required (empty required array)
         var required = schema.GetProperty("required").EnumerateArray().Select(e => e.GetString()).ToArray();

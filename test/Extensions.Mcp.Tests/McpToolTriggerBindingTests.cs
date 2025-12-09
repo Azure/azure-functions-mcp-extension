@@ -31,9 +31,9 @@ public class McpToolTriggerBindingTests
         return (binding, parameter);
     }
 
-    private static void DummyMethod([McpToolTrigger("MyTool", "desc")] ToolInvocationContext ctx) { }
+    private static void DummyMethod([McpToolTriggerAttribute("MyTool", "desc")] ToolInvocationContext ctx) { }
 
-    private static void DummyStringMethod([McpToolTrigger("MyTool", "desc")] string ctx) { }
+    private static void DummyStringMethod([McpToolTriggerAttribute("MyTool", "desc")] string ctx) { }
 
     private static ValueBindingContext CreateValueBindingContext()
     {
