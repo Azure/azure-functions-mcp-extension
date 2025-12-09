@@ -78,4 +78,36 @@ public static class McpInputSchemaJsonUtilities
 
         return requiredList.ToArray();
     }
+
+    /// <summary>
+    /// Creates a JsonElement from a JSON string.
+    /// </summary>
+    /// <param name="json">The JSON string to parse.</param>
+    /// <returns>A JsonElement representing the parsed JSON.</returns>
+    public static JsonElement CreateFromJson(string json)
+    {
+        using var document = JsonDocument.Parse(json);
+        return document.RootElement.Clone();
+    }
+
+    /// <summary>
+    /// Checks if inputSchema is default provided schema or worker provided schema
+    /// </summary>
+    /// <param name="schema"></param>
+    /// <returns>True if default provided schema, false if worker provided schema</returns>
+    public static bool IsDefaultSchema(JsonElement schema)
+    {
+        // Check if this is the default empty schema
+        if (!schema.TryGetProperty("properties", out var properties) ||
+            !schema.TryGetProperty("required", out var required))
+        {
+            return false;
+        }
+
+        // Default schema has empty properties and required arrays
+        return properties.ValueKind == JsonValueKind.Object &&
+               properties.EnumerateObject().Count() == 0 &&
+               required.ValueKind == JsonValueKind.Array &&
+               required.GetArrayLength() == 0;
+    }
 }
