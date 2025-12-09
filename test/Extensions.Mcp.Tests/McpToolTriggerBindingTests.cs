@@ -9,7 +9,6 @@ using Microsoft.Azure.Functions.Extensions.Mcp.Serialization;
 using Microsoft.Azure.WebJobs.Host.Bindings;
 using Microsoft.Azure.WebJobs.Host.Triggers;
 using Moq;
-using Xunit;
 
 namespace Microsoft.Azure.Functions.Extensions.Mcp.Tests;
 
@@ -31,9 +30,9 @@ public class McpToolTriggerBindingTests
         return (binding, parameter);
     }
 
-    private static void DummyMethod([McpToolTriggerAttribute("MyTool", "desc")] ToolInvocationContext ctx) { }
+    private static void DummyMethod([McpToolTrigger("MyTool", "desc")] ToolInvocationContext ctx) { }
 
-    private static void DummyStringMethod([McpToolTriggerAttribute("MyTool", "desc")] string ctx) { }
+    private static void DummyStringMethod([McpToolTrigger("MyTool", "desc")] string ctx) { }
 
     private static ValueBindingContext CreateValueBindingContext()
     {
