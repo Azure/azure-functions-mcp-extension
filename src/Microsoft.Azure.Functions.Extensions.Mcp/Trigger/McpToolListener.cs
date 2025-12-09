@@ -1,7 +1,6 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-using Microsoft.Azure.Functions.Extensions.Mcp.Trigger;
 using Microsoft.Azure.WebJobs.Host.Executors;
 using Microsoft.Azure.WebJobs.Host.Listeners;
 using ModelContextProtocol;
@@ -28,7 +27,7 @@ internal sealed class McpToolListener(ITriggeredFunctionExecutor executor,
 
     public ICollection<IMcpToolProperty> Properties { get; set; } = properties;
 
-    public JsonElement InputSchema { get; set; } = inputSchema ?? McpJsonUtilities.DefaultMcpToolSchema;
+    public JsonElement InputSchema { get; set; } = inputSchema ?? McpInputSchemaJsonUtilities.DefaultMcpToolSchema;
 
     public void Dispose() { }
 
@@ -69,6 +68,11 @@ internal sealed class McpToolListener(ITriggeredFunctionExecutor executor,
         return new CallToolResult { Content = [] };
     }
 
+    internal static void ValidateArgumentsHaveRequiredProperties(ICollection<IMcpToolProperty> properties, CallToolRequestParams? callToolRequest)
+    {
+        ValidateArgumentsHaveRequiredProperties(properties, callToolRequest, McpInputSchemaJsonUtilities.DefaultMcpToolSchema);
+    }
+
     internal static void ValidateArgumentsHaveRequiredProperties(ICollection<IMcpToolProperty> properties, CallToolRequestParams? callToolRequest, JsonElement inputSchema)
     {
         var missing = new List<string>();
@@ -76,12 +80,12 @@ internal sealed class McpToolListener(ITriggeredFunctionExecutor executor,
         var requiredProperties = new List<string>();
 
         // Use InputSchema if it's not the default empty schema, otherwise fall back to Properties
-        bool hasCustomInputSchema = !IsDefaultSchema(inputSchema);
+        bool hasCustomInputSchema = !McpInputSchemaJsonUtilities.IsDefaultSchema(inputSchema);
         
         if (hasCustomInputSchema)
         {
             // Extract required properties from the schema
-            requiredProperties.AddRange(McpJsonUtilities.GetRequiredProperties(inputSchema));
+            requiredProperties.AddRange(McpInputSchemaJsonUtilities.GetRequiredProperties(inputSchema));
         }
         else
         {
@@ -129,21 +133,5 @@ internal sealed class McpToolListener(ITriggeredFunctionExecutor executor,
             JsonValueKind.Undefined => true,
             _ => false
         };
-    }
-
-    private static bool IsDefaultSchema(JsonElement schema)
-    {
-        // Check if this is the default empty schema
-        if (!schema.TryGetProperty("properties", out var properties) ||
-            !schema.TryGetProperty("required", out var required))
-        {
-            return false;
-        }
-
-        // Default schema has empty properties and required arrays
-        return properties.ValueKind == JsonValueKind.Object && 
-               properties.EnumerateObject().Count() == 0 &&
-               required.ValueKind == JsonValueKind.Array && 
-               required.GetArrayLength() == 0;
     }
 }

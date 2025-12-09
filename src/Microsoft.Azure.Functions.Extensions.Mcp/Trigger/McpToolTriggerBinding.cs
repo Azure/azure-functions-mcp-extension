@@ -6,15 +6,10 @@ using System.Text.Json;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Azure.Functions.Extensions.Mcp.Abstractions;
 using Microsoft.Azure.Functions.Extensions.Mcp.Serialization;
-using Microsoft.Azure.Functions.Extensions.Mcp.Trigger;
 using Microsoft.Azure.WebJobs.Host.Bindings;
 using Microsoft.Azure.WebJobs.Host.Listeners;
 using Microsoft.Azure.WebJobs.Host.Protocols;
 using Microsoft.Azure.WebJobs.Host.Triggers;
-using ModelContextProtocol.Protocol;
-using System.Reflection;
-using System.Text.Json;
-using System.Transactions;
 
 namespace Microsoft.Azure.Functions.Extensions.Mcp;
 
@@ -146,7 +141,7 @@ internal sealed class McpToolTriggerBinding : ITriggerBinding
         }
 
         var listener = new McpToolListener(context.Executor, context.Descriptor.ShortName, 
-            _toolAttribute.ToolName, _toolAttribute.Description, toolProperties, _toolAttribute.InputSchema ?? McpJsonUtilities.DefaultMcpToolSchema);
+            _toolAttribute.ToolName, _toolAttribute.Description, toolProperties, _toolAttribute.InputSchema ?? McpInputSchemaJsonUtilities.DefaultMcpToolSchema);
 
         _toolRegistry.Register(listener);
 
@@ -209,27 +204,5 @@ internal sealed class McpToolTriggerBinding : ITriggerBinding
                 Prompt = "Enter MCP tool trigger value"
             }
         };
-    }
-
-    internal class McpToolTriggerReturnValueBinder(CallToolExecutionContext executionContext) : IValueBinder
-    {
-        public Type Type { get; } = typeof(object);
-
-        public Task SetValueAsync(object value, CancellationToken cancellationToken)
-        {
-            executionContext.SetResult(value);
-
-            return Task.CompletedTask;
-        }
-
-        public Task<object> GetValueAsync()
-        {
-            throw new NotSupportedException();
-        }
-
-        public string ToInvokeString()
-        {
-            return string.Empty;
-        }
     }
 }

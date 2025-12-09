@@ -26,7 +26,7 @@ internal sealed class StreamableHttpRequestHandler(
         (JsonTypeInfo<JsonRpcMessage>)McpJsonUtilities.DefaultOptions.GetTypeInfo(typeof(JsonRpcMessage));
 
     private static readonly JsonTypeInfo<JsonRpcError> ErrorTypeInfo =
-        (JsonTypeInfo<JsonRpcError>) McpJsonUtilities.DefaultOptions.GetTypeInfo(typeof(JsonRpcError));
+        (JsonTypeInfo<JsonRpcError>)McpJsonUtilities.DefaultOptions.GetTypeInfo(typeof(JsonRpcError));
 
     public Task HandleRequestAsync(HttpContext context)
     {
