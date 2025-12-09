@@ -11,12 +11,10 @@ internal static class McpToolExtensions
     {
         ArgumentNullException.ThrowIfNull(tool);
 
-        // If an explicit InputSchema is provided, use it directly.
-        if (tool.InputSchema != null)
+        // If an explicit InputSchema is provided and it's not the default, use it directly.
+        if (!IsDefaultSchema(tool.InputSchema))
         {
-            var json = JsonSerializer.Serialize(tool.InputSchema);
-            using var document = JsonDocument.Parse(json);
-            return document.RootElement.Clone();
+            return tool.InputSchema;
         }
 
         var props = (tool.Properties ?? [])
@@ -104,5 +102,21 @@ internal static class McpToolExtensions
         }
 
         writer.WriteEndArray();
+    }
+
+    private static bool IsDefaultSchema(JsonElement schema)
+    {
+        // Check if this is the default empty schema
+        if (!schema.TryGetProperty("properties", out var properties) ||
+            !schema.TryGetProperty("required", out var required))
+        {
+            return false;
+        }
+
+        // Default schema has empty properties and required arrays
+        return properties.ValueKind == JsonValueKind.Object && 
+               properties.EnumerateObject().Count() == 0 &&
+               required.ValueKind == JsonValueKind.Array && 
+               required.GetArrayLength() == 0;
     }
 }

@@ -146,7 +146,7 @@ internal sealed class McpToolTriggerBinding : ITriggerBinding
         }
 
         var listener = new McpToolListener(context.Executor, context.Descriptor.ShortName, 
-            _toolAttribute.ToolName, _toolAttribute.Description, toolProperties, _toolAttribute.InputSchema);
+            _toolAttribute.ToolName, _toolAttribute.Description, toolProperties, _toolAttribute.InputSchema ?? McpJsonUtilities.DefaultMcpToolSchema);
 
         _toolRegistry.Register(listener);
 
