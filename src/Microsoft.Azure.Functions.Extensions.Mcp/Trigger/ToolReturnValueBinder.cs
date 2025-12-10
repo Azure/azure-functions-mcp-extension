@@ -61,14 +61,14 @@ internal sealed class ToolReturnValueBinder(CallToolExecutionContext executionCo
         // Explicit multi-content contract
         if (string.Equals(result.Type, McpConstants.ToolResultContentTypes.MultiContentResult, StringComparison.OrdinalIgnoreCase))
         {
-            var collection = JsonSerializer.Deserialize<IEnumerable<ContentBlock>>(result.Content!, McpJsonUtilities.DefaultOptions)
+            var collection = JsonSerializer.Deserialize<IEnumerable<ContentBlock>>(result.Content!, McpJsonSerializerOptions.DefaultOptions)
                 ?? throw new InvalidOperationException("Failed to deserialize multi-content result.");
 
             return collection as IList<ContentBlock> ?? [.. collection];
         }
 
         // Otherwise, handle single content block
-        var contentBlock = JsonSerializer.Deserialize<ContentBlock>(result.Content!, McpJsonUtilities.DefaultOptions)
+        var contentBlock = JsonSerializer.Deserialize<ContentBlock>(result.Content!, McpJsonSerializerOptions.DefaultOptions)
             ?? throw new InvalidOperationException($"Failed to deserialize content block type '{result.Type}'.");
 
         return [contentBlock];
