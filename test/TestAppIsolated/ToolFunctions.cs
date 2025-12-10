@@ -4,6 +4,7 @@ using System.Globalization;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Extensions.Mcp;
 using Microsoft.Extensions.Logging;
+using ModelContextProtocol.Protocol;
 using static TestAppIsolated.ToolsInformation;
 
 namespace TestAppIsolated;
@@ -33,6 +34,29 @@ public class TestFunction
             Hello, {entityToGreet}! Job: {job ?? JobType.Unemployed} | Age: {age} | Happy? {isHappy}.
             Attributes: {(attributes is ICollection { Count: > 0} ? string.Join(", ", attributes) : "(none)")}
             """;
+    }
+
+    [Function(nameof(MultiContentTypeFunction))]
+    public IList<ContentBlock> MultiContentTypeFunction(
+        [McpToolTrigger(nameof(MultiContentTypeFunction), "Responds to user with multiple content blocks.")] ToolInvocationContext context,
+        [McpToolProperty(nameof(data), "Base64-encoded image data", true)] string data,
+        [McpToolProperty(nameof(mimeType), "Mime type", false)] string? mimeType)
+    {
+        return new List<ContentBlock>
+        {
+            new TextContentBlock { Text = "Here is an image for you!" },
+            new ResourceLinkBlock { Name = "example", Uri = "https://www.google.com/", Description = "Image Information" },
+            new ImageContentBlock { Data = data, MimeType = mimeType ?? "image/jpeg" }
+        };
+    }
+
+    [Function(nameof(RenderImage))]
+    public ImageContentBlock RenderImage(
+        [McpToolTrigger(nameof(RenderImage), "Responds to user with an image.")] ToolInvocationContext context,
+        [McpToolProperty(nameof(data), "Base64-encoded image data", true)] string data,
+        [McpToolProperty(nameof(mimeType), "Mime type", false)] string? mimeType)
+    {
+        return new ImageContentBlock { Data = data, MimeType = mimeType ?? "image/jpeg" };
     }
 
     [Function(nameof(BirthdayTracker))]
