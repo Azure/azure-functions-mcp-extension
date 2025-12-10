@@ -4,7 +4,6 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.Azure.Functions.Extensions.Mcp.Configuration;
 using Microsoft.Azure.Functions.Extensions.Mcp.Http;
-using Microsoft.Azure.Functions.Extensions.Mcp.Serialization;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using ModelContextProtocol;
@@ -24,10 +23,10 @@ internal sealed class StreamableHttpRequestHandler(
     ILoggerFactory loggerFactory) : IStreamableHttpRequestHandler
 {
     private static readonly JsonTypeInfo<JsonRpcMessage> MesssageTypeInfo =
-        (JsonTypeInfo<JsonRpcMessage>)McpJsonSerializerOptions.DefaultOptions.GetTypeInfo(typeof(JsonRpcMessage));
+        (JsonTypeInfo<JsonRpcMessage>)McpJsonUtilities.DefaultOptions.GetTypeInfo(typeof(JsonRpcMessage));
 
     private static readonly JsonTypeInfo<JsonRpcError> ErrorTypeInfo =
-        (JsonTypeInfo<JsonRpcError>) McpJsonSerializerOptions.DefaultOptions.GetTypeInfo(typeof(JsonRpcError));
+        (JsonTypeInfo<JsonRpcError>) McpJsonUtilities.DefaultOptions.GetTypeInfo(typeof(JsonRpcError));
 
     public Task HandleRequestAsync(HttpContext context)
     {
