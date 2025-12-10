@@ -7,11 +7,16 @@ using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 using Moq;
 using System.Text.Json;
-using Xunit;
 
 namespace Microsoft.Azure.Functions.Extensions.Mcp.Tests;
 public class McpToolListenerTests
 {
+    private static JsonElement CreateFromJson(string json)
+    {
+        using var document = JsonDocument.Parse(json);
+        return document.RootElement.Clone();
+    }
+
     private static IMcpToolProperty CreateProperty(string name, bool required)
     {
         var mock = new Mock<IMcpToolProperty>();
@@ -31,11 +36,6 @@ public class McpToolListenerTests
         {
             Params = parameters
         };
-    }
-
-    private static JsonElement CreateInputSchemaJson(string json)
-    {
-        return McpInputSchemaJsonUtilities.CreateFromJson(json);
     }
 
     [Fact]
@@ -97,7 +97,7 @@ public class McpToolListenerTests
         var request = CreateRequest(("foo", JsonDocument.Parse("\"\"").RootElement));
 
         var ex = Record.Exception(() =>
-            McpToolListener.ValidateArgumentsHaveRequiredProperties(properties, request.Params, McpInputSchemaJsonUtilities.DefaultMcpToolSchema));
+            McpToolListener.ValidateArgumentsHaveRequiredProperties(properties, request.Params, null));
         Assert.Null(ex);
     }
 
@@ -108,7 +108,7 @@ public class McpToolListenerTests
         var request = CreateRequest(("foo", JsonDocument.Parse("\"bar\"").RootElement));
 
         var ex = Record.Exception(() =>
-            McpToolListener.ValidateArgumentsHaveRequiredProperties(properties, request.Params, McpInputSchemaJsonUtilities.DefaultMcpToolSchema));
+            McpToolListener.ValidateArgumentsHaveRequiredProperties(properties, request.Params, null));
         Assert.Null(ex);
     }
 
@@ -119,7 +119,7 @@ public class McpToolListenerTests
         var request = CreateRequest(("foo", JsonDocument.Parse("[]").RootElement));
 
         var ex = Record.Exception(() =>
-            McpToolListener.ValidateArgumentsHaveRequiredProperties(properties, request.Params, McpInputSchemaJsonUtilities.DefaultMcpToolSchema));
+            McpToolListener.ValidateArgumentsHaveRequiredProperties(properties, request.Params, null));
         Assert.Null(ex);
     }
 
@@ -130,7 +130,7 @@ public class McpToolListenerTests
         var request = CreateRequest(("foo", JsonDocument.Parse("[1]").RootElement));
 
         var ex = Record.Exception(() =>
-            McpToolListener.ValidateArgumentsHaveRequiredProperties(properties, request.Params, McpInputSchemaJsonUtilities.DefaultMcpToolSchema));
+            McpToolListener.ValidateArgumentsHaveRequiredProperties(properties, request.Params, null));
         Assert.Null(ex);
     }
 
@@ -141,7 +141,7 @@ public class McpToolListenerTests
         var request = CreateRequest(("foo", JsonDocument.Parse("{}").RootElement));
 
         var ex = Record.Exception(() =>
-            McpToolListener.ValidateArgumentsHaveRequiredProperties(properties, request.Params, McpInputSchemaJsonUtilities.DefaultMcpToolSchema));
+            McpToolListener.ValidateArgumentsHaveRequiredProperties(properties, request.Params, null));
         Assert.Null(ex);
     }
 
@@ -152,7 +152,7 @@ public class McpToolListenerTests
         var request = CreateRequest(("foo", JsonDocument.Parse("{\"bar\":1}").RootElement));
 
         var ex = Record.Exception(() =>
-            McpToolListener.ValidateArgumentsHaveRequiredProperties(properties, request.Params, McpInputSchemaJsonUtilities.DefaultMcpToolSchema));
+            McpToolListener.ValidateArgumentsHaveRequiredProperties(properties, request.Params, null));
         Assert.Null(ex);
     }
 
@@ -163,7 +163,7 @@ public class McpToolListenerTests
         var request = CreateRequest(("foo", JsonDocument.Parse("123").RootElement));
 
         var ex = Record.Exception(() =>
-            McpToolListener.ValidateArgumentsHaveRequiredProperties(properties, request.Params, McpInputSchemaJsonUtilities.DefaultMcpToolSchema));
+            McpToolListener.ValidateArgumentsHaveRequiredProperties(properties, request.Params, null));
         Assert.Null(ex);
     }
 
@@ -176,7 +176,7 @@ public class McpToolListenerTests
         var request = CreateRequest(("foo", JsonDocument.Parse(boolValue).RootElement));
 
         var ex = Record.Exception(() =>
-            McpToolListener.ValidateArgumentsHaveRequiredProperties(properties, request.Params, McpInputSchemaJsonUtilities.DefaultMcpToolSchema));
+            McpToolListener.ValidateArgumentsHaveRequiredProperties(properties, request.Params, null));
         Assert.Null(ex);
     }
 
@@ -191,7 +191,7 @@ public class McpToolListenerTests
                 "required": ["propFromSchema"]
             }
             """;
-        var inputSchema = CreateInputSchemaJson(inputSchemaJson);
+        var inputSchema = CreateFromJson(inputSchemaJson);
         var request = CreateRequest(); // No arguments
 
         var ex = Assert.Throws<McpProtocolException>(() =>
@@ -210,7 +210,7 @@ public class McpToolListenerTests
         var request = CreateRequest(); // No arguments
 
         var ex = Assert.Throws<McpProtocolException>(() =>
-            McpToolListener.ValidateArgumentsHaveRequiredProperties(properties, request.Params, McpInputSchemaJsonUtilities.DefaultMcpToolSchema));
+            McpToolListener.ValidateArgumentsHaveRequiredProperties(properties, request.Params, null));
         
         // Should fall back to using properties
         Assert.Contains("One or more required tool properties are missing values. Please provide: propFromProperty", ex.Message);
@@ -228,7 +228,7 @@ public class McpToolListenerTests
                 "required": ["propFromSchema"]
             }
             """;
-        var inputSchema = CreateInputSchemaJson(inputSchemaJson);
+        var inputSchema = CreateFromJson(inputSchemaJson);
         var request = CreateRequest(("propFromSchema", JsonDocument.Parse("\"value\"").RootElement));
 
         var ex = Record.Exception(() =>
@@ -248,7 +248,7 @@ public class McpToolListenerTests
                 "required": []
             }
             """;
-        var inputSchema = CreateInputSchemaJson(inputSchemaJson);
+        var inputSchema = CreateFromJson(inputSchemaJson);
         var request = CreateRequest(); // No arguments
 
         var ex = Record.Exception(() =>
@@ -272,7 +272,7 @@ public class McpToolListenerTests
                 "required": ["schemaProp1", "schemaProp2"]
             }
             """;
-        var inputSchema = CreateInputSchemaJson(inputSchemaJson);
+        var inputSchema = CreateFromJson(inputSchemaJson);
         
         // Provide only the tool properties, not the schema properties
         var request = CreateRequest(
@@ -301,7 +301,7 @@ public class McpToolListenerTests
                 "required": ["actualRequiredProp"]
             }
             """;
-        var inputSchema = CreateInputSchemaJson(inputSchemaJson);
+        var inputSchema = CreateFromJson(inputSchemaJson);
         
         var request = CreateRequest(("actualRequiredProp", JsonDocument.Parse("\"correctValue\"").RootElement));
 
@@ -330,10 +330,10 @@ public class McpToolListenerTests
                 "required": ["prop1"]
             }
             """;
-        var inputSchemaOnly = CreateInputSchemaJson(inputSchemaJson);
+        var inputSchemaOnly = CreateFromJson(inputSchemaJson);
         var listenerWithSchema = new McpToolListener(executor, "func", "tool", null, Array.Empty<IMcpToolProperty>(), inputSchemaOnly);
         Assert.Empty(listenerWithSchema.Properties);
-        Assert.NotEqual(McpInputSchemaJsonUtilities.DefaultMcpToolSchema.ToString(), listenerWithSchema.InputSchema.ToString());
+        Assert.NotNull(listenerWithSchema.InputSchema);
     }
 
     [Fact]
@@ -348,7 +348,7 @@ public class McpToolListenerTests
                 "required": ["prop1"]
             }
             """;
-        var inputSchema = CreateInputSchemaJson(inputSchemaJson);
+        var inputSchema = CreateFromJson(inputSchemaJson);
 
         // While the constructor technically allows both, in practice we should use one or the other
         // This test documents that when both are present, inputSchema takes precedence
@@ -356,7 +356,7 @@ public class McpToolListenerTests
         
         // Both are stored, but validation should only use inputSchema
         Assert.NotNull(listenerWithBoth.Properties);
-        Assert.NotEqual(McpInputSchemaJsonUtilities.DefaultMcpToolSchema.ToString(), listenerWithBoth.InputSchema.ToString());
+        Assert.NotNull(listenerWithBoth.InputSchema);
         
         // Test that validation uses inputSchema when both are present
         var request = CreateRequest(); // No arguments
@@ -392,18 +392,18 @@ public class McpToolListenerTests
                 "required": ["modernProp"]
             }
             """;
-        var inputSchemaOnly = CreateInputSchemaJson(inputSchemaJson);
+        var inputSchemaOnly = CreateFromJson(inputSchemaJson);
         var modernListener = new McpToolListener(executor, "func", "tool", null, Array.Empty<IMcpToolProperty>(), inputSchemaOnly);
         
         Assert.Empty(modernListener.Properties);
-        Assert.NotEqual(McpInputSchemaJsonUtilities.DefaultMcpToolSchema.ToString(), modernListener.InputSchema.ToString());
+        Assert.NotNull(modernListener.InputSchema);
 
         // Test validation works correctly for both patterns
         var emptyRequest = CreateRequest();
 
         // Traditional approach validation
         var traditionalEx = Assert.Throws<McpProtocolException>(() =>
-            McpToolListener.ValidateArgumentsHaveRequiredProperties(traditionalListener.Properties, emptyRequest.Params, McpInputSchemaJsonUtilities.DefaultMcpToolSchema));
+            McpToolListener.ValidateArgumentsHaveRequiredProperties(traditionalListener.Properties, emptyRequest.Params, null));
         Assert.Contains("traditionalProp", traditionalEx.Message);
 
         // Modern approach validation  

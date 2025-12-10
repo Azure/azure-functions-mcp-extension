@@ -12,9 +12,9 @@ internal static class McpToolExtensions
         ArgumentNullException.ThrowIfNull(tool);
 
         // If an explicit InputSchema is provided and it's not the default, use it directly.
-        if (!McpInputSchemaJsonUtilities.IsDefaultSchema(tool.InputSchema))
+        if (tool.InputSchema != null)
         {
-            return tool.InputSchema;
+            return tool.InputSchema.Value;
         }
 
         var props = (tool.Properties ?? [])

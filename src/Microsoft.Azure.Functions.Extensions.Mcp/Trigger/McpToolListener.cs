@@ -27,7 +27,22 @@ internal sealed class McpToolListener(ITriggeredFunctionExecutor executor,
 
     public ICollection<IMcpToolProperty> Properties { get; set; } = properties;
 
-    public JsonElement InputSchema { get; set; } = inputSchema ?? McpInputSchemaJsonUtilities.DefaultMcpToolSchema;
+    public JsonElement? InputSchema 
+    { 
+        get => _inputSchema; 
+        set
+        {
+            if (value.HasValue && !McpInputSchemaJsonUtilities.IsValidMcpToolSchema(value.Value))
+            {
+                throw new ArgumentException(
+                    "The specified document is not a valid MCP tool input JSON schema.",
+                    nameof(InputSchema));
+            }
+            _inputSchema = value;
+        }
+    }
+
+    private JsonElement? _inputSchema = inputSchema;
 
     public void Dispose() { }
 
@@ -68,28 +83,28 @@ internal sealed class McpToolListener(ITriggeredFunctionExecutor executor,
         return new CallToolResult { Content = [] };
     }
 
-    internal static void ValidateArgumentsHaveRequiredProperties(ICollection<IMcpToolProperty> properties, CallToolRequestParams? callToolRequest)
-    {
-        ValidateArgumentsHaveRequiredProperties(properties, callToolRequest, McpInputSchemaJsonUtilities.DefaultMcpToolSchema);
-    }
-
-    internal static void ValidateArgumentsHaveRequiredProperties(ICollection<IMcpToolProperty> properties, CallToolRequestParams? callToolRequest, JsonElement inputSchema)
+    /// <summary>
+    /// Validates that all required arguments are present in the tool call request.
+    /// Uses InputSchema if provided (worker mode), otherwise validates against Properties (extension mode).
+    /// </summary>
+    internal static void ValidateArgumentsHaveRequiredProperties(
+        ICollection<IMcpToolProperty> properties,
+        CallToolRequestParams? callToolRequest,
+        JsonElement? inputSchema)
     {
         var missing = new List<string>();
         var args = callToolRequest?.Arguments;
         var requiredProperties = new List<string>();
 
-        // Use InputSchema if it's not the default empty schema, otherwise fall back to Properties
-        bool hasCustomInputSchema = !McpInputSchemaJsonUtilities.IsDefaultSchema(inputSchema);
-        
-        if (hasCustomInputSchema)
+        // Use InputSchema if provided and it has required properties
+        if (inputSchema.HasValue)
         {
-            // Extract required properties from the schema
-            requiredProperties.AddRange(McpInputSchemaJsonUtilities.GetRequiredProperties(inputSchema));
+            // Extract required properties from the schema using utility
+            requiredProperties.AddRange(McpInputSchemaJsonUtilities.GetRequiredProperties(inputSchema.Value));
         }
         else
         {
-            // Fall back to the original method using Properties
+            // Fall back to Properties approach
             if (properties is null || properties.Count == 0)
             {
                 return;
@@ -123,6 +138,16 @@ internal sealed class McpToolListener(ITriggeredFunctionExecutor executor,
             // the invocation proceeding to the worker with null values.
             throw new McpProtocolException($"One or more required tool properties are missing values. Please provide: {string.Join(", ", missing)}", McpErrorCode.InvalidParams);
         }
+    }
+
+    /// <summary>
+    /// Validates that all required arguments are present in the tool call request (overload for backward compatibility).
+    /// </summary>
+    internal static void ValidateArgumentsHaveRequiredProperties(
+        ICollection<IMcpToolProperty> properties,
+        CallToolRequestParams? callToolRequest)
+    {
+        ValidateArgumentsHaveRequiredProperties(properties, callToolRequest, null);
     }
 
     private static bool IsValueNullOrUndefined(JsonElement value)

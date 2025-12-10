@@ -14,7 +14,6 @@ public class McpToolExtensionsTests
     {
         var mock = new Mock<IMcpTool>();
         mock.SetupGet(t => t.Properties).Returns(properties);
-        mock.SetupGet(t => t.InputSchema).Returns(McpInputSchemaJsonUtilities.DefaultMcpToolSchema);
         mock.SetupGet(t => t.Name).Returns("tool");
         mock.SetupProperty(t => t.Description, "desc");
         mock.Setup(t => t.RunAsync(It.IsAny<RequestContext<CallToolRequestParams>>(), It.IsAny<CancellationToken>()))
@@ -22,14 +21,20 @@ public class McpToolExtensionsTests
         return mock.Object;
     }
 
+    private static JsonElement CreateFromJson(string json)
+    {
+        using var document = JsonDocument.Parse(json);
+        return document.RootElement.Clone();
+    }
+
     private static IMcpTool CreateToolWithInputSchema(string? inputSchemaJson, params IMcpToolProperty[] properties)
     {
         var mock = new Mock<IMcpTool>();
         mock.SetupGet(t => t.Properties).Returns(properties);
         
-        JsonElement schema = inputSchemaJson != null 
-            ? McpInputSchemaJsonUtilities.CreateFromJson(inputSchemaJson)
-            : McpInputSchemaJsonUtilities.DefaultMcpToolSchema;
+        JsonElement? schema = inputSchemaJson != null 
+            ? CreateFromJson(inputSchemaJson)
+            : null;
         
         mock.SetupGet(t => t.InputSchema).Returns(schema);
         mock.SetupGet(t => t.Name).Returns("tool");
@@ -369,10 +374,10 @@ public class McpToolExtensionsTests
         var items = jobs.GetProperty("items");
         Assert.Equal("string", items.GetProperty("type").GetString());
         
-        Assert.True(items.TryGetProperty("enum", out var enumProperty));
-        var enumValues = enumProperty.EnumerateArray().Select(e => e.GetString()).ToArray();
+        Assert.True(items.TryGetProperty("enum", out var enumValues));
+        var actualValues = enumValues.EnumerateArray().Select(e => e.GetString()).ToArray();
         var expectedValues = new[] { "FullTime", "PartTime", "Contract", "Internship", "Temporary", "Freelance", "Unemployed" };
-        Assert.Equal(expectedValues, enumValues);
+        Assert.Equal(expectedValues, actualValues);
         
         // Should not be required (empty required array)
         var required = schema.GetProperty("required").EnumerateArray().Select(e => e.GetString()).ToArray();

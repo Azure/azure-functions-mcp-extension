@@ -20,7 +20,18 @@ public sealed class McpToolTriggerAttribute(string toolName, string? description
 
     public bool UseResultSchema { get; set; } = false;
 
+    /// <summary>
+    /// Gets or sets whether the input schema should be provided by the worker instead of being generated from reflection.
+    /// When set to true, the <see cref="InputSchema"/> property must be provided.
+    /// When set to false (default), the extension generates the schema from the function parameters or <see cref="ToolProperties"/>.
+    /// </summary>
     public bool UseWorkerInputSchema { get; set; } = false;
 
+    /// <summary>
+    /// Gets or sets the MCP tool input schema as a JSON element.
+    /// This should only be set when <see cref="UseWorkerInputSchema"/> is true.
+    /// The schema must be a valid JSON Schema object with type "object".
+    /// When null and UseWorkerInputSchema is false, the schema is generated from function parameters.
+    /// </summary>
     public JsonElement? InputSchema { get; set; }
 }

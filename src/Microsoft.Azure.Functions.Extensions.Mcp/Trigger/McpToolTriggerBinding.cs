@@ -132,16 +132,16 @@ internal sealed class McpToolTriggerBinding : ITriggerBinding
 
     public Task<IListener> CreateListenerAsync(ListenerFactoryContext context)
     {
-        IList<IMcpToolProperty> toolProperties = [];
+        IList<IMcpToolProperty>? toolProperties = [];
 
         // Generate tool properties only if input schema was not generated in the worker
-        if (!_toolAttribute.UseWorkerInputSchema)
+        if (!_toolAttribute.UseWorkerInputSchema || (_toolAttribute.UseWorkerInputSchema && _toolAttribute.InputSchema == null))
         {
             toolProperties = GetProperties(_toolAttribute, _triggerParameter);
         }
 
         var listener = new McpToolListener(context.Executor, context.Descriptor.ShortName, 
-            _toolAttribute.ToolName, _toolAttribute.Description, toolProperties, _toolAttribute.InputSchema ?? McpInputSchemaJsonUtilities.DefaultMcpToolSchema);
+            _toolAttribute.ToolName, _toolAttribute.Description, toolProperties, _toolAttribute.InputSchema);
 
         _toolRegistry.Register(listener);
 
