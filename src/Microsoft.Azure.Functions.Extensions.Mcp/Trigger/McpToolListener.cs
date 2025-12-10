@@ -140,16 +140,6 @@ internal sealed class McpToolListener(ITriggeredFunctionExecutor executor,
         }
     }
 
-    /// <summary>
-    /// Validates that all required arguments are present in the tool call request (overload for backward compatibility).
-    /// </summary>
-    internal static void ValidateArgumentsHaveRequiredProperties(
-        ICollection<IMcpToolProperty> properties,
-        CallToolRequestParams? callToolRequest)
-    {
-        ValidateArgumentsHaveRequiredProperties(properties, callToolRequest, null);
-    }
-
     private static bool IsValueNullOrUndefined(JsonElement value)
     {
         return value.ValueKind switch

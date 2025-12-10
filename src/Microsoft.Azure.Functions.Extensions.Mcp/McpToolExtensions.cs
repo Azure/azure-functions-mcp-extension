@@ -11,7 +11,7 @@ internal static class McpToolExtensions
     {
         ArgumentNullException.ThrowIfNull(tool);
 
-        // If an explicit InputSchema is provided and it's not the default, use it directly.
+        // If an explicit InputSchema is provided and it's not null, use it directly.
         if (tool.InputSchema != null)
         {
             return tool.InputSchema.Value;

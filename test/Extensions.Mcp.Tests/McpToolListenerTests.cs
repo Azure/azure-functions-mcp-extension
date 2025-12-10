@@ -74,7 +74,7 @@ public class McpToolListenerTests
         var request = CreateRequest(); // No arguments
 
         var ex = Assert.Throws<McpProtocolException>(() =>
-            McpToolListener.ValidateArgumentsHaveRequiredProperties(properties, request.Params));
+            McpToolListener.ValidateArgumentsHaveRequiredProperties(properties, request.Params, null));
         Assert.Contains("One or more required tool properties are missing values. Please provide: foo", ex.Message);
         Assert.Equal(McpErrorCode.InvalidParams, ex.ErrorCode);
     }
@@ -86,7 +86,7 @@ public class McpToolListenerTests
         var request = CreateRequest(("foo", JsonDocument.Parse("null").RootElement));
 
         var ex = Assert.Throws<McpProtocolException>(() =>
-            McpToolListener.ValidateArgumentsHaveRequiredProperties(properties, request.Params));
+            McpToolListener.ValidateArgumentsHaveRequiredProperties(properties, request.Params, null));
         Assert.Contains("One or more required tool properties are missing values. Please provide: foo", ex.Message);
     }
 
