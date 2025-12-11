@@ -13,7 +13,7 @@ internal sealed class DefaultToolRegistry : IToolRegistry
 
     public void Register(IMcpTool tool)
     {
-        ArgumentNullException.ThrowIfNull(nameof(tool));
+        ArgumentNullException.ThrowIfNull(tool);
 
         if (!_tools.TryAdd(tool.Name, tool))
         {
@@ -23,7 +23,7 @@ internal sealed class DefaultToolRegistry : IToolRegistry
 
     public bool TryGetTool(string name, [NotNullWhen(true)] out IMcpTool? tool)
     {
-        ArgumentNullException.ThrowIfNull(nameof(name));
+        ArgumentNullException.ThrowIfNull(name);
         return _tools.TryGetValue(name, out tool);
     }
 

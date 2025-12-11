@@ -25,7 +25,7 @@ public static class McpWebJobsBuilderExtensions
     /// <param name="builder">The <see cref="IWebJobsBuilder"/> to configure.</param>
     public static IWebJobsBuilder AddMcp(this IWebJobsBuilder builder)
     {
-        ArgumentNullException.ThrowIfNull(nameof(builder));
+        ArgumentNullException.ThrowIfNull(builder);
 
         // Uncomment the line below to register the endpoints as functions.
         //builder.Services.AddSingleton<IFunctionProvider, McpFunctionProvider>();
