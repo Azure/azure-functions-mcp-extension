@@ -51,6 +51,9 @@ public class InitializationTests(DefaultProjectFixture fixture, ITestOutputHelpe
         
         // Server should support tools capability
         Assert.NotNull(client.ServerCapabilities.Tools);
+        
+        // Server should support resources capability
+        Assert.NotNull(client.ServerCapabilities.Resources);
     }
 
     [Theory]
