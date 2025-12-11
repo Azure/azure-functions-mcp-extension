@@ -38,6 +38,9 @@ public static class McpWebJobsBuilderExtensions
         // Tools
         builder.Services.AddSingleton<IToolRegistry, DefaultToolRegistry>();
 
+        // Resources
+        builder.Services.AddSingleton<IResourceRegistry, DefaultResourceRegistry>();
+
         // Core services
         builder.Services.AddSingleton<IMcpInstanceIdProvider, DefaultMcpInstanceIdProvider>();
         builder.Services.AddSingleton<IMcpClientSessionManager, McpClientSessionManager>();
