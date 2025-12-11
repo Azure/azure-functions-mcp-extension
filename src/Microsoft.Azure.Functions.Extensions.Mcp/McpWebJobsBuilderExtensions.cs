@@ -73,6 +73,25 @@ public static class McpWebJobsBuilderExtensions
                 }
 
                 throw new McpProtocolException($"Unknown tool: '{c.Params?.Name}'", McpErrorCode.InvalidParams);
+            })
+            .WithListResourcesHandler(static (c, ct) =>
+            {
+                var resourceRegistry = c.Services?.GetRequiredService<IResourceRegistry>();
+
+                return resourceRegistry?.ListResourcesAsync(ct)
+                       ?? throw new InvalidOperationException("Resource registry not properly registered.");
+            })
+            .WithReadResourceHandler(static async (c, ct) =>
+            {
+                var resourceRegistry = c.Services!.GetRequiredService<IResourceRegistry>();
+
+                if (c.Params is not null
+                    && resourceRegistry.TryGetResource(c.Params.Uri, out var resource))
+                {
+                    return await resource.RunAsync(c, ct);
+                }
+
+                throw new McpProtocolException($"Unknown resource: '{c.Params?.Uri}'", McpErrorCode.InvalidParams);
             });
 
         // Extension configuration
