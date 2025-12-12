@@ -255,7 +255,7 @@ public class DefaultResourceRegistryTests
     public async Task ListResourcesAsync_WithEmptyMetadata_ExcludesMeta()
     {
         var registry = new DefaultResourceRegistry();
-        var resource = CreateTestResource("test://resource/1", metadata: new List<IMcpResourceMetadata>());
+        var resource = CreateTestResource("test://resource/1", metadata: []);
         registry.Register(resource);
 
         var result = await registry.ListResourcesAsync();
