@@ -4,6 +4,7 @@
 using Microsoft.Azure.Functions.Worker.Converters;
 using Microsoft.Azure.Functions.Worker.Extensions.Abstractions;
 using Microsoft.Azure.Functions.Worker.Extensions.Mcp.Converters;
+using System.Text.Json;
 
 namespace Microsoft.Azure.Functions.Worker.Extensions.Mcp;
 

@@ -2,9 +2,7 @@
 // Licensed under the MIT License.
 
 using System.Reflection;
-using System.Text.Json;
 using System.Text.Json.Nodes;
-using Microsoft.Azure.Functions.Worker.Builder;
 using Microsoft.Azure.Functions.Worker.Core.FunctionMetadata;
 using Microsoft.Azure.Functions.Worker.Extensions.Mcp.Reflection;
 
