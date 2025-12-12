@@ -195,6 +195,26 @@ internal sealed class McpToolTriggerBinding : ITriggerBinding
         }
     }
 
+    private static JsonElement? GetInputSchema(McpToolTriggerAttribute attribute)
+    {
+        if (string.IsNullOrEmpty(attribute.InputSchema))
+        {
+            return null;
+        }
+        try
+        {
+            using var doc = JsonDocument.Parse(attribute.InputSchema);
+            return doc.RootElement.Clone();
+        }
+        catch
+        {
+            // If parsing fails, return null
+            return null;
+        }
+    }
+
+
+
     private static List<IMcpToolProperty> GetProperties(McpToolTriggerAttribute attribute, ParameterInfo triggerParameter)
     {
         List<IMcpToolProperty>? toolProperties = null;
