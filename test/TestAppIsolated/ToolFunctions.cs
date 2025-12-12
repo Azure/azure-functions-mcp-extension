@@ -18,6 +18,7 @@ public class TestFunction
         _logger = logger;
     }
 
+    /*
     [Function(nameof(HappyFunction))]
     public string HappyFunction(
         [McpToolTrigger(nameof(HappyFunction), "Responds to the user with a hello message.")] ToolInvocationContext context,
@@ -35,6 +36,7 @@ public class TestFunction
             Attributes: {(attributes is ICollection { Count: > 0} ? string.Join(", ", attributes) : "(none)")}
             """;
     }
+    */
 
     [Function(nameof(MultiContentTypeFunction))]
     public IList<ContentBlock> MultiContentTypeFunction(
@@ -69,6 +71,7 @@ public class TestFunction
         return $"Hello {userId}, {date}";
     }
 
+    /*
     [Function(nameof(SingleArgumentFunction))]
     public string SingleArgumentFunction(
        [McpToolTrigger(nameof(SingleArgumentFunction), "Echoes a single argument passed into the tool.")] ToolInvocationContext context,
@@ -116,6 +119,7 @@ public class TestFunction
             .Where(kvp => kvp.Key.Contains(searchRequest.Pattern, comparisonType))
             .ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
     }
+    */
 
     public class Snippet
     {
