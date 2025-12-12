@@ -33,5 +33,5 @@ public sealed class McpToolTriggerAttribute(string toolName, string? description
     /// The schema must be a valid JSON Schema object with type "object".
     /// When null and UseWorkerInputSchema is false, the schema is generated from function parameters.
     /// </summary>
-    public JsonElement? InputSchema { get; set; }
+    public string? InputSchema { get; set; }
 }

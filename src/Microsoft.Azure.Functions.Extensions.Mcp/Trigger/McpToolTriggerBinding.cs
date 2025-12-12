@@ -10,6 +10,7 @@ using Microsoft.Azure.WebJobs.Host.Bindings;
 using Microsoft.Azure.WebJobs.Host.Listeners;
 using Microsoft.Azure.WebJobs.Host.Protocols;
 using Microsoft.Azure.WebJobs.Host.Triggers;
+using ModelContextProtocol;
 
 namespace Microsoft.Azure.Functions.Extensions.Mcp;
 
@@ -133,20 +134,51 @@ internal sealed class McpToolTriggerBinding : ITriggerBinding
     public Task<IListener> CreateListenerAsync(ListenerFactoryContext context)
     {
         IList<IMcpToolProperty>? toolProperties = [];
+        JsonElement? inputSchema = null;
 
         // Generate tool properties only if input schema was not generated in the worker
-        if (!_toolAttribute.UseWorkerInputSchema || (_toolAttribute.UseWorkerInputSchema && _toolAttribute.InputSchema == null))
+        if (!_toolAttribute.UseWorkerInputSchema)
         {
             toolProperties = GetProperties(_toolAttribute, _triggerParameter);
         }
+        else
+        {
+            inputSchema = GetInputSchema(_toolAttribute);
 
-        var listener = new McpToolListener(context.Executor, context.Descriptor.ShortName, 
-            _toolAttribute.ToolName, _toolAttribute.Description, toolProperties, _toolAttribute.InputSchema);
+            // Throw an error in case input schema was not generated in the worker extension as expected
+            if (inputSchema is null)
+            {
+                throw new McpException("Input schema was not generated in the worker extension");
+            }
+        }
+
+        var listener = new McpToolListener(context.Executor, context.Descriptor.ShortName,
+            _toolAttribute.ToolName, _toolAttribute.Description, toolProperties, inputSchema);
 
         _toolRegistry.Register(listener);
 
         return Task.FromResult<IListener>(listener);
     }
+
+    private static JsonElement? GetInputSchema(McpToolTriggerAttribute attribute)
+    {
+        if (string.IsNullOrEmpty(attribute.InputSchema))
+        {
+            return null;
+        }
+        try
+        {
+            using var doc = JsonDocument.Parse(attribute.InputSchema);
+            return doc.RootElement.Clone();
+        }
+        catch
+        {
+            // If parsing fails, return null
+            return null;
+        }
+    }
+
+
 
     private static List<IMcpToolProperty> GetProperties(McpToolTriggerAttribute attribute, ParameterInfo triggerParameter)
     {
