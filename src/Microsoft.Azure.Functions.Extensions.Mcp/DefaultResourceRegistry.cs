@@ -75,8 +75,8 @@ internal sealed class DefaultResourceRegistry : IResourceRegistry
             throw new ArgumentException("Resource URI cannot be null or whitespace.", nameof(uri));
         }
 
-        // Validate URI format
-        if (!Uri.TryCreate(uri, UriKind.RelativeOrAbsolute, out var parsedUri))
+        // Validate URI format - require absolute URIs with a scheme
+        if (!Uri.TryCreate(uri, UriKind.Absolute, out var parsedUri) || !parsedUri.IsAbsoluteUri)
         {
             throw new ArgumentException($"Invalid resource URI format: '{uri}'", nameof(uri));
         }
