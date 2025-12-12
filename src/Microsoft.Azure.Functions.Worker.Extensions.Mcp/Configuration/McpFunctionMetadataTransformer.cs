@@ -7,7 +7,6 @@ using System.Runtime.Loader;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.Azure.Functions.Worker.Core.FunctionMetadata;
-using Microsoft.Extensions.Options;
 using static Microsoft.Azure.Functions.Worker.Extensions.Mcp.Constants;
 
 namespace Microsoft.Azure.Functions.Worker.Extensions.Mcp.Configuration;
@@ -26,7 +25,6 @@ public sealed class McpFunctionMetadataTransformer(IOptionsMonitor<ToolOptions> 
                 continue;
             }
 
-            List<ToolProperty>? toolProperties = null;
             JsonNode? inputSchema = null;
             Dictionary<string, ToolPropertyBinding> inputBindingProperties = [];
 
@@ -57,6 +55,8 @@ public sealed class McpFunctionMetadataTransformer(IOptionsMonitor<ToolOptions> 
                             jsonObject["metadata"] = toolMetadataJson;
                         }
 
+                    if (TryGenerateInputSchema(jsonObject, function, out inputSchema))
+                    {
                         function.RawBindings[i] = jsonObject.ToJsonString();
                         break;
 
@@ -80,30 +80,7 @@ public sealed class McpFunctionMetadataTransformer(IOptionsMonitor<ToolOptions> 
             }
 
             // This is required for attributed properties/input bindings:
-            PatchInputBindingMetadata(function, inputBindingProperties, toolProperties, inputSchema);
-        }
-    }
-
-    /// <summary>
-    /// Processes a tool trigger binding, either generating input schema or tool properties.
-    /// </summary>
-    private bool TryProcessToolTriggerBinding(JsonObject jsonObject, IFunctionMetadata function, string? toolName, out List<ToolProperty>? toolProperties, out JsonNode? inputSchema)
-    {
-        toolProperties = null;
-        inputSchema = null;
-
-        // Check if UseWorkerInputSchema is enabled
-        bool useWorkerInputSchema = jsonObject.TryGetPropertyValue("useWorkerInputSchema", out var useInputSchemaNode)
-            && useInputSchemaNode is not null
-            && useInputSchemaNode.GetValue<bool>();
-
-        if (useWorkerInputSchema)
-        {
-            return TryGenerateInputSchema(jsonObject, function, out inputSchema);
-        }
-        else
-        {
-            return TryGenerateToolProperties(jsonObject, function, toolName, out toolProperties);
+            PatchInputBindingMetadata(function, inputBindingProperties, inputSchema);
         }
     }
 
@@ -112,55 +89,24 @@ public sealed class McpFunctionMetadataTransformer(IOptionsMonitor<ToolOptions> 
     /// </summary>
     private static bool TryGenerateInputSchema(JsonObject jsonObject, IFunctionMetadata function, out JsonNode? inputSchema)
     {
-        inputSchema = null;
+        if (InputSchemaGenerator.TryGenerateFromFunction(function, out inputSchema) && inputSchema is not null)
         {
-            inputSchema = generatedSchema;
-            
             // Store the generated schema directly in the binding metadata
-            jsonObject["inputSchema"] = generatedSchema;
-
+            jsonObject["inputSchema"] = inputSchema.ToJsonString();
             return true;
         }
 
         return false;
     }
 
-    /// <summary>
-    /// Attempts to generate tool properties from configuration or attributes.
-    /// </summary>
-    private bool TryGenerateToolProperties(JsonObject jsonObject, IFunctionMetadata function, string? toolName, out List<ToolProperty>? toolProperties)
-    {
-        if (GetToolProperties(toolName, function, out toolProperties))
-        {
-            jsonObject["toolProperties"] = GetPropertiesJson(function.Name!, toolProperties);
-            return true;
-        }
-
-        return false;
-    }
-
-    private static void PatchInputBindingMetadata(IFunctionMetadata function, Dictionary<string, ToolPropertyBinding> inputBindingProperties, List<ToolProperty>? toolProperties, JsonNode? inputSchema)
+    private static void PatchInputBindingMetadata(IFunctionMetadata function, Dictionary<string, ToolPropertyBinding> inputBindingProperties, JsonNode? inputSchema)
     {
         if (inputBindingProperties.Count == 0)
         {
             return;
         }
 
-        // If we have toolProperties, use them (original behavior)
-        if (toolProperties is not null && toolProperties.Count > 0)
-        {
-            foreach (var property in toolProperties)
-            {
-                if (inputBindingProperties.TryGetValue(property.Name, out var reference))
-                {
-                    reference.Binding[McpToolPropertyType] = property.Type;
-                    function.RawBindings![reference.Index] = reference.Binding.ToJsonString();
-                }
-            }
-            return;
-        }
-
-        // Otherwise, try to get types from inputSchema
+        // Try to get types from inputSchema
         if (inputSchema is not null)
         {
             try
@@ -170,44 +116,46 @@ public sealed class McpFunctionMetadataTransformer(IOptionsMonitor<ToolOptions> 
                 using var doc = JsonDocument.Parse(schemaString);
                 var schema = doc.RootElement;
 
-                if (schema.TryGetProperty("properties", out var propertiesElement))
+                if (!doc.RootElement.TryGetProperty("properties", out var propertiesElement))
                 {
-                    // For each input binding property, find its type in the schema
-                    foreach (var kvp in inputBindingProperties)
+                    return;
+                }
+
+                // For each input binding property, find its type in the schema
+                foreach (var kvp in inputBindingProperties)
+                {
+                    var propertyName = kvp.Key;
+                    var bindingRef = kvp.Value;
+
+                    // Look for this property in the schema
+                    if (propertiesElement.TryGetProperty(propertyName, out var propertySchema))
                     {
-                        var propertyName = kvp.Key;
-                        var bindingRef = kvp.Value;
+                        string? propertyType = null;
 
-                        // Look for this property in the schema
-                        if (propertiesElement.TryGetProperty(propertyName, out var propertySchema))
+                        // Check if it's an array type
+                        if (propertySchema.TryGetProperty("type", out var typeElement))
                         {
-                            string? propertyType = null;
-
-                            // Check if it's an array type
-                            if (propertySchema.TryGetProperty("type", out var typeElement))
+                            var typeStr = typeElement.GetString();
+                            if (typeStr == "array")
                             {
-                                var typeStr = typeElement.GetString();
-                                if (typeStr == "array")
+                                // For arrays, get the item type
+                                if (propertySchema.TryGetProperty("items", out var itemsElement) &&
+                                    itemsElement.TryGetProperty("type", out var itemTypeElement))
                                 {
-                                    // For arrays, get the item type
-                                    if (propertySchema.TryGetProperty("items", out var itemsElement) &&
-                                        itemsElement.TryGetProperty("type", out var itemTypeElement))
-                                    {
-                                        propertyType = itemTypeElement.GetString();
-                                    }
-                                }
-                                else
-                                {
-                                    propertyType = typeStr;
+                                    propertyType = itemTypeElement.GetString();
                                 }
                             }
-
-                            // Patch the binding with the type
-                            if (!string.IsNullOrEmpty(propertyType))
+                            else
                             {
-                                bindingRef.Binding[Constants.McpToolPropertyType] = propertyType;
-                                function.RawBindings![bindingRef.Index] = bindingRef.Binding.ToJsonString();
+                                propertyType = typeStr;
                             }
+                        }
+
+                        // Patch the binding with the type
+                        if (!string.IsNullOrEmpty(propertyType))
+                        {
+                            bindingRef.Binding[McpToolPropertyType] = propertyType;
+                            function.RawBindings![bindingRef.Index] = bindingRef.Binding.ToJsonString();
                         }
                     }
                 }
