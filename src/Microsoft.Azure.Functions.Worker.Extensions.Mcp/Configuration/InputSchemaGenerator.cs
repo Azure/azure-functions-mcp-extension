@@ -77,12 +77,6 @@ internal static class InputSchemaGenerator
             return false;
         }
 
-        // Skip parameters with McpToolTriggerAttribute
-        if (parameter.GetCustomAttribute<McpToolTriggerAttribute>() is not null)
-        {
-            return false;
-        }
-
         return true;
     }
 
@@ -122,30 +116,18 @@ internal static class InputSchemaGenerator
             return false;
         }
 
-        var pocoProperties = GeneratePropertiesFromPoco(parameter.ParameterType);
-        foreach (var kvp in pocoProperties.Properties)
-        {
-            properties[kvp.Key] = kvp.Value;
-        }
-        
-        foreach (var requiredProp in pocoProperties.Required)
-        {
-            required.Add(requiredProp);
-        }
-
+        GeneratePropertiesFromPoco(parameter.ParameterType, properties, required);
         return true;
     }
 
     /// <summary>
-    /// Generates properties and required list from a POCO type.
+    /// Generates properties and required list from a POCO type directly into the provided collections.
     /// </summary>
     /// <param name="pocoType">The POCO type to analyze.</param>
-    /// <returns>A tuple containing the properties dictionary and required property names.</returns>
-    private static (Dictionary<string, JsonNode> Properties, List<string> Required) GeneratePropertiesFromPoco(Type pocoType)
+    /// <param name="properties">The JsonObject to populate with properties.</param>
+    /// <param name="required">The JsonArray to populate with required property names.</param>
+    private static void GeneratePropertiesFromPoco(Type pocoType, JsonObject properties, JsonArray required)
     {
-        var properties = new Dictionary<string, JsonNode>();
-        var required = new List<string>();
-
         foreach (var property in pocoType.GetProperties(BindingFlags.Instance | BindingFlags.Public))
         {
             if (!property.CanRead || !property.CanWrite)
@@ -167,8 +149,6 @@ internal static class InputSchemaGenerator
                 required.Add(property.Name);
             }
         }
-
-        return (properties, required);
     }
 
     /// <summary>
@@ -181,50 +161,44 @@ internal static class InputSchemaGenerator
     /// <returns>A JsonNode representing the property schema.</returns>
     private static JsonNode CreatePropertySchema(string typeName, string description, bool isArray, IReadOnlyList<string> enumValues)
     {
+        var schema = new JsonObject
+        {
+            ["type"] = isArray ? "array" : typeName,
+            ["description"] = description
+        };
+
         if (isArray)
         {
-            var itemsSchema = new JsonObject
-            {
-                ["type"] = typeName
-            };
+            var itemsSchema = new JsonObject { ["type"] = typeName };
 
             if (enumValues.Count > 0)
             {
-                var enumArray = new JsonArray();
-                foreach (var enumValue in enumValues)
-                {
-                    enumArray.Add(enumValue);
-                }
-                itemsSchema["enum"] = enumArray;
+                itemsSchema["enum"] = CreateEnumArray(enumValues);
             }
 
-            return new JsonObject
-            {
-                ["type"] = "array",
-                ["description"] = description,
-                ["items"] = itemsSchema
-            };
+            schema["items"] = itemsSchema;
         }
-        else
+        else if (enumValues.Count > 0)
         {
-            var propertySchema = new JsonObject
-            {
-                ["type"] = typeName,
-                ["description"] = description
-            };
-
-            if (enumValues.Count > 0)
-            {
-                var enumArray = new JsonArray();
-                foreach (var enumValue in enumValues)
-                {
-                    enumArray.Add(enumValue);
-                }
-                propertySchema["enum"] = enumArray;
-            }
-
-            return propertySchema;
+            schema["enum"] = CreateEnumArray(enumValues);
         }
+
+        return schema;
+    }
+
+    /// <summary>
+    /// Creates enum array
+    /// </summary>
+    /// <param name="enumValues"></param>
+    /// <returns>JsonArray of enum values</returns>
+    private static JsonArray CreateEnumArray(IReadOnlyList<string> enumValues)
+    {
+        var enumArray = new JsonArray();
+        foreach (var enumValue in enumValues)
+        {
+            enumArray.Add(enumValue);
+        }
+        return enumArray;
     }
 
     /// <summary>
