@@ -41,12 +41,23 @@ public sealed partial class McpFunctionMetadataTransformer()
                 if (string.Equals(bindingType, McpToolTriggerBindingType, StringComparison.OrdinalIgnoreCase)
                     && jsonObject.TryGetPropertyValue("toolName", out var toolNameNode))
                 {
-                    jsonObject["useWorkerInputSchema"] = true;
-
+                    // Try to generate input schema from function parameters
                     if (TryGenerateInputSchema(jsonObject, function, out inputSchema))
                     {
-                        function.RawBindings[i] = jsonObject.ToJsonString();
+                        // Use worker input schema approach
+                        jsonObject["useWorkerInputSchema"] = true;
+                        // When using input schema, toolProperties should not be present
+                        jsonObject.Remove("toolProperties");
                     }
+                    else
+                    {
+                        // Fall back to traditional toolProperties approach
+                        jsonObject["useWorkerInputSchema"] = false;
+                        // Generate empty toolProperties array as fallback
+                        jsonObject["toolProperties"] = "[]";
+                    }
+                    
+                    function.RawBindings[i] = jsonObject.ToJsonString();
                 }
                 else if (string.Equals(bindingType, McpToolPropertyBindingType, StringComparison.OrdinalIgnoreCase)
                     && jsonObject.TryGetPropertyValue(McpToolPropertyName, out var propertyNameNode)
@@ -67,13 +78,21 @@ public sealed partial class McpFunctionMetadataTransformer()
     /// </summary>
     private static bool TryGenerateInputSchema(JsonObject jsonObject, IFunctionMetadata function, out JsonNode? inputSchema)
     {
-        if (InputSchemaGenerator.TryGenerateFromFunction(function, out inputSchema) && inputSchema is not null)
+        try
         {
-            // Store the generated schema directly in the binding metadata
-            jsonObject["inputSchema"] = inputSchema.ToJsonString();
-            return true;
+            if (InputSchemaGenerator.TryGenerateFromFunction(function, out inputSchema) && inputSchema is not null)
+            {
+                // Store the generated schema directly in the binding metadata
+                jsonObject["inputSchema"] = inputSchema.ToJsonString();
+                return true;
+            }
+        }
+        catch
+        {
+            // If schema generation fails, fall back to traditional approach
         }
 
+        inputSchema = null;
         return false;
     }
 
