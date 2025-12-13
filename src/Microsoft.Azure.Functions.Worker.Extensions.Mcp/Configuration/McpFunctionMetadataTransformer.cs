@@ -89,13 +89,21 @@ public sealed class McpFunctionMetadataTransformer(IOptionsMonitor<ToolOptions> 
     /// </summary>
     private static bool TryGenerateInputSchema(JsonObject jsonObject, IFunctionMetadata function, out JsonNode? inputSchema)
     {
-        if (InputSchemaGenerator.TryGenerateFromFunction(function, out inputSchema) && inputSchema is not null)
+        try
         {
-            // Store the generated schema directly in the binding metadata
-            jsonObject["inputSchema"] = inputSchema.ToJsonString();
-            return true;
+            if (InputSchemaGenerator.TryGenerateFromFunction(function, out inputSchema) && inputSchema is not null)
+            {
+                // Store the generated schema directly in the binding metadata
+                jsonObject["inputSchema"] = inputSchema.ToJsonString();
+                return true;
+            }
+        }
+        catch
+        {
+            // If schema generation fails, fall back to traditional approach
         }
 
+        inputSchema = null;
         return false;
     }
 
