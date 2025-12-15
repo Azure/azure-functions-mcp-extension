@@ -10,7 +10,7 @@
 
 ### Microsoft.Azure.Functions.Worker.Extensions.Mcp <version>
 
-- <entry>
+- Adding input schema generation in the worker and enabling `UseWorkerInputSchema` to be true (#166)
 
 ### Microsoft.Azure.Functions.Worker.Extensions.Mcp.Sdk 1.0.0-preview.2
 
