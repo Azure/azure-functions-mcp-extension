@@ -314,15 +314,13 @@ public class InputSchemaGeneratorTests
     public class TestPoco
     {
         [Description("The person's name")]
-        [Required]
-        public string Name { get; set; } = "";
+        public required string Name { get; set; } = "";
 
         [Description("The person's age")]
         public int Age { get; set; }
 
         [Description("Email address")]
-        [Required]
-        public string Email { get; set; } = "";
+        public required string Email { get; set; } = "";
     }
 
     public enum TaskStatus
