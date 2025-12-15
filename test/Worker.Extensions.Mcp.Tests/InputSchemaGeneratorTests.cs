@@ -117,7 +117,8 @@ public class InputSchemaGeneratorTests
         var root = schemaDoc.RootElement;
         var properties = root.GetProperty("properties");
 
-        // Should not have properties from the POCO
+        // Should not have properties from the POCO because parameter lacks McpToolTriggerAttribute
+        // POCO parameters are only processed when they have [McpToolTrigger] attribute
         Assert.True(!properties.EnumerateObject().Any());
     }
 
@@ -227,6 +228,46 @@ public class InputSchemaGeneratorTests
         Assert.Equal("Item price", priceProperty.GetProperty("description").GetString());
     }
 
+    [Fact]
+    public void GenerateFromParameters_PocoParameterWithTriggerAttribute_IncludesPocoProperties()
+    {
+        var method = typeof(TestFunctions).GetMethod(nameof(TestFunctions.WithPocoInputGeneration))!;
+        var parameters = method.GetParameters();
+
+        var schema = InputSchemaGenerator.GenerateFromParameters(parameters);
+
+        var schemaDoc = JsonDocument.Parse(schema.ToJsonString());
+        var root = schemaDoc.RootElement;
+        var properties = root.GetProperty("properties");
+
+        // Should include all POCO properties when parameter has McpToolTriggerAttribute
+        Assert.True(properties.TryGetProperty("Name", out var nameProperty));
+        Assert.Equal("string", nameProperty.GetProperty("type").GetString());
+        Assert.Equal("The person's name", nameProperty.GetProperty("description").GetString());
+
+        Assert.True(properties.TryGetProperty("Age", out var ageProperty));
+        Assert.Equal("integer", ageProperty.GetProperty("type").GetString());
+        Assert.Equal("The person's age", ageProperty.GetProperty("description").GetString());
+
+        Assert.True(properties.TryGetProperty("Email", out var emailProperty));
+        Assert.Equal("string", emailProperty.GetProperty("type").GetString());
+        Assert.Equal("Email address", emailProperty.GetProperty("description").GetString());
+
+        // Verify required properties from the POCO (properties with [Required] attribute)
+        var required = root.GetProperty("required");
+        var requiredArray = required.EnumerateArray().Select(e => e.GetString()).ToArray();
+        
+        // Name and Email have [Required] attribute
+        Assert.Contains("Name", requiredArray);
+        Assert.Contains("Email", requiredArray);
+        
+        // Age doesn't have [Required] attribute
+        Assert.DoesNotContain("Age", requiredArray);
+        
+        // Should have exactly 2 required properties
+        Assert.Equal(2, requiredArray.Length);
+    }
+
     private static Mock<IFunctionMetadata> CreateFunctionMetadata(string entryPoint, string scriptFile, string name)
     {
         var fn = new Mock<IFunctionMetadata>();
@@ -266,6 +307,8 @@ public class InputSchemaGeneratorTests
         public void WithBooleanParameter([McpToolProperty("enabled", "Enable feature", false)] bool enabled) { }
 
         public void WithNumberParameter([McpToolProperty("price", "Item price", false)] decimal price) { }
+
+        public void WithPocoInputGeneration([McpToolTrigger("WithPocoInputGeneration", "desc")] TestPoco poco) { }
     }
 
     public class TestPoco

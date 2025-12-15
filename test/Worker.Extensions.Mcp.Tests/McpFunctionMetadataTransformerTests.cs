@@ -519,7 +519,7 @@ public class McpFunctionMetadataTransformerTests
             [McpToolProperty("name", "Person's name", true)] string name,
             [McpToolProperty("age", "Person's age", false)] int age) { }
 
-        public void WithPocoInputGeneration(Snippet snippet) { }
+        public void WithPocoInputGeneration([McpToolTrigger("WithPocoInputGeneration", "desc")] Snippet snippet) { }
 
         public void WithEnumInputGeneration([McpToolProperty("status", "Task status", true)] TaskStatus status) { }
 
