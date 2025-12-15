@@ -15,14 +15,6 @@ public class TestFunction
         _logger = logger;
     }
 
-    [Function(nameof(WithMixedParameters))]
-    public void WithMixedParameters(
-     [McpToolTrigger(nameof(WithMixedParameters), "Responds to the user with a hello message.")] ToolInvocationContext context,
-    [McpToolProperty("filter", "Search filter", true)] string filter,
-    TestPoco poco,
-    string idk)
-    { }
-
     [Function(nameof(HappyFunction))]
     public string HappyFunction(
         [McpToolTrigger(nameof(HappyFunction), "Responds to the user with a hello message.")] ToolInvocationContext context,
@@ -138,20 +130,6 @@ public class TestFunction
 
         [Description("Whether search is case sensitive")]
         public bool CaseSensitive { get; set; }
-    }
-
-    public class TestPoco
-    {
-        [Description("The person's name")]
-        [Required]
-        public string Name { get; set; } = "";
-
-        [Description("The person's age")]
-        public int Age { get; set; }
-
-        [Description("Email address")]
-        [Required]
-        public string Email { get; set; } = "";
     }
 
 
