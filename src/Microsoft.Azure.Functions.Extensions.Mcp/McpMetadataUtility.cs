@@ -11,11 +11,11 @@ namespace Microsoft.Azure.Functions.Extensions.Mcp;
 internal static class McpMetadataUtility
 {
     /// <summary>
-    /// Converts a collection of <see cref="IMcpResourceMetadata"/> to a <see cref="JsonObject"/>.
+    /// Converts a collection of key-value pairs to a <see cref="JsonObject"/>.
     /// </summary>
     /// <param name="metadata">The metadata collection to convert.</param>
     /// <returns>A <see cref="JsonObject"/> containing the metadata, or <see langword="null"/> if the collection is empty.</returns>
-    public static JsonObject? ToJsonObject(IEnumerable<IMcpResourceMetadata>? metadata)
+    public static JsonObject? ToJsonObject(IEnumerable<KeyValuePair<string, object?>>? metadata)
     {
         if (metadata == null)
         {
@@ -23,9 +23,9 @@ internal static class McpMetadataUtility
         }
 
         var jsonObject = new JsonObject();
-        foreach (var item in metadata)
+        foreach (var kvp in metadata)
         {
-            jsonObject[item.Key] = ConvertToJsonNode(item.Value);
+            jsonObject[kvp.Key] = ConvertToJsonNode(kvp.Value);
         }
 
         return jsonObject.Count > 0 ? jsonObject : null;

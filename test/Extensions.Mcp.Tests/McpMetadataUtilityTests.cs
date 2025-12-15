@@ -18,7 +18,7 @@ public class McpMetadataUtilityTests
     [Fact]
     public void ToJsonObject_WithEmptyMetadata_ReturnsNull()
     {
-        var metadata = Array.Empty<IMcpResourceMetadata>();
+        var metadata = Array.Empty<KeyValuePair<string, object?>>();
 
         var result = McpMetadataUtility.ToJsonObject(metadata);
 
@@ -30,7 +30,7 @@ public class McpMetadataUtilityTests
     {
         var metadata = new[]
         {
-            new TestMetadata("key1", "value1")
+            new KeyValuePair<string, object?>("key1", "value1")
         };
 
         var result = McpMetadataUtility.ToJsonObject(metadata);
@@ -45,8 +45,8 @@ public class McpMetadataUtilityTests
     {
         var metadata = new[]
         {
-            new TestMetadata("enabled", true),
-            new TestMetadata("disabled", false)
+            new KeyValuePair<string, object?>("enabled", true),
+            new KeyValuePair<string, object?>("disabled", false)
         };
 
         var result = McpMetadataUtility.ToJsonObject(metadata);
@@ -62,8 +62,8 @@ public class McpMetadataUtilityTests
     {
         var metadata = new[]
         {
-            new TestMetadata("count", 42),
-            new TestMetadata("price", 19.99)
+            new KeyValuePair<string, object?>("count", 42),
+            new KeyValuePair<string, object?>("price", 19.99)
         };
 
         var result = McpMetadataUtility.ToJsonObject(metadata);
@@ -79,7 +79,7 @@ public class McpMetadataUtilityTests
     {
         var metadata = new[]
         {
-            new TestMetadata("nullKey", null)
+            new KeyValuePair<string, object?>("nullKey", null)
         };
 
         var result = McpMetadataUtility.ToJsonObject(metadata);
@@ -100,7 +100,7 @@ public class McpMetadataUtilityTests
         """;
         var metadata = new[]
         {
-            new TestMetadata("openai/widgetCSP", jsonString)
+            new KeyValuePair<string, object?>("openai/widgetCSP", jsonString)
         };
 
         var result = McpMetadataUtility.ToJsonObject(metadata);
@@ -119,7 +119,7 @@ public class McpMetadataUtilityTests
         var jsonString = """["item1", "item2", "item3"]""";
         var metadata = new[]
         {
-            new TestMetadata("items", jsonString)
+            new KeyValuePair<string, object?>("items", jsonString)
         };
 
         var result = McpMetadataUtility.ToJsonObject(metadata);
@@ -138,7 +138,7 @@ public class McpMetadataUtilityTests
         var invalidJson = "{this is not valid json}";
         var metadata = new[]
         {
-            new TestMetadata("data", invalidJson)
+            new KeyValuePair<string, object?>("data", invalidJson)
         };
 
         var result = McpMetadataUtility.ToJsonObject(metadata);
@@ -154,7 +154,7 @@ public class McpMetadataUtilityTests
         var notJson = "{ hello world";
         var metadata = new[]
         {
-            new TestMetadata("message", notJson)
+            new KeyValuePair<string, object?>("message", notJson)
         };
 
         var result = McpMetadataUtility.ToJsonObject(metadata);
@@ -173,7 +173,7 @@ public class McpMetadataUtilityTests
         };
         var metadata = new[]
         {
-            new TestMetadata("config", jsonObject)
+            new KeyValuePair<string, object?>("config", jsonObject)
         };
 
         var result = McpMetadataUtility.ToJsonObject(metadata);
@@ -190,9 +190,9 @@ public class McpMetadataUtilityTests
     {
         var metadata = new[]
         {
-            new TestMetadata("openai/closeWidget", true),
-            new TestMetadata("openai/widgetDomain", "https://chatgpt.com"),
-            new TestMetadata("openai/widgetCSP", """
+            new KeyValuePair<string, object?>("openai/closeWidget", true),
+            new KeyValuePair<string, object?>("openai/widgetDomain", "https://chatgpt.com"),
+            new KeyValuePair<string, object?>("openai/widgetCSP", """
             {
                 "connect_domains": ["https://chatgpt.com"]
             }
@@ -214,7 +214,7 @@ public class McpMetadataUtilityTests
         var jsonString = "   \n\t  {\"key\": \"value\"}";
         var metadata = new[]
         {
-            new TestMetadata("data", jsonString)
+            new KeyValuePair<string, object?>("data", jsonString)
         };
 
         var result = McpMetadataUtility.ToJsonObject(metadata);
@@ -231,7 +231,7 @@ public class McpMetadataUtilityTests
         var regularString = "just a regular string";
         var metadata = new[]
         {
-            new TestMetadata("message", regularString)
+            new KeyValuePair<string, object?>("message", regularString)
         };
 
         var result = McpMetadataUtility.ToJsonObject(metadata);
@@ -239,17 +239,5 @@ public class McpMetadataUtilityTests
         Assert.NotNull(result);
         Assert.Single(result);
         Assert.Equal(regularString, result["message"]?.GetValue<string>());
-    }
-
-    private class TestMetadata : IMcpResourceMetadata
-    {
-        public TestMetadata(string key, object? value)
-        {
-            Key = key;
-            Value = value;
-        }
-
-        public string Key { get; }
-        public object? Value { get; }
     }
 }
