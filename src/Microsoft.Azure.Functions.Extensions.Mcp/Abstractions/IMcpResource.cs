@@ -39,7 +39,7 @@ internal interface IMcpResource
     /// <summary>
     /// Gets or sets metadata properties associated with the resource.
     /// </summary>
-    IReadOnlyCollection<IMcpResourceMetadata>? Metadata { get; set; }
+    IReadOnlyCollection<KeyValuePair<string, object?>>? Metadata { get; set; }
 
     /// <summary>
     /// Handles a read request for the resource.

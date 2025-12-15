@@ -221,10 +221,10 @@ public class DefaultResourceRegistryTests
     public async Task ListResourcesAsync_WithMetadata_IncludesMetaJsonObject()
     {
         var registry = new DefaultResourceRegistry();
-        var metadata = new List<IMcpResourceMetadata>
+        var metadata = new List<KeyValuePair<string, object?>>
         {
-            new TestMetadata("key1", "value1"),
-            new TestMetadata("key2", true)
+            new("key1", "value1"),
+            new("key2", true)
         };
         var resource = CreateTestResource("test://resource/1", metadata: metadata);
         registry.Register(resource);
@@ -317,7 +317,7 @@ public class DefaultResourceRegistryTests
         string? mimeType = null,
         string? description = null,
         long? size = null,
-        IReadOnlyCollection<IMcpResourceMetadata>? metadata = null)
+        IReadOnlyCollection<KeyValuePair<string, object?>>? metadata = null)
     {
         return new TestResource
         {
@@ -337,23 +337,11 @@ public class DefaultResourceRegistryTests
         public string? MimeType { get; set; }
         public string? Description { get; set; }
         public long? Size { get; set; }
-        public IReadOnlyCollection<IMcpResourceMetadata>? Metadata { get; set; }
+        public IReadOnlyCollection<KeyValuePair<string, object?>>? Metadata { get; set; }
 
         public Task<ReadResourceResult> RunAsync(RequestContext<ReadResourceRequestParams> readResourceRequest, CancellationToken cancellationToken)
         {
             throw new NotImplementedException();
         }
-    }
-
-    private class TestMetadata : IMcpResourceMetadata
-    {
-        public TestMetadata(string key, object? value)
-        {
-            Key = key;
-            Value = value;
-        }
-
-        public string Key { get; }
-        public object? Value { get; }
     }
 }
