@@ -1,15 +1,15 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-using System.ComponentModel;
-using System.ComponentModel.DataAnnotations;
-using System.Reflection;
-using System.Text.Json;
-using System.Text.Json.Nodes;
 using Microsoft.Azure.Functions.Worker.Core.FunctionMetadata;
 using Microsoft.Azure.Functions.Worker.Extensions.Mcp;
 using Microsoft.Azure.Functions.Worker.Extensions.Mcp.Configuration;
 using Moq;
+using System.ComponentModel;
+using System.ComponentModel.DataAnnotations;
+using System.Reflection;
+using System.Text.Json;
+using System.Xml.Linq;
 
 namespace Worker.Extensions.Mcp.Tests;
 
@@ -79,9 +79,8 @@ public class InputSchemaGeneratorTests
         // Should not include ToolInvocationContext parameter
         Assert.False(properties.TryGetProperty("context", out _));
         
-        // Should include the string parameter
-        Assert.True(properties.TryGetProperty("name", out var nameProperty));
-        Assert.Equal("string", nameProperty.GetProperty("type").GetString());
+        // Should not include the string parameter
+        Assert.False(properties.TryGetProperty("name", out var nameProperty));
     }
 
     [Fact]
@@ -118,26 +117,8 @@ public class InputSchemaGeneratorTests
         var root = schemaDoc.RootElement;
         var properties = root.GetProperty("properties");
 
-        // Should have properties from the POCO
-        Assert.True(properties.TryGetProperty("Name", out var nameProperty));
-        Assert.Equal("string", nameProperty.GetProperty("type").GetString());
-        Assert.Equal("The person's name", nameProperty.GetProperty("description").GetString());
-
-        Assert.True(properties.TryGetProperty("Age", out var ageProperty));
-        Assert.Equal("integer", ageProperty.GetProperty("type").GetString());
-        Assert.Equal("The person's age", ageProperty.GetProperty("description").GetString());
-
-        Assert.True(properties.TryGetProperty("Email", out var emailProperty));
-        Assert.Equal("string", emailProperty.GetProperty("type").GetString());
-        Assert.Equal("Email address", emailProperty.GetProperty("description").GetString());
-
-        // Required properties
-        var required = root.GetProperty("required");
-        var requiredArray = required.EnumerateArray().Select(e => e.GetString()).ToArray();
-        Assert.Equal(2, requiredArray.Length);
-        Assert.Contains("Name", requiredArray);
-        Assert.Contains("Email", requiredArray);
-        Assert.DoesNotContain("Age", requiredArray); // Age is not required
+        // Should not have properties from the POCO
+        Assert.True(!properties.EnumerateObject().Any());
     }
 
     [Fact]
@@ -200,19 +181,16 @@ public class InputSchemaGeneratorTests
         Assert.Equal("string", filterProperty.GetProperty("type").GetString());
         Assert.Equal("Search filter", filterProperty.GetProperty("description").GetString());
 
-        // POCO properties
-        Assert.True(properties.TryGetProperty("Name", out var nameProperty));
-        Assert.Equal("string", nameProperty.GetProperty("type").GetString());
+        // POCO properties should not exist
+        Assert.False(properties.TryGetProperty("Name", out var nameProperty));
+        Assert.False(properties.TryGetProperty("Age", out var ageProperty));
 
-        Assert.True(properties.TryGetProperty("Age", out var ageProperty));
-        Assert.Equal("integer", ageProperty.GetProperty("type").GetString());
-
-        // Required properties should include required McpToolProperty and required POCO properties
+        // Required properties should include required McpToolProperty
         var required = root.GetProperty("required");
         var requiredArray = required.EnumerateArray().Select(e => e.GetString()).ToArray();
         Assert.Contains("filter", requiredArray); // Required McpToolProperty
-        Assert.Contains("Name", requiredArray); // Required POCO property
-        Assert.DoesNotContain("Age", requiredArray); // Not required
+        Assert.DoesNotContain("Name", requiredArray); // POCO property that shouldn't be part of schema
+        Assert.DoesNotContain("Age", requiredArray); // POCO property that shouldn't be part of schema
     }
 
     [Fact]
