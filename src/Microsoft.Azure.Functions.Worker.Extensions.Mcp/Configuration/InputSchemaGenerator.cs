@@ -116,6 +116,13 @@ internal static class InputSchemaGenerator
             return false;
         }
 
+        // POCOs should only be registered under McpToolTriggerAttribute
+        var toolTriggerAttribute = parameter.GetCustomAttribute<McpToolTriggerAttribute>();
+        if (toolTriggerAttribute is null)
+        {
+            return false;
+        }
+
         GeneratePropertiesFromPoco(parameter.ParameterType, properties, required);
         return true;
     }
