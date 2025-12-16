@@ -88,7 +88,7 @@ public static class McpWebJobsBuilderExtensions
                 if (c.Params is not null
                     && resourceRegistry.TryGetResource(c.Params.Uri, out var resource))
                 {
-                    return await resource.RunAsync(c, ct);
+                    return await resource.ReadAsync(c, ct);
                 }
 
                 throw new McpProtocolException($"Unknown resource: '{c.Params?.Uri}'", McpErrorCode.InvalidParams);
