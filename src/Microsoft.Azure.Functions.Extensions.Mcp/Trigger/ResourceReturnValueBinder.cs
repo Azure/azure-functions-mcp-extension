@@ -110,9 +110,16 @@ internal sealed class ResourceReturnValueBinder(ReadResourceExecutionContext exe
         ResourceContents resourceContents = JsonSerializer.Deserialize<ResourceContents>(result.Content, McpJsonUtilities.DefaultOptions)
             ?? throw new InvalidOperationException($"Failed to deserialize resource content type '{result.Type}'.");
 
-        // Ensure URI and MimeType are set from attribute if not in the content returned
-        resourceContents.Uri ??= resourceAttribute.Uri;
-        resourceContents.MimeType ??= resourceAttribute.MimeType;
+        // Ensure URI and MimeType are set from attribute if not in the content returned or if empty
+        if (string.IsNullOrEmpty(resourceContents.Uri))
+        {
+            resourceContents.Uri = resourceAttribute.Uri;
+        }
+
+        if (string.IsNullOrEmpty(resourceContents.MimeType))
+        {
+            resourceContents.MimeType = resourceAttribute.MimeType;
+        }
 
         // TODO: If metadata is provided via the attribute, but null in the content, set it here.
         // Alternatively, consider merging attribute metadata with content metadata.
