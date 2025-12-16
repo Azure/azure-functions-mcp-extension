@@ -3,7 +3,7 @@
 
 namespace Microsoft.Azure.Functions.Worker.Extensions.Mcp
 {
-    public static class ToolInvocationContextExtensions
+    public static class InvocationContextExtensions
     {
         /// <summary>
         /// Attempts to retrieve the HTTP transport associated with the specified tool invocation context.
@@ -11,7 +11,7 @@ namespace Microsoft.Azure.Functions.Worker.Extensions.Mcp
         /// <param name="context">The tool invocation context from which to obtain the HTTP transport. Cannot be null.</param>
         /// <param name="transport">When this method returns, contains the HTTP transport if one is available; otherwise, null.</param>
         /// <returns>true if an HTTP transport is available in the context; otherwise, false.</returns>
-        public static bool TryGetHttpTransport(this ToolInvocationContext context, out HttpTransport? transport)
+        public static bool TryGetHttpTransport(this IInvocationContext context, out HttpTransport? transport)
         {
             transport = context.Transport as HttpTransport;
 
