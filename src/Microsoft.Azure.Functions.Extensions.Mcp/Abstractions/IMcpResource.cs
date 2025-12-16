@@ -19,33 +19,33 @@ internal interface IMcpResource
     /// <summary>
     /// Gets or sets the name of the resource.
     /// </summary>
-    string Name { get; set; }
+    string Name { get; }
 
     /// <summary>
     /// Gets or sets the MIME type of the resource.
     /// </summary>
-    string? MimeType { get; set; }
+    string? MimeType { get; }
 
     /// <summary>
     /// Gets or sets the description of the resource.
     /// </summary>
-    string? Description { get; set; }
+    string? Description { get; }
     
     /// <summary>
     /// Gets or sets the size of the resource in bytes.
     /// </summary>
-    long? Size { get; set; }
+    long? Size { get; }
 
     /// <summary>
     /// Gets or sets metadata properties associated with the resource.
     /// </summary>
-    IReadOnlyCollection<KeyValuePair<string, object?>>? Metadata { get; set; }
+    IReadOnlyCollection<KeyValuePair<string, object?>> Metadata { get; }
 
     /// <summary>
     /// Handles a read request for the resource.
     /// </summary>
     /// <param name="readResourceRequest">The read resource request context.</param>
     /// <param name="cancellationToken">A cancellation token.</param>
-    /// <returns>A task that represents the asynchronous read operation. The task result contains the read
-    Task<ReadResourceResult> RunAsync(RequestContext<ReadResourceRequestParams> readResourceRequest, CancellationToken cancellationToken);
+    /// <returns>A task that represents the asynchronous read operation. The task result contains the read resource result.</returns>
+    Task<ReadResourceResult> ReadAsync(RequestContext<ReadResourceRequestParams> readResourceRequest, CancellationToken cancellationToken);
 }
