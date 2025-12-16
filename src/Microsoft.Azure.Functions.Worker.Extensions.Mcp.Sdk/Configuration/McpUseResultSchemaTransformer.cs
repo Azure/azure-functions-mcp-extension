@@ -46,7 +46,7 @@ public sealed class McpUseResultSchemaTransformer : IFunctionMetadataTransformer
                     var bindingType = typeNode?.ToString();
                     if (string.Equals(bindingType, McpToolTriggerBindingType, StringComparison.OrdinalIgnoreCase))
                     {
-                        jsonObject["useResultSchema"] = true;
+                        jsonObject[Constants.UseResultSchemaFlag] = true;
                         function.RawBindings[i] = jsonObject.ToJsonString();
                     }
                 }

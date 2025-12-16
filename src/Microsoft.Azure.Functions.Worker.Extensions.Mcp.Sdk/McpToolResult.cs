@@ -12,11 +12,12 @@ public class McpToolResult
     /// <summary>
     /// The content returned by the tool.
     /// </summary>
+    [UseJsonPropertyName("content")]
     public string? Content { get; set; }
 
     /// <summary>
     /// The type of content being returned.
     /// </summary>
+    [UseJsonPropertyName("type")]
     public required string Type { get; set; }
 }
-

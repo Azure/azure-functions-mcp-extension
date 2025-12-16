@@ -20,7 +20,7 @@
 
   <ItemGroup>
     <ProjectReference Include="$(SrcRoot)Microsoft.Azure.Functions.Worker.Extensions.Mcp\Worker.Extensions.Mcp.csproj" />
-    <ProjectReference Include="$(SrcRoot)Microsoft.Azure.Functions.Worker.Extensions.Mcp.Placeholder\Worker.Extensions.Mcp.Placeholder.csproj" />
+    <ProjectReference Include="$(SrcRoot)Microsoft.Azure.Functions.Worker.Extensions.Mcp.Sdk\Worker.Extensions.Mcp.Sdk.csproj" />
   </ItemGroup>
 
   <ItemGroup>

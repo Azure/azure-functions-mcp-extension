@@ -16,8 +16,8 @@ internal class FunctionsMcpToolResultMiddleware : IFunctionsWorkerMiddleware
 
         await next(context);
 
-        // Only process results for MCP tool trigger functions
-        if (!IsMcpToolTrigger(context))
+        // Only process results for MCP tool invocations.
+        if (!IsMcpToolInvocation(context))
         {
             return;
         }
@@ -30,44 +30,25 @@ internal class FunctionsMcpToolResultMiddleware : IFunctionsWorkerMiddleware
             return;
         }
 
+        var textBlock = new TextContentBlock
+        {
+            Text = functionResult is string s ? s : JsonSerializer.Serialize(functionResult)
+        };
+
         var (type, content) = functionResult switch
         {
             ContentBlock block => (block.Type, JsonSerializer.Serialize(block, McpJsonUtilities.DefaultOptions)),
-            IList<ContentBlock> blocks => ("multi_content_result", JsonSerializer.Serialize(blocks, McpJsonUtilities.DefaultOptions)),
-            _ => ("text", BuildTextContentJson(functionResult))
+            IList<ContentBlock> blocks => (Constants.MultiContentResult, JsonSerializer.Serialize(blocks, McpJsonUtilities.DefaultOptions)),
+            _ => (Constants.TextContextResult, JsonSerializer.Serialize(textBlock, McpJsonUtilities.DefaultOptions))
         };
 
         var mcpToolResult = new McpToolResult { Type = type, Content = content };
 
-        context.GetInvocationResult().Value = JsonSerializer.Serialize(mcpToolResult);
+        context.GetInvocationResult().Value = JsonSerializer.Serialize(mcpToolResult, McpJsonContext.Default.McpToolResult);
     }
 
-    private static string BuildTextContentJson(object functionResult)
+    private static bool IsMcpToolInvocation(FunctionContext context)
     {
-        string textValue;
-        if (functionResult is string resultString)
-        {
-            textValue = resultString;
-        }
-        else
-        {
-            textValue = JsonSerializer.Serialize(functionResult);
-        }
-
-        var contnet = new
-        {
-            type = "text",
-            text = textValue
-        };
-
-        return JsonSerializer.Serialize(contnet);
-    }
-
-    private static bool IsMcpToolTrigger(FunctionContext context)
-    {
-        const string McpToolTriggerBindingType = "mcpToolTrigger";
-
-        return context.FunctionDefinition.InputBindings.Values
-            .Any(b => b.Type.Equals(McpToolTriggerBindingType, StringComparison.OrdinalIgnoreCase));
+        return context.Items.ContainsKey(Constants.ToolInvocationContextKey);
     }
 }
