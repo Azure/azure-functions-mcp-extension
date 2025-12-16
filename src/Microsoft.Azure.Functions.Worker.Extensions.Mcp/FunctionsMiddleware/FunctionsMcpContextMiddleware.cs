@@ -13,12 +13,21 @@ internal class FunctionsMcpContextMiddleware : IFunctionsWorkerMiddleware
         ArgumentNullException.ThrowIfNull(context);
 
         // Get the tool invocation context via the name of the trigger binding
-        if (context.TryGetMcpToolTriggerName(out string? triggerName)
-            && context.BindingContext.BindingData.TryGetValue(triggerName, out var mcpToolContext))
+        if (context.TryGetMcpToolTriggerName(out string? toolTriggerName)
+            && context.BindingContext.BindingData.TryGetValue(toolTriggerName, out var mcpToolContext))
         {
             ToolInvocationContext? toolInvocationContext = JsonSerializer.Deserialize(mcpToolContext?.ToString()!, McpJsonContext.Default.ToolInvocationContext);
 
             context.Items.Add(Constants.ToolInvocationContextKey, toolInvocationContext!);
+        }
+
+        // Get the resource invocation context via the name of the trigger binding
+        if (context.TryGetMcpResourceTriggerName(out string? resourceTriggerName)
+            && context.BindingContext.BindingData.TryGetValue(resourceTriggerName, out var mcpResourceContext))
+        {
+            ResourceInvocationContext? resourceInvocationContext = JsonSerializer.Deserialize<ResourceInvocationContext>(mcpResourceContext?.ToString()!);
+
+            context.Items.Add(Constants.ResourceInvocationContextKey, resourceInvocationContext!);
         }
 
         await next(context);
