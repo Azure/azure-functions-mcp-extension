@@ -9,8 +9,8 @@ namespace Microsoft.Azure.Functions.Worker.Extensions.Mcp.Configuration;
 public sealed class McpUseResultSchemaTransformer : IFunctionMetadataTransformer
 {
     public string Name => nameof(McpUseResultSchemaTransformer);
-
     private const string McpToolTriggerBindingType = "mcpToolTrigger";
+    private const string UseResultSchemaFlag = "useResultSchema";
 
     public void Transform(IList<IFunctionMetadata> original)
     {
@@ -46,7 +46,7 @@ public sealed class McpUseResultSchemaTransformer : IFunctionMetadataTransformer
                     var bindingType = typeNode?.ToString();
                     if (string.Equals(bindingType, McpToolTriggerBindingType, StringComparison.OrdinalIgnoreCase))
                     {
-                        jsonObject[Constants.UseResultSchemaFlag] = true;
+                        jsonObject[UseResultSchemaFlag] = true;
                         function.RawBindings[i] = jsonObject.ToJsonString();
                     }
                 }

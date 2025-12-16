@@ -1,9 +1,9 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-using Microsoft.Azure.Functions.Worker.Builder;
 using Microsoft.Azure.Functions.Worker.Core;
 using Microsoft.Azure.Functions.Worker.Extensions.Mcp;
+using Microsoft.Extensions.Hosting;
 
 [assembly: WorkerExtensionStartup(typeof(McpSdkExtensionStartup))]
 

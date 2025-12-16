@@ -1,6 +1,8 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the MIT License. See License.txt in the project root for license information.
 
+using System.Text.Json.Serialization;
+
 namespace Microsoft.Azure.Functions.Worker.Extensions.Mcp;
 
 /// <summary>
@@ -12,12 +14,12 @@ public class McpToolResult
     /// <summary>
     /// The content returned by the tool.
     /// </summary>
-    [UseJsonPropertyName("content")]
+    [JsonPropertyName("content")]
     public string? Content { get; set; }
 
     /// <summary>
     /// The type of content being returned.
     /// </summary>
-    [UseJsonPropertyName("type")]
+    [JsonPropertyName("type")]
     public required string Type { get; set; }
 }

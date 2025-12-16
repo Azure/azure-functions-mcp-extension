@@ -5,9 +5,7 @@ namespace Microsoft.Azure.Functions.Worker.Extensions.Mcp.Sdk;
 
 internal static class Constants
 {
-    public const string McpToolTriggerBindingType = "mcpToolTrigger";
-
-    public const string UseResultSchemaFlag = "useResultSchema";
+    public const string ToolInvocationContextKey = "McpToolInvocationContext";
 
     public const string MultiContentResult = "multi_content_result";
 
