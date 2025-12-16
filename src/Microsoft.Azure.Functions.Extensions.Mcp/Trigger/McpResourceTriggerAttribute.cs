@@ -24,5 +24,5 @@ public sealed class McpResourceTriggerAttribute(string uri, string resourceName)
 
     public long? Size { get; set; }
 
-    // TODO: Add Metadata support via attribute in future PR
+    public string? Metadata { get; set; }
 }
