@@ -32,7 +32,7 @@ internal sealed class McpExtensionConfigProvider(IToolRegistry toolRegistry, IMc
         _webhookDelegate = () => webHookProvider.GetUrl(this);
 
         context.AddBindingRule<McpToolTriggerAttribute>()
-            .BindToTrigger(new McpTriggerBindingProvider(toolRegistry));
+            .BindToTrigger(new McpToolTriggerBindingProvider(toolRegistry));
 
         context.AddBindingRule<McpToolPropertyAttribute>()
             .Bind(new McpToolPropertyBindingProvider());
