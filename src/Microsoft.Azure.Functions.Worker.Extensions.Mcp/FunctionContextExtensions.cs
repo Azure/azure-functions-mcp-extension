@@ -45,4 +45,38 @@ internal static class FunctionContextExtensions
 
         return triggerName is not null;
     }
+
+    /// <summary>
+    /// Gets the <see cref="ResourceInvocationContext"/> for the <see cref="FunctionContext"/>.
+    /// </summary>
+    /// <param name="context">The <see cref="FunctionContext"/>.</param>
+    /// <param name="resourceContext">The <see cref="ResourceInvocationContext"/> for the context.</param>
+    /// <returns>true if the resource context was found; otherwise, false.</returns>
+    internal static bool TryGetResourceInvocationContext(this FunctionContext context, [NotNullWhen(true)] out ResourceInvocationContext? resourceContext)
+    {
+        resourceContext = null;
+
+        if (context.Items.TryGetValue(Constants.ResourceInvocationContextKey, out var ric)
+            && ric is ResourceInvocationContext resInvocationContext)
+        {
+            resourceContext = resInvocationContext;
+        }
+
+        return resourceContext is not null;
+    }
+
+    /// <summary>
+    /// Gets the name of the trigger binding with the <see cref="McpResourceTriggerAttribute"/> from the <see cref="FunctionContext"/>.
+    /// </summary>
+    /// <param name="context">The <see cref="FunctionContext"/>.</param>
+    /// <param name="triggerName">The name of the MCP resource trigger.</param>
+    /// <returns>true if the trigger name was found; otherwise, false.</returns>
+    internal static bool TryGetMcpResourceTriggerName(this FunctionContext context, [NotNullWhen(true)] out string? triggerName)
+    {
+        triggerName = context.FunctionDefinition.InputBindings.Values
+            .FirstOrDefault(b => b.Type.Equals(Constants.McpResourceTriggerBindingType, StringComparison.OrdinalIgnoreCase))
+            ?.Name;
+
+        return triggerName is not null;
+    }
 }

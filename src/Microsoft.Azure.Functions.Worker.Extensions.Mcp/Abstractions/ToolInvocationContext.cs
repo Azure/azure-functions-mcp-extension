@@ -9,7 +9,7 @@ namespace Microsoft.Azure.Functions.Worker.Extensions.Mcp;
 /// <summary>
 /// The context for the tool call.
 /// </summary>
-public class ToolInvocationContext
+public class ToolInvocationContext : IInvocationContext
 {
     /// <summary>
     /// Tool name.
@@ -24,13 +24,11 @@ public class ToolInvocationContext
     [JsonConverter(typeof(DictionaryStringObjectJsonConverter))]
     public Dictionary<string, object>? Arguments { get; init; }
 
-
     /// <summary>
     /// Gets the session ID associated with the current tool invocation.
     /// </summary>
     [JsonPropertyName("sessionid")]
     public string? SessionId { get; init; }
-
 
     /// <summary>
     /// Gets the transport information.

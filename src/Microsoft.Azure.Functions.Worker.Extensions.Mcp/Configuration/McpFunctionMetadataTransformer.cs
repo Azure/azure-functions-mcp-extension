@@ -55,6 +55,12 @@ public sealed partial class McpFunctionMetadataTransformer(IOptionsMonitor<ToolO
                     jsonObject["toolProperties"] = GetPropertiesJson(function.Name, toolProperties);
                     function.RawBindings[i] = jsonObject.ToJsonString();
                 }
+                else if (string.Equals(bindingType, McpResourceTriggerBindingType, StringComparison.OrdinalIgnoreCase)
+                    && GetResourceMetadata(function, out var resourceMetadata))
+                {
+                    jsonObject["metadata"] = GetResourceMetadataJson(resourceMetadata);
+                    function.RawBindings[i] = jsonObject.ToJsonString();
+                }
                 else if (string.Equals(bindingType, McpToolPropertyBindingType, StringComparison.OrdinalIgnoreCase)
                     && jsonObject.TryGetPropertyValue(McpToolPropertyName, out var propertyNameNode)
                     && propertyNameNode is not null)
@@ -215,6 +221,110 @@ public sealed partial class McpFunctionMetadataTransformer(IOptionsMonitor<ToolO
         }
 
         return toolProperties.Count > 0;
+    }
+
+    private static bool GetResourceMetadata(IFunctionMetadata functionMetadata, [NotNullWhen(true)] out List<KeyValuePair<string, object?>>? metadata)
+    {
+        metadata = null;
+
+        var match = GetEntryPointRegex().Match(functionMetadata.EntryPoint ?? string.Empty);
+
+        if (!match.Success)
+        {
+            return false;
+        }
+
+        var typeName = match.Groups["typename"].Value;
+        var methodName = match.Groups["methodname"].Value;
+
+        var scriptRoot = Environment.GetEnvironmentVariable(FunctionsApplicationDirectoryKey)
+                        ?? Environment.GetEnvironmentVariable(FunctionsWorkerDirectoryKey);
+
+        if (string.IsNullOrWhiteSpace(scriptRoot))
+        {
+            return false;
+        }
+
+        var scriptFile = Path.Combine(scriptRoot, functionMetadata.ScriptFile ?? string.Empty);
+        var assemblyPath = Path.GetFullPath(scriptFile);
+        var assembly = AssemblyLoadContext.Default.LoadFromAssemblyPath(assemblyPath);
+        var type = assembly.GetType(typeName);
+
+        if (type is null)
+        {
+            return false;
+        }
+
+        var method = type.GetMethod(methodName);
+
+        if (method is null)
+        {
+            return false;
+        }
+
+        var parameters = method.GetParameters();
+
+        foreach (var parameter in parameters)
+        {
+            var resourceTriggerAttribute = parameter.GetCustomAttribute<McpResourceTriggerAttribute>();
+            if (resourceTriggerAttribute is null)
+            {
+                continue;
+            }
+
+            var metadataAttributes = parameter.GetCustomAttributes<McpResourceMetadataAttribute>();
+            if (!metadataAttributes.Any())
+            {
+                continue;
+            }
+
+            metadata = [];
+            foreach (var attr in metadataAttributes)
+            {
+                // Try to parse string values as JSON
+                object? value = attr.Value;
+                if (attr.Value is string stringValue && TryParseJson(stringValue, out var jsonValue))
+                {
+                    value = jsonValue;
+                }
+                metadata.Add(new KeyValuePair<string, object?>(attr.Key, value));
+            }
+
+            return true;
+        }
+
+        return false;
+    }
+
+    private static bool TryParseJson(string value, out object? result)
+    {
+        result = null;
+        
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return false;
+        }
+
+        var trimmed = value.Trim();
+        if (!trimmed.StartsWith('{') && !trimmed.StartsWith('['))
+        {
+            return false;
+        }
+
+        try
+        {
+            result = JsonSerializer.Deserialize<JsonElement>(value);
+            return true;
+        }
+        catch (JsonException)
+        {
+            return false;
+        }
+    }
+
+    private static JsonNode? GetResourceMetadataJson(List<KeyValuePair<string, object?>> metadata)
+    {
+        return JsonSerializer.Serialize(metadata);
     }
 
     [GeneratedRegex(@"^(?<typename>.*)\.(?<methodname>\S*)$")]
