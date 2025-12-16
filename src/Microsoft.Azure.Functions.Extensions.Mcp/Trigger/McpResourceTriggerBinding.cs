@@ -18,6 +18,7 @@ internal sealed class McpResourceTriggerBinding : ITriggerBinding
     private readonly IResourceRegistry _resourceRegistry;
     private readonly McpResourceTriggerAttribute _resourceAttribute;
     private readonly ParameterInfo _triggerParameter;
+    private readonly IReadOnlyCollection<KeyValuePair<string, object?>> _resourceMetadata;
 
     public McpResourceTriggerBinding(ParameterInfo triggerParameter, IResourceRegistry resourceRegistry, McpResourceTriggerAttribute resourceAttribute)
     {
@@ -26,6 +27,7 @@ internal sealed class McpResourceTriggerBinding : ITriggerBinding
         _resourceRegistry = resourceRegistry;
         _resourceAttribute = resourceAttribute;
         _triggerParameter = triggerParameter;
+        _resourceMetadata = GetMetadata(resourceAttribute, triggerParameter);
 
         BindingDataContract = new Dictionary<string, Type>(StringComparer.OrdinalIgnoreCase)
         {
@@ -73,7 +75,7 @@ internal sealed class McpResourceTriggerBinding : ITriggerBinding
         }
 
         IValueProvider valueProvider = new ObjectValueProvider(triggerValue, _triggerParameter.ParameterType);
-        IValueBinder returnValueBinder = new ResourceReturnValueBinder(executionContext, _resourceAttribute);
+        IValueBinder returnValueBinder = new ResourceReturnValueBinder(executionContext, _resourceAttribute, _resourceMetadata);
 
         var data = new TriggerData(valueProvider, bindingData)
         {
@@ -129,8 +131,6 @@ internal sealed class McpResourceTriggerBinding : ITriggerBinding
 
     public Task<IListener> CreateListenerAsync(ListenerFactoryContext context)
     {
-        var resourceMetadata = GetMetadata(_resourceAttribute, _triggerParameter);
-
         var listener = new McpResourceListener(
             context.Executor,
             context.Descriptor.ShortName,
@@ -139,8 +139,7 @@ internal sealed class McpResourceTriggerBinding : ITriggerBinding
             _resourceAttribute.Description,
             _resourceAttribute.MimeType,
             _resourceAttribute.Size,
-            resourceMetadata);
-
+            _resourceMetadata);
         _resourceRegistry.Register(listener);
 
         return Task.FromResult<IListener>(listener);
@@ -160,9 +159,34 @@ internal sealed class McpResourceTriggerBinding : ITriggerBinding
         };
     }
 
-    // TODO: Add Metadata support via attribute in future PR
     private static IReadOnlyCollection<KeyValuePair<string, object?>> GetMetadata(McpResourceTriggerAttribute attribute, ParameterInfo parameter)
     {
-        return [];
+        List<KeyValuePair<string, object?>>? metadata = null;
+
+        // First check if metadata was serialized from worker model
+        if (attribute.Metadata is { } metadataString)
+        {
+            var metadataList = JsonSerializer.Deserialize<List<KeyValuePair<string, object?>>>(metadataString, McpJsonSerializerOptions.DefaultOptions);
+            if (metadataList is not null)
+            {
+                metadata = metadataList;
+            }
+        }
+        else
+        {
+            // Fallback to reading from attributes
+            var metadataAttributes = parameter.GetCustomAttributes<McpResourceMetadataAttribute>();
+            
+            if (metadataAttributes.Any())
+            {
+                metadata = [];
+                foreach (var attr in metadataAttributes)
+                {
+                    metadata.Add(new KeyValuePair<string, object?>(attr.Key, attr.Value));
+                }
+            }
+        }
+
+        return metadata ?? [];
     }
 }
