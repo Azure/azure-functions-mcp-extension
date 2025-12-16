@@ -9,7 +9,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Extensions.Mcp", "src\Micro
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Worker.Extensions.Mcp", "src\Microsoft.Azure.Functions.Worker.Extensions.Mcp\Worker.Extensions.Mcp.csproj", "{BE61B45A-FB64-14F4-0693-B1CC7B69BB08}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Worker.Extensions.Mcp.Placeholder", "src\Microsoft.Azure.Functions.Worker.Extensions.Mcp.Placeholder\Worker.Extensions.Mcp.Placeholder.csproj", "{5F425D4B-4C3C-4EBC-8E81-A6E5B4230520}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Worker.Extensions.Mcp.Sdk", "src\Microsoft.Azure.Functions.Worker.Extensions.Mcp.Sdk\Worker.Extensions.Mcp.Sdk.csproj", "{5F425D4B-4C3C-4EBC-8E81-A6E5B4230520}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{3CC0C099-5116-4299-A0F5-A5ACC469A06C}"
 EndProject
@@ -19,7 +19,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Extensions.Mcp.Tests", "tes
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Worker.Extensions.Mcp.Tests", "test\Worker.Extensions.Mcp.Tests\Worker.Extensions.Mcp.Tests.csproj", "{601897B5-A928-B0BD-1BD2-CD46457CA736}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Worker.Extensions.Mcp.Placeholder.Tests", "test\Worker.Extensions.Mcp.Placeholder.Tests\Worker.Extensions.Mcp.Placeholder.Tests.csproj", "{790DBD6A-DCC8-4C17-9C54-CE8CBE4D72E1}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Worker.Extensions.Mcp.Sdk.Tests", "test\Worker.Extensions.Mcp.Sdk.Tests\Worker.Extensions.Mcp.Sdk.Tests.csproj", "{790DBD6A-DCC8-4C17-9C54-CE8CBE4D72E1}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestApp", "test\TestApp\TestApp.csproj", "{33A5A7E9-6F29-A52F-01E6-2FE514DF8818}"
 EndProject
