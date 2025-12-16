@@ -17,13 +17,13 @@ internal sealed class ResourceInvocationContext
     /// <summary>
     /// Gets the session ID associated with the current resource invocation.
     /// </summary>
-    [JsonPropertyName("sessionId")]
+    [JsonPropertyName("sessionid")]
     public string? SessionId { get; init; }
 
     /// <summary>
     /// Gets the MCP client information.
     /// </summary>
-    [JsonPropertyName("clientInfo")]
+    [JsonPropertyName("clientinfo")]
     public Implementation? ClientInfo { get; init; }
 
     /// <summary>
