@@ -10,4 +10,8 @@
 
 ### Microsoft.Azure.Functions.Worker.Extensions.Mcp <version>
 
+- <entry>
+
+### Microsoft.Azure.Functions.Worker.Extensions.Mcp.Sdk 1.0.0-preview.1
+
 - Added support for additional MCP tool result content types, including: audio, image, resource, and resource link. (#130)
