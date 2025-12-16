@@ -15,7 +15,7 @@ using Microsoft.Extensions.Logging;
 namespace Microsoft.Azure.Functions.Extensions.Mcp;
 
 [Extension("Mcp", "mcp")]
-internal sealed class McpExtensionConfigProvider(IToolRegistry toolRegistry, IMcpRequestHandler requestHandler, IWebHookProvider webHookProvider, IMcpBackplaneService backplaneService, ILoggerFactory loggerFactory)
+internal sealed class McpExtensionConfigProvider(IToolRegistry toolRegistry, IResourceRegistry resourceRegistry, IMcpRequestHandler requestHandler, IWebHookProvider webHookProvider, IMcpBackplaneService backplaneService, ILoggerFactory loggerFactory)
     : IExtensionConfigProvider, IAsyncConverter<HttpRequestMessage, HttpResponseMessage>, IDisposable
 {
     private Func<Uri>? _webhookDelegate;
@@ -33,6 +33,9 @@ internal sealed class McpExtensionConfigProvider(IToolRegistry toolRegistry, IMc
 
         context.AddBindingRule<McpToolTriggerAttribute>()
             .BindToTrigger(new McpToolTriggerBindingProvider(toolRegistry));
+
+        context.AddBindingRule<McpResourceTriggerAttribute>()
+            .BindToTrigger(new McpResourceTriggerBindingProvider(resourceRegistry));
 
         context.AddBindingRule<McpToolPropertyAttribute>()
             .Bind(new McpToolPropertyBindingProvider());
