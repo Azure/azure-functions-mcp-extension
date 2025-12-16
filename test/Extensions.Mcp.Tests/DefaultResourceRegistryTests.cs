@@ -326,7 +326,7 @@ public class DefaultResourceRegistryTests
             MimeType = mimeType,
             Description = description,
             Size = size,
-            Metadata = metadata
+            Metadata = metadata ?? []
         };
     }
 
@@ -337,9 +337,9 @@ public class DefaultResourceRegistryTests
         public string? MimeType { get; set; }
         public string? Description { get; set; }
         public long? Size { get; set; }
-        public IReadOnlyCollection<KeyValuePair<string, object?>>? Metadata { get; set; }
+        public IReadOnlyCollection<KeyValuePair<string, object?>> Metadata { get; set; } = [];
 
-        public Task<ReadResourceResult> RunAsync(RequestContext<ReadResourceRequestParams> readResourceRequest, CancellationToken cancellationToken)
+        public Task<ReadResourceResult> ReadAsync(RequestContext<ReadResourceRequestParams> readResourceRequest, CancellationToken cancellationToken)
         {
             throw new NotImplementedException();
         }
