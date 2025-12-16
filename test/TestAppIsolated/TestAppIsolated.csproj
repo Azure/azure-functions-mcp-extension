@@ -19,6 +19,12 @@
   </ItemGroup>
 
   <ItemGroup>
+	<None Update="web\welcome.html">
+	  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+	</None>
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="$(SrcRoot)Microsoft.Azure.Functions.Worker.Extensions.Mcp\Worker.Extensions.Mcp.csproj" />
     <ProjectReference Include="$(SrcRoot)Microsoft.Azure.Functions.Worker.Extensions.Mcp.Sdk\Worker.Extensions.Mcp.Sdk.csproj" />
   </ItemGroup>

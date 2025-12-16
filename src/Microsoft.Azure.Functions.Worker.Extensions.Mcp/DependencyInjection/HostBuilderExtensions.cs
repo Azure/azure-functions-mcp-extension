@@ -31,6 +31,7 @@ public static class McpHostBuilderExtensions
         builder.Services.Configure<WorkerOptions>(static (workerOption) =>
         {
             workerOption.InputConverters.RegisterAt<ToolInvocationContextConverter>(0);
+            workerOption.InputConverters.RegisterAt<ResourceInvocationContextConverter>(1);
         });
 
         return builder;

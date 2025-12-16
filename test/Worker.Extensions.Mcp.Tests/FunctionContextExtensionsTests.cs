@@ -85,4 +85,99 @@ public class FunctionContextExtensionsTests
         Assert.True(result);
         Assert.Equal("myTrigger", triggerName);
     }
+
+    [Fact]
+    public void TryGetResourceInvocationContext_ReturnsTrue_WhenContextExists()
+    {
+        // Arrange
+        var mockContext = new Mock<FunctionContext>();
+        var expectedResourceContext = new ResourceInvocationContext { Uri = "test://resource" };
+
+        var items = new Dictionary<object, object>
+        {
+            { Constants.ResourceInvocationContextKey, expectedResourceContext }
+        };
+
+        mockContext.Setup(c => c.Items).Returns(items);
+
+        // Act
+        var result = mockContext.Object.TryGetResourceInvocationContext(out var actualResourceContext);
+
+        // Assert
+        Assert.True(result);
+        Assert.Equal(expectedResourceContext, actualResourceContext);
+    }
+
+    [Fact]
+    public void TryGetResourceInvocationContext_ReturnsFalse_WhenContextMissing()
+    {
+        // Arrange
+        var mockContext = new Mock<FunctionContext>();
+        var items = new Dictionary<object, object>(); // empty dictionary
+
+        mockContext.Setup(c => c.Items).Returns(items);
+
+        // Act
+        var result = mockContext.Object.TryGetResourceInvocationContext(out var resourceContext);
+
+        // Assert
+        Assert.False(result);
+        Assert.Null(resourceContext);
+    }
+
+    [Fact]
+    public void TryGetResourceInvocationContext_ReturnsFalse_WhenContextIsWrongType()
+    {
+        // Arrange
+        var mockContext = new Mock<FunctionContext>();
+        var items = new Dictionary<object, object>
+        {
+            { Constants.ResourceInvocationContextKey, "NotAResourceInvocationContext" }
+        };
+
+        mockContext.Setup(c => c.Items).Returns(items);
+
+        // Act
+        var result = mockContext.Object.TryGetResourceInvocationContext(out var resourceContext);
+
+        // Assert
+        Assert.False(result);
+        Assert.Null(resourceContext);
+    }
+
+    [Fact]
+    public void TryGetMcpResourceTriggerName_ReturnsTrue_WhenTriggerBindingIsPresent()
+    {
+        var bindingMetadataMock = new Mock<BindingMetadata>();
+        bindingMetadataMock.Setup(b => b.Type).Returns(Constants.McpResourceTriggerBindingType);
+        bindingMetadataMock.Setup(b=>b.Name).Returns("myResourceTrigger");
+
+        var functionDefinitionMock = new Mock<FunctionDefinition>();
+        functionDefinitionMock.Setup(f => f.InputBindings)
+            .Returns(ImmutableDictionary.Create<string, BindingMetadata>().Add("myResourceTrigger", bindingMetadataMock.Object));
+
+        var contextMock = new Mock<FunctionContext>();
+        contextMock.Setup(c => c.FunctionDefinition).Returns(functionDefinitionMock.Object);
+
+        var result = contextMock.Object.TryGetMcpResourceTriggerName(out var triggerName);
+
+        Assert.True(result);
+        Assert.Equal("myResourceTrigger", triggerName);
+    }
+
+    [Fact]
+    public void TryGetMcpResourceTriggerName_ReturnsFalse_WhenTriggerBindingIsNotPresent()
+    {
+        var functionDefinitionMock = new Mock<FunctionDefinition>();
+        functionDefinitionMock.Setup(f => f.InputBindings)
+            .Returns(ImmutableDictionary.Create<string, BindingMetadata>());
+
+        var contextMock = new Mock<FunctionContext>();
+        contextMock.Setup(c => c.FunctionDefinition).Returns(functionDefinitionMock.Object);
+
+        var result = contextMock.Object.TryGetMcpResourceTriggerName(out var triggerName);
+
+        Assert.False(result);
+        Assert.Null(triggerName);
+    }
 }
