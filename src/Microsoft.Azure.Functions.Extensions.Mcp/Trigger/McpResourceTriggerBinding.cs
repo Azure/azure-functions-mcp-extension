@@ -161,7 +161,7 @@ internal sealed class McpResourceTriggerBinding : ITriggerBinding
     }
 
     // TODO: Add Metadata support via attribute in future PR
-    private static IReadOnlyCollection<KeyValuePair<string, object?>>? GetMetadata(McpResourceTriggerAttribute attribute, ParameterInfo parameter)
+    private static IReadOnlyCollection<KeyValuePair<string, object?>> GetMetadata(McpResourceTriggerAttribute attribute, ParameterInfo parameter)
     {
         return [];
     }
