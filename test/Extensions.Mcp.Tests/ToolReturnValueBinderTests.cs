@@ -94,6 +94,7 @@ public class ToolReturnValueBinderTests
             {
                 Uri = "urn:example",
                 MimeType = "text/plain",
+                Text = ""
             },
         };
         var mcpToolResult = new McpToolResult
