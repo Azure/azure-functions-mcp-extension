@@ -182,11 +182,43 @@ internal sealed class McpResourceTriggerBinding : ITriggerBinding
                 metadata = [];
                 foreach (var attr in metadataAttributes)
                 {
-                    metadata.Add(new KeyValuePair<string, object?>(attr.Key, attr.Value));
+                    // Try to parse string values as JSON
+                    object? value = attr.Value;
+                    if (attr.Value is string stringValue && TryParseJson(stringValue, out var jsonValue))
+                    {
+                        value = jsonValue;
+                    }
+                    metadata.Add(new KeyValuePair<string, object?>(attr.Key, value));
                 }
             }
         }
 
         return metadata ?? [];
+    }
+
+    private static bool TryParseJson(string value, out object? result)
+    {
+        result = null;
+        
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return false;
+        }
+
+        var trimmed = value.Trim();
+        if (!trimmed.StartsWith('{') && !trimmed.StartsWith('['))
+        {
+            return false;
+        }
+
+        try
+        {
+            result = JsonSerializer.Deserialize<JsonElement>(value);
+            return true;
+        }
+        catch (JsonException)
+        {
+            return false;
+        }
     }
 }
