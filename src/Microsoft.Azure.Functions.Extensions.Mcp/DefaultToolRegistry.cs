@@ -4,6 +4,7 @@
 using Microsoft.Azure.Functions.Extensions.Mcp.Abstractions;
 using ModelContextProtocol.Protocol;
 using System.Diagnostics.CodeAnalysis;
+using System.Text.Json.Nodes;
 
 namespace Microsoft.Azure.Functions.Extensions.Mcp;
 
@@ -36,11 +37,33 @@ internal sealed class DefaultToolRegistry : IToolRegistry
     {
         var result = new ListToolsResult
         {
-            Tools = _tools.Values.Select(static tool => new Tool
+            Tools = _tools.Values.Select(static tool =>
             {
-                Name = tool.Name,
-                Description = tool.Description,
-                InputSchema = tool.GetPropertiesInputSchema()
+                var toolItem = new Tool
+                {
+                    Name = tool.Name,
+                    Description = tool.Description,
+                    InputSchema = tool.GetPropertiesInputSchema()
+                };
+
+                // Hardcode metadata for GetWelcomeMessage tool for testing
+                if (tool.Name == "GetWelcomeMessage")
+                {
+                    toolItem.Meta = new JsonObject
+                    {
+                        ["openai/outputTemplate"] = "ui://widget/welcome.html"
+                    };
+                }
+
+                if (tool.Name == "GetFunctionsLogo")
+                {
+                    toolItem.Meta = new JsonObject
+                    {
+                        ["openai/outputTemplate"] = "file:///resources/logo.png"
+                    };
+                }
+
+                return toolItem;
             }).ToList()
         };
 
