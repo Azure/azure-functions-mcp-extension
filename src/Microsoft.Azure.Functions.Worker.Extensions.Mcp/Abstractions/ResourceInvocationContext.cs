@@ -24,21 +24,8 @@ public class ResourceInvocationContext
     public string? SessionId { get; init; }
 
     /// <summary>
-    /// Gets the MCP client information.
-    /// </summary>
-    [JsonPropertyName("clientinfo")]
-    public object? ClientInfo { get; init; }
-
-    /// <summary>
     /// Gets the transport information.
     /// </summary>
     [JsonPropertyName("transport")]
     public Transport? Transport { get; init; }
-
-    /// <summary>
-    /// Gets additional properties for binding data support.
-    /// </summary>
-    [JsonPropertyName("properties")]
-    [JsonConverter(typeof(DictionaryStringObjectJsonConverter))]
-    public Dictionary<string, object>? Properties { get; init; }
 }

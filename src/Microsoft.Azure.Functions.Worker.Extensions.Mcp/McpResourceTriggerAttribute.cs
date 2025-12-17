@@ -39,7 +39,6 @@ public sealed class McpResourceTriggerAttribute(string uri, string resourceName)
 
     /// <summary>
     /// Gets or sets the JSON-serialized metadata for the MCP resource.
-    /// This is automatically populated from <see cref="McpResourceMetadataAttribute"/> attributes.
     /// </summary>
     public string? Metadata { get; set; }
 

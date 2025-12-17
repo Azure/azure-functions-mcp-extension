@@ -25,7 +25,7 @@ internal class FunctionsMcpContextMiddleware : IFunctionsWorkerMiddleware
         if (context.TryGetMcpResourceTriggerName(out string? resourceTriggerName)
             && context.BindingContext.BindingData.TryGetValue(resourceTriggerName, out var mcpResourceContext))
         {
-            ResourceInvocationContext? resourceInvocationContext = JsonSerializer.Deserialize<ResourceInvocationContext>(mcpResourceContext?.ToString()!);
+            ResourceInvocationContext? resourceInvocationContext = JsonSerializer.Deserialize(mcpResourceContext?.ToString()!, McpJsonContext.Default.ResourceInvocationContext);
 
             context.Items.Add(Constants.ResourceInvocationContextKey, resourceInvocationContext!);
         }
