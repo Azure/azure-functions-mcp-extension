@@ -38,16 +38,14 @@ internal class FunctionsMcpToolResultMiddleware : IFunctionsWorkerMiddleware
             return;
         }
 
-        var textBlock = new TextContentBlock
-        {
-            Text = functionResult is string s ? s : JsonSerializer.Serialize(functionResult)
-        };
-
         var (type, content) = functionResult switch
         {
             ContentBlock block => (block.Type, JsonSerializer.Serialize(block, McpJsonUtilities.DefaultOptions)),
             IList<ContentBlock> blocks => (Constants.MultiContentResult, JsonSerializer.Serialize(blocks, McpJsonUtilities.DefaultOptions)),
-            _ => (Constants.TextContextResult, JsonSerializer.Serialize(textBlock, McpJsonUtilities.DefaultOptions))
+            _ => (Constants.TextContextResult, JsonSerializer.Serialize(new TextContentBlock
+                {
+                    Text = functionResult is string s ? s : JsonSerializer.Serialize(functionResult)
+                }, McpJsonUtilities.DefaultOptions))
         };
 
         var mcpToolResult = new McpToolResult { Type = type, Content = content };
