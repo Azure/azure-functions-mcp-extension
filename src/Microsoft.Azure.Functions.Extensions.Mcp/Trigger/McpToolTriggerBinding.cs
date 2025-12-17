@@ -93,7 +93,7 @@ internal sealed class McpToolTriggerBinding : ITriggerBinding
         var invocationContext = new ToolInvocationContext
         {
             Name = executionContext.Request.Name,
-            Arguments = executionContext.Request.Arguments,
+            Arguments = executionContext.Request.Arguments as IReadOnlyDictionary<string, JsonElement>,
             SessionId = transport.SessionId ?? executionContext.RequestContext.Server.SessionId,
             ClientInfo = executionContext.RequestContext.Server.ClientInfo,
             Transport = transport
