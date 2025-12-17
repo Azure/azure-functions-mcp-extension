@@ -13,16 +13,29 @@ public class ResourceFunctions
         _logger = logger;
     }
 
-    [Function(nameof(GetWelcomeHtml))]
-    public string GetWelcomeHtml(
-        [McpResourceTrigger(
-            "file://widget/welcome.html",
-            "WelcomePage",
-            Description = "A simple HTML welcome page",
-            MimeType = "text/html+skybridge")] ResourceInvocationContext context)
+    [Function(nameof(GetTextResource))]
+    public string GetTextResource(
+    [McpResourceTrigger(
+        "file://resources/readme.txt",
+        "ReadMe",
+        Description = "Application readme file",
+        MimeType = "text/plain")] ResourceInvocationContext context)
     {
-        _logger.LogInformation("Processing resource call from GetWelcomeHtml...");
-        var file = Path.Combine(AppContext.BaseDirectory, "web", "welcome.html");
-        return File.ReadAllText(file);
+        _logger.LogInformation("Reading text resource from local file storage");
+        var filePath = Path.Combine(AppContext.BaseDirectory, "resources", "readme.txt");
+        return File.ReadAllText(filePath);
+    }
+
+    [Function(nameof(GetImageResource))]
+    public byte[] GetImageResource(
+        [McpResourceTrigger(
+        "file://resources/icon.png",
+        "Icon",
+        Description = "Azure Functions logo",
+        MimeType = "image/png")] ResourceInvocationContext context)
+    {
+        _logger.LogInformation("Reading image from local file system");
+        var filePath = Path.Combine(AppContext.BaseDirectory, "resources", "icon.png");
+        return File.ReadAllBytes(filePath);
     }
 }
