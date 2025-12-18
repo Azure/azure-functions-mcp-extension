@@ -1,6 +1,7 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the MIT License. See License.txt in the project root for license information.
 
+using System.Collections.Immutable;
 using System.Text.Json;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Extensions.Mcp;
@@ -326,8 +327,12 @@ public class FunctionsMcpToolResultMiddlewareTests
             { Constants.ToolInvocationContextKey, new ToolInvocationContext { Name = "TestTool" } }
         };
 
+        var functionDefinitionMock = new Mock<FunctionDefinition>();
+        functionDefinitionMock.SetupGet(d => d.OutputBindings).Returns(ImmutableDictionary<string, BindingMetadata>.Empty);
+
         var contextMock = new Mock<FunctionContext>();
         contextMock.SetupGet(c => c.Items).Returns(items);
+        contextMock.SetupGet(c => c.FunctionDefinition).Returns(functionDefinitionMock.Object);
 
         return contextMock.Object;
     }
@@ -336,8 +341,12 @@ public class FunctionsMcpToolResultMiddlewareTests
     {
         var items = new Dictionary<object, object>();
 
+        var functionDefinitionMock = new Mock<FunctionDefinition>();
+        functionDefinitionMock.SetupGet(d => d.OutputBindings).Returns(ImmutableDictionary<string, BindingMetadata>.Empty);
+
         var contextMock = new Mock<FunctionContext>();
         contextMock.SetupGet(c => c.Items).Returns(items);
+        contextMock.SetupGet(c => c.FunctionDefinition).Returns(functionDefinitionMock.Object);
 
         return contextMock.Object;
     }
