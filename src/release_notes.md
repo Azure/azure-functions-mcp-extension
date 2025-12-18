@@ -6,7 +6,8 @@
 
 ### Microsoft.Azure.Functions.Extensions <version>
 
-- <entry>
+- Added feature for the extension to consume worker generated input schema if `UseWorkerInputSchema` is enabled. (#136)
+
 
 ### Microsoft.Azure.Functions.Worker.Extensions.Mcp <version>
 
