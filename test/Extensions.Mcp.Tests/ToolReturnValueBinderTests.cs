@@ -143,6 +143,83 @@ public class ToolReturnValueBinderTests
     }
 
     [Fact]
+    public async Task SetValueAsync_WithStructuredContentInMcpToolResult_HandlesStructuredContentCorrectly()
+    {
+        // Test that structured content from middleware is properly handled by the binder
+        
+        // Arrange
+        var context = CallToolExecutionContextHelper.CreateExecutionContext();
+        var binder = new ToolReturnValueBinder(context);
+
+        var structuredData = new { operation = "calculation", result = 42, status = "success" };
+        var textBlock = new TextContentBlock { Text = "Calculation completed" };
+
+        var mcpToolResult = new McpToolResult
+        {
+            Type = "text",
+            Content = JsonSerializer.Serialize(textBlock),
+            StructuredContent = JsonSerializer.Serialize(structuredData) // This comes from middleware
+        };
+        var json = JsonSerializer.Serialize(mcpToolResult);
+
+        // Act
+        await binder.SetValueAsync(json, CancellationToken.None);
+
+        // Assert
+        var result = Assert.IsType<CallToolResult>(await context.ResultTask);
+        
+        // For backward compatibility, we should have the text content
+        var resultTextBlock = Assert.Single(result.Content) as TextContentBlock;
+        Assert.NotNull(resultTextBlock);
+        Assert.Equal("Calculation completed", resultTextBlock.Text);
+    }
+
+    [Fact]
+    public async Task SetValueAsync_WithStructuredContentOnly_CreatesWrappedToolResult()
+    {
+        // Test backward compatibility: when only structured content is provided,
+        // ensure text representation is also available
+        
+        // Arrange
+        var context = CallToolExecutionContextHelper.CreateExecutionContext();
+        var binder = new ToolReturnValueBinder(context);
+
+        var structuredData = new 
+        { 
+            users = new[] 
+            {
+                new { id = 1, name = "Alice" },
+                new { id = 2, name = "Bob" }
+            },
+            total = 2
+        };
+
+        // Simulate middleware output where it detected structured content and created appropriate text fallback
+        var textFallback = JsonSerializer.Serialize(structuredData);
+        
+        var mcpToolResult = new McpToolResult
+        {
+            Type = "text", 
+            Content = JsonSerializer.Serialize(new TextContentBlock { Text = textFallback }),
+            StructuredContent = JsonSerializer.Serialize(structuredData)
+        };
+        var json = JsonSerializer.Serialize(mcpToolResult);
+
+        // Act
+        await binder.SetValueAsync(json, CancellationToken.None);
+
+        // Assert
+        var result = Assert.IsType<CallToolResult>(await context.ResultTask);
+        var textBlock = Assert.Single(result.Content) as TextContentBlock;
+        Assert.NotNull(textBlock);
+        
+        // Verify backward compatibility: text content should contain the structured data as JSON
+        Assert.Contains("Alice", textBlock.Text);
+        Assert.Contains("Bob", textBlock.Text);
+        Assert.Contains("\"total\":2", textBlock.Text);
+    }
+
+    [Fact]
     public async Task SetValueAsync_SetsMultipleBlocks_WhenTypeIsMultiContentResult_WithMixedTypes()
     {
         // Arrange
