@@ -38,6 +38,13 @@ internal class FunctionsMcpToolResultMiddleware : IFunctionsWorkerMiddleware
             return;
         }
 
+        // If there are output bindings, don't wrap the result - let it flow to the output binding
+        // The host-side extension will handle creating the MCP result from the raw value
+        if (HasOutputBindings(context))
+        {
+            return;
+        }
+
         var (type, content) = functionResult switch
         {
             ContentBlock block => (block.Type, JsonSerializer.Serialize(block, McpJsonUtilities.DefaultOptions)),
@@ -56,5 +63,10 @@ internal class FunctionsMcpToolResultMiddleware : IFunctionsWorkerMiddleware
     private static bool IsMcpToolInvocation(FunctionContext context)
     {
         return context.Items.ContainsKey(Constants.ToolInvocationContextKey);
+    }
+
+    private static bool HasOutputBindings(FunctionContext context)
+    {
+        return context.FunctionDefinition.OutputBindings.Any();
     }
 }
