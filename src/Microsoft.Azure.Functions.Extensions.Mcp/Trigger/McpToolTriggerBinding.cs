@@ -1,8 +1,6 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-using System.Reflection;
-using System.Text.Json;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Azure.Functions.Extensions.Mcp.Abstractions;
 using Microsoft.Azure.Functions.Extensions.Mcp.Serialization;
@@ -11,6 +9,9 @@ using Microsoft.Azure.WebJobs.Host.Listeners;
 using Microsoft.Azure.WebJobs.Host.Protocols;
 using Microsoft.Azure.WebJobs.Host.Triggers;
 using ModelContextProtocol;
+using System;
+using System.Reflection;
+using System.Text.Json;
 
 namespace Microsoft.Azure.Functions.Extensions.Mcp;
 
@@ -148,7 +149,9 @@ internal sealed class McpToolTriggerBinding : ITriggerBinding
             // Throw an error in case input schema was not generated in the worker extension as expected
             if (inputSchema is null)
             {
-                throw new McpException("Input schema was not generated in the worker extension");
+                throw new InvalidOperationException(
+                   $"Tool '{_toolAttribute.ToolName}' has UseWorkerInputSchema=true but InputSchema is null or invalid. " +
+                   "Ensure the worker metadata transformer is setting the InputSchema property.");
             }
         }
 
@@ -160,7 +163,7 @@ internal sealed class McpToolTriggerBinding : ITriggerBinding
         return Task.FromResult<IListener>(listener);
     }
 
-    private static JsonElement? GetInputSchema(McpToolTriggerAttribute attribute)
+    internal static JsonElement? GetInputSchema(McpToolTriggerAttribute attribute)
     {
         if (string.IsNullOrEmpty(attribute.InputSchema))
         {
@@ -169,16 +172,24 @@ internal sealed class McpToolTriggerBinding : ITriggerBinding
         try
         {
             using var doc = JsonDocument.Parse(attribute.InputSchema);
-            return doc.RootElement.Clone();
+            var schema =  doc.RootElement.Clone();
+
+            // Validate that the parsed schema is a valid MCP tool input schema
+            if (!McpInputSchemaJsonUtilities.IsValidMcpToolSchema(schema))
+            {
+                throw new ArgumentException(
+                    "The specified document is not a valid MCP tool input JSON schema.",
+                    nameof(_toolAttribute.InputSchema));
+            }
+
+            return schema;
         }
-        catch
+        catch (JsonException ex)
         {
-            // If parsing fails, return null
-            return null;
+            throw new InvalidOperationException(
+                $"Failed to parse InputSchema for tool '{attribute.ToolName}'. Schema must be valid JSON.", ex);
         }
     }
-
-
 
     private static List<IMcpToolProperty> GetProperties(McpToolTriggerAttribute attribute, ParameterInfo triggerParameter)
     {

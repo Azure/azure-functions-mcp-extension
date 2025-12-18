@@ -15,7 +15,7 @@ internal interface IMcpTool
 
     public ICollection<IMcpToolProperty> Properties { get; set; }
 
-    public JsonElement? InputSchema { get; set; }
+    public JsonElement? InputSchema { get; }
 
     Task<CallToolResult> RunAsync(RequestContext<CallToolRequestParams> callToolRequest, CancellationToken cancellationToken);
 }

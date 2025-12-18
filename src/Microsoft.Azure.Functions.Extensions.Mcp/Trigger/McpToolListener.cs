@@ -27,22 +27,7 @@ internal sealed class McpToolListener(ITriggeredFunctionExecutor executor,
 
     public ICollection<IMcpToolProperty> Properties { get; set; } = properties;
 
-    public JsonElement? InputSchema 
-    { 
-        get => _inputSchema; 
-        set
-        {
-            if (value.HasValue && !McpInputSchemaJsonUtilities.IsValidMcpToolSchema(value.Value))
-            {
-                throw new ArgumentException(
-                    "The specified document is not a valid MCP tool input JSON schema.",
-                    nameof(InputSchema));
-            }
-            _inputSchema = value;
-        }
-    }
-
-    private JsonElement? _inputSchema = inputSchema;
+    public JsonElement? InputSchema => inputSchema;
 
     public void Dispose() { }
 
