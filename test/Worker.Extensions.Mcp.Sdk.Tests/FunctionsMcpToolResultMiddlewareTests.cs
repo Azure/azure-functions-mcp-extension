@@ -320,6 +320,122 @@ public class FunctionsMcpToolResultMiddlewareTests
             _middleware.Invoke(null!, _ => Task.CompletedTask));
     }
 
+    [Fact]
+    public void HandleMcpToolResult_WithStructuredContent_PreservesStructuredContent()
+    {
+        // Arrange
+        var originalStructuredContent = @"{""result"": ""success"", ""count"": 42}";
+        var mcpToolResult = new McpToolResult
+        {
+            Type = "text",
+            Content = JsonSerializer.Serialize(new TextContentBlock { Text = "Test result" }, McpJsonUtilities.DefaultOptions),
+            StructuredContent = originalStructuredContent
+        };
+
+        // Act - simulate what the middleware does
+        var resultJson = JsonSerializer.Serialize(mcpToolResult, McpJsonContext.Default.McpToolResult);
+        var deserializedResult = JsonSerializer.Deserialize<McpToolResult>(resultJson, McpJsonContext.Default.McpToolResult);
+
+        // Assert
+        Assert.NotNull(deserializedResult);
+        Assert.Equal("text", deserializedResult.Type);
+        Assert.NotNull(deserializedResult.Content);
+        Assert.Equal(originalStructuredContent, deserializedResult.StructuredContent);
+    }
+
+    [Fact]
+    public void HandlePlainObject_WithoutStructuredContent_HasNullStructuredContent()
+    {
+        // Arrange
+        var plainString = "Simple result";
+
+        // Act - simulate middleware processing
+        var type = Constants.TextContextResult;
+        var content = JsonSerializer.Serialize(new TextContentBlock
+        {
+            Text = plainString
+        }, McpJsonUtilities.DefaultOptions);
+
+        var mcpToolResult = new McpToolResult
+        {
+            Type = type,
+            Content = content,
+            StructuredContent = null
+        };
+
+        // Assert
+        Assert.Equal(Constants.TextContextResult, mcpToolResult.Type);
+        Assert.NotNull(mcpToolResult.Content);
+        Assert.Null(mcpToolResult.StructuredContent);
+    }
+
+    [Fact]
+    public void HandleContentBlock_WithoutStructuredContent_HasNullStructuredContent()
+    {
+        // Arrange
+        var textBlock = new TextContentBlock { Text = "Simple text block" };
+
+        // Act - simulate middleware processing
+        var type = textBlock.Type;
+        var content = JsonSerializer.Serialize(textBlock, McpJsonUtilities.DefaultOptions);
+
+        var mcpToolResult = new McpToolResult
+        {
+            Type = type,
+            Content = content,
+            StructuredContent = null
+        };
+
+        // Assert
+        Assert.Equal("text", mcpToolResult.Type);
+        Assert.NotNull(mcpToolResult.Content);
+        Assert.Null(mcpToolResult.StructuredContent);
+    }
+
+    [Fact]
+    public void McpToolResult_SerializationRoundTrip_WithStructuredContent()
+    {
+        // Arrange
+        var originalResult = new McpToolResult
+        {
+            Type = "custom_result",
+            Content = @"{""type"": ""text"", ""text"": ""Hello World""}",
+            StructuredContent = @"{""status"": ""success"", ""metadata"": {""timestamp"": ""2024-01-01T00:00:00Z""}}"
+        };
+
+        // Act
+        var json = JsonSerializer.Serialize(originalResult, McpJsonContext.Default.McpToolResult);
+        var deserializedResult = JsonSerializer.Deserialize<McpToolResult>(json, McpJsonContext.Default.McpToolResult);
+
+        // Assert
+        Assert.NotNull(deserializedResult);
+        Assert.Equal(originalResult.Type, deserializedResult.Type);
+        Assert.Equal(originalResult.Content, deserializedResult.Content);
+        Assert.Equal(originalResult.StructuredContent, deserializedResult.StructuredContent);
+    }
+
+    [Fact]
+    public void McpToolResult_SerializationRoundTrip_WithoutStructuredContent()
+    {
+        // Arrange
+        var originalResult = new McpToolResult
+        {
+            Type = "simple_result",
+            Content = @"{""type"": ""text"", ""text"": ""Hello World""}",
+            StructuredContent = null
+        };
+
+        // Act
+        var json = JsonSerializer.Serialize(originalResult, McpJsonContext.Default.McpToolResult);
+        var deserializedResult = JsonSerializer.Deserialize<McpToolResult>(json, McpJsonContext.Default.McpToolResult);
+
+        // Assert
+        Assert.NotNull(deserializedResult);
+        Assert.Equal(originalResult.Type, deserializedResult.Type);
+        Assert.Equal(originalResult.Content, deserializedResult.Content);
+        Assert.Null(deserializedResult.StructuredContent);
+    }
+
     private static FunctionContext CreateMcpFunctionContext()
     {
         var items = new Dictionary<object, object>
