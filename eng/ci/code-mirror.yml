@@ -10,6 +10,7 @@ trigger:
     # Keep this set limited as appropriate (don't mirror individual user branches).
     - main
     - release/*
+    - feature/*
 
 resources:
   repositories:
