@@ -50,6 +50,7 @@ extends:
           isProduction: true
           approvers: '[internal]\Azure Functions Core'
           stagingFeed: public/pre-release
+          packages: '**/*.nupkg;!**/*.symbols.nupkg;!**/Microsoft.Azure.Functions.Worker.Extensions.Mcp.Sdk.*.nupkg'
           artifact:
             name: ${{ parameters.artifactName }}
             pipeline: build
