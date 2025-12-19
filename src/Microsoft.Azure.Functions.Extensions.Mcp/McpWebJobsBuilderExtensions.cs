@@ -38,6 +38,9 @@ public static class McpWebJobsBuilderExtensions
         // Tools
         builder.Services.AddSingleton<IToolRegistry, DefaultToolRegistry>();
 
+        // Resources
+        builder.Services.AddSingleton<IResourceRegistry, DefaultResourceRegistry>();
+
         // Core services
         builder.Services.AddSingleton<IMcpInstanceIdProvider, DefaultMcpInstanceIdProvider>();
         builder.Services.AddSingleton<IMcpClientSessionManager, McpClientSessionManager>();
@@ -54,22 +57,41 @@ public static class McpWebJobsBuilderExtensions
         builder.Services.AddMcpServer()
             .WithListToolsHandler(static (c, ct) =>
             {
-                var toolRegistry = c.Services?.GetRequiredService<IToolRegistry>();
+                var toolRegistry = c.Services?.GetRequiredService<IToolRegistry>()
+                    ?? throw new InvalidOperationException("Tool registry not properly registered.");
 
-                return toolRegistry?.ListToolsAsync(ct)
-                       ?? throw new InvalidOperationException("Tool registry not properly registered.");
+                return toolRegistry.ListToolsAsync(ct);
             })
             .WithCallToolHandler(static async (c, ct) =>
             {
-                var toolRegistry = c.Services!.GetRequiredService<IToolRegistry>();
+                var toolRegistry = c.Services?.GetRequiredService<IToolRegistry>()
+                    ?? throw new InvalidOperationException("Tool registry not properly registered.");
 
-                if (c.Params is not null
-                    && toolRegistry.TryGetTool(c.Params.Name, out var tool))
+                if (c.Params is { Name: var name } && toolRegistry.TryGetTool(name, out var tool))
                 {
                     return await tool.RunAsync(c, ct);
                 }
 
                 throw new McpProtocolException($"Unknown tool: '{c.Params?.Name}'", McpErrorCode.InvalidParams);
+            })
+            .WithListResourcesHandler(static (c, ct) =>
+            {
+                var resourceRegistry = c.Services?.GetRequiredService<IResourceRegistry>()
+                    ?? throw new InvalidOperationException("Resource registry not properly registered.");
+
+                return resourceRegistry.ListResourcesAsync(ct);
+            })
+            .WithReadResourceHandler(static async (c, ct) =>
+            {
+                var resourceRegistry = c.Services?.GetRequiredService<IResourceRegistry>()
+                    ?? throw new InvalidOperationException("Resource registry not properly registered.");
+
+                if (c.Params is { Uri: var uri} && resourceRegistry.TryGetResource(uri, out var resource))
+                {
+                    return await resource.ReadAsync(c, ct);
+                }
+
+                throw new McpProtocolException($"Unknown resource: '{c.Params?.Uri}'", McpErrorCode.InvalidParams);
             });
 
         // Extension configuration
