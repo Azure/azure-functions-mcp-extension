@@ -14,7 +14,7 @@ internal static class McpToolExtensions
         // If an explicit InputSchema is provided and it's not null, use it directly.
         if (tool.InputSchema is not null)
         {
-            return tool.InputSchema.Value;
+            return tool.InputSchema.RootElement;
         }
 
         var props = (tool.Properties ?? [])

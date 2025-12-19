@@ -150,7 +150,7 @@ public class McpToolTriggerBindingTests
     }
 
     [Fact]
-    public void GetInputSchema_WithValidSchema_ReturnsJsonElement()
+    public void GetInputSchema_WithValidSchema_ReturnsJsonDocument()
     {
         // Arrange
         var validSchema = """
@@ -180,10 +180,13 @@ public class McpToolTriggerBindingTests
 
         // Assert
         Assert.NotNull(result);
-        Assert.Equal("object", result.Value.GetProperty("type").GetString());
-        Assert.True(result.Value.TryGetProperty("properties", out var properties));
-        Assert.True(properties.TryGetProperty("name", out var nameProperty));
+        Assert.Equal("object", result.RootElement.GetProperty("type").GetString());
+        Assert.True(result.RootElement.TryGetProperty("properties", out var propertiesElement));
+        Assert.True(propertiesElement.TryGetProperty("name", out var nameProperty));
         Assert.Equal("string", nameProperty.GetProperty("type").GetString());
+        
+        // Clean up
+        result.Dispose();
     }
 
     [Fact]
@@ -376,27 +379,30 @@ public class McpToolTriggerBindingTests
 
         // Assert
         Assert.NotNull(result);
-        Assert.Equal("object", result.Value.GetProperty("type").GetString());
+        Assert.Equal("object", result.RootElement.GetProperty("type").GetString());
         
         // Verify nested structure
-        var properties = result.Value.GetProperty("properties");
-        Assert.True(properties.TryGetProperty("user", out var userProperty));
+        var propertiesElement = result.RootElement.GetProperty("properties");
+        Assert.True(propertiesElement.TryGetProperty("user", out var userProperty));
         Assert.Equal("object", userProperty.GetProperty("type").GetString());
         
-        var userProperties = userProperty.GetProperty("properties");
-        Assert.True(userProperties.TryGetProperty("name", out var nameProperty));
+        var userPropertiesElement = userProperty.GetProperty("properties");
+        Assert.True(userPropertiesElement.TryGetProperty("name", out var nameProperty));
         Assert.Equal("string", nameProperty.GetProperty("type").GetString());
         Assert.Equal(1, nameProperty.GetProperty("minLength").GetInt32());
         Assert.Equal(100, nameProperty.GetProperty("maxLength").GetInt32());
         
         // Verify array enum
-        Assert.True(properties.TryGetProperty("action", out var actionProperty));
+        Assert.True(propertiesElement.TryGetProperty("action", out var actionProperty));
         Assert.Equal("string", actionProperty.GetProperty("type").GetString());
         var enumValues = actionProperty.GetProperty("enum").EnumerateArray().ToList();
         Assert.Equal(3, enumValues.Count);
         Assert.Contains(enumValues, e => e.GetString() == "create");
         Assert.Contains(enumValues, e => e.GetString() == "update");
         Assert.Contains(enumValues, e => e.GetString() == "delete");
+        
+        // Clean up
+        result.Dispose();
     }
 
     [Fact]
@@ -501,13 +507,16 @@ public class McpToolTriggerBindingTests
 
         // Assert
         Assert.NotNull(result);
-        var properties = result.Value.GetProperty("properties");
-        var messageProperty = properties.GetProperty("message");
+        var propertiesElement = result.RootElement.GetProperty("properties");
+        var messageProperty = propertiesElement.GetProperty("message");
         var description = messageProperty.GetProperty("description").GetString();
         Assert.Contains("\"quotes\"", description);
         Assert.Contains("\\", description);
         Assert.Contains("\n", description);
         Assert.Contains("\t", description);
+        
+        // Clean up
+        result.Dispose();
     }
 
     [Fact]
@@ -630,9 +639,12 @@ public class McpToolTriggerBindingTests
 
         // Assert
         Assert.NotNull(result);
-        Assert.Equal("object", result.Value.GetProperty("type").GetString());
-        Assert.False(result.Value.TryGetProperty("properties", out _));
-        Assert.False(result.Value.TryGetProperty("required", out _));
+        Assert.Equal("object", result.RootElement.GetProperty("type").GetString());
+        Assert.False(result.RootElement.TryGetProperty("properties", out _));
+        Assert.False(result.RootElement.TryGetProperty("required", out _));
+        
+        // Clean up
+        result.Dispose();
     }
 
     [Fact]
@@ -657,12 +669,15 @@ public class McpToolTriggerBindingTests
 
         // Assert
         Assert.NotNull(result);
-        Assert.Equal("object", result.Value.GetProperty("type").GetString());
-        Assert.True(result.Value.TryGetProperty("properties", out var properties));
-        Assert.Equal(JsonValueKind.Object, properties.ValueKind);
-        Assert.Empty(properties.EnumerateObject());
-        Assert.True(result.Value.TryGetProperty("required", out var required));
+        Assert.Equal("object", result.RootElement.GetProperty("type").GetString());
+        Assert.True(result.RootElement.TryGetProperty("properties", out var propertiesElement));
+        Assert.Equal(JsonValueKind.Object, propertiesElement.ValueKind);
+        Assert.Empty(propertiesElement.EnumerateObject());
+        Assert.True(result.RootElement.TryGetProperty("required", out var required));
         Assert.Equal(JsonValueKind.Array, required.ValueKind);
         Assert.Empty(required.EnumerateArray());
+        
+        // Clean up
+        result.Dispose();
     }
 }

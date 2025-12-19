@@ -27,7 +27,7 @@ internal sealed class McpToolListener(ITriggeredFunctionExecutor executor,
 
     public ICollection<IMcpToolProperty> Properties { get; set; } = [];
 
-    public JsonElement? InputSchema { get; set; }
+    public JsonDocument? InputSchema { get; set; }
 
     private readonly ToolRequestValidator _validator = validator ?? throw new ArgumentNullException(nameof(validator));
 

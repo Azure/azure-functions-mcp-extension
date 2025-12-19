@@ -21,10 +21,9 @@ public class McpToolExtensionsTests
         return mock.Object;
     }
 
-    private static JsonElement CreateFromJson(string json)
+    private static JsonDocument CreateDocumentFromJson(string json)
     {
-        using var document = JsonDocument.Parse(json);
-        return document.RootElement.Clone();
+        return JsonDocument.Parse(json);
     }
 
     private static IMcpTool CreateToolWithInputSchema(string? inputSchemaJson, params IMcpToolProperty[] properties)
@@ -32,8 +31,8 @@ public class McpToolExtensionsTests
         var mock = new Mock<IMcpTool>();
         mock.SetupGet(t => t.Properties).Returns(properties);
         
-        JsonElement? schema = inputSchemaJson != null 
-            ? CreateFromJson(inputSchemaJson)
+        JsonDocument? schema = inputSchemaJson != null 
+            ? CreateDocumentFromJson(inputSchemaJson)
             : null;
         
         mock.SetupGet(t => t.InputSchema).Returns(schema);

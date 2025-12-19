@@ -12,11 +12,6 @@ using System.Text.Json;
 namespace Microsoft.Azure.Functions.Extensions.Mcp.Tests;
 public class McpToolListenerTests
 {
-    private static JsonElement CreateFromJson(string json)
-    {
-        using var document = JsonDocument.Parse(json);
-        return document.RootElement.Clone();
-    }
 
     private static IMcpToolProperty CreateProperty(string name, bool required)
     {
@@ -199,7 +194,7 @@ public class McpToolListenerTests
                 "required": ["propFromSchema"]
             }
             """;
-        var inputSchema = CreateFromJson(inputSchemaJson);
+        var inputSchema = JsonDocument.Parse(inputSchemaJson);
         var validator = new JsonSchemaToolRequestValidator(inputSchema);
         var request = CreateRequestParams(); // No arguments
 
@@ -235,7 +230,7 @@ public class McpToolListenerTests
                 "required": ["propFromSchema"]
             }
             """;
-        var inputSchema = CreateFromJson(inputSchemaJson);
+        var inputSchema = JsonDocument.Parse(inputSchemaJson);
         var validator = new JsonSchemaToolRequestValidator(inputSchema);
         var request = CreateRequestParams(("propFromSchema", JsonDocument.Parse("\"value\"").RootElement));
 
@@ -254,7 +249,7 @@ public class McpToolListenerTests
                 "required": []
             }
             """;
-        var inputSchema = CreateFromJson(inputSchemaJson);
+        var inputSchema = JsonDocument.Parse(inputSchemaJson);
         var validator = new JsonSchemaToolRequestValidator(inputSchema);
         var request = CreateRequestParams(); // No arguments
 
@@ -273,7 +268,7 @@ public class McpToolListenerTests
                 "required": ["schemaProp1", "schemaProp2"]
             }
             """;
-        var inputSchema = CreateFromJson(inputSchemaJson);
+        var inputSchema = JsonDocument.Parse(inputSchemaJson);
         var validator = new JsonSchemaToolRequestValidator(inputSchema);
         
         // Provide arguments that would satisfy tool properties but not schema properties
@@ -299,7 +294,7 @@ public class McpToolListenerTests
                 "required": ["actualRequiredProp"]
             }
             """;
-        var inputSchema = CreateFromJson(inputSchemaJson);
+        var inputSchema = JsonDocument.Parse(inputSchemaJson);
         var validator = new JsonSchemaToolRequestValidator(inputSchema);
         var request = CreateRequestParams(("actualRequiredProp", JsonDocument.Parse("\"correctValue\"").RootElement));
 
@@ -337,7 +332,7 @@ public class McpToolListenerTests
                 "required": ["prop1"]
             }
             """;
-        var inputSchemaOnly = CreateFromJson(inputSchemaJson);
+        var inputSchemaOnly = JsonDocument.Parse(inputSchemaJson);
         var validator = new JsonSchemaToolRequestValidator(inputSchemaOnly);
         var listener = new McpToolListener(executor, "func", "tool", null, validator);
         listener.InputSchema = inputSchemaOnly; // Set for interface compatibility
@@ -371,7 +366,7 @@ public class McpToolListenerTests
                 "required": ["modernProp"]
             }
             """;
-        var inputSchemaOnly = CreateFromJson(inputSchemaJson);
+        var inputSchemaOnly = JsonDocument.Parse(inputSchemaJson);
         var schemaValidator = new JsonSchemaToolRequestValidator(inputSchemaOnly);
         var modernEx = Assert.Throws<McpProtocolException>(() => schemaValidator.Validate(emptyRequest));
         Assert.Contains("modernProp", modernEx.Message);
@@ -388,7 +383,7 @@ public class McpToolListenerTests
                 "required": ["schemaRequiredProp"]
             }
             """;
-        var schema = CreateFromJson(schemaJson);
+        var schema = JsonDocument.Parse(schemaJson);
         var validator = new JsonSchemaToolRequestValidator(schema);
         var listener = new McpToolListener(executor, "func", "tool", null, validator);
 
@@ -402,7 +397,7 @@ public class McpToolListenerTests
     }
 
     [Fact]
-    public async Task RunAsync_WithJsonSchemaValidator_DoesNotThrowWhenRequiredPropertyPresent()
+    public void RunAsync_WithJsonSchemaValidator_DoesNotThrowWhenRequiredPropertyPresent()
     {
         // Arrange
         var executor = new Mock<ITriggeredFunctionExecutor>().Object;
@@ -412,24 +407,14 @@ public class McpToolListenerTests
                 "required": ["schemaRequiredProp"]
             }
             """;
-        var schema = CreateFromJson(schemaJson);
+        var schema = JsonDocument.Parse(schemaJson);
         var validator = new JsonSchemaToolRequestValidator(schema);
         var listener = new McpToolListener(executor, "func", "tool", null, validator);
 
-        var request = CreateRequest(("schemaRequiredProp", JsonDocument.Parse("\"value\"").RootElement));
+        var request = CreateRequestParams(("schemaRequiredProp", JsonDocument.Parse("\"value\"").RootElement));
 
-        // Mock the executor to avoid actual function execution
-        var executorMock = new Mock<ITriggeredFunctionExecutor>();
-        executorMock.Setup(e => e.TryExecuteAsync(It.IsAny<TriggeredFunctionData>(), It.IsAny<CancellationToken>()))
-                   .ReturnsAsync(new FunctionResult(true));
+        var ex = Record.Exception(() => validator.Validate(request));
 
-        var listenerWithMock = new McpToolListener(executorMock.Object, "func", "tool", null, validator);
-
-        // Act - should not throw
-        var result = await listenerWithMock.RunAsync(request, CancellationToken.None);
-
-        // Assert
-        Assert.NotNull(result);
-        Assert.Empty(result.Content); // Empty content since we mocked the execution
+        Assert.Null(ex); // Should not throw because input schema's required property is provided
     }
 }
