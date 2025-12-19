@@ -180,7 +180,7 @@ internal sealed class McpToolTriggerBinding : ITriggerBinding
         }
     }
 
-    internal static JsonElement? GetInputSchema(McpToolTriggerAttribute attribute)
+    internal static JsonDocument? GetInputSchema(McpToolTriggerAttribute attribute)
     {
         if (string.IsNullOrEmpty(attribute.InputSchema))
         {
@@ -188,18 +188,18 @@ internal sealed class McpToolTriggerBinding : ITriggerBinding
         }
         try
         {
-            using var doc = JsonDocument.Parse(attribute.InputSchema);
-            var schema = doc.RootElement.Clone();
+            var doc = JsonDocument.Parse(attribute.InputSchema);
 
             // Validate that the parsed schema is a valid MCP tool input schema
-            if (!McpInputSchemaJsonUtilities.IsValidMcpToolSchema(schema))
+            if (!McpInputSchemaJsonUtilities.IsValidMcpToolSchema(doc))
             {
+                doc.Dispose();
                 throw new ArgumentException(
                     "The specified document is not a valid MCP tool input JSON schema.",
                     nameof(attribute.InputSchema));
             }
 
-            return schema;
+            return doc;
         }
         catch (JsonException ex)
         {
