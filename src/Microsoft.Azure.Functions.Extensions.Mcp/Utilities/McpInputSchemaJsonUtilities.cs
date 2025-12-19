@@ -11,23 +11,20 @@ namespace Microsoft.Azure.Functions.Extensions.Mcp;
 public static class McpInputSchemaJsonUtilities
 {
     /// <summary>
-    /// Validates whether a JsonDocument represents a valid MCP tool input JSON schema.
+    /// Validates whether a JsonElement represents a valid MCP tool input JSON schema.
     /// </summary>
-    /// <param name="schema">The JsonDocument to validate.</param>
+    /// <param name="schema">The JsonElement to validate.</param>
     /// <returns>true if the schema is valid; otherwise, false.</returns>
-    public static bool IsValidMcpToolSchema(JsonDocument schema)
+    public static bool IsValidMcpToolSchema(JsonElement schema)
     {
-        ArgumentNullException.ThrowIfNull(schema);
-        var rootElement = schema.RootElement;
-
         // A valid MCP tool schema should be an object
-        if (rootElement.ValueKind != JsonValueKind.Object)
+        if (schema.ValueKind != JsonValueKind.Object)
         {
             return false;
         }
 
         // Must have a "type" property with value "object"
-        if (!rootElement.TryGetProperty("type", out var typeProperty) || 
+        if (!schema.TryGetProperty("type", out var typeProperty) || 
             typeProperty.ValueKind != JsonValueKind.String ||
             typeProperty.GetString() != "object")
         {
@@ -35,14 +32,14 @@ public static class McpInputSchemaJsonUtilities
         }
 
         // If "properties" exists, it should be an object
-        if (rootElement.TryGetProperty("properties", out var propertiesProperty) && 
+        if (schema.TryGetProperty("properties", out var propertiesProperty) && 
             propertiesProperty.ValueKind != JsonValueKind.Object)
         {
             return false;
         }
 
         // If "required" exists, it should be an array
-        if (rootElement.TryGetProperty("required", out var requiredProperty) && 
+        if (schema.TryGetProperty("required", out var requiredProperty) && 
             requiredProperty.ValueKind != JsonValueKind.Array)
         {
             return false;
@@ -52,11 +49,11 @@ public static class McpInputSchemaJsonUtilities
     }
 
     /// <summary>
-    /// Extracts the required property names from a JsonDocument schema.
+    /// Extracts the required property names from a JsonElement schema.
     /// </summary>
-    /// <param name="schema">The schema JsonDocument.</param>
+    /// <param name="schema">The schema JsonElement.</param>
     /// <returns>An array of required property names.</returns>
-    public static string[] GetRequiredProperties(JsonDocument schema)
+    public static string[] GetRequiredProperties(JsonElement schema)
     {
         var rootElement = schema.RootElement;
 
