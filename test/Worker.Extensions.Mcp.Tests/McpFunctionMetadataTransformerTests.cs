@@ -453,25 +453,58 @@ public class McpFunctionMetadataTransformerTests
     }
 
     [Fact]
-    public void Transform_InputSchemaGeneration_FailsGracefullyOnInvalidFunction()
+    public void Transform_InputSchemaGeneration_HandlesRobustPatchingErrors()
     {
+        var (entryPoint, scriptFile, outputDir) = GetFunctionMetadataInfo<TestFunctions>(nameof(TestFunctions.WithInputSchemaGeneration));
+        Environment.SetEnvironmentVariable(FunctionsApplicationDirectoryKey, outputDir);
+
         var transformer = CreateTransformer();
 
-        var fn = CreateFunctionMetadata("Invalid.EntryPoint", "NonExistent.dll", "Func", 
+        var bindings = new List<string>
+        {
+            "{\"type\":\"mcpToolTrigger\",\"toolName\":\"WithInputSchemaGeneration\"}",
+            "{\"type\":\"mcpToolProperty\",\"propertyName\":\"name\"}",
+            "{\"type\":\"mcpToolProperty\",\"propertyName\":\"nonexistent\"}" // This property won't be in schema
+        };
+
+        var fn = CreateFunctionMetadata(entryPoint, scriptFile, "Func", bindings);
+
+        // Should not throw exception even when some properties can't be patched
+        transformer.Transform(new List<IFunctionMetadata> { fn.Object });
+
+        // Verify the trigger binding has input schema
+        var triggerBinding = fn.Object.RawBindings![0];
+        var triggerJson = JsonNode.Parse(triggerBinding)!.AsObject();
+        Assert.True(triggerJson.ContainsKey("inputSchema"));
+
+        // Verify the valid property binding was patched with correct type
+        var namePropertyBinding = fn.Object.RawBindings![1];
+        var nameJson = JsonNode.Parse(namePropertyBinding)!.AsObject();
+        Assert.True(nameJson.ContainsKey("propertyType"));
+        Assert.Equal("string", nameJson["propertyType"]!.GetValue<string>());
+
+        // Verify the invalid property binding was not patched (no propertyType added)
+        var invalidPropertyBinding = fn.Object.RawBindings![2];
+        var invalidJson = JsonNode.Parse(invalidPropertyBinding)!.AsObject();
+        // The binding should still exist, but without a propertyType since it wasn't in the schema
+        Assert.False(invalidJson.ContainsKey("propertyType"));
+    }
+
+    [Fact]
+    public void Transform_InputSchemaGeneration_ThrowsOnInvalidFunction()
+    {
+        // Set environment variable to test method resolution failure rather than environment setup failure
+        var (entryPoint, scriptFile, outputDir) = GetFunctionMetadataInfo<TestFunctions>(nameof(TestFunctions.WithToolProperty));
+        Environment.SetEnvironmentVariable(FunctionsApplicationDirectoryKey, outputDir);
+        
+        var transformer = CreateTransformer();
+
+        // Use a non-existent DLL file to force assembly loading failure
+        var fn = CreateFunctionMetadata(entryPoint, "NonExistent.dll", "Func", 
             new List<string> { "{\"type\":\"mcpToolTrigger\",\"toolName\":\"Invalid\"}" });
 
-        // Should not throw exception when input schema generation fails, should fall back to toolProperties
-        transformer.Transform(new List<IFunctionMetadata> { fn.Object });
-        
-        var binding = fn.Object.RawBindings![0];
-        var json = JsonNode.Parse(binding)!.AsObject();
-        
-        // Should fall back to traditional approach
-        Assert.True(json.ContainsKey("useWorkerInputSchema"));
-        Assert.False(json["useWorkerInputSchema"]!.GetValue<bool>());
-        Assert.True(json.ContainsKey("toolProperties"));
-        Assert.Equal("[]", json["toolProperties"]!.GetValue<string>());
-        Assert.False(json.ContainsKey("inputSchema"));
+        // Should throw exception when input schema generation fails (no longer swallowing exceptions)
+        Assert.Throws<Exception>(() => transformer.Transform(new List<IFunctionMetadata> { fn.Object }));
     }
 
     private static McpFunctionMetadataTransformer CreateTransformer(List<ToolProperty>? configured = null)
