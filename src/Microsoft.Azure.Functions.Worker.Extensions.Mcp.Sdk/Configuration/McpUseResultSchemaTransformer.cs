@@ -26,6 +26,9 @@ public sealed class McpUseResultSchemaTransformer : IFunctionMetadataTransformer
                 continue;
             }
 
+            // Check if there are any output bindings
+            bool hasOutputBindings = HasOutputBindings(function.RawBindings);
+
             for (int i = 0; i < function.RawBindings.Count; i++)
             {
                 var bindingJson = function.RawBindings[i];
@@ -46,11 +49,45 @@ public sealed class McpUseResultSchemaTransformer : IFunctionMetadataTransformer
                     var bindingType = typeNode?.ToString();
                     if (string.Equals(bindingType, McpToolTriggerBindingType, StringComparison.OrdinalIgnoreCase))
                     {
-                        jsonObject[UseResultSchemaFlag] = true;
+                        // Only set useResultSchema to true if there are NO output bindings
+                        // When output bindings exist, we want SimpleToolReturnValueBinder to handle the raw value
+                        if (!hasOutputBindings)
+                        {
+                            jsonObject[UseResultSchemaFlag] = true;
+                        }
                         function.RawBindings[i] = jsonObject.ToJsonString();
                     }
                 }
             }
         }
+    }
+
+    private static bool HasOutputBindings(IList<string> rawBindings)
+    {
+        foreach (var bindingJson in rawBindings)
+        {
+            if (string.IsNullOrWhiteSpace(bindingJson))
+            {
+                continue;
+            }
+
+            var node = JsonNode.Parse(bindingJson);
+            if (node is not JsonObject jsonObject)
+            {
+                continue;
+            }
+
+            // Check if direction is "out"
+            if (jsonObject.TryGetPropertyValue("direction", out var directionNode))
+            {
+                var direction = directionNode?.ToString();
+                if (string.Equals(direction, "out", StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 }
