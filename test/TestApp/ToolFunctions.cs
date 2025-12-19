@@ -5,7 +5,7 @@ using static TestApp.ToolsInformation;
 
 namespace TestApp;
 
-public class TestFunction
+public class ToolFunctions
 {
     [FunctionName(nameof(GetSnippet))]
     public object GetSnippet(
