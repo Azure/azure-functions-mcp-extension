@@ -4,14 +4,17 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.Azure.Functions.Extensions.Mcp.Abstractions;
 using Microsoft.Azure.Functions.Extensions.Mcp.Serialization;
+using Microsoft.Azure.Functions.Extensions.Mcp.Validation;
 using Microsoft.Azure.WebJobs.Host.Bindings;
 using Microsoft.Azure.WebJobs.Host.Listeners;
 using Microsoft.Azure.WebJobs.Host.Protocols;
 using Microsoft.Azure.WebJobs.Host.Triggers;
-using ModelContextProtocol;
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 using System.Text.Json;
+using System.Threading.Tasks;
 
 namespace Microsoft.Azure.Functions.Extensions.Mcp;
 
@@ -134,33 +137,48 @@ internal sealed class McpToolTriggerBinding : ITriggerBinding
 
     public Task<IListener> CreateListenerAsync(ListenerFactoryContext context)
     {
-        IList<IMcpToolProperty>? toolProperties = [];
-        JsonElement? inputSchema = null;
+        ToolRequestValidator validator = CreateValidator();
+        
+        var listener = new McpToolListener(context.Executor, context.Descriptor.ShortName,
+            _toolAttribute.ToolName, _toolAttribute.Description, validator);
 
-        // Generate tool properties only if input schema was not generated in the worker
-        if (!_toolAttribute.UseWorkerInputSchema)
+        // Set the appropriate properties based on validator type for interface compatibility
+        if (validator is PropertyBasedToolRequestValidator)
         {
-            toolProperties = GetProperties(_toolAttribute, _triggerParameter);
+            listener.Properties = GetProperties(_toolAttribute, _triggerParameter);
         }
-        else
+        else if (validator is JsonSchemaToolRequestValidator && GetInputSchema(_toolAttribute) is JsonElement schema)
         {
-            inputSchema = GetInputSchema(_toolAttribute);
+            listener.InputSchema = schema;
+        }
 
-            // Throw an error in case input schema was not generated in the worker extension as expected
+        _toolRegistry.Register(listener);
+
+        return Task.FromResult<IListener>(listener);
+    }
+
+    /// <summary>
+    /// Creates the appropriate validator based on the tool attribute configuration.
+    /// </summary>
+    /// <returns>A ToolRequestValidator instance.</returns>
+    private ToolRequestValidator CreateValidator()
+    {
+        if (_toolAttribute.UseWorkerInputSchema)
+        {
+            var inputSchema = GetInputSchema(_toolAttribute);
             if (inputSchema is null)
             {
                 throw new InvalidOperationException(
                    $"Tool '{_toolAttribute.ToolName}' has UseWorkerInputSchema=true but InputSchema is null or invalid. " +
                    "Ensure the worker metadata transformer is setting the InputSchema property.");
             }
+            return new JsonSchemaToolRequestValidator(inputSchema.Value);
         }
-
-        var listener = new McpToolListener(context.Executor, context.Descriptor.ShortName,
-            _toolAttribute.ToolName, _toolAttribute.Description, toolProperties, inputSchema);
-
-        _toolRegistry.Register(listener);
-
-        return Task.FromResult<IListener>(listener);
+        else
+        {
+            var toolProperties = GetProperties(_toolAttribute, _triggerParameter);
+            return new PropertyBasedToolRequestValidator(toolProperties);
+        }
     }
 
     internal static JsonElement? GetInputSchema(McpToolTriggerAttribute attribute)
@@ -172,14 +190,14 @@ internal sealed class McpToolTriggerBinding : ITriggerBinding
         try
         {
             using var doc = JsonDocument.Parse(attribute.InputSchema);
-            var schema =  doc.RootElement.Clone();
+            var schema = doc.RootElement.Clone();
 
             // Validate that the parsed schema is a valid MCP tool input schema
             if (!McpInputSchemaJsonUtilities.IsValidMcpToolSchema(schema))
             {
                 throw new ArgumentException(
                     "The specified document is not a valid MCP tool input JSON schema.",
-                    nameof(_toolAttribute.InputSchema));
+                    nameof(attribute.InputSchema));
             }
 
             return schema;

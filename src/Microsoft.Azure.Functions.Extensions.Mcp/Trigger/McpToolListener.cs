@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
+using Microsoft.Azure.Functions.Extensions.Mcp.Validation;
 using Microsoft.Azure.WebJobs.Host.Executors;
 using Microsoft.Azure.WebJobs.Host.Listeners;
 using ModelContextProtocol;
@@ -14,8 +15,7 @@ internal sealed class McpToolListener(ITriggeredFunctionExecutor executor,
                                       string functionName,
                                       string toolName,
                                       string? toolDescription,
-                                      ICollection<IMcpToolProperty> properties,
-                                      JsonElement? inputSchema) : IListener, IMcpTool
+                                      ToolRequestValidator validator) : IListener, IMcpTool
 {
     public ITriggeredFunctionExecutor Executor { get; } = executor;
 
@@ -25,9 +25,11 @@ internal sealed class McpToolListener(ITriggeredFunctionExecutor executor,
 
     public string? Description { get; set; } = toolDescription;
 
-    public ICollection<IMcpToolProperty> Properties { get; set; } = properties;
+    public ICollection<IMcpToolProperty> Properties { get; set; } = [];
 
-    public JsonElement? InputSchema => inputSchema;
+    public JsonElement? InputSchema { get; set; }
+
+    private readonly ToolRequestValidator _validator = validator ?? throw new ArgumentNullException(nameof(validator));
 
     public void Dispose() { }
 
@@ -40,7 +42,7 @@ internal sealed class McpToolListener(ITriggeredFunctionExecutor executor,
     public async Task<CallToolResult> RunAsync(RequestContext<CallToolRequestParams> callToolRequest, CancellationToken cancellationToken)
     {
         // Validate required properties are present in the incoming request.
-        ValidateArgumentsHaveRequiredProperties(Properties, callToolRequest.Params, InputSchema);
+        _validator.Validate(callToolRequest.Params);
 
         var execution = new CallToolExecutionContext(callToolRequest);
 
@@ -66,72 +68,5 @@ internal sealed class McpToolListener(ITriggeredFunctionExecutor executor,
         // We did not receive a CallToolResult from the function execution,
         // return an empty result.
         return new CallToolResult { Content = [] };
-    }
-
-    /// <summary>
-    /// Validates that all required arguments are present in the tool call request.
-    /// Uses InputSchema if provided (worker mode), otherwise validates against Properties (extension mode).
-    /// </summary>
-    internal static void ValidateArgumentsHaveRequiredProperties(
-        ICollection<IMcpToolProperty> properties,
-        CallToolRequestParams? callToolRequest,
-        JsonElement? inputSchema)
-    {
-        var missing = new List<string>();
-        var args = callToolRequest?.Arguments;
-        var requiredProperties = new List<string>();
-
-        // Use InputSchema if provided and it has required properties
-        if (inputSchema.HasValue)
-        {
-            // Extract required properties from the schema using utility
-            requiredProperties.AddRange(McpInputSchemaJsonUtilities.GetRequiredProperties(inputSchema.Value));
-        }
-        else
-        {
-            // Fall back to Properties approach
-            if (properties is null || properties.Count == 0)
-            {
-                return;
-            }
-
-            requiredProperties.AddRange(properties
-                .Where(p => p.IsRequired)
-                .Select(p => p.PropertyName));
-        }
-
-        // If no required properties, return early
-        if (requiredProperties.Count == 0)
-        {
-            return;
-        }
-
-        // Check for missing required properties
-        foreach (var propertyName in requiredProperties)
-        {
-            if (args == null
-                || !args.TryGetValue(propertyName, out JsonElement value)
-                || IsValueNullOrUndefined(value))
-            {
-                missing.Add(propertyName);
-            }
-        }
-
-        if (missing.Count > 0)
-        {
-            // Fail early with an MCP InvalidParams error so the client sees a validation error instead of
-            // the invocation proceeding to the worker with null values.
-            throw new McpProtocolException($"One or more required tool properties are missing values. Please provide: {string.Join(", ", missing)}", McpErrorCode.InvalidParams);
-        }
-    }
-
-    private static bool IsValueNullOrUndefined(JsonElement value)
-    {
-        return value.ValueKind switch
-        {
-            JsonValueKind.Null => true,
-            JsonValueKind.Undefined => true,
-            _ => false
-        };
     }
 }
