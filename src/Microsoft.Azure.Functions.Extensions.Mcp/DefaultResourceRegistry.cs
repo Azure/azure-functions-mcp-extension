@@ -39,7 +39,7 @@ internal sealed class DefaultResourceRegistry : IResourceRegistry
     }
 
     /// <inheritdoc/>
-    public ICollection<IMcpResource> GetResources()
+    public IReadOnlyCollection<IMcpResource> GetResources()
     {
         return _resources.Values;
     }
