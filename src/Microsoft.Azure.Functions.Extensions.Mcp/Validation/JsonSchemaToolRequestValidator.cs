@@ -2,14 +2,13 @@
 // Licensed under the MIT License.
 
 using System.Text.Json;
-using ModelContextProtocol.Protocol;
 
 namespace Microsoft.Azure.Functions.Extensions.Mcp.Validation;
 
 /// <summary>
 /// Validates tool request arguments using a JSON schema.
 /// </summary>
-internal sealed class JsonSchemaToolRequestValidator : ToolRequestValidator
+internal sealed class JsonSchemaToolRequestValidator : ToolRequestValidator, IDisposable
 {
     private readonly JsonDocument _inputSchema;
 
@@ -20,6 +19,11 @@ internal sealed class JsonSchemaToolRequestValidator : ToolRequestValidator
     public JsonSchemaToolRequestValidator(JsonDocument inputSchema)
     {
         _inputSchema = inputSchema ?? throw new ArgumentNullException(nameof(inputSchema));
+    }
+
+    public void Dispose()
+    {
+        _inputSchema.Dispose();
     }
 
     /// <summary>
