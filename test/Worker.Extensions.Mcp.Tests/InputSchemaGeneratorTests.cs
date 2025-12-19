@@ -6,10 +6,8 @@ using Microsoft.Azure.Functions.Worker.Extensions.Mcp;
 using Microsoft.Azure.Functions.Worker.Extensions.Mcp.Configuration;
 using Moq;
 using System.ComponentModel;
-using System.ComponentModel.DataAnnotations;
 using System.Reflection;
 using System.Text.Json;
-using System.Xml.Linq;
 
 namespace Worker.Extensions.Mcp.Tests;
 
