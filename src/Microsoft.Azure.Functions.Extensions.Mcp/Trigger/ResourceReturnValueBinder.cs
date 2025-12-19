@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using Microsoft.Azure.Functions.Extensions.Mcp.Serialization;
 using Microsoft.Azure.WebJobs.Host.Bindings;
 using ModelContextProtocol;
@@ -9,7 +10,7 @@ using ModelContextProtocol.Protocol;
 
 namespace Microsoft.Azure.Functions.Extensions.Mcp;
 
-internal sealed class ResourceReturnValueBinder(ReadResourceExecutionContext executionContext, McpResourceTriggerAttribute resourceAttribute) : IValueBinder
+internal sealed class ResourceReturnValueBinder(ReadResourceExecutionContext executionContext, McpResourceTriggerAttribute resourceAttribute, IReadOnlyCollection<KeyValuePair<string, object?>> metadata) : IValueBinder
 {
     public Type Type { get; } = typeof(object);
 
@@ -38,7 +39,7 @@ internal sealed class ResourceReturnValueBinder(ReadResourceExecutionContext exe
                     Uri = resourceAttribute.Uri,
                     MimeType = resourceAttribute.MimeType,
                     Text = stringValue,
-                    Meta = null // TODO: support metadata via attribute in future PR
+                    Meta = GetMetaJsonObject()
                 }]
             };
 
@@ -55,7 +56,7 @@ internal sealed class ResourceReturnValueBinder(ReadResourceExecutionContext exe
                     Uri = resourceAttribute.Uri,
                     MimeType = resourceAttribute.MimeType,
                     Blob = Convert.ToBase64String(binaryData),
-                    Meta = null // TODO: support metadata via attribute in future PR
+                    Meta = GetMetaJsonObject()
                 }]
             };
 
@@ -121,9 +122,23 @@ internal sealed class ResourceReturnValueBinder(ReadResourceExecutionContext exe
             resourceContents.MimeType = resourceAttribute.MimeType;
         }
 
-        // TODO: If metadata is provided via the attribute, but null in the content, set it here.
-        // Alternatively, consider merging attribute metadata with content metadata.
+        // If metadata is not set in content, use attribute metadata
+        // Q: Do we want to merge metadata instead?
+        if (resourceContents.Meta is null && metadata.Any())
+        {
+            resourceContents.Meta = GetMetaJsonObject();
+        }
 
         return resourceContents;
+    }
+
+    private JsonObject? GetMetaJsonObject()
+    {
+        if (metadata is null || metadata.Count == 0)
+        {
+            return null;
+        }
+
+        return JsonSerializer.SerializeToNode(metadata.ToDictionary(kvp => kvp.Key, kvp => kvp.Value))?.AsObject();
     }
 }

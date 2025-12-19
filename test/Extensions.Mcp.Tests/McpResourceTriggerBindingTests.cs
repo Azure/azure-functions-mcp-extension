@@ -45,6 +45,15 @@ public class McpResourceTriggerBindingTests
 
     private static void DummyStringMethod([McpResourceTrigger("test://resource/1", "TestResource")] string ctx) { }
 
+    private static void DummyMethodWithMetadata(
+        [McpResourceTrigger("test://resource/1", "TestResource")]
+        [McpResourceMetadata("key1", "value1")]
+        [McpResourceMetadata("key2", 123)]
+        [McpResourceMetadata("key3", true)]
+        ResourceInvocationContext ctx) { }
+
+    private static void DummyMethodWithoutMetadata([McpResourceTrigger("test://resource/1", "TestResource")] ResourceInvocationContext ctx) { }
+
     private static ValueBindingContext CreateValueBindingContext()
     {
         var functionContext = new FunctionBindingContext(Guid.NewGuid(), CancellationToken.None);
@@ -239,4 +248,94 @@ public class McpResourceTriggerBindingTests
 
         Assert.Equal(typeof(object), binding.TriggerValueType);
     }
+
+    [Fact]
+    public async Task CreateListenerAsync_WithMetadata_IncludesMetadataInListener()
+    {
+        var executorMock = new Mock<ITriggeredFunctionExecutor>();
+        var resourceRegistry = new Mock<IResourceRegistry>();
+
+        var listenerFactoryContext = new ListenerFactoryContext(
+            new FunctionDescriptor { ShortName = "MyFunction" },
+            executorMock.Object,
+            CancellationToken.None);
+
+        var attribute = new McpResourceTriggerAttribute("test://resource/1", "TestResource");
+
+        var method = typeof(McpResourceTriggerBindingTests).GetMethod(nameof(DummyMethodWithMetadata), BindingFlags.NonPublic | BindingFlags.Static)!;
+        var parameter = method.GetParameters()[0];
+
+        var binding = new McpResourceTriggerBinding(parameter, resourceRegistry.Object, attribute);
+
+        var listener = await binding.CreateListenerAsync(listenerFactoryContext);
+
+        var resourceListener = Assert.IsType<McpResourceListener>(listener);
+        Assert.NotNull(resourceListener.Metadata);
+        Assert.Equal(3, resourceListener.Metadata.Count);
+
+        var metadataDict = resourceListener.Metadata.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+        Assert.Equal("value1", metadataDict["key1"]);
+        Assert.Equal(123, metadataDict["key2"]);
+        Assert.Equal(true, metadataDict["key3"]);
+    }
+
+    [Fact]
+    public async Task CreateListenerAsync_WithoutMetadata_HasEmptyMetadataCollection()
+    {
+        var executorMock = new Mock<ITriggeredFunctionExecutor>();
+        var resourceRegistry = new Mock<IResourceRegistry>();
+
+        var listenerFactoryContext = new ListenerFactoryContext(
+            new FunctionDescriptor { ShortName = "MyFunction" },
+            executorMock.Object,
+            CancellationToken.None);
+
+        var attribute = new McpResourceTriggerAttribute("test://resource/1", "TestResource");
+
+        var method = typeof(McpResourceTriggerBindingTests).GetMethod(nameof(DummyMethodWithoutMetadata), BindingFlags.NonPublic | BindingFlags.Static)!;
+        var parameter = method.GetParameters()[0];
+
+        var binding = new McpResourceTriggerBinding(parameter, resourceRegistry.Object, attribute);
+
+        var listener = await binding.CreateListenerAsync(listenerFactoryContext);
+
+        var resourceListener = Assert.IsType<McpResourceListener>(listener);
+        Assert.NotNull(resourceListener.Metadata);
+        Assert.Empty(resourceListener.Metadata);
+    }
+
+    [Fact]
+    public async Task CreateListenerAsync_WithNullValueMetadata_IncludesNullValue()
+    {
+        var executorMock = new Mock<ITriggeredFunctionExecutor>();
+        var resourceRegistry = new Mock<IResourceRegistry>();
+
+        var listenerFactoryContext = new ListenerFactoryContext(
+            new FunctionDescriptor { ShortName = "MyFunction" },
+            executorMock.Object,
+            CancellationToken.None);
+
+        var attribute = new McpResourceTriggerAttribute("test://resource/1", "TestResource");
+
+        // Create a parameter with a metadata attribute that has null value
+        var method = typeof(McpResourceTriggerBindingTests).GetMethod(nameof(DummyMethodWithNullMetadata), BindingFlags.NonPublic | BindingFlags.Static)!;
+        var parameter = method.GetParameters()[0];
+
+        var binding = new McpResourceTriggerBinding(parameter, resourceRegistry.Object, attribute);
+
+        var listener = await binding.CreateListenerAsync(listenerFactoryContext);
+
+        var resourceListener = Assert.IsType<McpResourceListener>(listener);
+        Assert.NotNull(resourceListener.Metadata);
+        Assert.Single(resourceListener.Metadata);
+
+        var metadataDict = resourceListener.Metadata.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+        Assert.True(metadataDict.ContainsKey("nullKey"));
+        Assert.Null(metadataDict["nullKey"]);
+    }
+
+    private static void DummyMethodWithNullMetadata(
+        [McpResourceTrigger("test://resource/1", "TestResource")]
+        [McpResourceMetadata("nullKey", null)]
+        ResourceInvocationContext ctx) { }
 }
