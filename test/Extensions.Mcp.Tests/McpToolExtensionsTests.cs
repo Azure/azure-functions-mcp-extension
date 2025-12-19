@@ -56,8 +56,8 @@ public class McpToolExtensionsTests
         var mock = new Mock<IMcpTool>();
         mock.SetupGet(t => t.Properties).Returns(properties);
         
-        JsonElement? schema = inputSchemaJson != null 
-            ? CreateFromJson(inputSchemaJson)
+        JsonDocument? schema = inputSchemaJson != null 
+            ? CreateDocumentFromJson(inputSchemaJson)
             : null;
         
         mock.SetupGet(t => t.InputSchema).Returns(schema);

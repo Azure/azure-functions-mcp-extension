@@ -11,15 +11,15 @@ namespace Microsoft.Azure.Functions.Extensions.Mcp.Validation;
 /// </summary>
 internal sealed class JsonSchemaToolRequestValidator : ToolRequestValidator
 {
-    private readonly JsonElement _inputSchema;
+    private readonly JsonDocument _inputSchema;
 
     /// <summary>
     /// Initializes a new instance of the JsonSchemaToolRequestValidator class.
     /// </summary>
     /// <param name="inputSchema">The JSON schema to use for validation.</param>
-    public JsonSchemaToolRequestValidator(JsonElement inputSchema)
+    public JsonSchemaToolRequestValidator(JsonDocument inputSchema)
     {
-        _inputSchema = inputSchema;
+        _inputSchema = inputSchema ?? throw new ArgumentNullException(nameof(inputSchema));
     }
 
     /// <summary>

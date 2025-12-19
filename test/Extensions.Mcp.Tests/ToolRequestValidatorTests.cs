@@ -10,10 +10,9 @@ namespace Microsoft.Azure.Functions.Extensions.Mcp.Tests;
 
 public class ToolRequestValidatorTests
 {
-    private static JsonElement CreateFromJson(string json)
+    private static JsonDocument CreateDocumentFromJson(string json)
     {
-        using var document = JsonDocument.Parse(json);
-        return document.RootElement.Clone();
+        return JsonDocument.Parse(json);
     }
 
     private static CallToolRequestParams CreateRequest(params (string key, JsonElement value)[] args)
@@ -81,7 +80,7 @@ public class ToolRequestValidatorTests
                 "required": ["requiredFromSchema"]
             }
             """;
-        var schema = CreateFromJson(schemaJson);
+        var schema = CreateDocumentFromJson(schemaJson);
         var validator = new JsonSchemaToolRequestValidator(schema);
         var request = CreateRequest(); // No arguments
 
@@ -101,7 +100,7 @@ public class ToolRequestValidatorTests
                 "required": ["requiredFromSchema"]
             }
             """;
-        var schema = CreateFromJson(schemaJson);
+        var schema = CreateDocumentFromJson(schemaJson);
         var validator = new JsonSchemaToolRequestValidator(schema);
         var request = CreateRequest(("requiredFromSchema", JsonDocument.Parse("\"value\"").RootElement));
 
@@ -120,7 +119,7 @@ public class ToolRequestValidatorTests
                 "required": []
             }
             """;
-        var schema = CreateFromJson(schemaJson);
+        var schema = CreateDocumentFromJson(schemaJson);
         var validator = new JsonSchemaToolRequestValidator(schema);
         var request = CreateRequest(); // No arguments
 
@@ -155,7 +154,7 @@ public class ToolRequestValidatorTests
                 "required": ["requiredFromSchema"]
             }
             """;
-        var schema = CreateFromJson(schemaJson);
+        var schema = CreateDocumentFromJson(schemaJson);
         var validator = new JsonSchemaToolRequestValidator(schema);
         var request = CreateRequest(("requiredFromSchema", JsonDocument.Parse("null").RootElement));
 
