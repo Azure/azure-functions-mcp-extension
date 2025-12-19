@@ -7,7 +7,7 @@ using System.Reflection;
 
 namespace Microsoft.Azure.Functions.Extensions.Mcp;
 
-internal sealed class McpTriggerBindingProvider(IToolRegistry toolRegistry) : ITriggerBindingProvider
+internal sealed class McpToolTriggerBindingProvider(IToolRegistry toolRegistry) : ITriggerBindingProvider
 {
     public Task<ITriggerBinding?> TryCreateAsync(TriggerBindingProviderContext context)
     {
