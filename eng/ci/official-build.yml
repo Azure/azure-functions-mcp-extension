@@ -4,6 +4,7 @@ trigger:
     include:
     - main
     - release/*
+    - feature/*
 
 schedules:
   # Ensure we build nightly to catch any new CVEs and report SDL often.
