@@ -28,7 +28,7 @@ internal interface IResourceRegistry
     /// <summary>
     /// Gets all registered MCP resources.
     /// </summary>
-    ICollection<IMcpResource> GetResources();
+    IReadOnlyCollection<IMcpResource> GetResources();
 
     /// <summary>
     /// Lists all registered MCP resources.
