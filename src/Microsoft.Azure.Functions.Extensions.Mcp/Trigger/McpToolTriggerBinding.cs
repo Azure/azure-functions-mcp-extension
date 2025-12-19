@@ -11,6 +11,7 @@ using Microsoft.Azure.WebJobs.Host.Protocols;
 using Microsoft.Azure.WebJobs.Host.Triggers;
 using System.Reflection;
 using System.Text.Json;
+using System.Threading.Tasks;
 
 namespace Microsoft.Azure.Functions.Extensions.Mcp;
 
@@ -204,14 +205,14 @@ internal sealed class McpToolTriggerBinding : ITriggerBinding
         try
         {
             using var doc = JsonDocument.Parse(attribute.InputSchema);
-            var schema =  doc.RootElement.Clone();
+            var schema = doc.RootElement.Clone();
 
             // Validate that the parsed schema is a valid MCP tool input schema
             if (!McpInputSchemaJsonUtilities.IsValidMcpToolSchema(schema))
             {
                 throw new ArgumentException(
                     "The specified document is not a valid MCP tool input JSON schema.",
-                    nameof(_toolAttribute.InputSchema));
+                    nameof(attribute.InputSchema));
             }
 
             return schema;
