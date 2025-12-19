@@ -166,7 +166,7 @@ internal sealed class McpToolTriggerBinding : ITriggerBinding
             if (inputSchema is null)
             {
                 throw new InvalidOperationException(
-                   $"Tool '{_toolAttribute.ToolName}' has UseWorkerInputSchema=true but InputSchema is null or invalid. ");
+                   $"InputSchema is null or invalid. ");
             }
             return new JsonSchemaToolRequestValidator(inputSchema);
         }
