@@ -31,7 +31,14 @@ internal sealed class McpToolListener(ITriggeredFunctionExecutor executor,
 
     private readonly ToolRequestValidator _validator = validator ?? throw new ArgumentNullException(nameof(validator));
 
-    public void Dispose() { }
+    public void Dispose()
+    {
+        // Dispose the validator if it implements IDisposable (e.g., JsonSchemaToolRequestValidator)
+        if (_validator is IDisposable disposableValidator)
+        {
+            disposableValidator.Dispose();
+        }
+    }
 
     public Task StartAsync(CancellationToken cancellationToken) => Task.CompletedTask;
 
