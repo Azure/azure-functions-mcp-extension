@@ -18,8 +18,9 @@ public class ResourceReturnValueBinderTests
         {
             MimeType = mimeType
         };
+        var metadata = new List<KeyValuePair<string, object?>>();
 
-        var binder = new ResourceReturnValueBinder(context, attribute);
+        var binder = new ResourceReturnValueBinder(context, attribute, metadata);
         return (binder, context);
     }
 
