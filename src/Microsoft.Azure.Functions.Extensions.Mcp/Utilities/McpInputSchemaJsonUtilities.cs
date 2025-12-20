@@ -58,7 +58,6 @@ public static class McpInputSchemaJsonUtilities
     /// <returns>An array of required property names.</returns>
     public static string[] GetRequiredProperties(JsonDocument schema)
     {
-        ArgumentNullException.ThrowIfNull(schema);
         var rootElement = schema.RootElement;
 
         if (!rootElement.TryGetProperty("required", out var requiredProperty) || 

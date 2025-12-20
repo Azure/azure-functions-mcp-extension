@@ -56,11 +56,18 @@ public class McpToolExtensionsTests
         var mock = new Mock<IMcpTool>();
         mock.SetupGet(t => t.Properties).Returns(properties);
         
-        JsonDocument? schema = inputSchemaJson != null 
-            ? CreateDocumentFromJson(inputSchemaJson)
-            : null;
+        ToolInputSchema toolInputSchema;
+        if (inputSchemaJson != null)
+        {
+            var schema = CreateDocumentFromJson(inputSchemaJson);
+            toolInputSchema = new JsonSchemaToolInputSchema(schema);
+        }
+        else
+        {
+            toolInputSchema = new PropertyBasedToolInputSchema(properties);
+        }
         
-        mock.SetupGet(t => t.InputSchema).Returns(schema);
+        mock.SetupGet(t => t.ToolInputSchema).Returns(toolInputSchema);
         mock.SetupGet(t => t.Name).Returns("tool");
         mock.SetupProperty(t => t.Description, "desc");
         mock.Setup(t => t.RunAsync(It.IsAny<RequestContext<CallToolRequestParams>>(), It.IsAny<CancellationToken>()))
