@@ -9,17 +9,15 @@ namespace Microsoft.Azure.Functions.Extensions.Mcp.Validation;
 /// <summary>
 /// Validates tool request arguments using traditional tool properties.
 /// </summary>
-internal sealed class PropertyBasedToolRequestValidator : ToolRequestValidator
+internal sealed class PropertyBasedToolInputSchema : ToolInputSchema
 {
-    private readonly ICollection<IMcpToolProperty> _properties;
-
     /// <summary>
     /// Initializes a new instance of the PropertyBasedToolRequestValidator class.
     /// </summary>
     /// <param name="properties">The tool properties to use for validation.</param>
-    public PropertyBasedToolRequestValidator(ICollection<IMcpToolProperty> properties)
+    public PropertyBasedToolInputSchema(ICollection<IMcpToolProperty> properties)
     {
-        _properties = properties ?? throw new ArgumentNullException(nameof(properties));
+        Properties = properties ?? throw new ArgumentNullException(nameof(properties));
     }
 
     /// <summary>
@@ -28,7 +26,7 @@ internal sealed class PropertyBasedToolRequestValidator : ToolRequestValidator
     /// <returns>A collection of required property names.</returns>
     protected override IReadOnlyCollection<string> GetRequiredProperties()
     {
-        return _properties
+        return Properties
             .Where(p => p.IsRequired)
             .Select(p => p.PropertyName)
             .ToList();

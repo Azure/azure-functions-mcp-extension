@@ -3,13 +3,14 @@
 
 using ModelContextProtocol;
 using ModelContextProtocol.Protocol;
+using System.Text.Json;
 
 namespace Microsoft.Azure.Functions.Extensions.Mcp.Validation;
 
 /// <summary>
-/// Abstract base class for validating tool request arguments.
+/// Abstract base class for validating tool request arguments and storing either input schema or tool properties.
 /// </summary>
-internal abstract class ToolRequestValidator
+internal abstract class ToolInputSchema
 {
     /// <summary>
     /// Validates that all required arguments are present in the tool call request.
@@ -51,16 +52,26 @@ internal abstract class ToolRequestValidator
     protected abstract IReadOnlyCollection<string> GetRequiredProperties();
 
     /// <summary>
+    /// Gets or sets the properties of the tool properties if useWorkerInputSchema is false.
+    /// </summary>
+    public ICollection<IMcpToolProperty> Properties { get; set; } = [];
+
+    /// <summary>
+    /// Gets or sets the properties of the input schema if useWorkerInputSchema is true.
+    /// </summary>
+    public JsonDocument? InputSchema { get; set; }
+
+    /// <summary>
     /// Checks if a JSON element represents a null or undefined value.
     /// </summary>
     /// <param name="value">The JSON element to check.</param>
     /// <returns>True if the value is null or undefined; otherwise false.</returns>
-    protected static bool IsValueNullOrUndefined(System.Text.Json.JsonElement value)
+    protected static bool IsValueNullOrUndefined(JsonElement value)
     {
         return value.ValueKind switch
         {
-            System.Text.Json.JsonValueKind.Null => true,
-            System.Text.Json.JsonValueKind.Undefined => true,
+            JsonValueKind.Null => true,
+            JsonValueKind.Undefined => true,
             _ => false
         };
     }

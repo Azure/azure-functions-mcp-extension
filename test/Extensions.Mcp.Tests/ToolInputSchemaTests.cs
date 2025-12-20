@@ -8,7 +8,7 @@ using System.Text.Json;
 
 namespace Microsoft.Azure.Functions.Extensions.Mcp.Tests;
 
-public class ToolRequestValidatorTests
+public class ToolInputSchemaTests
 {
     private static JsonDocument CreateDocumentFromJson(string json)
     {
@@ -29,7 +29,7 @@ public class ToolRequestValidatorTests
         {
             new TestMcpToolProperty { PropertyName = "requiredProp", IsRequired = true }
         };
-        var validator = new PropertyBasedToolRequestValidator(properties);
+        var validator = new PropertyBasedToolInputSchema(properties);
         var request = CreateRequest(); // No arguments
 
         // Act & Assert
@@ -46,7 +46,7 @@ public class ToolRequestValidatorTests
         {
             new TestMcpToolProperty { PropertyName = "requiredProp", IsRequired = true }
         };
-        var validator = new PropertyBasedToolRequestValidator(properties);
+        var validator = new PropertyBasedToolInputSchema(properties);
         var request = CreateRequest(("requiredProp", JsonDocument.Parse("\"value\"").RootElement));
 
         // Act & Assert
@@ -62,7 +62,7 @@ public class ToolRequestValidatorTests
         {
             new TestMcpToolProperty { PropertyName = "optionalProp", IsRequired = false }
         };
-        var validator = new PropertyBasedToolRequestValidator(properties);
+        var validator = new PropertyBasedToolInputSchema(properties);
         var request = CreateRequest(); // No arguments
 
         // Act & Assert
@@ -81,7 +81,7 @@ public class ToolRequestValidatorTests
             }
             """;
         var schema = CreateDocumentFromJson(schemaJson);
-        var validator = new JsonSchemaToolRequestValidator(schema);
+        var validator = new JsonSchemaToolInputSchema(schema);
         var request = CreateRequest(); // No arguments
 
         // Act & Assert
@@ -101,7 +101,7 @@ public class ToolRequestValidatorTests
             }
             """;
         var schema = CreateDocumentFromJson(schemaJson);
-        var validator = new JsonSchemaToolRequestValidator(schema);
+        var validator = new JsonSchemaToolInputSchema(schema);
         var request = CreateRequest(("requiredFromSchema", JsonDocument.Parse("\"value\"").RootElement));
 
         // Act & Assert
@@ -120,7 +120,7 @@ public class ToolRequestValidatorTests
             }
             """;
         var schema = CreateDocumentFromJson(schemaJson);
-        var validator = new JsonSchemaToolRequestValidator(schema);
+        var validator = new JsonSchemaToolInputSchema(schema);
         var request = CreateRequest(); // No arguments
 
         // Act & Assert
@@ -136,7 +136,7 @@ public class ToolRequestValidatorTests
         {
             new TestMcpToolProperty { PropertyName = "requiredProp", IsRequired = true }
         };
-        var validator = new PropertyBasedToolRequestValidator(properties);
+        var validator = new PropertyBasedToolInputSchema(properties);
         var request = CreateRequest(("requiredProp", JsonDocument.Parse("null").RootElement));
 
         // Act & Assert
@@ -155,7 +155,7 @@ public class ToolRequestValidatorTests
             }
             """;
         var schema = CreateDocumentFromJson(schemaJson);
-        var validator = new JsonSchemaToolRequestValidator(schema);
+        var validator = new JsonSchemaToolInputSchema(schema);
         var request = CreateRequest(("requiredFromSchema", JsonDocument.Parse("null").RootElement));
 
         // Act & Assert
@@ -167,7 +167,7 @@ public class ToolRequestValidatorTests
     public void PropertyBasedValidator_ThrowsArgumentNullException_ForNullProperties()
     {
         // Act & Assert
-        Assert.Throws<ArgumentNullException>(() => new PropertyBasedToolRequestValidator(null!));
+        Assert.Throws<ArgumentNullException>(() => new PropertyBasedToolInputSchema(null!));
     }
 
     [Fact]
@@ -179,7 +179,7 @@ public class ToolRequestValidatorTests
             new TestMcpToolProperty { PropertyName = "prop1", IsRequired = true },
             new TestMcpToolProperty { PropertyName = "prop2", IsRequired = true }
         };
-        var validator = new PropertyBasedToolRequestValidator(properties);
+        var validator = new PropertyBasedToolInputSchema(properties);
         var request = CreateRequest(); // No arguments
 
         // Act & Assert

@@ -12,12 +12,12 @@ internal static class McpToolExtensions
         ArgumentNullException.ThrowIfNull(tool);
 
         // If an explicit InputSchema is provided and it's not null, use it directly.
-        if (tool.InputSchema is not null)
+        if (tool.ToolInputSchema.InputSchema is not null)
         {
-            return tool.InputSchema.RootElement;
+            return tool.ToolInputSchema.InputSchema.RootElement;
         }
 
-        var props = (tool.Properties ?? [])
+        var props = (tool.ToolInputSchema.Properties ?? [])
             .Where(p => p is not null && !string.IsNullOrWhiteSpace(p.PropertyName))
             .ToArray();
 

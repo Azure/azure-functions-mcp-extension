@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
+using Microsoft.Azure.Functions.Extensions.Mcp.Validation;
 using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 using Moq;
@@ -13,7 +14,8 @@ public class McpToolExtensionsTests
     private static IMcpTool CreateTool(params IMcpToolProperty[] properties)
     {
         var mock = new Mock<IMcpTool>();
-        mock.SetupGet(t => t.Properties).Returns(properties);
+        var toolInputSchema = new PropertyBasedToolInputSchema(properties);
+        mock.SetupGet(t => t.ToolInputSchema).Returns(toolInputSchema);
         mock.SetupGet(t => t.Name).Returns("tool");
         mock.SetupProperty(t => t.Description, "desc");
         mock.Setup(t => t.RunAsync(It.IsAny<RequestContext<CallToolRequestParams>>(), It.IsAny<CancellationToken>()))
@@ -29,13 +31,19 @@ public class McpToolExtensionsTests
     private static IMcpTool CreateToolWithInputSchema(string? inputSchemaJson, params IMcpToolProperty[] properties)
     {
         var mock = new Mock<IMcpTool>();
-        mock.SetupGet(t => t.Properties).Returns(properties);
         
-        JsonDocument? schema = inputSchemaJson != null 
-            ? CreateDocumentFromJson(inputSchemaJson)
-            : null;
+        ToolInputSchema toolInputSchema;
+        if (inputSchemaJson != null)
+        {
+            var schema = CreateDocumentFromJson(inputSchemaJson);
+            toolInputSchema = new JsonSchemaToolInputSchema(schema);
+        }
+        else
+        {
+            toolInputSchema = new PropertyBasedToolInputSchema(properties);
+        }
         
-        mock.SetupGet(t => t.InputSchema).Returns(schema);
+        mock.SetupGet(t => t.ToolInputSchema).Returns(toolInputSchema);
         mock.SetupGet(t => t.Name).Returns("tool");
         mock.SetupProperty(t => t.Description, "desc");
         mock.Setup(t => t.RunAsync(It.IsAny<RequestContext<CallToolRequestParams>>(), It.IsAny<CancellationToken>()))
@@ -525,5 +533,10 @@ public class McpToolExtensionsTests
         var required = schema.GetProperty("required").EnumerateArray().Select(e => e.GetString()).ToArray();
         Assert.Single(required);
         Assert.Contains("jobType", required);
+    }
+
+    protected virtual void Dispose(bool disposing)
+    {
+        // Cleanup for any disposable resources if needed
     }
 }

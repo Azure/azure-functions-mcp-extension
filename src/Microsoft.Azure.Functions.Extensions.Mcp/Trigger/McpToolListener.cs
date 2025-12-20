@@ -15,7 +15,7 @@ internal sealed class McpToolListener(ITriggeredFunctionExecutor executor,
                                       string functionName,
                                       string toolName,
                                       string? toolDescription,
-                                      ToolRequestValidator validator) : IListener, IMcpTool
+                                      ToolInputSchema requestHandler) : IListener, IMcpTool
 {
     public ITriggeredFunctionExecutor Executor { get; } = executor;
 
@@ -25,18 +25,14 @@ internal sealed class McpToolListener(ITriggeredFunctionExecutor executor,
 
     public string? Description { get; set; } = toolDescription;
 
-    public ICollection<IMcpToolProperty> Properties { get; set; } = [];
-
-    public JsonDocument? InputSchema { get; set; }
-
-    private readonly ToolRequestValidator _validator = validator ?? throw new ArgumentNullException(nameof(validator));
+    public ToolInputSchema ToolInputSchema { get; } = requestHandler ?? throw new ArgumentNullException(nameof(requestHandler));
 
     public void Dispose()
     {
-        // Dispose the validator if it implements IDisposable (e.g., JsonSchemaToolRequestValidator)
-        if (_validator is IDisposable disposableValidator)
+        // Dispose the validator if it implements IDisposable (e.g., JsonSchemaToolInputSchema)
+        if (ToolInputSchema is IDisposable disposable)
         {
-            disposableValidator.Dispose();
+            disposable.Dispose();
         }
     }
 
@@ -49,7 +45,7 @@ internal sealed class McpToolListener(ITriggeredFunctionExecutor executor,
     public async Task<CallToolResult> RunAsync(RequestContext<CallToolRequestParams> callToolRequest, CancellationToken cancellationToken)
     {
         // Validate required properties are present in the incoming request.
-        _validator.Validate(callToolRequest.Params);
+        ToolInputSchema.Validate(callToolRequest.Params);
 
         var execution = new CallToolExecutionContext(callToolRequest);
 

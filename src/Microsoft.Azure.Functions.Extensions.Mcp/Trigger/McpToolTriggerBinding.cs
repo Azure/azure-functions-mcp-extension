@@ -133,21 +133,10 @@ internal sealed class McpToolTriggerBinding : ITriggerBinding
 
     public Task<IListener> CreateListenerAsync(ListenerFactoryContext context)
     {
-        ToolRequestValidator validator = CreateValidator();
+        ToolInputSchema inputSchema = CreateToolInputSchema();
         
         var listener = new McpToolListener(context.Executor, context.Descriptor.ShortName,
-            _toolAttribute.ToolName, _toolAttribute.Description, validator);
-
-        // Set the appropriate properties based on validator type
-        if (validator is PropertyBasedToolRequestValidator)
-        {
-            listener.Properties = GetProperties(_toolAttribute, _triggerParameter);
-        }
-        else if (validator is JsonSchemaToolRequestValidator)
-        {
-            var schema = GetInputSchema(_toolAttribute);
-            listener.InputSchema = schema;
-        }
+            _toolAttribute.ToolName, _toolAttribute.Description, inputSchema);
 
         _toolRegistry.Register(listener);
 
@@ -155,10 +144,10 @@ internal sealed class McpToolTriggerBinding : ITriggerBinding
     }
 
     /// <summary>
-    /// Creates the appropriate validator based on the tool attribute configuration.
+    /// Creates the appropriate tool input schema handler based on the tool attribute configuration.
     /// </summary>
-    /// <returns>A ToolRequestValidator instance.</returns>
-    private ToolRequestValidator CreateValidator()
+    /// <returns>A ToolInputSchema instance.</returns>
+    private ToolInputSchema CreateToolInputSchema()
     {
         if (_toolAttribute.UseWorkerInputSchema)
         {
@@ -168,12 +157,12 @@ internal sealed class McpToolTriggerBinding : ITriggerBinding
                 throw new InvalidOperationException(
                    $"InputSchema is null or invalid. ");
             }
-            return new JsonSchemaToolRequestValidator(inputSchema);
+            return new JsonSchemaToolInputSchema(inputSchema);
         }
         else
         {
             var toolProperties = GetProperties(_toolAttribute, _triggerParameter);
-            return new PropertyBasedToolRequestValidator(toolProperties);
+            return new PropertyBasedToolInputSchema(toolProperties);
         }
     }
 

@@ -8,22 +8,20 @@ namespace Microsoft.Azure.Functions.Extensions.Mcp.Validation;
 /// <summary>
 /// Validates tool request arguments using a JSON schema.
 /// </summary>
-internal sealed class JsonSchemaToolRequestValidator : ToolRequestValidator, IDisposable
+internal sealed class JsonSchemaToolInputSchema : ToolInputSchema, IDisposable
 {
-    private readonly JsonDocument _inputSchema;
-
     /// <summary>
-    /// Initializes a new instance of the JsonSchemaToolRequestValidator class.
+    /// Initializes a new instance of the JsonSchemaToolInputSchema class.
     /// </summary>
     /// <param name="inputSchema">The JSON schema to use for validation.</param>
-    public JsonSchemaToolRequestValidator(JsonDocument inputSchema)
+    public JsonSchemaToolInputSchema(JsonDocument inputSchema)
     {
-        _inputSchema = inputSchema ?? throw new ArgumentNullException(nameof(inputSchema));
+        InputSchema = inputSchema ?? throw new ArgumentNullException(nameof(inputSchema));
     }
 
     public void Dispose()
     {
-        _inputSchema.Dispose();
+        InputSchema?.Dispose();
     }
 
     /// <summary>
@@ -32,6 +30,7 @@ internal sealed class JsonSchemaToolRequestValidator : ToolRequestValidator, IDi
     /// <returns>A collection of required property names.</returns>
     protected override IReadOnlyCollection<string> GetRequiredProperties()
     {
-        return McpInputSchemaJsonUtilities.GetRequiredProperties(_inputSchema);
+        ArgumentNullException.ThrowIfNull(InputSchema);
+        return McpInputSchemaJsonUtilities.GetRequiredProperties(InputSchema);
     }
 }
