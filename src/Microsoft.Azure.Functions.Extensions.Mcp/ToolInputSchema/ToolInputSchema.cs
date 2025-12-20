@@ -59,6 +59,16 @@ internal abstract class ToolInputSchema
     protected abstract IReadOnlyCollection<string> GetRequiredProperties();
 
     /// <summary>
+    /// Gets or sets the properties of the tool properties if useWorkerInputSchema is false.
+    /// </summary>
+    public ICollection<IMcpToolProperty> Properties { get; set; } = [];
+
+    /// <summary>
+    /// Gets or sets the properties of the input schema if useWorkerInputSchema is true.
+    /// </summary>
+    public JsonDocument? InputSchema { get; set; }
+
+    /// <summary>
     /// Checks if a JSON element represents a null or undefined value.
     /// </summary>
     /// <param name="value">The JSON element to check.</param>
