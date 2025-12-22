@@ -8,7 +8,7 @@ using System.Text.Json;
 namespace Microsoft.Azure.Functions.Extensions.Mcp.Validation;
 
 /// <summary>
-/// Abstract base class for validating tool request arguments and storing either input schema or tool properties.
+/// Abstract base class for validating tool request arguments and providing schema information.
 /// </summary>
 internal abstract class ToolInputSchema
 {
@@ -46,20 +46,17 @@ internal abstract class ToolInputSchema
     }
 
     /// <summary>
+    /// Gets a JsonElement representing the complete input schema for this tool.
+    /// This combines both JSON schema documents and property-based schemas into a unified format.
+    /// </summary>
+    /// <returns>A JsonElement representing the input schema.</returns>
+    public abstract JsonElement GetSchemaElement();
+
+    /// <summary>
     /// Gets the list of required property names for validation.
     /// </summary>
     /// <returns>A collection of required property names.</returns>
     protected abstract IReadOnlyCollection<string> GetRequiredProperties();
-
-    /// <summary>
-    /// Gets or sets the properties of the tool properties if useWorkerInputSchema is false.
-    /// </summary>
-    public ICollection<IMcpToolProperty> Properties { get; set; } = [];
-
-    /// <summary>
-    /// Gets or sets the properties of the input schema if useWorkerInputSchema is true.
-    /// </summary>
-    public JsonDocument? InputSchema { get; set; }
 
     /// <summary>
     /// Checks if a JSON element represents a null or undefined value.

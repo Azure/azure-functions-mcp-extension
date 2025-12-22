@@ -315,9 +315,12 @@ public class McpToolListenerTests
         var listener = new McpToolListener(executor, "func", "tool", null, inputSchema);
         
         Assert.NotNull(listener.ToolInputSchema);
-        Assert.NotNull(listener.ToolInputSchema.Properties);
-        Assert.Single(listener.ToolInputSchema.Properties);
-        Assert.Null(listener.ToolInputSchema.InputSchema);
+        
+        // Verify the schema can generate a proper JsonElement
+        var schemaElement = listener.ToolInputSchema.GetSchemaElement();
+        Assert.Equal("object", schemaElement.GetProperty("type").GetString());
+        Assert.True(schemaElement.TryGetProperty("properties", out var properties));
+        Assert.True(properties.TryGetProperty("prop1", out var _));
     }
 
     [Fact]
@@ -329,6 +332,11 @@ public class McpToolListenerTests
         var inputSchemaJson = """
             {
                 "type": "object",
+                "properties": {
+                    "prop1": {
+                        "type": "string"
+                    }
+                },
                 "required": ["prop1"]
             }
             """;
@@ -336,8 +344,18 @@ public class McpToolListenerTests
         var inputSchema = new JsonSchemaToolInputSchema(jsonDoc);
         var listener = new McpToolListener(executor, "func", "tool", null, inputSchema);
         
-        Assert.Empty(listener.ToolInputSchema.Properties);
-        Assert.NotNull(listener.ToolInputSchema.InputSchema);
+        Assert.NotNull(listener.ToolInputSchema);
+        
+        // Verify the schema can generate a proper JsonElement
+        var schemaElement = listener.ToolInputSchema.GetSchemaElement();
+        Assert.Equal("object", schemaElement.GetProperty("type").GetString());
+        Assert.True(schemaElement.TryGetProperty("properties", out var properties));
+        Assert.True(properties.TryGetProperty("prop1", out var prop1));
+        Assert.Equal("string", prop1.GetProperty("type").GetString());
+        
+        var required = schemaElement.GetProperty("required");
+        Assert.Single(required.EnumerateArray());
+        Assert.Equal("prop1", required[0].GetString());
     }
 
     [Fact]

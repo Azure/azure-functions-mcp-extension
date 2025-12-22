@@ -10,18 +10,25 @@ namespace Microsoft.Azure.Functions.Extensions.Mcp.Validation;
 /// </summary>
 internal sealed class JsonSchemaToolInputSchema : ToolInputSchema, IDisposable
 {
+    private readonly JsonDocument _inputSchema;
+
     /// <summary>
     /// Initializes a new instance of the JsonSchemaToolInputSchema class.
     /// </summary>
     /// <param name="inputSchema">The JSON schema to use for validation.</param>
     public JsonSchemaToolInputSchema(JsonDocument inputSchema)
     {
-        InputSchema = inputSchema ?? throw new ArgumentNullException(nameof(inputSchema));
+        _inputSchema = inputSchema ?? throw new ArgumentNullException(nameof(inputSchema));
     }
 
-    public void Dispose()
+    /// <summary>
+    /// Gets a JsonElement representing the complete input schema for this tool.
+    /// Returns the JSON schema document directly.
+    /// </summary>
+    /// <returns>A JsonElement representing the input schema.</returns>
+    public override JsonElement GetSchemaElement()
     {
-        InputSchema?.Dispose();
+        return _inputSchema.RootElement;
     }
 
     /// <summary>
@@ -30,7 +37,14 @@ internal sealed class JsonSchemaToolInputSchema : ToolInputSchema, IDisposable
     /// <returns>A collection of required property names.</returns>
     protected override IReadOnlyCollection<string> GetRequiredProperties()
     {
-        ArgumentNullException.ThrowIfNull(InputSchema);
-        return McpInputSchemaJsonUtilities.GetRequiredProperties(InputSchema);
+        return McpInputSchemaJsonUtilities.GetRequiredProperties(_inputSchema);
+    }
+
+    /// <summary>
+    /// Disposes the JSON schema document.
+    /// </summary>
+    public void Dispose()
+    {
+        _inputSchema?.Dispose();
     }
 }
