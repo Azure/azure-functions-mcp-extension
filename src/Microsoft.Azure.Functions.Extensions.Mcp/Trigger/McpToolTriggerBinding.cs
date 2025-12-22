@@ -203,8 +203,6 @@ internal sealed class McpToolTriggerBinding : ITriggerBinding
         }
         try
         {
-            var doc = JsonDocument.Parse(attribute.InputSchema);
-
             // Validate that the parsed schema is a valid MCP tool input schema
             if (!McpInputSchemaJsonUtilities.IsValidMcpToolSchema(doc))
             {
@@ -218,6 +216,7 @@ internal sealed class McpToolTriggerBinding : ITriggerBinding
         }
         catch (JsonException ex)
         {
+            doc?.Dispose();
             throw new InvalidOperationException(
                 $"Failed to parse InputSchema for tool '{attribute.ToolName}'. Schema must be valid JSON.", ex);
         }
