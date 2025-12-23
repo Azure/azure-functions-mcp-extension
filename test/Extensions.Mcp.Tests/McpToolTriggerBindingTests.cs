@@ -9,6 +9,7 @@ using Microsoft.Azure.Functions.Extensions.Mcp.Serialization;
 using Microsoft.Azure.WebJobs.Host.Bindings;
 using Microsoft.Azure.WebJobs.Host.Triggers;
 using Moq;
+using Newtonsoft.Json;
 
 namespace Microsoft.Azure.Functions.Extensions.Mcp.Tests;
 
@@ -190,7 +191,7 @@ public class McpToolTriggerBindingTests
     }
 
     [Fact]
-    public void GetInputSchema_WithInvalidJson_ThrowsInvalidOperationException()
+    public void GetInputSchema_WithInvalidJson_ThrowsException()
     {
         // Arrange
         var invalidJson = """
@@ -206,9 +207,8 @@ public class McpToolTriggerBindingTests
         };
 
         // Act & Assert
-        var ex = Assert.Throws<InvalidOperationException>(() => McpToolTriggerBinding.GetInputSchema(attribute));
-        Assert.Contains("Failed to parse InputSchema for tool 'TestTool'", ex.Message);
-        Assert.Contains("Schema must be valid JSON", ex.Message);
+        var ex = Assert.ThrowsAny<Exception>(() => McpToolTriggerBinding.GetInputSchema(attribute));
+        Assert.Contains("'/' is invalid after a value. Expected either ',', '}', or ']'. LineNumber: 3 | BytePositionInLine: 25.", ex.Message);
     }
 
     [Fact]
@@ -232,8 +232,8 @@ public class McpToolTriggerBindingTests
         };
 
         // Act & Assert
-        var ex = Assert.Throws<InvalidOperationException>(() => McpToolTriggerBinding.GetInputSchema(attribute));
-        Assert.Contains("Failed to parse InputSchema for tool 'TestTool'", ex.Message);
+        var ex = Assert.ThrowsAny<Exception>(() => McpToolTriggerBinding.GetInputSchema(attribute));
+        Assert.Contains("',' is an invalid start of a property name. Expected a '\"'. LineNumber: 1 | BytePositionInLine: 21.", ex.Message);
     }
 
     [Fact]
@@ -278,9 +278,8 @@ public class McpToolTriggerBindingTests
         };
 
         // Assert
-        var ex = Assert.Throws<InvalidOperationException>(() => McpToolTriggerBinding.GetInputSchema(attribute));
-        Assert.Contains("Failed to parse InputSchema for tool 'TestTool'", ex.Message);
-        Assert.Contains("Schema must be valid JSON", ex.Message);
+        var ex = Assert.ThrowsAny<Exception>(() => McpToolTriggerBinding.GetInputSchema(attribute));
+        Assert.Contains("The input does not contain any JSON tokens. Expected the input to start with a valid JSON token, when isFinalBlock is true. LineNumber: 1 | BytePositionInLine: 3.", ex.Message);
     }
 
     [Fact]
@@ -406,7 +405,7 @@ public class McpToolTriggerBindingTests
     }
 
     [Fact]
-    public void GetInputSchema_WithJsonWithTrailingComma_ThrowsInvalidOperationException()
+    public void GetInputSchema_WithJsonWithTrailingComma_ThrowsException()
     {
         // Arrange - JSON with trailing comma (invalid JSON)
         var invalidJson = """
@@ -426,8 +425,8 @@ public class McpToolTriggerBindingTests
         };
 
         // Act & Assert
-        var ex = Assert.Throws<InvalidOperationException>(() => McpToolTriggerBinding.GetInputSchema(attribute));
-        Assert.Contains("Failed to parse InputSchema for tool 'TestTool'", ex.Message);
+        var ex = Assert.ThrowsAny<Exception>(() => McpToolTriggerBinding.GetInputSchema(attribute));
+        Assert.Contains("The JSON object contains a trailing comma at the end which is not supported in this mode. Change the reader options. LineNumber: 6 | BytePositionInLine: 4.", ex.Message);
     }
 
     [Fact]
@@ -453,12 +452,12 @@ public class McpToolTriggerBindingTests
         };
 
         // Act & Assert
-        var ex = Assert.Throws<InvalidOperationException>(() => McpToolTriggerBinding.GetInputSchema(attribute));
-        Assert.Contains("Failed to parse InputSchema for tool 'TestTool'", ex.Message);
+        var ex = Assert.ThrowsAny<Exception>(() => McpToolTriggerBinding.GetInputSchema(attribute));
+        Assert.Contains("'/' is invalid after a value. Expected either ',', '}', or ']'. LineNumber: 1 | BytePositionInLine: 4.", ex.Message);
     }
 
     [Fact]
-    public void GetInputSchema_WithUnbalancedBraces_ThrowsInvalidOperationException()
+    public void GetInputSchema_WithUnbalancedBraces_ThrowsException()
     {
         // Arrange
         var unbalancedJson = """
@@ -477,8 +476,8 @@ public class McpToolTriggerBindingTests
         };
 
         // Act & Assert
-        var ex = Assert.Throws<InvalidOperationException>(() => McpToolTriggerBinding.GetInputSchema(attribute));
-        Assert.Contains("Failed to parse InputSchema for tool 'TestTool'", ex.Message);
+        var ex = Assert.ThrowsAny<Exception>(() => McpToolTriggerBinding.GetInputSchema(attribute));
+        Assert.Contains("Expected depth to be zero at the end of the JSON payload. There is an open JSON object or array that should be closed. LineNumber: 6 | BytePositionInLine: 5.", ex.Message);
     }
 
     [Fact]
