@@ -11,14 +11,16 @@ namespace Microsoft.Azure.Functions.Extensions.Mcp.Validation;
 internal sealed class PropertyBasedToolInputSchema : ToolInputSchema
 {
     private readonly ICollection<IMcpToolProperty> _properties;
+    private readonly Lazy<JsonElement> _cachedSchemaElement;
 
     /// <summary>
     /// Initializes a new instance of the PropertyBasedToolInputSchema class.
     /// </summary>
     /// <param name="properties">The tool properties to use for validation.</param>
-    public PropertyBasedToolInputSchema(ICollection<IMcpToolProperty> properties)
+    public PropertyBasedToolInputSchema(IEnumerable<IMcpToolProperty> properties)
     {
-        _properties = properties ?? throw new ArgumentNullException(nameof(properties));
+        _properties = properties.ToList() ?? throw new ArgumentNullException(nameof(properties));
+        _cachedSchemaElement = new Lazy<JsonElement>(BuildSchemaElement);
     }
 
     /// <summary>
@@ -27,6 +29,23 @@ internal sealed class PropertyBasedToolInputSchema : ToolInputSchema
     /// </summary>
     /// <returns>A JsonElement representing the input schema.</returns>
     public override JsonElement GetSchemaElement()
+    {
+        return _cachedSchemaElement.Value;
+    }
+
+    /// <summary>
+    /// Gets the list of required property names for validation.
+    /// </summary>
+    /// <returns>A collection of required property names.</returns>
+    protected override IReadOnlyCollection<string> GetRequiredProperties()
+    {
+        return _properties
+            .Where(p => p.IsRequired)
+            .Select(p => p.PropertyName)
+            .ToList();
+    }
+
+    private JsonElement BuildSchemaElement()
     {
         var props = _properties
             .Where(p => p is not null && !string.IsNullOrWhiteSpace(p.PropertyName))
@@ -88,20 +107,9 @@ internal sealed class PropertyBasedToolInputSchema : ToolInputSchema
         }
 
         ms.Position = 0;
+
         using var doc = JsonDocument.Parse(ms);
         return doc.RootElement.Clone();
-    }
-
-    /// <summary>
-    /// Gets the list of required property names for validation.
-    /// </summary>
-    /// <returns>A collection of required property names.</returns>
-    protected override IReadOnlyCollection<string> GetRequiredProperties()
-    {
-        return _properties
-            .Where(p => p.IsRequired)
-            .Select(p => p.PropertyName)
-            .ToList();
     }
 
     private static void WriteTypeAndEnum(Utf8JsonWriter writer, string propertyType, IReadOnlyList<string> enumValues)

@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 using System.Text.Json;
+using Microsoft.Azure.Functions.Extensions.Mcp;
 
 namespace Microsoft.Azure.Functions.Extensions.Mcp.Validation;
 
@@ -11,6 +12,7 @@ namespace Microsoft.Azure.Functions.Extensions.Mcp.Validation;
 internal sealed class JsonSchemaToolInputSchema : ToolInputSchema, IDisposable
 {
     private readonly JsonDocument _inputSchema;
+    private readonly Lazy<JsonElement> _cachedSchemaElement;
 
     /// <summary>
     /// Initializes a new instance of the JsonSchemaToolInputSchema class.
@@ -19,6 +21,7 @@ internal sealed class JsonSchemaToolInputSchema : ToolInputSchema, IDisposable
     public JsonSchemaToolInputSchema(JsonDocument inputSchema)
     {
         _inputSchema = inputSchema ?? throw new ArgumentNullException(nameof(inputSchema));
+        _cachedSchemaElement = new Lazy<JsonElement>(() => _inputSchema.RootElement);
     }
 
     /// <summary>
@@ -28,7 +31,7 @@ internal sealed class JsonSchemaToolInputSchema : ToolInputSchema, IDisposable
     /// <returns>A JsonElement representing the input schema.</returns>
     public override JsonElement GetSchemaElement()
     {
-        return _inputSchema.RootElement;
+        return _cachedSchemaElement.Value;
     }
 
     /// <summary>
