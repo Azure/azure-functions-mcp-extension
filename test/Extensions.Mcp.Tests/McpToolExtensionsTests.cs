@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
+using Microsoft.Azure.Functions.Extensions.Mcp.Validation;
 using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 using Moq;
@@ -13,7 +14,8 @@ public class McpToolExtensionsTests
     private static IMcpTool CreateTool(params IMcpToolProperty[] properties)
     {
         var mock = new Mock<IMcpTool>();
-        mock.SetupGet(t => t.Properties).Returns(properties);
+        var toolInputSchema = new PropertyBasedToolInputSchema(properties);
+        mock.SetupGet(t => t.ToolInputSchema).Returns(toolInputSchema);
         mock.SetupGet(t => t.Name).Returns("tool");
         mock.SetupProperty(t => t.Description, "desc");
         mock.Setup(t => t.RunAsync(It.IsAny<RequestContext<CallToolRequestParams>>(), It.IsAny<CancellationToken>()))
@@ -21,7 +23,35 @@ public class McpToolExtensionsTests
         return mock.Object;
     }
 
-    private static IMcpToolProperty CreateProperty(string name, string type, string? description = null, bool required = false, bool isArray = false, IReadOnlyList<string>? enumValues = default)
+    private static JsonDocument CreateDocumentFromJson(string json)
+    {
+        return JsonDocument.Parse(json);
+    }
+
+    private static IMcpTool CreateToolWithInputSchema(string? inputSchemaJson, params IMcpToolProperty[] properties)
+    {
+        var mock = new Mock<IMcpTool>();
+        
+        ToolInputSchema toolInputSchema;
+        if (inputSchemaJson != null)
+        {
+            var schema = CreateDocumentFromJson(inputSchemaJson);
+            toolInputSchema = new JsonSchemaToolInputSchema(schema);
+        }
+        else
+        {
+            toolInputSchema = new PropertyBasedToolInputSchema(properties);
+        }
+        
+        mock.SetupGet(t => t.ToolInputSchema).Returns(toolInputSchema);
+        mock.SetupGet(t => t.Name).Returns("tool");
+        mock.SetupProperty(t => t.Description, "desc");
+        mock.Setup(t => t.RunAsync(It.IsAny<RequestContext<CallToolRequestParams>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new CallToolResult());
+        return mock.Object;
+    }
+
+    private static IMcpToolProperty CreateProperty(string name, string type, string? description = null, bool required = false, bool isArray = false, string[]? enumValues = null)
     {
         var mock = new Mock<IMcpToolProperty>();
         mock.SetupAllProperties();
@@ -98,6 +128,158 @@ public class McpToolExtensionsTests
         var required = schema.GetProperty("required").EnumerateArray().Select(e => e.GetString()).ToArray();
         Assert.Single(required);
         Assert.Contains("tags", required);
+    }
+
+    [Fact]
+    public void GetPropertiesInputSchema_UsesInputSchema_WhenPopulated()
+    {
+        // Arrange - Create an input schema with specific properties
+        var inputSchemaJson = """
+            {
+                "type": "object",
+                "properties": {
+                    "schemaProperty": {
+                        "type": "string",
+                        "description": "Property from schema"
+                    },
+                    "anotherSchemaProperty": {
+                        "type": "number",
+                        "description": "Another property from schema"
+                    }
+                },
+                "required": ["schemaProperty"]
+            }
+            """;
+
+        // Create tool properties that should be ignored when input schema is present
+        var toolProperty = CreateProperty("toolProperty", "boolean", "Property from tool", required: true);
+        var tool = CreateToolWithInputSchema(inputSchemaJson, toolProperty);
+
+        // Act
+        var schema = tool.GetPropertiesInputSchema();
+
+        // Assert - Should use input schema, not tool properties
+        Assert.Equal("object", schema.GetProperty("type").GetString());
+        
+        var properties = schema.GetProperty("properties");
+        Assert.True(properties.TryGetProperty("schemaProperty", out var schemaProp));
+        Assert.Equal("string", schemaProp.GetProperty("type").GetString());
+        Assert.Equal("Property from schema", schemaProp.GetProperty("description").GetString());
+
+        Assert.True(properties.TryGetProperty("anotherSchemaProperty", out var anotherSchemaProp));
+        Assert.Equal("number", anotherSchemaProp.GetProperty("type").GetString());
+        Assert.Equal("Another property from schema", anotherSchemaProp.GetProperty("description").GetString());
+
+        // Should NOT contain tool properties
+        Assert.False(properties.TryGetProperty("toolProperty", out var _));
+
+        // Required array should come from input schema
+        var required = schema.GetProperty("required").EnumerateArray().Select(e => e.GetString()).ToArray();
+        Assert.Single(required);
+        Assert.Contains("schemaProperty", required);
+        Assert.DoesNotContain("toolProperty", required);
+    }
+
+    [Fact]
+    public void GetPropertiesInputSchema_UsesInputSchema_WithArrayProperties()
+    {
+        // Arrange - Create an input schema with array properties
+        var inputSchemaJson = """
+            {
+                "type": "object",
+                "properties": {
+                    "arrayProp": {
+                        "type": "array",
+                        "description": "Array property from schema",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "scalarProp": {
+                        "type": "boolean",
+                        "description": "Scalar property from schema"
+                    }
+                },
+                "required": ["arrayProp", "scalarProp"]
+            }
+            """;
+
+        var tool = CreateToolWithInputSchema(inputSchemaJson);
+
+        // Act
+        var schema = tool.GetPropertiesInputSchema();
+
+        // Assert
+        var properties = schema.GetProperty("properties");
+        
+        Assert.True(properties.TryGetProperty("arrayProp", out var arrayProp));
+        Assert.Equal("array", arrayProp.GetProperty("type").GetString());
+        Assert.Equal("Array property from schema", arrayProp.GetProperty("description").GetString());
+        Assert.True(arrayProp.TryGetProperty("items", out var items));
+        Assert.Equal("string", items.GetProperty("type").GetString());
+
+        Assert.True(properties.TryGetProperty("scalarProp", out var scalarProp));
+        Assert.Equal("boolean", scalarProp.GetProperty("type").GetString());
+        Assert.Equal("Scalar property from schema", scalarProp.GetProperty("description").GetString());
+
+        var required = schema.GetProperty("required").EnumerateArray().Select(e => e.GetString()).ToArray();
+        Assert.Equal(2, required.Length);
+        Assert.Contains("arrayProp", required);
+        Assert.Contains("scalarProp", required);
+    }
+
+    [Fact]
+    public void GetPropertiesInputSchema_UsesInputSchema_WithEmptyRequired()
+    {
+        // Arrange - Create an input schema with no required properties
+        var inputSchemaJson = """
+            {
+                "type": "object",
+                "properties": {
+                    "optionalProp": {
+                        "type": "string",
+                        "description": "Optional property"
+                    }
+                },
+                "required": []
+            }
+            """;
+
+        // Create a tool property that would be required if input schema wasn't present
+        var requiredToolProperty = CreateProperty("requiredToolProp", "number", "Required tool property", required: true);
+        var tool = CreateToolWithInputSchema(inputSchemaJson, requiredToolProperty);
+
+        // Act
+        var schema = tool.GetPropertiesInputSchema();
+
+        // Assert - Should use input schema with empty required array
+        var properties = schema.GetProperty("properties");
+        Assert.True(properties.TryGetProperty("optionalProp", out var _));
+        Assert.False(properties.TryGetProperty("requiredToolProp", out var _));
+
+        var required = schema.GetProperty("required").EnumerateArray().Select(e => e.GetString()).ToArray();
+        Assert.Empty(required);
+    }
+
+    [Fact]
+    public void GetPropertiesInputSchema_FallsBackToProperties_WhenInputSchemaIsDefault()
+    {
+        // Arrange - Create tool with default input schema but with tool properties
+        var toolProperty = CreateProperty("toolProp", "string", "Tool property", required: true);
+        var tool = CreateToolWithInputSchema(null, toolProperty);
+
+        // Act
+        var schema = tool.GetPropertiesInputSchema();
+
+        // Assert - Should fall back to tool properties
+        var properties = schema.GetProperty("properties");
+        Assert.True(properties.TryGetProperty("toolProp", out var prop));
+        Assert.Equal("string", prop.GetProperty("type").GetString());
+        Assert.Equal("Tool property", prop.GetProperty("description").GetString());
+
+        var required = schema.GetProperty("required").EnumerateArray().Select(e => e.GetString()).ToArray();
+        Assert.Single(required);
+        Assert.Contains("toolProp", required);
     }
 
     [Fact]
@@ -351,5 +533,10 @@ public class McpToolExtensionsTests
         var required = schema.GetProperty("required").EnumerateArray().Select(e => e.GetString()).ToArray();
         Assert.Single(required);
         Assert.Contains("jobType", required);
+    }
+
+    protected virtual void Dispose(bool disposing)
+    {
+        // Cleanup for any disposable resources if needed
     }
 }

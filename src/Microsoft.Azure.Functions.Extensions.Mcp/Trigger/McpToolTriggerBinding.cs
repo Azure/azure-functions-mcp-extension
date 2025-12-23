@@ -1,15 +1,16 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-using System.Reflection;
-using System.Text.Json;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Azure.Functions.Extensions.Mcp.Abstractions;
 using Microsoft.Azure.Functions.Extensions.Mcp.Serialization;
+using Microsoft.Azure.Functions.Extensions.Mcp.Validation;
 using Microsoft.Azure.WebJobs.Host.Bindings;
 using Microsoft.Azure.WebJobs.Host.Listeners;
 using Microsoft.Azure.WebJobs.Host.Protocols;
 using Microsoft.Azure.WebJobs.Host.Triggers;
+using System.Reflection;
+using System.Text.Json;
 
 namespace Microsoft.Azure.Functions.Extensions.Mcp;
 
@@ -132,15 +133,67 @@ internal sealed class McpToolTriggerBinding : ITriggerBinding
 
     public Task<IListener> CreateListenerAsync(ListenerFactoryContext context)
     {
-        var toolProperties = GetProperties(_toolAttribute, _triggerParameter);
-
-        var listener = new McpToolListener(context.Executor, context.Descriptor.ShortName, _toolAttribute.ToolName, _toolAttribute.Description, toolProperties);
+        ToolInputSchema inputSchema = CreateToolInputSchema();
+        
+        var listener = new McpToolListener(context.Executor, context.Descriptor.ShortName,
+            _toolAttribute.ToolName, _toolAttribute.Description, inputSchema);
 
         _toolRegistry.Register(listener);
 
         return Task.FromResult<IListener>(listener);
     }
 
+    /// <summary>
+    /// Creates the appropriate tool input schema handler based on the tool attribute configuration.
+    /// </summary>
+    /// <returns>A ToolInputSchema instance.</returns>
+    private ToolInputSchema CreateToolInputSchema()
+    {
+        if (_toolAttribute.UseWorkerInputSchema)
+        {
+            var inputSchema = GetInputSchema(_toolAttribute);
+            if (inputSchema is null)
+            {
+                throw new InvalidOperationException(
+                   $"InputSchema is null or invalid. ");
+            }
+            return new JsonSchemaToolInputSchema(inputSchema);
+        }
+        else
+        {
+            var toolProperties = GetProperties(_toolAttribute, _triggerParameter);
+            return new PropertyBasedToolInputSchema(toolProperties);
+        }
+    }
+
+    internal static JsonDocument? GetInputSchema(McpToolTriggerAttribute attribute)
+    {
+        if (string.IsNullOrEmpty(attribute.InputSchema))
+        {
+            return null;
+        }
+
+        var doc = JsonDocument.Parse(attribute.InputSchema);
+        try
+        {
+            // Validate that the parsed schema is a valid MCP tool input schema
+            if (!McpInputSchemaJsonUtilities.IsValidMcpToolSchema(doc))
+            {
+                doc.Dispose();
+                throw new ArgumentException(
+                    "The specified document is not a valid MCP tool input JSON schema.",
+                    nameof(attribute.InputSchema));
+            }
+
+            return doc;
+        }
+        catch (JsonException ex)
+        {
+            doc?.Dispose();
+            throw new InvalidOperationException(
+                $"Failed to parse InputSchema for tool '{attribute.ToolName}'. Schema must be valid JSON.", ex);
+        }
+    }
 
     private static List<IMcpToolProperty> GetProperties(McpToolTriggerAttribute attribute, ParameterInfo triggerParameter)
     {

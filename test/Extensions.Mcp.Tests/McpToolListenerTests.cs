@@ -1,17 +1,18 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
+using Microsoft.Azure.Functions.Extensions.Mcp.Validation;
 using Microsoft.Azure.WebJobs.Host.Executors;
 using ModelContextProtocol;
 using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 using Moq;
 using System.Text.Json;
-using Xunit;
 
 namespace Microsoft.Azure.Functions.Extensions.Mcp.Tests;
 public class McpToolListenerTests
 {
+
     private static IMcpToolProperty CreateProperty(string name, bool required)
     {
         var mock = new Mock<IMcpToolProperty>();
@@ -33,12 +34,19 @@ public class McpToolListenerTests
         };
     }
 
+    private static CallToolRequestParams CreateRequestParams(params (string key, JsonElement value)[] args)
+    {
+        var dict = args?.ToDictionary(x => x.key, x => x.value) ?? new Dictionary<string, JsonElement>();
+        return new CallToolRequestParams { Name = "testTool", Arguments = dict };
+    }
+
     [Fact]
     public async Task RunAsync_Throws_WhenRequiredPropertyMissing()
     {
         var executor = new Mock<ITriggeredFunctionExecutor>().Object;
         var properties = new[] { CreateProperty("foo", true) };
-        var listener = new McpToolListener(executor, "func", "tool", null, properties);
+        var inputSchema = new PropertyBasedToolInputSchema(properties);
+        var listener = new McpToolListener(executor, "func", "tool", null, inputSchema);
 
         var request = CreateRequest(); // No arguments
 
@@ -53,7 +61,8 @@ public class McpToolListenerTests
     {
         var executor = new Mock<ITriggeredFunctionExecutor>().Object;
         var properties = new[] { CreateProperty("foo", true) };
-        var listener = new McpToolListener(executor, "func", "tool", null, properties);
+        var inputSchema = new PropertyBasedToolInputSchema(properties);
+        var listener = new McpToolListener(executor, "func", "tool", null, inputSchema);
 
         var request = CreateRequest(("foo", JsonDocument.Parse("null").RootElement));
 
@@ -63,115 +72,366 @@ public class McpToolListenerTests
     }
 
     [Fact]
-    public void ValidateArgumentsHaveRequiredProperties_Throws_WhenRequiredPropertyMissing()
+    public void PropertyBasedValidator_Throws_WhenRequiredPropertyMissing()
     {
         var properties = new[] { CreateProperty("foo", true) };
-        var request = CreateRequest(); // No arguments
+        var inputSchema = new PropertyBasedToolInputSchema(properties);
+        var request = CreateRequestParams(); // No arguments
 
-        var ex = Assert.Throws<McpProtocolException>(() =>
-            McpToolListener.ValidateArgumentsHaveRequiredProperties(properties, request.Params));
+        var ex = Assert.Throws<McpProtocolException>(() => inputSchema.Validate(request));
         Assert.Contains("One or more required tool properties are missing values. Please provide: foo", ex.Message);
         Assert.Equal(McpErrorCode.InvalidParams, ex.ErrorCode);
     }
 
     [Fact]
-    public void ValidateArgumentsHaveRequiredProperties_Throws_WhenRequiredPropertyIsNull()
+    public void PropertyBasedValidator_Throws_WhenRequiredPropertyIsNull()
     {
         var properties = new[] { CreateProperty("foo", true) };
-        var request = CreateRequest(("foo", JsonDocument.Parse("null").RootElement));
+        var inputSchema = new PropertyBasedToolInputSchema(properties);
+        var request = CreateRequestParams(("foo", JsonDocument.Parse("null").RootElement));
 
-        var ex = Assert.Throws<McpProtocolException>(() =>
-            McpToolListener.ValidateArgumentsHaveRequiredProperties(properties, request.Params));
+        var ex = Assert.Throws<McpProtocolException>(() => inputSchema.Validate(request));
         Assert.Contains("One or more required tool properties are missing values. Please provide: foo", ex.Message);
     }
 
     [Fact]
-    public void ValidateArgumentsHaveRequiredProperties_Throws_WhenRequiredPropertyIsEmptyString()
+    public void PropertyBasedValidator_DoesNotThrow_WhenRequiredPropertyIsEmptyString()
     {
         var properties = new[] { CreateProperty("foo", true) };
-        var request = CreateRequest(("foo", JsonDocument.Parse("\"\"").RootElement));
+        var inputSchema = new PropertyBasedToolInputSchema(properties);
+        var request = CreateRequestParams(("foo", JsonDocument.Parse("\"\"").RootElement));
 
-        var ex = Record.Exception(() =>
-            McpToolListener.ValidateArgumentsHaveRequiredProperties(properties, request.Params));
+        var ex = Record.Exception(() => inputSchema.Validate(request));
         Assert.Null(ex);
     }
 
     [Fact]
-    public void ValidateArgumentsHaveRequiredProperties_DoesNotThrow_WhenRequiredPropertyPresentAndValid()
+    public void PropertyBasedValidator_DoesNotThrow_WhenRequiredPropertyPresentAndValid()
     {
         var properties = new[] { CreateProperty("foo", true) };
-        var request = CreateRequest(("foo", JsonDocument.Parse("\"bar\"").RootElement));
+        var inputSchema = new PropertyBasedToolInputSchema(properties);
+        var request = CreateRequestParams(("foo", JsonDocument.Parse("\"bar\"").RootElement));
 
-        var ex = Record.Exception(() =>
-            McpToolListener.ValidateArgumentsHaveRequiredProperties(properties, request.Params));
+        var ex = Record.Exception(() => inputSchema.Validate(request));
         Assert.Null(ex);
     }
 
     [Fact]
-    public void ValidateArgumentsHaveRequiredProperties_Throws_WhenRequiredPropertyIsEmptyArray()
+    public void PropertyBasedValidator_DoesNotThrow_WhenRequiredPropertyIsEmptyArray()
     {
         var properties = new[] { CreateProperty("foo", true) };
-        var request = CreateRequest(("foo", JsonDocument.Parse("[]").RootElement));
+        var inputSchema = new PropertyBasedToolInputSchema(properties);
+        var request = CreateRequestParams(("foo", JsonDocument.Parse("[]").RootElement));
 
-        var ex = Record.Exception(() =>
-            McpToolListener.ValidateArgumentsHaveRequiredProperties(properties, request.Params));
+        var ex = Record.Exception(() => inputSchema.Validate(request));
         Assert.Null(ex);
     }
 
     [Fact]
-    public void ValidateArgumentsHaveRequiredProperties_DoesNotThrow_WhenRequiredPropertyIsNonEmptyArray()
+    public void PropertyBasedValidator_DoesNotThrow_WhenRequiredPropertyIsNonEmptyArray()
     {
         var properties = new[] { CreateProperty("foo", true) };
-        var request = CreateRequest(("foo", JsonDocument.Parse("[1]").RootElement));
+        var inputSchema = new PropertyBasedToolInputSchema(properties);
+        var request = CreateRequestParams(("foo", JsonDocument.Parse("[1]").RootElement));
 
-        var ex = Record.Exception(() =>
-            McpToolListener.ValidateArgumentsHaveRequiredProperties(properties, request.Params));
+        var ex = Record.Exception(() => inputSchema.Validate(request));
         Assert.Null(ex);
     }
 
     [Fact]
-    public void ValidateArgumentsHaveRequiredProperties_Throws_WhenRequiredPropertyIsEmptyObject()
+    public void PropertyBasedValidator_DoesNotThrow_WhenRequiredPropertyIsEmptyObject()
     {
         var properties = new[] { CreateProperty("foo", true) };
-        var request = CreateRequest(("foo", JsonDocument.Parse("{}").RootElement));
+        var inputSchema = new PropertyBasedToolInputSchema(properties);
+        var request = CreateRequestParams(("foo", JsonDocument.Parse("{}").RootElement));
 
-        var ex = Record.Exception(() =>
-            McpToolListener.ValidateArgumentsHaveRequiredProperties(properties, request.Params));
+        var ex = Record.Exception(() => inputSchema.Validate(request));
         Assert.Null(ex);
     }
 
     [Fact]
-    public void ValidateArgumentsHaveRequiredProperties_DoesNotThrow_WhenRequiredPropertyIsNonEmptyObject()
+    public void PropertyBasedValidator_DoesNotThrow_WhenRequiredPropertyIsNonEmptyObject()
     {
         var properties = new[] { CreateProperty("foo", true) };
-        var request = CreateRequest(("foo", JsonDocument.Parse("{\"bar\":1}").RootElement));
+        var inputSchema = new PropertyBasedToolInputSchema(properties);
+        var request = CreateRequestParams(("foo", JsonDocument.Parse("{\"bar\":1}").RootElement));
 
-        var ex = Record.Exception(() =>
-            McpToolListener.ValidateArgumentsHaveRequiredProperties(properties, request.Params));
+        var ex = Record.Exception(() => inputSchema.Validate(request));
         Assert.Null(ex);
     }
 
     [Fact]
-    public void ValidateArgumentsHaveRequiredProperties_DoesNotThrow_WhenRequiredPropertyIsNumber()
+    public void PropertyBasedValidator_DoesNotThrow_WhenRequiredPropertyIsNumber()
     {
         var properties = new[] { CreateProperty("foo", true) };
-        var request = CreateRequest(("foo", JsonDocument.Parse("123").RootElement));
+        var inputSchema = new PropertyBasedToolInputSchema(properties);
+        var request = CreateRequestParams(("foo", JsonDocument.Parse("123").RootElement));
 
-        var ex = Record.Exception(() =>
-            McpToolListener.ValidateArgumentsHaveRequiredProperties(properties, request.Params));
+        var ex = Record.Exception(() => inputSchema.Validate(request));
         Assert.Null(ex);
     }
 
     [Theory]
     [InlineData("true")]
     [InlineData("false")]
-    public void ValidateArgumentsHaveRequiredProperties_DoesNotThrow_WhenRequiredPropertyIsBoolean(string boolValue)
+    public void PropertyBasedValidator_DoesNotThrow_WhenRequiredPropertyIsBoolean(string boolValue)
     {
         var properties = new[] { CreateProperty("foo", true) };
-        var request = CreateRequest(("foo", JsonDocument.Parse(boolValue).RootElement));
+        var inputSchema = new PropertyBasedToolInputSchema(properties);
+        var request = CreateRequestParams(("foo", JsonDocument.Parse(boolValue).RootElement));
 
-        var ex = Record.Exception(() =>
-            McpToolListener.ValidateArgumentsHaveRequiredProperties(properties, request.Params));
+        var ex = Record.Exception(() => inputSchema.Validate(request));
         Assert.Null(ex);
+    }
+
+    [Fact]
+    public void JsonSchemaValidator_UsesInputSchema_WhenAvailable()
+    {
+        // Test JsonSchemaValidator with input schema
+        var inputSchemaJson = """
+            {
+                "type": "object",
+                "required": ["propFromSchema"]
+            }
+            """;
+        var jsonDoc = JsonDocument.Parse(inputSchemaJson);
+        var inputSchema = new JsonSchemaToolInputSchema(jsonDoc);
+        var request = CreateRequestParams(); // No arguments
+
+        var ex = Assert.Throws<McpProtocolException>(() => inputSchema.Validate(request));
+        
+        // Should use schema's required properties
+        Assert.Contains("One or more required tool properties are missing values. Please provide: propFromSchema", ex.Message);
+        Assert.Equal(McpErrorCode.InvalidParams, ex.ErrorCode);
+    }
+
+    [Fact]
+    public void PropertyBasedValidator_FallsBackToProperties_WhenNoSchema()
+    {
+        // Test PropertyBasedValidator
+        var properties = new[] { CreateProperty("propFromProperty", true) };
+        var inputSchema = new PropertyBasedToolInputSchema(properties);
+        var request = CreateRequestParams(); // No arguments
+
+        var ex = Assert.Throws<McpProtocolException>(() => inputSchema.Validate(request));
+        
+        // Should use properties
+        Assert.Contains("One or more required tool properties are missing values. Please provide: propFromProperty", ex.Message);
+        Assert.Equal(McpErrorCode.InvalidParams, ex.ErrorCode);
+    }
+
+    [Fact]
+    public void JsonSchemaValidator_DoesNotThrow_WhenSchemaRequiredPropertyPresent()
+    {
+        // Test JsonSchemaValidator when required property is present
+        var inputSchemaJson = """
+            {
+                "type": "object",
+                "required": ["propFromSchema"]
+            }
+            """;
+        var jsonDoc = JsonDocument.Parse(inputSchemaJson);
+        var inputSchema = new JsonSchemaToolInputSchema(jsonDoc);
+        var request = CreateRequestParams(("propFromSchema", JsonDocument.Parse("\"value\"").RootElement));
+
+        var ex = Record.Exception(() => inputSchema.Validate(request));
+        
+        Assert.Null(ex);
+    }
+
+    [Fact]
+    public void JsonSchemaValidator_DoesNotThrow_WhenNoRequiredPropertiesInSchema()
+    {
+        // Test JsonSchemaValidator with empty required array
+        var inputSchemaJson = """
+            {
+                "type": "object",
+                "required": []
+            }
+            """;
+        var jsonDoc = JsonDocument.Parse(inputSchemaJson);
+        var inputSchema = new JsonSchemaToolInputSchema(jsonDoc);
+        var request = CreateRequestParams(); // No arguments
+
+        var ex = Record.Exception(() => inputSchema.Validate(request));
+        
+        Assert.Null(ex);
+    }
+
+    [Fact]
+    public void JsonSchemaValidator_IgnoresToolProperties_WhenInputSchemaProvided()
+    {
+        // This test demonstrates that JsonSchemaValidator only uses schema properties
+        var inputSchemaJson = """
+            {
+                "type": "object",
+                "required": ["schemaProp1", "schemaProp2"]
+            }
+            """;
+        var jsonDoc = JsonDocument.Parse(inputSchemaJson);
+        var inputSchema = new JsonSchemaToolInputSchema(jsonDoc);
+        
+        // Provide arguments that would satisfy tool properties but not schema properties
+        var request = CreateRequestParams(
+            ("toolProp1", JsonDocument.Parse("\"value1\"").RootElement),
+            ("toolProp2", JsonDocument.Parse("\"value2\"").RootElement));
+
+        // Act & Assert - Should validate against input schema only
+        var ex = Assert.Throws<McpProtocolException>(() => inputSchema.Validate(request));
+        
+        // Should complain about missing schema properties
+        Assert.Contains("schemaProp1", ex.Message);
+        Assert.Contains("schemaProp2", ex.Message);
+    }
+
+    [Fact]
+    public void JsonSchemaValidator_ValidatesCorrectly_WhenOnlyInputSchemaUsed()
+    {
+        // Test JsonSchemaValidator best practice
+        var inputSchemaJson = """
+            {
+                "type": "object",
+                "required": ["actualRequiredProp"]
+            }
+            """;
+        var jsonDoc = JsonDocument.Parse(inputSchemaJson);
+        var inputSchema = new JsonSchemaToolInputSchema(jsonDoc);
+        var request = CreateRequestParams(("actualRequiredProp", JsonDocument.Parse("\"correctValue\"").RootElement));
+
+        // Act & Assert - Should validate successfully using only input schema
+        var ex = Record.Exception(() => inputSchema.Validate(request));
+        
+        Assert.Null(ex); // Should not throw because input schema's required property is provided
+    }
+
+    [Fact]
+    public void McpToolListener_Constructor_WorksWithPropertyBasedValidator()
+    {
+        var executor = new Mock<ITriggeredFunctionExecutor>().Object;
+        
+        // Test with tool properties validator
+        var propertiesOnly = new[] { CreateProperty("prop1", true) };
+        var inputSchema = new PropertyBasedToolInputSchema(propertiesOnly);
+        var listener = new McpToolListener(executor, "func", "tool", null, inputSchema);
+        
+        Assert.NotNull(listener.ToolInputSchema);
+        
+        // Verify the schema can generate a proper JsonElement
+        var schemaElement = listener.ToolInputSchema.GetSchemaElement();
+        Assert.Equal("object", schemaElement.GetProperty("type").GetString());
+        Assert.True(schemaElement.TryGetProperty("properties", out var properties));
+        Assert.True(properties.TryGetProperty("prop1", out var _));
+    }
+
+    [Fact]
+    public void McpToolListener_Constructor_WorksWithJsonSchemaValidator()
+    {
+        var executor = new Mock<ITriggeredFunctionExecutor>().Object;
+        
+        // Test with input schema validator
+        var inputSchemaJson = """
+            {
+                "type": "object",
+                "properties": {
+                    "prop1": {
+                        "type": "string"
+                    }
+                },
+                "required": ["prop1"]
+            }
+            """;
+        var jsonDoc = JsonDocument.Parse(inputSchemaJson);
+        var inputSchema = new JsonSchemaToolInputSchema(jsonDoc);
+        var listener = new McpToolListener(executor, "func", "tool", null, inputSchema);
+        
+        Assert.NotNull(listener.ToolInputSchema);
+        
+        // Verify the schema can generate a proper JsonElement
+        var schemaElement = listener.ToolInputSchema.GetSchemaElement();
+        Assert.Equal("object", schemaElement.GetProperty("type").GetString());
+        Assert.True(schemaElement.TryGetProperty("properties", out var properties));
+        Assert.True(properties.TryGetProperty("prop1", out var prop1));
+        Assert.Equal("string", prop1.GetProperty("type").GetString());
+        
+        var required = schemaElement.GetProperty("required");
+        Assert.Single(required.EnumerateArray());
+        Assert.Equal("prop1", required[0].GetString());
+    }
+
+    [Fact]
+    public void Validators_WorkCorrectlyForBothPatterns()
+    {
+        // Test that both validator types work correctly
+        var emptyRequest = CreateRequestParams();
+
+        // Traditional approach validation
+        var toolPropertiesOnly = new[] { CreateProperty("traditionalProp", true) };
+        var propertyInputSchema = new PropertyBasedToolInputSchema(toolPropertiesOnly);
+        var traditionalEx = Assert.Throws<McpProtocolException>(() => propertyInputSchema.Validate(emptyRequest));
+        Assert.Contains("traditionalProp", traditionalEx.Message);
+
+        // Modern approach validation  
+        var inputSchemaJson = """
+            {
+                "type": "object",
+                "properties": {
+                    "modernProp": {
+                        "type": "string",
+                        "description": "Modern property"
+                    }
+                },
+                "required": ["modernProp"]
+            }
+            """;
+        var jsonDoc = JsonDocument.Parse(inputSchemaJson);
+        var jsonInputSchema = new JsonSchemaToolInputSchema(jsonDoc);
+        var modernEx = Assert.Throws<McpProtocolException>(() => jsonInputSchema.Validate(emptyRequest));
+        Assert.Contains("modernProp", modernEx.Message);
+    }
+
+    [Fact]
+    public async Task RunAsync_WithJsonSchemaValidator_ThrowsWhenRequiredPropertyMissing()
+    {
+        // Arrange
+        var executor = new Mock<ITriggeredFunctionExecutor>().Object;
+        var schemaJson = """
+            {
+                "type": "object",
+                "required": ["schemaRequiredProp"]
+            }
+            """;
+        var jsonDoc = JsonDocument.Parse(schemaJson);
+        var inputSchema = new JsonSchemaToolInputSchema(jsonDoc);
+        var listener = new McpToolListener(executor, "func", "tool", null, inputSchema);
+
+        var request = CreateRequest(); // No arguments
+
+        // Act & Assert
+        var ex = await Assert.ThrowsAsync<McpProtocolException>(() =>
+            listener.RunAsync(request, CancellationToken.None));
+        Assert.Contains("schemaRequiredProp", ex.Message);
+        Assert.Equal(McpErrorCode.InvalidParams, ex.ErrorCode);
+    }
+
+    [Fact]
+    public void RunAsync_WithJsonSchemaValidator_DoesNotThrowWhenRequiredPropertyPresent()
+    {
+        // Arrange
+        var executor = new Mock<ITriggeredFunctionExecutor>().Object;
+        var schemaJson = """
+            {
+                "type": "object",
+                "required": ["schemaRequiredProp"]
+            }
+            """;
+        var jsonDoc = JsonDocument.Parse(schemaJson);
+        var inputSchema = new JsonSchemaToolInputSchema(jsonDoc);
+        var listener = new McpToolListener(executor, "func", "tool", null, inputSchema);
+
+        var request = CreateRequestParams(("schemaRequiredProp", JsonDocument.Parse("\"value\"").RootElement));
+
+        var ex = Record.Exception(() => inputSchema.Validate(request));
+
+        Assert.Null(ex); // Should not throw because input schema's required property is provided
     }
 }
