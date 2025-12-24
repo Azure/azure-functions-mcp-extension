@@ -3,6 +3,7 @@
 
 using System.Collections.ObjectModel;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using Microsoft.Azure.Functions.Extensions.Mcp.Serialization;
 using Microsoft.Azure.WebJobs.Host.Bindings;
 using ModelContextProtocol;
@@ -33,6 +34,7 @@ internal sealed class ToolReturnValueBinder(CallToolExecutionContext executionCo
         try
         {
             IList<ContentBlock> contentBlocks = DeserializeToContentBlockCollection(result);
+            JsonNode? structuredContent = DeserializeToStructuredContent(result);
 
             if (contentBlocks.Count == 0)
             {
@@ -41,7 +43,8 @@ internal sealed class ToolReturnValueBinder(CallToolExecutionContext executionCo
 
             executionContext.SetResult(new CallToolResult
             {
-                Content = contentBlocks
+                Content = contentBlocks,
+                StructuredContent = structuredContent
             });
         }
         catch (JsonException ex)
@@ -72,5 +75,17 @@ internal sealed class ToolReturnValueBinder(CallToolExecutionContext executionCo
             ?? throw new InvalidOperationException($"Failed to deserialize content block type '{result.Type}'.");
 
         return [contentBlock];
+    }
+
+    private static JsonNode? DeserializeToStructuredContent(McpToolResult result)
+    {
+        JsonNode? node = null;
+        if (!string.IsNullOrEmpty(result.StructuredContent))
+        {
+            node = JsonSerializer.Deserialize<JsonNode>(result.StructuredContent!, McpJsonUtilities.DefaultOptions);
+
+        }
+
+        return node;
     }
 }
