@@ -45,7 +45,12 @@ internal class FunctionsMcpToolResultMiddleware : IFunctionsWorkerMiddleware
             return;
         }
 
-        var (type, content) = functionResult switch
+        string type;
+        string? content;
+        string? structuredContent = null;
+
+        // Determine type, content, and structured content based on the function result
+        switch (functionResult)
         {
             case ContentBlock block:
                 type = block.Type;
@@ -60,7 +65,7 @@ internal class FunctionsMcpToolResultMiddleware : IFunctionsWorkerMiddleware
             default:
                 // For other types, check if they have structured content properties
                 structuredContent = TryExtractStructuredContentFromObject(functionResult);
-                
+
                 type = Constants.TextContextResult;
                 content = JsonSerializer.Serialize(new TextContentBlock
                 {
@@ -69,9 +74,9 @@ internal class FunctionsMcpToolResultMiddleware : IFunctionsWorkerMiddleware
                 break;
         }
 
-        var mcpToolResult = new McpToolResult 
-        { 
-            Type = type, 
+        var mcpToolResult = new McpToolResult
+        {
+            Type = type,
             Content = content,
             StructuredContent = structuredContent
         };
