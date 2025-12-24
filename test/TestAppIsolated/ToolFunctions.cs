@@ -1,10 +1,11 @@
-using System.Collections;
-using System.ComponentModel;
-using System.Globalization;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Extensions.Mcp;
 using Microsoft.Extensions.Logging;
 using ModelContextProtocol.Protocol;
+using System.Collections;
+using System.ComponentModel;
+using System.Globalization;
+using System.Text.Json.Nodes;
 using static TestAppIsolated.ToolsInformation;
 
 namespace TestAppIsolated;
@@ -18,6 +19,7 @@ public class TestFunction
         _logger = logger;
     }
 
+    /*
     [Function(nameof(HappyFunction))]
     public string HappyFunction(
         [McpToolTrigger(nameof(HappyFunction), "Responds to the user with a hello message.")] ToolInvocationContext context,
@@ -115,6 +117,18 @@ public class TestFunction
         return SnippetsCache.Snippets
             .Where(kvp => kvp.Key.Contains(searchRequest.Pattern, comparisonType))
             .ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+    }
+    */
+
+    public CallToolResult GetSnippet(
+    [McpToolTrigger("name", "desc")] ToolInvocationContext context)
+    {
+        var callToolResult = new CallToolResult
+        {
+            Content = new List<ContentBlock> { new ImageContentBlock { Data = "example data", MimeType = "image/jpeg" } },
+            StructuredContent = JsonNode.Parse("{\"key\":\"value\"}")
+        };
+        return callToolResult;
     }
 
     public class Snippet
