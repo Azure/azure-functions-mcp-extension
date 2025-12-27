@@ -34,4 +34,11 @@ public sealed class McpToolTriggerAttribute(string toolName, string? description
     /// When set to false (default), the extension generates the schema from the function parameters or <see cref="ToolProperties"/>.
     /// </summary>
     public bool UseWorkerInputSchema { get; set; } = false;
+
+    /// <summary>
+    /// Gets or sets the MCP tool output schema as a JSON string.
+    /// This is provided by the worker when the function uses [McpOutput(typeof(T))] attribute.
+    /// The schema of JSON string must be a valid JSON Schema object with type "object".
+    /// </summary>
+    public string? OutputSchema { get; set; }
 }

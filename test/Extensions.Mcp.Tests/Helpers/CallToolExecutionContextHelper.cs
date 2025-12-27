@@ -29,7 +29,7 @@ public static class CallToolExecutionContextHelper
         var requestParams = new CallToolRequestParams
         {
             Name = toolName,
-            Arguments = args
+            Arguments = (IDictionary<string, JsonElement>)args
         };
 
         var services = new ServiceCollection();

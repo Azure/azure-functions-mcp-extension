@@ -16,5 +16,7 @@ internal interface IMcpTool
 
     public ToolInputSchema ToolInputSchema { get; }
 
+    public JsonElement? OutputSchema { get; }
+
     Task<CallToolResult> RunAsync(RequestContext<CallToolRequestParams> callToolRequest, CancellationToken cancellationToken);
 }

@@ -10,6 +10,7 @@ using System.Text.RegularExpressions;
 using Microsoft.Azure.Functions.Worker.Builder;
 using Microsoft.Azure.Functions.Worker.Core.FunctionMetadata;
 using Microsoft.Azure.Functions.Worker.Extensions.Mcp.Reflection;
+using Microsoft.Azure.Functions.Worker.Extensions.Mcp.Schema;
 using Microsoft.Extensions.Options;
 using static Microsoft.Azure.Functions.Worker.Extensions.Mcp.Constants;
 
@@ -64,8 +65,42 @@ public sealed partial class McpFunctionMetadataTransformer(IOptionsMonitor<ToolO
                 }
             }
 
+            // Try to add output schema if McpOutputAttribute is present
+            TryAddOutputSchema(function);
+
             // This is required for attributed properties/input bindings:
             PatchInputBindingMetadata(function, inputBindingProperties, toolProperties);
+        }
+    }
+
+    private static void TryAddOutputSchema(IFunctionMetadata function)
+    {
+        var outputSchema = TryGenerateOutputSchema(function);
+        if (outputSchema is null)
+        {
+            return;
+        }
+
+        // Find the McpToolTrigger binding and add outputSchema to it
+        for (int i = 0; i < function.RawBindings!.Count; i++)
+        {
+            var binding = function.RawBindings[i];
+            var node = JsonNode.Parse(binding);
+
+            if (node is not JsonObject jsonObject
+                || !jsonObject.TryGetPropertyValue("type", out var bindingTypeNode))
+            {
+                continue;
+            }
+
+            var bindingType = bindingTypeNode?.ToString();
+
+            if (string.Equals(bindingType, McpToolTriggerBindingType, StringComparison.OrdinalIgnoreCase))
+            {
+                jsonObject["outputSchema"] = outputSchema;
+                function.RawBindings[i] = jsonObject.ToJsonString();
+                break;
+            }
         }
     }
 
@@ -219,6 +254,73 @@ public sealed partial class McpFunctionMetadataTransformer(IOptionsMonitor<ToolO
 
     [GeneratedRegex(@"^(?<typename>.*)\.(?<methodname>\S*)$")]
     private static partial Regex GetEntryPointRegex();
+
+    private static string? TryGenerateOutputSchema(IFunctionMetadata functionMetadata)
+    {
+        var match = GetEntryPointRegex().Match(functionMetadata.EntryPoint ?? string.Empty);
+        if (!match.Success)
+        {
+            return null;
+        }
+
+        var typeName = match.Groups["typename"].Value;
+        var methodName = match.Groups["methodname"].Value;
+
+        var scriptRoot = Environment.GetEnvironmentVariable(FunctionsApplicationDirectoryKey)
+                        ?? Environment.GetEnvironmentVariable(FunctionsWorkerDirectoryKey);
+
+        if (string.IsNullOrWhiteSpace(scriptRoot))
+        {
+            return null;
+        }
+
+        var scriptFile = Path.Combine(scriptRoot, functionMetadata.ScriptFile ?? string.Empty);
+        var assemblyPath = Path.GetFullPath(scriptFile);
+        var assembly = AssemblyLoadContext.Default.LoadFromAssemblyPath(assemblyPath);
+        var type = assembly.GetType(typeName);
+        var method = type?.GetMethod(methodName);
+
+        if (method is null)
+        {
+            return null;
+        }
+
+        // Check if the method has McpOutputAttribute
+        var outputAttribute = method.GetCustomAttribute<McpOutputAttribute>();
+        if (outputAttribute is null)
+        {
+            return null;
+        }
+
+        // Generate schema from the type specified in the attribute
+        return GenerateSchemaFromType(outputAttribute.OutputType);
+    }
+
+    private static string? GenerateSchemaFromType(Type schemaType)
+    {
+        if (!schemaType.IsPoco())
+        {
+            return null;
+        }
+
+        var properties = new List<ToolProperty>();
+        foreach (var property in schemaType.GetProperties(BindingFlags.Instance | BindingFlags.Public))
+        {
+            if (!property.CanRead || !property.CanWrite)
+            {
+                continue;
+            }
+
+            McpToolPropertyType propertyType = property.PropertyType.MapToToolPropertyType();
+
+            properties.Add(new(property.Name, propertyType.TypeName, property.GetDescription(),
+                               property.IsRequired(), propertyType.IsArray, propertyType.EnumValues));
+        }
+
+        return properties.Count > 0 
+            ? JsonSchemaGenerator.GenerateSchemaFromProperties(properties) 
+            : null;
+    }
 
     private record ToolPropertyBinding(int Index, JsonObject Binding);
 }

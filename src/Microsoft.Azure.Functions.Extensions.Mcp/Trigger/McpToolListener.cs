@@ -15,7 +15,8 @@ internal sealed class McpToolListener(ITriggeredFunctionExecutor executor,
                                       string functionName,
                                       string toolName,
                                       string? toolDescription,
-                                      ToolInputSchema requestHandler) : IListener, IMcpTool
+                                      ToolInputSchema requestHandler,
+                                      JsonElement? outputSchema = null) : IListener, IMcpTool
 {
     public ITriggeredFunctionExecutor Executor { get; } = executor;
 
@@ -26,6 +27,8 @@ internal sealed class McpToolListener(ITriggeredFunctionExecutor executor,
     public string? Description { get; set; } = toolDescription;
 
     public ToolInputSchema ToolInputSchema { get; } = requestHandler ?? throw new ArgumentNullException(nameof(requestHandler));
+
+    public JsonElement? OutputSchema { get; } = outputSchema;
 
     public void Dispose()
     {
