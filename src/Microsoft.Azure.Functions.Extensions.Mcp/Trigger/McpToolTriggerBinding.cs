@@ -195,33 +195,6 @@ internal sealed class McpToolTriggerBinding : ITriggerBinding
         }
     }
 
-    internal static JsonDocument? GetInputSchema(McpToolTriggerAttribute attribute)
-    {
-        if (string.IsNullOrEmpty(attribute.InputSchema))
-        {
-            return null;
-        }
-        try
-        {
-            // Validate that the parsed schema is a valid MCP tool input schema
-            if (!McpInputSchemaJsonUtilities.IsValidMcpToolSchema(doc))
-            {
-                doc.Dispose();
-                throw new ArgumentException(
-                    "The specified document is not a valid MCP tool input JSON schema.",
-                    nameof(attribute.InputSchema));
-            }
-
-            return doc;
-        }
-        catch (JsonException ex)
-        {
-            doc?.Dispose();
-            throw new InvalidOperationException(
-                $"Failed to parse InputSchema for tool '{attribute.ToolName}'. Schema must be valid JSON.", ex);
-        }
-    }
-
     private static List<IMcpToolProperty> GetProperties(McpToolTriggerAttribute attribute, ParameterInfo triggerParameter)
     {
         List<IMcpToolProperty>? toolProperties = null;
