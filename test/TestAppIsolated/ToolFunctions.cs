@@ -120,6 +120,9 @@ public class TestFunction
     }
     */
 
+    // Example: McpOutput indicates this function returns structured content
+    [Function(nameof(GetSnippet))]
+    [McpOutput(typeof(CallToolResult))]
     public CallToolResult GetSnippet(
     [McpToolTrigger("name", "desc")] ToolInvocationContext context)
     {
@@ -130,6 +133,26 @@ public class TestFunction
         };
         return callToolResult;
     }
+
+    public class UserInfo
+    {
+        public string Name { get; set; }
+        public int Age { get; set; }
+        public List<string> Hobbies { get; set; }
+    }
+
+    [Function(nameof(GetUserInfo))]
+    [McpOutput(typeof(UserInfo))]  // ← Schema type for structured content
+    public UserInfo GetUserInfo([McpToolTrigger("UserInfo", "desc")] ToolInvocationContext context)
+    {
+        return new UserInfo
+        {
+            Name = "Alice",
+            Age = 30,
+            Hobbies = new List<string> { "reading", "coding" }
+        };
+    }
+
 
     public class Snippet
     {

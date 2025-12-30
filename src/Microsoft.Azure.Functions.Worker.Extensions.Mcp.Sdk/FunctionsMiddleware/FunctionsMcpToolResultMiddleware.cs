@@ -1,7 +1,10 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the MIT License. See License.txt in the project root for license information.
 
+using System.Reflection;
+using System.Runtime.Loader;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using Microsoft.Azure.Functions.Worker.Extensions.Mcp.Sdk;
 using Microsoft.Azure.Functions.Worker.Middleware;
 using ModelContextProtocol;
@@ -45,32 +48,60 @@ internal class FunctionsMcpToolResultMiddleware : IFunctionsWorkerMiddleware
             return;
         }
 
-        string type;
-        string? content;
+        // Check if the function has [McpOutput] attribute
+        bool hasMcpOutputAttribute = HasMcpOutputAttribute(context);
         string? structuredContent = null;
+        string type;
+        string content;
 
-        // Determine type, content, and structured content based on the function result
+        // Handle different return types
         switch (functionResult)
         {
             case ContentBlock block:
                 type = block.Type;
                 content = JsonSerializer.Serialize(block, McpJsonUtilities.DefaultOptions);
+                
+                // If McpOutput is present, also serialize as structured content
+                if (hasMcpOutputAttribute)
+                {
+                    structuredContent = JsonSerializer.Serialize(functionResult);
+                }
                 break;
 
             case IList<ContentBlock> blocks:
                 type = Constants.MultiContentResult;
                 content = JsonSerializer.Serialize(blocks, McpJsonUtilities.DefaultOptions);
+                
+                // If McpOutput is present, also serialize as structured content
+                if (hasMcpOutputAttribute)
+                {
+                    structuredContent = JsonSerializer.Serialize(functionResult);
+                }
                 break;
 
             default:
-                // For other types, check if they have structured content properties
-                structuredContent = TryExtractStructuredContentFromObject(functionResult);
-
-                type = Constants.TextContextResult;
-                content = JsonSerializer.Serialize(new TextContentBlock
+                // For other types (POCOs, CallToolResult, etc.)
+                if (hasMcpOutputAttribute)
                 {
-                    Text = functionResult is string s ? s : JsonSerializer.Serialize(functionResult)
-                }, McpJsonUtilities.DefaultOptions);
+                    // Serialize the entire result as structured content
+                    structuredContent = JsonSerializer.Serialize(functionResult);
+                    
+                    // For backwards compatibility, also return the serialized JSON in a TextContent block
+                    type = Constants.TextContextResult;
+                    content = JsonSerializer.Serialize(new TextContentBlock
+                    {
+                        Text = structuredContent
+                    }, McpJsonUtilities.DefaultOptions);
+                }
+                else
+                {
+                    // Standard text content for non-McpOutput functions
+                    type = Constants.TextContextResult;
+                    content = JsonSerializer.Serialize(new TextContentBlock
+                    {
+                        Text = functionResult is string s ? s : JsonSerializer.Serialize(functionResult)
+                    }, McpJsonUtilities.DefaultOptions);
+                }
                 break;
         }
 
@@ -84,36 +115,63 @@ internal class FunctionsMcpToolResultMiddleware : IFunctionsWorkerMiddleware
         _resultAccessor.SetResult(context, JsonSerializer.Serialize(mcpToolResult, McpJsonContext.Default.McpToolResult));
     }
 
-    private static string? TryExtractStructuredContentFromObject(object obj)
+    private static readonly Regex _entryPointRegex = new Regex(@"^(?<typename>.+)\.(?<methodname>[^\.]+)$", RegexOptions.Compiled);
+    private const string FunctionsApplicationDirectoryKey = "FUNCTIONS_APPLICATION_DIRECTORY";
+    private const string FunctionsWorkerDirectoryKey = "AZUREFUNCTIONS_WORKER_DIRECTORY";
+    private const string McpOutputAttributeName = "Microsoft.Azure.Functions.Worker.Extensions.Mcp.McpOutputAttribute";
+
+    private static bool HasMcpOutputAttribute(FunctionContext context)
     {
-        // Try to extract structured content from objects with StructuredContent properties
-        var objType = obj.GetType();
-        var structuredContentProperty = objType.GetProperty("StructuredContent");
-        
-        if (structuredContentProperty != null)
+        try
         {
-            var structuredContentValue = structuredContentProperty.GetValue(obj);
-            if (structuredContentValue != null)
+            var entryPoint = context.FunctionDefinition.EntryPoint;
+            if (string.IsNullOrWhiteSpace(entryPoint))
             {
-                // Handle various types that might contain structured content
-                // Not sure if we need to handle this?
-                if (structuredContentValue is JsonElement jsonElement)
-                {
-                    return jsonElement.GetRawText();
-                }
-                else if (structuredContentValue is string stringValue)
-                {
-                    return stringValue;
-                }
-                else
-                {
-                    // Serialize the object as JSON
-                    return JsonSerializer.Serialize(structuredContentValue);
-                }
+                return false;
             }
+
+            var match = _entryPointRegex.Match(entryPoint);
+            if (!match.Success)
+            {
+                return false;
+            }
+
+            var typeName = match.Groups["typename"].Value;
+            var methodName = match.Groups["methodname"].Value;
+
+            var scriptRoot = Environment.GetEnvironmentVariable(FunctionsApplicationDirectoryKey)
+                            ?? Environment.GetEnvironmentVariable(FunctionsWorkerDirectoryKey);
+
+            if (string.IsNullOrWhiteSpace(scriptRoot))
+            {
+                return false;
+            }
+
+            var scriptFile = Path.Combine(scriptRoot, context.FunctionDefinition.PathToAssembly ?? string.Empty);
+            var assemblyPath = Path.GetFullPath(scriptFile);
+            var assembly = AssemblyLoadContext.Default.LoadFromAssemblyPath(assemblyPath);
+            var type = assembly.GetType(typeName);
+
+            if (type is null)
+            {
+                return false;
+            }
+
+            var method = type.GetMethod(methodName);
+            if (method is null)
+            {
+                return false;
+            }
+
+            // Check if the method has McpOutputAttribute
+            return method.GetCustomAttributes()
+                .Any(attr => attr.GetType().FullName == McpOutputAttributeName);
         }
-        
-        return null;
+        catch
+        {
+            // If reflection fails, assume no attribute
+            return false;
+        }
     }
 
     private static bool IsMcpToolInvocation(FunctionContext context)
