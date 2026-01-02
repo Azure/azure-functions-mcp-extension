@@ -281,8 +281,6 @@ public class InputSchemaBindingPatcherTests
         Assert.Equal("boolean", bindings[2].Binding[Constants.McpToolPropertyType]?.GetValue<string>());
     }
 
-    #region Helper Methods
-
     private static JsonNode CreateValidSchema()
     {
         return JsonNode.Parse("""
