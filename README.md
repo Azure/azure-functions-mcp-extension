@@ -1,6 +1,6 @@
 [![Build Status](https://azfunc.visualstudio.com/public/_apis/build/status%2Fazure%2Fazure-functions-mcp-extension%2Fmcp-extension.public?repoName=Azure%2Fazure-functions-mcp-extension&branchName=main)](https://azfunc.visualstudio.com/public/_build/latest?definitionId=1375&repoName=Azure%2Fazure-functions-mcp-extension&branchName=main)
 
-# Azure Functions MCP extension (Preview)
+# Azure Functions MCP extension
 
 This repository contains an extension of [Azure Functions](https://functions.azure.com) to enable support for [Model Context Protocol (MCP)](https://modelcontextprotocol.io/). Using this extension, an Azure Functions application can act as a scalable remote MCP server. The extension includes an MCP tool trigger to help you define tools that can be used by clients such as AI agents to perform defined tasks during their operation.
 
