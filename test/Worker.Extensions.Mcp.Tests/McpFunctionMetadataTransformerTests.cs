@@ -169,7 +169,7 @@ public class McpFunctionMetadataTransformerTests
     }
 
     [Fact]
-    public void Transform_InvalidEntryPoint_NoChange()
+    public void Transform_InvalidEntryPoint_Throws()
     {
         var options = new Mock<IOptionsMonitor<ToolOptions>>();
         options.Setup(o => o.Get(It.IsAny<string>())).Returns(new ToolOptions { Properties = [] });
@@ -182,16 +182,11 @@ public class McpFunctionMetadataTransformerTests
         var binding = fn.Object.RawBindings![0];
         var json = JsonNode.Parse(binding)!.AsObject();
 
-        // Should fall back to traditional approach when method resolution fails
-        Assert.True(json.ContainsKey("useWorkerInputSchema"));
-        Assert.False(json["useWorkerInputSchema"]!.GetValue<bool>());
-        Assert.True(json.ContainsKey("toolProperties"));
-        Assert.Equal("[]", json["toolProperties"]!.GetValue<string>());
-        Assert.False(json.ContainsKey("inputSchema"));
+        Assert.Equal("Failed to generate input schema for MCP tool trigger function 'func'.", exception.Message);
     }
 
     [Fact]
-    public void Transform_MethodNotFound_NoChange()
+    public void Transform_MethodNotFound_Throws()
     {
         var (entryPoint, scriptFile, outputDir) = GetFunctionMetadataInfo<TestFunctions>("NonExistent");
         Environment.SetEnvironmentVariable(FunctionsApplicationDirectoryKey, outputDir);
@@ -204,12 +199,7 @@ public class McpFunctionMetadataTransformerTests
             transformer.Transform([fn.Object]);
             var json = JsonNode.Parse(fn.Object.RawBindings![0])!.AsObject();
 
-        // Should fall back to traditional approach when method is not found
-        Assert.True(json.ContainsKey("useWorkerInputSchema"));
-        Assert.False(json["useWorkerInputSchema"]!.GetValue<bool>());
-        Assert.True(json.ContainsKey("toolProperties"));
-        Assert.Equal("[]", json["toolProperties"]!.GetValue<string>());
-        Assert.False(json.ContainsKey("inputSchema"));
+        Assert.Equal("Failed to generate input schema for MCP tool trigger function 'func'.", exception.Message);
     }
 
     [Fact]
@@ -228,12 +218,7 @@ public class McpFunctionMetadataTransformerTests
             transformer.Transform([fn.Object]);
             var json = JsonNode.Parse(fn.Object.RawBindings![0])!.AsObject();
 
-        // Should fall back to traditional approach when type is not found
-        Assert.True(json.ContainsKey("useWorkerInputSchema"));
-        Assert.False(json["useWorkerInputSchema"]!.GetValue<bool>());
-        Assert.True(json.ContainsKey("toolProperties"));
-        Assert.Equal("[]", json["toolProperties"]!.GetValue<string>());
-        Assert.False(json.ContainsKey("inputSchema"));
+        Assert.Equal("Failed to generate input schema for MCP tool trigger function 'func'.", exception.Message);
     }
 
     [Fact]
