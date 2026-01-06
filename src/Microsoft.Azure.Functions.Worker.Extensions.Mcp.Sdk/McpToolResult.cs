@@ -28,5 +28,4 @@ public class McpToolResult
     /// </summary>
     [JsonPropertyName("structuredContent")]
     public string? StructuredContent { get; set; }
-
 }

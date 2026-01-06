@@ -52,6 +52,45 @@ internal class FunctionsMcpToolResultMiddleware : IFunctionsWorkerMiddleware
         // Determine type, content, and structured content based on the function result
         switch (functionResult)
         {
+            case CallToolResult callToolResult:
+                // User returned CallToolResult directly - use it as-is but ensure TextContent backup exists
+                // if structured content is present (for backwards compatibility)
+                if (callToolResult.StructuredContent != null)
+                {
+                    structuredContent = callToolResult.StructuredContent.ToJsonString();
+                    
+                    // Ensure there's a TextContent block for backwards compatibility
+                    var hasTextContent = callToolResult.Content?.Any(c => c is TextContentBlock) ?? false;
+                    if (!hasTextContent)
+                    {
+                        throw new InvalidOperationException(
+                            "CallToolResult contains StructuredContent but no TextContent block. " +
+                            "Per MCP specification, a tool that returns structured content SHOULD also " +
+                            "return the serialized JSON in a TextContent block for backwards compatibility.");
+                    }
+                }
+                
+                // Serialize the CallToolResult content
+                if (callToolResult.Content == null || callToolResult.Content.Count == 0)
+                {
+                    // No content blocks - create a default text block
+                    type = Constants.TextContextResult;
+                    content = JsonSerializer.Serialize(new TextContentBlock { Text = "" }, McpJsonUtilities.DefaultOptions);
+                }
+                else if (callToolResult.Content.Count == 1)
+                {
+                    // Single content block
+                    type = callToolResult.Content[0].Type;
+                    content = JsonSerializer.Serialize(callToolResult.Content[0], McpJsonUtilities.DefaultOptions);
+                }
+                else
+                {
+                    // Multiple content blocks
+                    type = Constants.MultiContentResult;
+                    content = JsonSerializer.Serialize(callToolResult.Content, McpJsonUtilities.DefaultOptions);
+                }
+                break;
+
             case ContentBlock block:
                 type = block.Type;
                 content = JsonSerializer.Serialize(block, McpJsonUtilities.DefaultOptions);
@@ -63,13 +102,24 @@ internal class FunctionsMcpToolResultMiddleware : IFunctionsWorkerMiddleware
                 break;
 
             default:
-                // For other types, check if they have structured content properties
-                structuredContent = TryExtractStructuredContentFromObject(functionResult);
+                string text;
+                if (IsPoco(functionResult))
+                {
+                    // For POCOs (non-string, non-primitive types), serialize as structured content
+                    text = JsonSerializer.Serialize(functionResult, McpJsonUtilities.DefaultOptions);
+                    structuredContent = text;
+                }
+                else
+                {
+                    // For primitives and strings, convert to text
+                    text = functionResult is string s ? s : JsonSerializer.Serialize(functionResult, McpJsonUtilities.DefaultOptions);
+                }
 
+                // Common for both paths: create TextContent
                 type = Constants.TextContextResult;
                 content = JsonSerializer.Serialize(new TextContentBlock
                 {
-                    Text = functionResult is string s ? s : JsonSerializer.Serialize(functionResult)
+                    Text = text
                 }, McpJsonUtilities.DefaultOptions);
                 break;
         }
@@ -84,36 +134,24 @@ internal class FunctionsMcpToolResultMiddleware : IFunctionsWorkerMiddleware
         _resultAccessor.SetResult(context, JsonSerializer.Serialize(mcpToolResult, McpJsonContext.Default.McpToolResult));
     }
 
-    private static string? TryExtractStructuredContentFromObject(object obj)
+    private static bool IsPoco(object obj)
     {
-        // Try to extract structured content from objects with StructuredContent properties
-        var objType = obj.GetType();
-        var structuredContentProperty = objType.GetProperty("StructuredContent");
+        var type = obj.GetType();
         
-        if (structuredContentProperty != null)
+        // Exclude primitive types, strings, and common framework types
+        if (type.IsPrimitive || type == typeof(string) || type == typeof(decimal) || type == typeof(DateTime) || type == typeof(Guid))
         {
-            var structuredContentValue = structuredContentProperty.GetValue(obj);
-            if (structuredContentValue != null)
-            {
-                // Handle various types that might contain structured content
-                // Not sure if we need to handle this?
-                if (structuredContentValue is JsonElement jsonElement)
-                {
-                    return jsonElement.GetRawText();
-                }
-                else if (structuredContentValue is string stringValue)
-                {
-                    return stringValue;
-                }
-                else
-                {
-                    // Serialize the object as JSON
-                    return JsonSerializer.Serialize(structuredContentValue);
-                }
-            }
+            return false;
         }
         
-        return null;
+        // Exclude collections of primitives
+        if (typeof(System.Collections.IEnumerable).IsAssignableFrom(type) && type != typeof(string))
+        {
+            return false;
+        }
+        
+        // It's a POCO if it's a class or struct
+        return type.IsClass || type.IsValueType;
     }
 
     private static bool IsMcpToolInvocation(FunctionContext context)

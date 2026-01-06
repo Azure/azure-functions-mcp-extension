@@ -471,4 +471,340 @@ public class FunctionsMcpToolResultMiddlewareTests
     {
         _currentResult = value;
     }
+
+    [Fact]
+    public async Task Invoke_WithPocoResult_CreatesStructuredContent()
+    {
+        // Arrange
+        var context = CreateMcpFunctionContext();
+        var pocoResult = new TestPoco { Name = "Alice", Age = 30, Email = "alice@example.com" };
+
+        // Act
+        await _middleware.Invoke(context, ctx =>
+        {
+            SetInvocationResult(ctx, pocoResult);
+            return Task.CompletedTask;
+        });
+
+        // Assert
+        var result = _currentResult as string;
+        Assert.NotNull(result);
+
+        McpToolResult? mcpToolResult = JsonSerializer.Deserialize(result, McpJsonContext.Default.McpToolResult);
+        Assert.NotNull(mcpToolResult);
+        Assert.Equal(Constants.TextContextResult, mcpToolResult.Type);
+        
+        // Verify structured content is populated
+        Assert.NotNull(mcpToolResult.StructuredContent);
+        Assert.Contains("\"name\":\"Alice\"", mcpToolResult.StructuredContent);
+        Assert.Contains("\"age\":30", mcpToolResult.StructuredContent);
+        Assert.Contains("\"email\":\"alice@example.com\"", mcpToolResult.StructuredContent);
+
+        // Verify text content also contains the serialized JSON (backwards compatibility)
+        var textBlock = JsonSerializer.Deserialize<TextContentBlock>(mcpToolResult.Content!, McpJsonUtilities.DefaultOptions);
+        Assert.NotNull(textBlock);
+        Assert.Contains("Alice", textBlock.Text);
+        Assert.Contains("30", textBlock.Text);
+    }
+
+    [Fact]
+    public async Task Invoke_WithPrimitiveInt_DoesNotCreateStructuredContent()
+    {
+        // Arrange
+        var context = CreateMcpFunctionContext();
+        var intResult = 42;
+
+        // Act
+        await _middleware.Invoke(context, ctx =>
+        {
+            SetInvocationResult(ctx, intResult);
+            return Task.CompletedTask;
+        });
+
+        // Assert
+        var result = _currentResult as string;
+        Assert.NotNull(result);
+
+        McpToolResult? mcpToolResult = JsonSerializer.Deserialize(result, McpJsonContext.Default.McpToolResult);
+        Assert.NotNull(mcpToolResult);
+        Assert.Equal(Constants.TextContextResult, mcpToolResult.Type);
+        Assert.Null(mcpToolResult.StructuredContent); // Primitives don't get structured content
+
+        var textBlock = JsonSerializer.Deserialize<TextContentBlock>(mcpToolResult.Content!, McpJsonUtilities.DefaultOptions);
+        Assert.NotNull(textBlock);
+        Assert.Equal("42", textBlock.Text);
+    }
+
+    [Fact]
+    public async Task Invoke_WithDateTime_DoesNotCreateStructuredContent()
+    {
+        // Arrange
+        var context = CreateMcpFunctionContext();
+        var dateTime = new DateTime(2024, 1, 15, 10, 30, 0, DateTimeKind.Utc);
+
+        // Act
+        await _middleware.Invoke(context, ctx =>
+        {
+            SetInvocationResult(ctx, dateTime);
+            return Task.CompletedTask;
+        });
+
+        // Assert
+        var result = _currentResult as string;
+        Assert.NotNull(result);
+
+        McpToolResult? mcpToolResult = JsonSerializer.Deserialize(result, McpJsonContext.Default.McpToolResult);
+        Assert.NotNull(mcpToolResult);
+        Assert.Null(mcpToolResult.StructuredContent); // DateTime is excluded from POCO detection
+    }
+
+    [Fact]
+    public async Task Invoke_WithGuid_DoesNotCreateStructuredContent()
+    {
+        // Arrange
+        var context = CreateMcpFunctionContext();
+        var guid = Guid.NewGuid();
+
+        // Act
+        await _middleware.Invoke(context, ctx =>
+        {
+            SetInvocationResult(ctx, guid);
+            return Task.CompletedTask;
+        });
+
+        // Assert
+        var result = _currentResult as string;
+        Assert.NotNull(result);
+
+        McpToolResult? mcpToolResult = JsonSerializer.Deserialize(result, McpJsonContext.Default.McpToolResult);
+        Assert.NotNull(mcpToolResult);
+        Assert.Null(mcpToolResult.StructuredContent); // Guid is excluded from POCO detection
+    }
+
+    [Fact]
+    public async Task Invoke_WithCollection_DoesNotCreateStructuredContent()
+    {
+        // Arrange
+        var context = CreateMcpFunctionContext();
+        var collection = new List<string> { "item1", "item2", "item3" };
+
+        // Act
+        await _middleware.Invoke(context, ctx =>
+        {
+            SetInvocationResult(ctx, collection);
+            return Task.CompletedTask;
+        });
+
+        // Assert
+        var result = _currentResult as string;
+        Assert.NotNull(result);
+
+        McpToolResult? mcpToolResult = JsonSerializer.Deserialize(result, McpJsonContext.Default.McpToolResult);
+        Assert.NotNull(mcpToolResult);
+        Assert.Null(mcpToolResult.StructuredContent); // Collections are excluded from POCO detection
+    }
+
+    [Fact]
+    public async Task Invoke_WithCallToolResult_PreservesStructuredContent()
+    {
+        // Arrange
+        var context = CreateMcpFunctionContext();
+        var metadata = new { Key = "value", Count = 42 };
+        var metadataJson = JsonSerializer.Serialize(metadata);
+        
+        var callToolResult = new CallToolResult
+        {
+            Content = new List<ContentBlock>
+            {
+                new TextContentBlock { Text = metadataJson },
+                new ImageContentBlock { Data = "imagedata", MimeType = "image/jpeg" }
+            },
+            StructuredContent = System.Text.Json.Nodes.JsonNode.Parse(metadataJson)
+        };
+
+        // Act
+        await _middleware.Invoke(context, ctx =>
+        {
+            SetInvocationResult(ctx, callToolResult);
+            return Task.CompletedTask;
+        });
+
+        // Assert
+        var result = _currentResult as string;
+        Assert.NotNull(result);
+
+        McpToolResult? mcpToolResult = JsonSerializer.Deserialize(result, McpJsonContext.Default.McpToolResult);
+        Assert.NotNull(mcpToolResult);
+        Assert.Equal(Constants.MultiContentResult, mcpToolResult.Type);
+        
+        // Verify structured content is preserved
+        Assert.NotNull(mcpToolResult.StructuredContent);
+        Assert.Contains("\"Key\":\"value\"", mcpToolResult.StructuredContent);
+        Assert.Contains("\"Count\":42", mcpToolResult.StructuredContent);
+    }
+
+    [Fact]
+    public async Task Invoke_WithCallToolResultMissingTextContent_ThrowsException()
+    {
+        // Arrange
+        var context = CreateMcpFunctionContext();
+        var metadata = new { Key = "value" };
+        
+        var callToolResult = new CallToolResult
+        {
+            Content = new List<ContentBlock>
+            {
+                new ImageContentBlock { Data = "imagedata", MimeType = "image/jpeg" }
+                // Missing TextContentBlock!
+            },
+            StructuredContent = System.Text.Json.Nodes.JsonNode.Parse(JsonSerializer.Serialize(metadata))
+        };
+
+        // Act & Assert
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+        {
+            await _middleware.Invoke(context, ctx =>
+            {
+                SetInvocationResult(ctx, callToolResult);
+                return Task.CompletedTask;
+            });
+        });
+
+        Assert.Contains("TextContent block", exception.Message);
+        Assert.Contains("StructuredContent", exception.Message);
+    }
+
+    [Fact]
+    public async Task Invoke_WithCallToolResultWithTextContent_Succeeds()
+    {
+        // Arrange
+        var context = CreateMcpFunctionContext();
+        var metadata = new { Status = "success", Code = 200 };
+        var metadataJson = JsonSerializer.Serialize(metadata);
+        
+        var callToolResult = new CallToolResult
+        {
+            Content = new List<ContentBlock>
+            {
+                new TextContentBlock { Text = metadataJson },
+                new ImageContentBlock { Data = "imagedata", MimeType = "image/jpeg" }
+            },
+            StructuredContent = System.Text.Json.Nodes.JsonNode.Parse(metadataJson)
+        };
+
+        // Act
+        await _middleware.Invoke(context, ctx =>
+        {
+            SetInvocationResult(ctx, callToolResult);
+            return Task.CompletedTask;
+        });
+
+        // Assert - Should not throw
+        var result = _currentResult as string;
+        Assert.NotNull(result);
+        
+        McpToolResult? mcpToolResult = JsonSerializer.Deserialize(result, McpJsonContext.Default.McpToolResult);
+        Assert.NotNull(mcpToolResult);
+        Assert.NotNull(mcpToolResult.StructuredContent);
+    }
+
+    [Fact]
+    public async Task Invoke_WithCallToolResultWithoutStructuredContent_Succeeds()
+    {
+        // Arrange
+        var context = CreateMcpFunctionContext();
+        
+        var callToolResult = new CallToolResult
+        {
+            Content = new List<ContentBlock>
+            {
+                new TextContentBlock { Text = "Simple message" },
+                new ImageContentBlock { Data = "imagedata", MimeType = "image/png" }
+            }
+            // No StructuredContent - this is fine
+        };
+
+        // Act
+        await _middleware.Invoke(context, ctx =>
+        {
+            SetInvocationResult(ctx, callToolResult);
+            return Task.CompletedTask;
+        });
+
+        // Assert
+        var result = _currentResult as string;
+        Assert.NotNull(result);
+
+        McpToolResult? mcpToolResult = JsonSerializer.Deserialize(result, McpJsonContext.Default.McpToolResult);
+        Assert.NotNull(mcpToolResult);
+        Assert.Equal(Constants.MultiContentResult, mcpToolResult.Type);
+        Assert.Null(mcpToolResult.StructuredContent);
+    }
+
+    [Fact]
+    public async Task Invoke_WithCallToolResultEmptyContent_CreatesDefaultTextBlock()
+    {
+        // Arrange
+        var context = CreateMcpFunctionContext();
+        var callToolResult = new CallToolResult
+        {
+            Content = new List<ContentBlock>()
+        };
+
+        // Act
+        await _middleware.Invoke(context, ctx =>
+        {
+            SetInvocationResult(ctx, callToolResult);
+            return Task.CompletedTask;
+        });
+
+        // Assert
+        var result = _currentResult as string;
+        Assert.NotNull(result);
+
+        McpToolResult? mcpToolResult = JsonSerializer.Deserialize(result, McpJsonContext.Default.McpToolResult);
+        Assert.NotNull(mcpToolResult);
+        Assert.Equal(Constants.TextContextResult, mcpToolResult.Type);
+        
+        var textBlock = JsonSerializer.Deserialize<TextContentBlock>(mcpToolResult.Content!, McpJsonUtilities.DefaultOptions);
+        Assert.NotNull(textBlock);
+        Assert.Equal("", textBlock.Text);
+    }
+
+    [Fact]
+    public async Task Invoke_WithCallToolResultSingleContent_UsesSingleType()
+    {
+        // Arrange
+        var context = CreateMcpFunctionContext();
+        var callToolResult = new CallToolResult
+        {
+            Content = new List<ContentBlock>
+            {
+                new TextContentBlock { Text = "Single content block" }
+            }
+        };
+
+        // Act
+        await _middleware.Invoke(context, ctx =>
+        {
+            SetInvocationResult(ctx, callToolResult);
+            return Task.CompletedTask;
+        });
+
+        // Assert
+        var result = _currentResult as string;
+        Assert.NotNull(result);
+
+        McpToolResult? mcpToolResult = JsonSerializer.Deserialize(result, McpJsonContext.Default.McpToolResult);
+        Assert.NotNull(mcpToolResult);
+        Assert.Equal("text", mcpToolResult.Type); // Should use the block's type, not multi-content
+    }
+
+    private class TestPoco
+    {
+        public string Name { get; set; } = string.Empty;
+        public int Age { get; set; }
+        public string Email { get; set; } = string.Empty;
+    }
 }
+
