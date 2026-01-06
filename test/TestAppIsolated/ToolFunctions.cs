@@ -1,12 +1,12 @@
-using Microsoft.Azure.Functions.Worker;
-using Microsoft.Azure.Functions.Worker.Extensions.Mcp;
-using Microsoft.Extensions.Logging;
-using ModelContextProtocol.Protocol;
 using System.Collections;
 using System.ComponentModel;
 using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using Microsoft.Azure.Functions.Worker;
+using Microsoft.Azure.Functions.Worker.Extensions.Mcp;
+using Microsoft.Extensions.Logging;
+using ModelContextProtocol.Protocol;
 using static TestAppIsolated.ToolsInformation;
 
 namespace TestAppIsolated;
