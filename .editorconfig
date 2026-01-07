@@ -13,3 +13,4 @@ trim_trailing_whitespace = true
 # C# files
 [*.cs]
 file_header_template = Copyright (c) Microsoft Corporation. All rights reserved.\nLicensed under the MIT License.
+dotnet_diagnostic.IDE0073.severity = error
