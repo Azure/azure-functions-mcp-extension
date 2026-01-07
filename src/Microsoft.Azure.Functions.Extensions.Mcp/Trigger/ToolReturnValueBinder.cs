@@ -78,13 +78,12 @@ internal sealed class ToolReturnValueBinder(CallToolExecutionContext executionCo
 
     private static JsonNode? DeserializeToStructuredContent(McpToolResult result)
     {
-        JsonNode? node = null;
         if (!string.IsNullOrEmpty(result.StructuredContent))
         {
-            node = JsonSerializer.Deserialize<JsonNode>(result.StructuredContent!, McpJsonUtilities.DefaultOptions);
-
+            return JsonSerializer.Deserialize<JsonNode>(result.StructuredContent!, McpJsonUtilities.DefaultOptions)
+                ?? throw new InvalidOperationException($"Failed to deserialize structured content.");
         }
 
-        return node;
+        return null;
     }
 }
