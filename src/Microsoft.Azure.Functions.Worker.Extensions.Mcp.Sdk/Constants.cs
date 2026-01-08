@@ -10,4 +10,6 @@ internal static class Constants
     public const string MultiContentResult = "multi_content_result";
 
     public const string TextContextResult = "text";
+
+    public const string CallToolResultType = "call_tool_result";
 }
