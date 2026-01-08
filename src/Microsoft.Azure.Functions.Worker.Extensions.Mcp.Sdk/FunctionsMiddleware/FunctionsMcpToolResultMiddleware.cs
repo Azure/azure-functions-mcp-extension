@@ -1,12 +1,12 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
+using System.Collections;
+using System.Text.Json;
 using Microsoft.Azure.Functions.Worker.Extensions.Mcp.Sdk;
 using Microsoft.Azure.Functions.Worker.Middleware;
 using ModelContextProtocol;
 using ModelContextProtocol.Protocol;
-using System.Collections;
-using System.Text.Json;
 
 namespace Microsoft.Azure.Functions.Worker.Extensions.Mcp;
 
