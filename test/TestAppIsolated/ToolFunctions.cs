@@ -165,6 +165,7 @@ public class TestFunction
         };
     }
 
+    [McpResult]
     public class UserInfo
     {
         public required string UserId { get; set; }

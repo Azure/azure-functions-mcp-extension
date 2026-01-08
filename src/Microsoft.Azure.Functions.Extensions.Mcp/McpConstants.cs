@@ -15,6 +15,7 @@ internal sealed class McpConstants
 
     internal sealed class ToolResultContentTypes
     {
+        public const string CallToolResult = "call_tool_result";
         public const string MultiContentResult = "multi_content_result";
         public const string Audio = "audio";
         public const string Text = "text";

@@ -54,7 +54,9 @@ internal class FunctionsMcpToolResultMiddleware : IFunctionsWorkerMiddleware
         switch (functionResult)
         {
             case CallToolResult callToolResult:
-                (type, content, structuredContent) = ProcessCallToolResult(callToolResult);
+                // Don't process CallToolResult - just serialize as-is
+                type = Constants.CallToolResultType;
+                content = JsonSerializer.Serialize(callToolResult, McpJsonUtilities.DefaultOptions);
                 break;
 
             case ContentBlock block:
@@ -80,51 +82,6 @@ internal class FunctionsMcpToolResultMiddleware : IFunctionsWorkerMiddleware
         _resultAccessor.SetResult(context, JsonSerializer.Serialize(mcpToolResult, McpJsonContext.Default.McpToolResult));
     }
 
-    private static (string Type, string Content, string? StructuredContent) ProcessCallToolResult(CallToolResult callToolResult)
-    {
-        string? structuredContent = null;
-
-        // User returned CallToolResult directly - use it as-is but ensure TextContent backup exists
-        // if structured content is present (for backwards compatibility)
-        if (callToolResult.StructuredContent != null)
-        {
-            structuredContent = callToolResult.StructuredContent.ToJsonString();
-
-            // Ensure there's a TextContent block for backwards compatibility
-            var hasTextContent = callToolResult.Content?.Any(c => c is TextContentBlock) ?? false;
-            if (!hasTextContent)
-            {
-                throw new InvalidOperationException(
-                    "CallToolResult contains StructuredContent but no TextContent block for backwards compatibility.");
-            }
-        }
-
-        // Serialize the CallToolResult content
-        string type;
-        string content;
-
-        if (callToolResult.Content == null || callToolResult.Content.Count == 0)
-        {
-            // No content blocks - create a default text block
-            type = Constants.TextContextResult;
-            content = JsonSerializer.Serialize(new TextContentBlock { Text = "" }, McpJsonUtilities.DefaultOptions);
-        }
-        else if (callToolResult.Content.Count == 1)
-        {
-            // Single content block
-            type = callToolResult.Content[0].Type;
-            content = JsonSerializer.Serialize(callToolResult.Content[0], McpJsonUtilities.DefaultOptions);
-        }
-        else
-        {
-            // Multiple content blocks
-            type = Constants.MultiContentResult;
-            content = JsonSerializer.Serialize(callToolResult.Content, McpJsonUtilities.DefaultOptions);
-        }
-
-        return (type, content, structuredContent);
-    }
-
     private static (string Type, string Content) ProcessContentBlock(ContentBlock block)
     {
         var type = block.Type;
@@ -144,9 +101,9 @@ internal class FunctionsMcpToolResultMiddleware : IFunctionsWorkerMiddleware
         string? structuredContent = null;
         string text;
 
-        if (IsPocoInstance(functionResult))
+        if (ShouldCreateStructuredContent(functionResult))
         {
-            // For POCOs (non-string, non-primitive types), serialize as structured content
+            // If there is a McpResultAttribute, create structured content
             text = JsonSerializer.Serialize(functionResult, McpJsonUtilities.DefaultOptions);
             structuredContent = text;
         }
@@ -166,17 +123,44 @@ internal class FunctionsMcpToolResultMiddleware : IFunctionsWorkerMiddleware
         return (type, content, structuredContent);
     }
 
-    private static bool IsPocoInstance(object obj)
+    private static bool ShouldCreateStructuredContent(object obj)
     {
         var type = obj.GetType();
 
-        if (type == typeof(string) || !type.IsClass || type.IsAbstract || type.ContainsGenericParameters)
+        // Check if the type is decorated with McpResultAttribute
+        if (type.GetCustomAttributes(typeof(McpResultAttribute), inherit: false).Length > 0)
         {
-            return false;
+            return true;
         }
 
-        return !typeof(IEnumerable).IsAssignableFrom(type)
-           && type.GetConstructor(Type.EmptyTypes) is not null;
+        // Check if it's an array or enumerable of types with McpResultAttribute
+        if (typeof(IEnumerable).IsAssignableFrom(type) && type != typeof(string))
+        {
+            // Get the element type
+            Type? elementType = null;
+
+            if (type.IsArray)
+            {
+                elementType = type.GetElementType();
+            }
+            else if (type.IsGenericType)
+            {
+                var genericArgs = type.GetGenericArguments();
+                if (genericArgs.Length > 0)
+                {
+                    elementType = genericArgs[0];
+                }
+            }
+
+            // Check if the element type has McpResultAttribute
+            if (elementType != null && 
+                elementType.GetCustomAttributes(typeof(McpResultAttribute), inherit: false).Length > 0)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static bool IsMcpToolInvocation(FunctionContext context)
