@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Workout Dashboard</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #eee;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .dashboard {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+
+            .header h1 {
+                font-size: 24px;
+                background: linear-gradient(90deg, #00d9ff, #00ff88);
+                -webkit-background-clip: text;
+                -webkit-text-fill-color: transparent;
+            }
+
+        .streak-badge {
+            background: linear-gradient(135deg, #ff6b35, #f7931e);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 16px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 28px;
+            font-weight: 700;
+            color: #00d9ff;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-top: 4px;
+        }
+
+        .recent-workouts {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 24px;
+        }
+
+        .section-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .workout-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+            .workout-item:last-child {
+                border-bottom: none;
+            }
+
+        .workout-info {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .workout-type {
+            font-weight: 600;
+            color: #fff;
+        }
+
+        .workout-date {
+            font-size: 12px;
+            color: #888;
+        }
+
+        .workout-duration {
+            background: rgba(0, 217, 255, 0.1);
+            color: #00d9ff;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        .quick-log {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 20px;
+        }
+
+        .quick-log-buttons {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-top: 12px;
+        }
+
+        .log-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            padding: 12px;
+            color: #fff;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+            .log-btn:hover {
+                background: rgba(0, 217, 255, 0.2);
+                border-color: #00d9ff;
+            }
+
+            .log-btn.primary {
+                background: linear-gradient(135deg, #00d9ff, #00ff88);
+                border: none;
+                color: #1a1a2e;
+                font-weight: 600;
+                grid-column: span 3;
+            }
+
+        .muscle-chart {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-top: 12px;
+        }
+
+        .muscle-bar {
+            flex: 1;
+            min-width: 60px;
+            text-align: center;
+        }
+
+        .muscle-bar-fill {
+            height: 60px;
+            background: linear-gradient(180deg, #00d9ff 0%, rgba(0, 217, 255, 0.3) 100%);
+            border-radius: 4px 4px 0 0;
+            margin-bottom: 4px;
+            position: relative;
+        }
+
+        .muscle-bar-label {
+            font-size: 10px;
+            color: #888;
+            text-transform: uppercase;
+        }
+
+        .pr-alert {
+            background: linear-gradient(135deg, rgba(255, 215, 0, 0.2), rgba(255, 107, 53, 0.2));
+            border: 1px solid rgba(255, 215, 0, 0.3);
+            border-radius: 8px;
+            padding: 12px 16px;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .pr-alert-icon {
+            font-size: 24px;
+        }
+
+        .pr-alert-text {
+            font-size: 14px;
+        }
+
+        .pr-exercise {
+            font-weight: 600;
+            color: #ffd700;
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard">
+        <div class="header">
+            <h1>💪 Workout Tracker</h1>
+            <div class="streak-badge">🔥 12 Day Streak</div>
+        </div>
+
+        <div class="pr-alert">
+            <span class="pr-alert-icon">🏆</span>
+            <span class="pr-alert-text">New PR! <span class="pr-exercise">Bench Press</span> - 225 lbs × 5 reps</span>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-value" id="workouts-week">4</div>
+                <div class="stat-label">This Week</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="workouts-month">16</div>
+                <div class="stat-label">This Month</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="total-volume">42.5K</div>
+                <div class="stat-label">Volume (lbs)</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="avg-duration">58</div>
+                <div class="stat-label">Avg. Minutes</div>
+            </div>
+        </div>
+
+        <div class="recent-workouts">
+            <div class="section-title">📋 Recent Workouts</div>
+            <div class="workout-item">
+                <div class="workout-info">
+                    <span class="workout-type">Push Day</span>
+                    <span class="workout-date">Today • Chest, Shoulders, Triceps</span>
+                </div>
+                <span class="workout-duration">62 min</span>
+            </div>
+            <div class="workout-item">
+                <div class="workout-info">
+                    <span class="workout-type">Pull Day</span>
+                    <span class="workout-date">Yesterday • Back, Biceps</span>
+                </div>
+                <span class="workout-duration">55 min</span>
+            </div>
+            <div class="workout-item">
+                <div class="workout-info">
+                    <span class="workout-type">Leg Day</span>
+                    <span class="workout-date">2 days ago • Quads, Hamstrings, Calves</span>
+                </div>
+                <span class="workout-duration">68 min</span>
+            </div>
+        </div>
+
+        <div class="recent-workouts">
+            <div class="section-title">📊 Muscle Group Balance (Last 7 Days)</div>
+            <div class="muscle-chart">
+                <div class="muscle-bar">
+                    <div class="muscle-bar-fill" style="height: 80px;"></div>
+                    <div class="muscle-bar-label">Chest</div>
+                </div>
+                <div class="muscle-bar">
+                    <div class="muscle-bar-fill" style="height: 70px;"></div>
+                    <div class="muscle-bar-label">Back</div>
+                </div>
+                <div class="muscle-bar">
+                    <div class="muscle-bar-fill" style="height: 60px;"></div>
+                    <div class="muscle-bar-label">Shoulders</div>
+                </div>
+                <div class="muscle-bar">
+                    <div class="muscle-bar-fill" style="height: 90px;"></div>
+                    <div class="muscle-bar-label">Legs</div>
+                </div>
+                <div class="muscle-bar">
+                    <div class="muscle-bar-fill" style="height: 40px;"></div>
+                    <div class="muscle-bar-label">Arms</div>
+                </div>
+                <div class="muscle-bar">
+                    <div class="muscle-bar-fill" style="height: 30px;"></div>
+                    <div class="muscle-bar-label">Core</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="quick-log">
+            <div class="section-title">⚡ Quick Log</div>
+            <div class="quick-log-buttons">
+                <button class="log-btn" data-type="Push">Push</button>
+                <button class="log-btn" data-type="Pull">Pull</button>
+                <button class="log-btn" data-type="Legs">Legs</button>
+                <button class="log-btn" data-type="Upper">Upper</button>
+                <button class="log-btn" data-type="Lower">Lower</button>
+                <button class="log-btn" data-type="Cardio">Cardio</button>
+                <button class="log-btn primary" data-action="custom">+ Log Custom Workout</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    // Widget communication with ChatGPT
+    document.querySelectorAll('.log-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const type = btn.dataset.type;
+        const action = btn.dataset.action;
+
+        if (action === 'custom') {
+          // Request ChatGPT to help log a custom workout
+          window.parent.postMessage({
+            type: 'mcp_action',
+            action: 'log_custom_workout'
+          }, '*');
+        } else if (type) {
+          // Quick log a specific workout type
+          window.parent.postMessage({
+            type: 'mcp_action',
+            action: 'quick_log',
+            workoutType: type
+          }, '*');
+        }
+      });
+    });
+
+    // Listen for data updates from ChatGPT
+    window.addEventListener('message', (event) => {
+      if (event.data.type === 'workout_stats_update') {
+        updateStats(event.data.stats);
+      }
+    });
+
+    function updateStats(stats) {
+      if (stats.workoutsThisWeek !== undefined) {
+        document.getElementById('workouts-week').textContent = stats.workoutsThisWeek;
+      }
+      if (stats.workoutsThisMonth !== undefined) {
+        document.getElementById('workouts-month').textContent = stats.workoutsThisMonth;
+      }
+      if (stats.totalVolume !== undefined) {
+        document.getElementById('total-volume').textContent = formatVolume(stats.totalVolume);
+      }
+      if (stats.avgDuration !== undefined) {
+        document.getElementById('avg-duration').textContent = stats.avgDuration;
+      }
+    }
+
+    function formatVolume(volume) {
+      if (volume >= 1000) {
+        return (volume / 1000).toFixed(1) + 'K';
+      }
+      return volume.toString();
+    }
+    </script>
+</body>
+</html>

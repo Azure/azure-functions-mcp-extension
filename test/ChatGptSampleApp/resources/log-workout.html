@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Log Workout</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #eee;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .form-container {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .header {
+            margin-bottom: 24px;
+        }
+
+            .header h1 {
+                font-size: 24px;
+                background: linear-gradient(90deg, #00d9ff, #00ff88);
+                -webkit-background-clip: text;
+                -webkit-text-fill-color: transparent;
+                margin-bottom: 8px;
+            }
+
+            .header p {
+                color: #888;
+                font-size: 14px;
+            }
+
+        .form-section {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 16px;
+        }
+
+        .section-title {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            color: #00d9ff;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+            .form-group.full-width {
+                grid-column: span 2;
+            }
+
+        label {
+            font-size: 12px;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        input, select, textarea {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            padding: 12px;
+            color: #fff;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+            input:focus, select:focus, textarea:focus {
+                outline: none;
+                border-color: #00d9ff;
+                background: rgba(0, 217, 255, 0.1);
+            }
+
+        select {
+            cursor: pointer;
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .exercises-list {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .exercise-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 16px;
+        }
+
+        .exercise-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .exercise-name-input {
+            flex: 1;
+            font-size: 16px;
+            font-weight: 600;
+            background: transparent;
+            border: none;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 0;
+            padding: 4px 0;
+        }
+
+        .remove-exercise {
+            background: rgba(255, 100, 100, 0.2);
+            border: none;
+            color: #ff6b6b;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .sets-table {
+            width: 100%;
+            margin-top: 12px;
+        }
+
+            .sets-table th {
+                font-size: 11px;
+                color: #666;
+                text-transform: uppercase;
+                padding: 8px 4px;
+                text-align: center;
+                font-weight: 500;
+            }
+
+            .sets-table td {
+                padding: 4px;
+            }
+
+            .sets-table input {
+                width: 100%;
+                text-align: center;
+                padding: 8px;
+                font-size: 14px;
+            }
+
+        .set-number {
+            color: #00d9ff;
+            font-weight: 600;
+            text-align: center;
+        }
+
+        .add-set-btn {
+            width: 100%;
+            margin-top: 8px;
+            background: rgba(0, 217, 255, 0.1);
+            border: 1px dashed rgba(0, 217, 255, 0.3);
+            color: #00d9ff;
+            padding: 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+        }
+
+        .add-exercise-btn {
+            width: 100%;
+            background: rgba(0, 255, 136, 0.1);
+            border: 1px dashed rgba(0, 255, 136, 0.3);
+            color: #00ff88;
+            padding: 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .feeling-slider {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+            .feeling-slider input[type="range"] {
+                flex: 1;
+                -webkit-appearance: none;
+                height: 8px;
+                background: rgba(255, 255, 255, 0.1);
+                border-radius: 4px;
+                border: none;
+                padding: 0;
+            }
+
+                .feeling-slider input[type="range"]::-webkit-slider-thumb {
+                    -webkit-appearance: none;
+                    width: 20px;
+                    height: 20px;
+                    background: linear-gradient(135deg, #00d9ff, #00ff88);
+                    border-radius: 50%;
+                    cursor: pointer;
+                }
+
+        .feeling-value {
+            min-width: 30px;
+            text-align: center;
+            font-weight: 600;
+            color: #00d9ff;
+        }
+
+        .submit-section {
+            display: flex;
+            gap: 12px;
+        }
+
+        .submit-btn {
+            flex: 1;
+            background: linear-gradient(135deg, #00d9ff, #00ff88);
+            border: none;
+            color: #1a1a2e;
+            padding: 16px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+            .submit-btn:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 4px 20px rgba(0, 217, 255, 0.3);
+            }
+
+        .cancel-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: #888;
+            padding: 16px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+
+        .muscle-group-select {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+        }
+
+        .muscle-chip {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 8px 12px;
+            font-size: 12px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+            .muscle-chip.selected {
+                background: rgba(0, 217, 255, 0.2);
+                border-color: #00d9ff;
+                color: #00d9ff;
+            }
+    </style>
+</head>
+<body>
+    <div class="form-container">
+        <div class="header">
+            <h1>📝 Log Workout</h1>
+            <p>Record your session to track progress and get personalized recommendations</p>
+        </div>
+
+        <form id="workout-form">
+            <div class="form-section">
+                <div class="section-title">Workout Details</div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Workout Type</label>
+                        <select id="workout-type" required>
+                            <option value="Push">Push</option>
+                            <option value="Pull">Pull</option>
+                            <option value="Legs">Legs</option>
+                            <option value="Upper">Upper Body</option>
+                            <option value="Lower">Lower Body</option>
+                            <option value="Full Body">Full Body</option>
+                            <option value="Cardio">Cardio</option>
+                            <option value="General">General</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Duration (minutes)</label>
+                        <input type="number" id="duration" value="60" min="1" max="300" required>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Date</label>
+                        <input type="date" id="workout-date" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Time</label>
+                        <input type="time" id="workout-time">
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-section">
+                <div class="section-title">Exercises</div>
+                <div class="exercises-list" id="exercises-list">
+                    <!-- Exercise cards will be added here -->
+                </div>
+                <button type="button" class="add-exercise-btn" id="add-exercise">
+                    + Add Exercise
+                </button>
+            </div>
+
+            <div class="form-section">
+                <div class="section-title">How Did It Feel?</div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Perceived Effort (RPE)</label>
+                        <div class="feeling-slider">
+                            <input type="range" id="effort" min="1" max="10" value="7">
+                            <span class="feeling-value" id="effort-value">7</span>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Energy Level</label>
+                        <div class="feeling-slider">
+                            <input type="range" id="energy" min="1" max="10" value="7">
+                            <span class="feeling-value" id="energy-value">7</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group full-width">
+                    <label>Notes (optional)</label>
+                    <textarea id="notes" placeholder="How did the workout go? Any observations, feelings, or things to remember..."></textarea>
+                </div>
+            </div>
+
+            <div class="submit-section">
+                <button type="button" class="cancel-btn">Cancel</button>
+                <button type="submit" class="submit-btn">💾 Save Workout</button>
+            </div>
+        </form>
+    </div>
+
+    <script>
+    // Set today's date as default
+    document.getElementById('workout-date').valueAsDate = new Date();
+
+    // Slider value updates
+    document.getElementById('effort').addEventListener('input', (e) => {
+      document.getElementById('effort-value').textContent = e.target.value;
+    });
+
+    document.getElementById('energy').addEventListener('input', (e) => {
+      document.getElementById('energy-value').textContent = e.target.value;
+    });
+
+    // Exercise management
+    let exerciseCount = 0;
+
+    function addExercise(name = '', muscleGroup = '') {
+      exerciseCount++;
+      const exerciseId = `exercise-${exerciseCount}`;
+
+      const exerciseHtml = `
+        <div class="exercise-card" id="${exerciseId}">
+          <div class="exercise-header">
+            <input type="text" class="exercise-name-input" placeholder="Exercise name..." value="${name}" required>
+            <select class="muscle-group-dropdown" style="margin: 0 12px; padding: 6px;">
+              <option value="Chest" ${muscleGroup === 'Chest' ? 'selected' : ''}>Chest</option>
+              <option value="Back" ${muscleGroup === 'Back' ? 'selected' : ''}>Back</option>
+              <option value="Shoulders" ${muscleGroup === 'Shoulders' ? 'selected' : ''}>Shoulders</option>
+              <option value="Biceps" ${muscleGroup === 'Biceps' ? 'selected' : ''}>Biceps</option>
+              <option value="Triceps" ${muscleGroup === 'Triceps' ? 'selected' : ''}>Triceps</option>
+              <option value="Legs" ${muscleGroup === 'Legs' ? 'selected' : ''}>Legs</option>
+              <option value="Core" ${muscleGroup === 'Core' ? 'selected' : ''}>Core</option>
+              <option value="Cardio" ${muscleGroup === 'Cardio' ? 'selected' : ''}>Cardio</option>
+            </select>
+            <button type="button" class="remove-exercise" onclick="removeExercise('${exerciseId}')">Remove</button>
+          </div>
+          <table class="sets-table">
+            <thead>
+              <tr>
+                <th style="width: 50px;">Set</th>
+                <th>Weight</th>
+                <th>Reps</th>
+                <th style="width: 60px;">RPE</th>
+              </tr>
+            </thead>
+            <tbody class="sets-body">
+              <tr>
+                <td class="set-number">1</td>
+                <td><input type="number" placeholder="lbs" min="0" step="2.5"></td>
+                <td><input type="number" placeholder="reps" min="1"></td>
+                <td><input type="number" placeholder="1-10" min="1" max="10"></td>
+              </tr>
+            </tbody>
+          </table>
+          <button type="button" class="add-set-btn" onclick="addSet('${exerciseId}')">+ Add Set</button>
+        </div>
+      `;
+
+      document.getElementById('exercises-list').insertAdjacentHTML('beforeend', exerciseHtml);
+    }
+
+    function removeExercise(exerciseId) {
+      document.getElementById(exerciseId).remove();
+    }
+
+    function addSet(exerciseId) {
+      const setsBody = document.querySelector(`#${exerciseId} .sets-body`);
+      const setNumber = setsBody.children.length + 1;
+
+      const setHtml = `
+        <tr>
+          <td class="set-number">${setNumber}</td>
+          <td><input type="number" placeholder="lbs" min="0" step="2.5"></td>
+          <td><input type="number" placeholder="reps" min="1"></td>
+          <td><input type="number" placeholder="1-10" min="1" max="10"></td>
+        </tr>
+      `;
+
+      setsBody.insertAdjacentHTML('beforeend', setHtml);
+    }
+
+    // Add initial exercise
+    document.getElementById('add-exercise').addEventListener('click', () => addExercise());
+    addExercise(); // Start with one exercise
+
+    // Form submission
+    document.getElementById('workout-form').addEventListener('submit', (e) => {
+      e.preventDefault();
+
+      const exercises = [];
+      document.querySelectorAll('.exercise-card').forEach(card => {
+        const name = card.querySelector('.exercise-name-input').value;
+        const muscleGroup = card.querySelector('.muscle-group-dropdown').value;
+        const sets = [];
+
+        card.querySelectorAll('.sets-body tr').forEach((row, index) => {
+          const inputs = row.querySelectorAll('input');
+          const weight = parseFloat(inputs[0].value) || 0;
+          const reps = parseInt(inputs[1].value) || 0;
+          const rpe = parseInt(inputs[2].value) || null;
+
+          if (reps > 0) {
+            sets.push({
+              setNumber: index + 1,
+              weight,
+              reps,
+              rpe,
+              isPR: false
+            });
+          }
+        });
+
+        if (name && sets.length > 0) {
+          exercises.push({ name, muscleGroup, sets });
+        }
+      });
+
+      const workoutData = {
+        type: document.getElementById('workout-type').value,
+        date: document.getElementById('workout-date').value,
+        durationMinutes: parseInt(document.getElementById('duration').value),
+        exercises,
+        perceivedEffort: parseInt(document.getElementById('effort').value),
+        energyLevel: parseInt(document.getElementById('energy').value),
+        notes: document.getElementById('notes').value
+      };
+
+      // Send to ChatGPT/MCP
+      window.parent.postMessage({
+        type: 'mcp_action',
+        action: 'save_workout',
+        data: workoutData
+      }, '*');
+    });
+
+    // Cancel button
+    document.querySelector('.cancel-btn').addEventListener('click', () => {
+      window.parent.postMessage({
+        type: 'mcp_action',
+        action: 'cancel'
+      }, '*');
+    });
+    </script>
+</body>
+</html>

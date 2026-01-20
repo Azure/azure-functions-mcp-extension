@@ -63,6 +63,51 @@ internal sealed class DefaultToolRegistry : IToolRegistry
                     };
                 }
 
+                // When getting workout stats/history, show the dashboard
+                if (tool.Name == "GetWorkoutHistory")
+                {
+                    toolItem.Meta = new JsonObject
+                    {
+                        ["openai/outputTemplate"] = "ui://widget/dashboard.html"
+                    };
+                }
+
+                // When getting stats, show the progress charts
+                if (tool.Name == "GetWorkoutStats")
+                {
+                    toolItem.Meta = new JsonObject
+                    {
+                        ["openai/outputTemplate"] = "ui://widget/progress-chart.html"
+                    };
+                }
+
+                // When getting PRs, also show progress charts (strength progression)
+                if (tool.Name == "GetPersonalRecords")
+                {
+                    toolItem.Meta = new JsonObject
+                    {
+                        ["openai/outputTemplate"] = "ui://widget/progress-chart.html"
+                    };
+                }
+
+                // When logging a workout, show the log form widget
+                if (tool.Name == "LogWorkout")
+                {
+                    toolItem.Meta = new JsonObject
+                    {
+                        ["openai/outputTemplate"] = "ui://widget/log-workout.html"
+                    };
+                }
+
+                // When getting user profile, show dashboard (has profile summary)
+                if (tool.Name == "GetUserProfile")
+                {
+                    toolItem.Meta = new JsonObject
+                    {
+                        ["openai/outputTemplate"] = "ui://widget/dashboard.html"
+                    };
+                }
+
                 return toolItem;
             }).ToList()
         };

@@ -1,0 +1,9 @@
+{
+  "profiles": {
+    "ChatGptSampleApp": {
+      "commandName": "Project",
+      "commandLineArgs": "--port 7261",
+      "launchBrowser": false
+    }
+  }
+}

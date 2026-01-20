@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Progress Charts</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #eee;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .charts-container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .header {
+            margin-bottom: 24px;
+        }
+
+            .header h1 {
+                font-size: 24px;
+                background: linear-gradient(90deg, #00d9ff, #00ff88);
+                -webkit-background-clip: text;
+                -webkit-text-fill-color: transparent;
+            }
+
+        .time-filter {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .filter-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: #888;
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.2s;
+        }
+
+            .filter-btn.active {
+                background: rgba(0, 217, 255, 0.2);
+                border-color: #00d9ff;
+                color: #00d9ff;
+            }
+
+        .chart-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .chart-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .chart-wrapper {
+            position: relative;
+            height: 250px;
+        }
+
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .mini-stat {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 12px;
+            text-align: center;
+        }
+
+        .mini-stat-value {
+            font-size: 20px;
+            font-weight: 700;
+            color: #00d9ff;
+        }
+
+        .mini-stat-label {
+            font-size: 11px;
+            color: #666;
+            text-transform: uppercase;
+            margin-top: 4px;
+        }
+
+        .mini-stat-change {
+            font-size: 11px;
+            margin-top: 4px;
+        }
+
+            .mini-stat-change.positive {
+                color: #00ff88;
+            }
+
+            .mini-stat-change.negative {
+                color: #ff6b6b;
+            }
+
+        .exercise-selector {
+            margin-bottom: 16px;
+        }
+
+            .exercise-selector select {
+                background: rgba(255, 255, 255, 0.1);
+                border: 1px solid rgba(255, 255, 255, 0.2);
+                border-radius: 8px;
+                padding: 10px 16px;
+                color: #fff;
+                font-size: 14px;
+                cursor: pointer;
+                min-width: 200px;
+            }
+
+        .pr-timeline {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .pr-item {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 12px;
+            background: rgba(255, 215, 0, 0.05);
+            border: 1px solid rgba(255, 215, 0, 0.2);
+            border-radius: 8px;
+        }
+
+        .pr-icon {
+            font-size: 24px;
+        }
+
+        .pr-details {
+            flex: 1;
+        }
+
+        .pr-exercise {
+            font-weight: 600;
+            color: #ffd700;
+        }
+
+        .pr-stats {
+            font-size: 13px;
+            color: #888;
+            margin-top: 4px;
+        }
+
+        .pr-date {
+            font-size: 12px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="charts-container">
+        <div class="header">
+            <h1>📈 Progress Tracker</h1>
+            <div class="time-filter">
+                <button class="filter-btn" data-days="7">7 Days</button>
+                <button class="filter-btn active" data-days="30">30 Days</button>
+                <button class="filter-btn" data-days="90">90 Days</button>
+                <button class="filter-btn" data-days="365">1 Year</button>
+            </div>
+        </div>
+
+        <div class="stats-row">
+            <div class="mini-stat">
+                <div class="mini-stat-value" id="total-workouts">16</div>
+                <div class="mini-stat-label">Workouts</div>
+                <div class="mini-stat-change positive">↑ 12% vs last month</div>
+            </div>
+            <div class="mini-stat">
+                <div class="mini-stat-value" id="total-volume">42.5K</div>
+                <div class="mini-stat-label">Total Volume</div>
+                <div class="mini-stat-change positive">↑ 8% vs last month</div>
+            </div>
+            <div class="mini-stat">
+                <div class="mini-stat-value" id="consistency">85%</div>
+                <div class="mini-stat-label">Consistency</div>
+                <div class="mini-stat-change positive">↑ 5% vs last month</div>
+            </div>
+            <div class="mini-stat">
+                <div class="mini-stat-value" id="avg-duration">58</div>
+                <div class="mini-stat-label">Avg Minutes</div>
+                <div class="mini-stat-change negative">↓ 3 min vs last month</div>
+            </div>
+        </div>
+
+        <div class="chart-card">
+            <div class="chart-title">📊 Weekly Volume Trend</div>
+            <div class="chart-wrapper">
+                <canvas id="volumeChart"></canvas>
+            </div>
+        </div>
+
+        <div class="chart-card">
+            <div class="chart-title">🎯 Muscle Group Distribution</div>
+            <div class="chart-wrapper">
+                <canvas id="muscleChart"></canvas>
+            </div>
+        </div>
+
+        <div class="chart-card">
+            <div class="chart-title">💪 Strength Progression</div>
+            <div class="exercise-selector">
+                <select id="exercise-select">
+                    <option value="bench-press">Bench Press</option>
+                    <option value="squat">Squat</option>
+                    <option value="deadlift">Deadlift</option>
+                    <option value="overhead-press">Overhead Press</option>
+                    <option value="barbell-row">Barbell Row</option>
+                </select>
+            </div>
+            <div class="chart-wrapper">
+                <canvas id="strengthChart"></canvas>
+            </div>
+        </div>
+
+        <div class="chart-card">
+            <div class="chart-title">🏆 Recent Personal Records</div>
+            <div class="pr-timeline">
+                <div class="pr-item">
+                    <span class="pr-icon">🥇</span>
+                    <div class="pr-details">
+                        <div class="pr-exercise">Bench Press</div>
+                        <div class="pr-stats">225 lbs × 5 reps • Est. 1RM: 253 lbs</div>
+                    </div>
+                    <div class="pr-date">Today</div>
+                </div>
+                <div class="pr-item">
+                    <span class="pr-icon">🥈</span>
+                    <div class="pr-details">
+                        <div class="pr-exercise">Squat</div>
+                        <div class="pr-stats">315 lbs × 3 reps • Est. 1RM: 334 lbs</div>
+                    </div>
+                    <div class="pr-date">3 days ago</div>
+                </div>
+                <div class="pr-item">
+                    <span class="pr-icon">🥉</span>
+                    <div class="pr-details">
+                        <div class="pr-exercise">Deadlift</div>
+                        <div class="pr-stats">365 lbs × 2 reps • Est. 1RM: 387 lbs</div>
+                    </div>
+                    <div class="pr-date">1 week ago</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    // Chart.js configuration
+    Chart.defaults.color = '#888';
+    Chart.defaults.borderColor = 'rgba(255, 255, 255, 0.1)';
+
+    // Volume Chart
+    const volumeCtx = document.getElementById('volumeChart').getContext('2d');
+    const volumeChart = new Chart(volumeCtx, {
+      type: 'bar',
+      data: {
+        labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4'],
+        datasets: [{
+          label: 'Volume (lbs)',
+          data: [35000, 38000, 42000, 45000],
+          backgroundColor: 'rgba(0, 217, 255, 0.6)',
+          borderColor: '#00d9ff',
+          borderWidth: 1,
+          borderRadius: 4
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            grid: { color: 'rgba(255, 255, 255, 0.05)' },
+            ticks: {
+              callback: value => (value / 1000) + 'K'
+            }
+          },
+          x: {
+            grid: { display: false }
+          }
+        }
+      }
+    });
+
+    // Muscle Distribution Chart
+    const muscleCtx = document.getElementById('muscleChart').getContext('2d');
+    const muscleChart = new Chart(muscleCtx, {
+      type: 'doughnut',
+      data: {
+        labels: ['Chest', 'Back', 'Shoulders', 'Legs', 'Arms', 'Core'],
+        datasets: [{
+          data: [20, 22, 15, 25, 12, 6],
+          backgroundColor: [
+            '#00d9ff',
+            '#00ff88',
+            '#ff6b35',
+            '#ffd700',
+            '#ff6b6b',
+            '#9b59b6'
+          ],
+          borderWidth: 0
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: 'right',
+            labels: {
+              padding: 16,
+              usePointStyle: true
+            }
+          }
+        }
+      }
+    });
+
+    // Strength Progression Chart
+    const strengthCtx = document.getElementById('strengthChart').getContext('2d');
+    const strengthChart = new Chart(strengthCtx, {
+      type: 'line',
+      data: {
+        labels: ['Jan 1', 'Jan 8', 'Jan 15', 'Jan 22', 'Jan 29', 'Feb 5', 'Feb 12'],
+        datasets: [{
+          label: 'Estimated 1RM (lbs)',
+          data: [205, 210, 215, 220, 225, 235, 253],
+          borderColor: '#00ff88',
+          backgroundColor: 'rgba(0, 255, 136, 0.1)',
+          fill: true,
+          tension: 0.3,
+          pointBackgroundColor: '#00ff88',
+          pointBorderColor: '#fff',
+          pointRadius: 4
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false }
+        },
+        scales: {
+          y: {
+            grid: { color: 'rgba(255, 255, 255, 0.05)' }
+          },
+          x: {
+            grid: { display: false }
+          }
+        }
+      }
+    });
+
+    // Time filter buttons
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+
+        const days = parseInt(btn.dataset.days);
+
+        // Request updated data from MCP
+        window.parent.postMessage({
+          type: 'mcp_action',
+          action: 'get_stats',
+          days: days
+        }, '*');
+      });
+    });
+
+    // Exercise selector
+    document.getElementById('exercise-select').addEventListener('change', (e) => {
+      window.parent.postMessage({
+        type: 'mcp_action',
+        action: 'get_exercise_progress',
+        exercise: e.target.value
+      }, '*');
+    });
+
+    // Listen for data updates
+    window.addEventListener('message', (event) => {
+      if (event.data.type === 'update_charts') {
+        updateCharts(event.data);
+      }
+    });
+
+    function updateCharts(data) {
+      if (data.volumeData) {
+        volumeChart.data.labels = data.volumeData.labels;
+        volumeChart.data.datasets[0].data = data.volumeData.values;
+        volumeChart.update();
+      }
+
+      if (data.muscleData) {
+        muscleChart.data.datasets[0].data = data.muscleData;
+        muscleChart.update();
+      }
+
+      if (data.strengthData) {
+        strengthChart.data.labels = data.strengthData.labels;
+        strengthChart.data.datasets[0].data = data.strengthData.values;
+        strengthChart.update();
+      }
+    }
+    </script>
+</body>
+</html>
