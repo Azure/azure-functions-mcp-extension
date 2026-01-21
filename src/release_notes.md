@@ -10,7 +10,7 @@
 
 ### Microsoft.Azure.Functions.Worker.Extensions.Mcp <version>
 
-- <entry>
+- Generate the tool input schema in the worker (#166)
 
 ### Microsoft.Azure.Functions.Worker.Extensions.Mcp.Sdk 1.0.0-preview.3
 

@@ -1,5 +1,8 @@
+// Copyright (c) .NET Foundation. All rights reserved.
+// Licensed under the MIT License. See License.txt in the project root for license information.
+
 using System.ComponentModel;
-using System.Reflection;
+using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.Azure.Functions.Worker.Core.FunctionMetadata;
 using Microsoft.Azure.Functions.Worker.Extensions.Mcp;
@@ -37,7 +40,7 @@ public class McpFunctionMetadataTransformerTests
         fn.SetupGet(f => f.RawBindings).Returns(new List<string>());
         fn.SetupGet(f => f.Name).Returns((string?)null);
 
-        transformer.Transform([fn.Object]);
+        transformer.Transform(new List<IFunctionMetadata> { fn.Object });
         fn.VerifyGet(f => f.Name, Times.Once);
     }
 
@@ -45,8 +48,8 @@ public class McpFunctionMetadataTransformerTests
     public void Transform_NonMatchingBinding_Ignored()
     {
         var transformer = CreateTransformer();
-        var fn = CreateFunctionMetadata(entryPoint: null, scriptFile: null, name: "Func", bindings: ["{\"type\":\"httpTrigger\"}"]);        
-        transformer.Transform([fn.Object]);
+        var fn = CreateFunctionMetadata(entryPoint: null, scriptFile: null, name: "Func", bindings: new List<string> { "{\"type\":\"httpTrigger\"}" });
+        transformer.Transform(new List<IFunctionMetadata> { fn.Object });
         fn.VerifySet(f => f.RawBindings![It.IsAny<int>()] = It.IsAny<string>(), Times.Never);
     }
 
@@ -60,15 +63,14 @@ public class McpFunctionMetadataTransformerTests
         options.Setup(o => o.Get(It.IsAny<string>())).Returns(new ToolOptions { Properties = [] });
         var transformer = new McpFunctionMetadataTransformer(options.Object);
 
-        var fn = CreateFunctionMetadata(entryPoint, scriptFile, "Func", ["{\"type\":\"mcpToolTrigger\",\"toolName\":\"NoAttributes\"}"]);
+        var fn = CreateFunctionMetadata(entryPoint, scriptFile, "Func", new List<string> { "{\"type\":\"mcpToolTrigger\",\"toolName\":\"NoAttributes\"}" });
 
-        transformer.Transform([fn.Object]);
+        transformer.Transform(new List<IFunctionMetadata> { fn.Object });
 
         var binding = fn.Object.RawBindings![0];
         var json = JsonNode.Parse(binding)!.AsObject();
-        var tp = json["toolProperties"]!.GetValue<string>();
 
-        Assert.Equal("[]", tp);
+        Assert.Null(json["toolProperties"]);
     }
 
     [Fact]
@@ -76,7 +78,7 @@ public class McpFunctionMetadataTransformerTests
     {
         var configuredProps = new List<ToolProperty>
         {
-            new("x","string","desc", true)
+            new("x", "string", "desc", true)
         };
 
         var options = new Mock<IOptionsMonitor<ToolOptions>>();
@@ -88,13 +90,28 @@ public class McpFunctionMetadataTransformerTests
             entryPoint: null,
             scriptFile: null,
             name: "Func",
-            bindings: ["{\"type\":\"mcpToolTrigger\",\"toolName\":\"MyTool\"}"]);
+            bindings: new List<string> { "{\"type\":\"mcpToolTrigger\",\"toolName\":\"MyTool\"}" });
 
-        transformer.Transform([fn.Object]);
+        transformer.Transform(new List<IFunctionMetadata> { fn.Object });
         var json = JsonNode.Parse(fn.Object.RawBindings![0])!.AsObject();
-        var tp = json["toolProperties"]!.GetValue<string>();
 
-        Assert.Contains("\"propertyName\":\"x\"", tp);
+        // When configured via IOptionsMonitor, should use toolProperties directly
+        Assert.True(json.ContainsKey("toolProperties"));
+        Assert.False(json.ContainsKey("useWorkerInputSchema"));
+        Assert.False(json.ContainsKey("inputSchema"));
+
+        var toolPropertiesNode = json["toolProperties"];
+        Assert.NotNull(toolPropertiesNode);
+
+        // Verify the configured property is present
+        var toolPropertiesArray = toolPropertiesNode!.AsArray();
+        Assert.Single(toolPropertiesArray);
+
+        var firstProperty = toolPropertiesArray[0]!.AsObject();
+        Assert.Equal("x", firstProperty["propertyName"]?.GetValue<string>());
+        Assert.Equal("string", firstProperty["propertyType"]?.GetValue<string>());
+        Assert.Equal("desc", firstProperty["description"]?.GetValue<string>());
+        Assert.True(firstProperty["isRequired"]?.GetValue<bool>());
     }
 
     [Fact]
@@ -107,13 +124,30 @@ public class McpFunctionMetadataTransformerTests
         options.Setup(o => o.Get(It.IsAny<string>())).Returns(new ToolOptions { Properties = [] });
         var transformer = new McpFunctionMetadataTransformer(options.Object);
 
-        var fn = CreateFunctionMetadata(entryPoint, scriptFile, "Func", ["{\"type\":\"mcpToolTrigger\",\"toolName\":\"WithToolProperty\"}"]);
+        var fn = CreateFunctionMetadata(entryPoint, scriptFile, "Func", new List<string> { "{\"type\":\"mcpToolTrigger\",\"toolName\":\"WithToolProperty\"}" });
 
-        transformer.Transform([fn.Object]);
+        transformer.Transform(new List<IFunctionMetadata> { fn.Object });
         var json = JsonNode.Parse(fn.Object.RawBindings![0])!.AsObject();
-        var tp = json["toolProperties"]!.GetValue<string>();
 
-        Assert.Equal("[{\"propertyName\":\"name\",\"propertyType\":\"string\",\"description\":\"Name value\",\"isRequired\":true,\"isArray\":false,\"enumValues\":[]}]", tp);
+        // When useWorkerInputSchema is true, we should see inputSchema, not toolProperties
+        Assert.True(json.ContainsKey("useWorkerInputSchema"));
+        Assert.True(json["useWorkerInputSchema"]!.GetValue<bool>());
+        Assert.True(json.ContainsKey("inputSchema"));
+        Assert.False(json.ContainsKey("toolProperties"));
+
+        // Verify the generated input schema contains the expected property
+        var inputSchemaString = json["inputSchema"]!.GetValue<string>();
+        var schemaDoc = JsonDocument.Parse(inputSchemaString);
+        var schema = schemaDoc.RootElement;
+        var properties = schema.GetProperty("properties");
+
+        Assert.True(properties.TryGetProperty("name", out var nameProperty));
+        Assert.Equal("string", nameProperty.GetProperty("type").GetString());
+        Assert.Equal("Name value", nameProperty.GetProperty("description").GetString());
+
+        var required = schema.GetProperty("required");
+        var requiredArray = required.EnumerateArray().Select(e => e.GetString()).ToArray();
+        Assert.Contains("name", requiredArray);
     }
 
     [Fact]
@@ -126,34 +160,46 @@ public class McpFunctionMetadataTransformerTests
         options.Setup(o => o.Get(It.IsAny<string>())).Returns(new ToolOptions { Properties = [] });
         var transformer = new McpFunctionMetadataTransformer(options.Object);
 
-        var fn = CreateFunctionMetadata(entryPoint, scriptFile, "Func", ["{\"type\":\"mcpToolTrigger\",\"toolName\":\"WithTriggerPoco\"}"]);
+        var fn = CreateFunctionMetadata(entryPoint, scriptFile, "Func", new List<string> { "{\"type\":\"mcpToolTrigger\",\"toolName\":\"WithTriggerPoco\"}" });
 
-        transformer.Transform([fn.Object]);
+        transformer.Transform(new List<IFunctionMetadata> { fn.Object });
         var json = JsonNode.Parse(fn.Object.RawBindings![0])!.AsObject();
-        var tp = json["toolProperties"]!.GetValue<string>();
-        Assert.Contains("\"propertyName\":\"Content\"", tp);
-        Assert.Contains("\"propertyName\":\"Title\"", tp);
+
+        // When useWorkerInputSchema is true, we should see inputSchema, not toolProperties
+        Assert.True(json.ContainsKey("useWorkerInputSchema"));
+        Assert.True(json["useWorkerInputSchema"]!.GetValue<bool>());
+        Assert.True(json.ContainsKey("inputSchema"));
+        Assert.False(json.ContainsKey("toolProperties"));
+
+        // Verify the generated input schema contains POCO properties
+        var inputSchemaString = json["inputSchema"]!.GetValue<string>();
+        var schemaDoc = JsonDocument.Parse(inputSchemaString);
+        var schema = schemaDoc.RootElement;
+        var properties = schema.GetProperty("properties");
+
+        Assert.True(properties.TryGetProperty("Content", out _));
+        Assert.True(properties.TryGetProperty("Title", out _));
     }
 
     [Fact]
-    public void Transform_InvalidEntryPoint_NoChange()
+    public void Transform_InvalidEntryPoint_Throws()
     {
         var options = new Mock<IOptionsMonitor<ToolOptions>>();
         options.Setup(o => o.Get(It.IsAny<string>())).Returns(new ToolOptions { Properties = [] });
         var transformer = new McpFunctionMetadataTransformer(options.Object);
 
-        var fn = CreateFunctionMetadata("BadEntryPoint", "Some.dll", "Func", ["{\"type\":\"mcpToolTrigger\",\"toolName\":\"Bad\"}"]);
-        fn.SetupGet(f => f.RawBindings).Returns(["{\"type\":\"mcpToolTrigger\",\"toolName\":\"Bad\"}"]);
+        var fn = CreateFunctionMetadata("BadEntryPoint", "Some.dll", "func", new List<string> { "{\"type\":\"mcpToolTrigger\",\"toolName\":\"Bad\"}" });
+        fn.SetupGet(f => f.RawBindings).Returns(new List<string> { "{\"type\":\"mcpToolTrigger\",\"toolName\":\"Bad\"}" });
 
-        transformer.Transform([fn.Object]);
-        var binding = fn.Object.RawBindings![0];
-        var json = JsonNode.Parse(binding)!.AsObject();
+        var exception = Assert.Throws<InvalidOperationException>(() =>
+            transformer.Transform(new List<IFunctionMetadata> { fn.Object })
+        );
 
-        Assert.False(json.ContainsKey("toolProperties"));
+        Assert.Equal("Failed to generate input schema for MCP tool trigger function 'func'.", exception.Message);
     }
 
     [Fact]
-    public void Transform_MethodNotFound_NoChange()
+    public void Transform_MethodNotFound_Throws()
     {
         var (entryPoint, scriptFile, outputDir) = GetFunctionMetadataInfo<TestFunctions>("NonExistent");
         Environment.SetEnvironmentVariable(FunctionsApplicationDirectoryKey, outputDir);
@@ -162,11 +208,12 @@ public class McpFunctionMetadataTransformerTests
         options.Setup(o => o.Get(It.IsAny<string>())).Returns(new ToolOptions { Properties = [] });
         var transformer = new McpFunctionMetadataTransformer(options.Object);
 
-        var fn = CreateFunctionMetadata(entryPoint, scriptFile, "Func", ["{\"type\":\"mcpToolTrigger\",\"toolName\":\"Whatever\"}"]);
-        transformer.Transform([fn.Object]);
-        var json = JsonNode.Parse(fn.Object.RawBindings![0])!.AsObject();
+        var fn = CreateFunctionMetadata(entryPoint, scriptFile, "func", new List<string> { "{\"type\":\"mcpToolTrigger\",\"toolName\":\"Whatever\"}" });
+        var exception = Assert.Throws<InvalidOperationException>(() =>
+            transformer.Transform(new List<IFunctionMetadata> { fn.Object })
+        );
 
-        Assert.False(json.ContainsKey("toolProperties"));
+        Assert.Equal("Failed to generate input schema for MCP tool trigger function 'func'.", exception.Message);
     }
 
     [Fact]
@@ -181,11 +228,12 @@ public class McpFunctionMetadataTransformerTests
         options.Setup(o => o.Get(It.IsAny<string>())).Returns(new ToolOptions { Properties = [] });
         var transformer = new McpFunctionMetadataTransformer(options.Object);
 
-        var fn = CreateFunctionMetadata(entryPoint, scriptFile, "Func", ["{\"type\":\"mcpToolTrigger\",\"toolName\":\"WithToolProperty\"}"]);
-        transformer.Transform([fn.Object]);
-        var json = JsonNode.Parse(fn.Object.RawBindings![0])!.AsObject();
+        var fn = CreateFunctionMetadata(entryPoint, scriptFile, "func", new List<string> { "{\"type\":\"mcpToolTrigger\",\"toolName\":\"WithToolProperty\"}" });
+        var exception = Assert.Throws<InvalidOperationException>(() =>
+            transformer.Transform(new List<IFunctionMetadata> { fn.Object })
+        );
 
-        Assert.False(json.ContainsKey("toolProperties"));
+        Assert.Equal("Failed to generate input schema for MCP tool trigger function 'func'.", exception.Message);
     }
 
     [Fact]
@@ -194,26 +242,347 @@ public class McpFunctionMetadataTransformerTests
         var (entryPoint, scriptFile, outputDir) = GetFunctionMetadataInfo<TestFunctions>(nameof(TestFunctions.WithContextAndPoco));
         Environment.SetEnvironmentVariable(FunctionsApplicationDirectoryKey, outputDir);
 
+        var transformer = CreateTransformer();
+
+        var fn = CreateFunctionMetadata(entryPoint, scriptFile, "Func", new List<string> { "{\"type\":\"mcpToolTrigger\",\"toolName\":\"WithContextAndPoco\"}" });
+        transformer.Transform(new List<IFunctionMetadata> { fn.Object });
+        var json = JsonNode.Parse(fn.Object.RawBindings![0])!.AsObject();
+
+        // When useWorkerInputSchema is true, we should see inputSchema, not toolProperties
+        Assert.True(json.ContainsKey("useWorkerInputSchema"));
+        Assert.True(json["useWorkerInputSchema"]!.GetValue<bool>());
+        Assert.True(json.ContainsKey("inputSchema"));
+        Assert.False(json.ContainsKey("toolProperties"));
+
+        // Verify the generated input schema contains only the McpToolProperty parameter, not ToolInvocationContext
+        var inputSchemaString = json["inputSchema"]!.GetValue<string>();
+        var schemaDoc = JsonDocument.Parse(inputSchemaString);
+        var schema = schemaDoc.RootElement;
+        var properties = schema.GetProperty("properties");
+
+        // Should have the McpToolProperty "Name" parameter but not ToolInvocationContext
+        Assert.True(properties.TryGetProperty("Name", out _));
+
+        // Should not have any property related to ToolInvocationContext
+        var propertyNames = properties.EnumerateObject().Select(p => p.Name.ToLowerInvariant()).ToArray();
+        Assert.DoesNotContain("context", propertyNames);
+        Assert.DoesNotContain("toolinvocationcontext", propertyNames);
+    }
+
+    [Fact]
+    public void Transform_GeneratesInputSchema_AndStoresInBinding()
+    {
+        var (entryPoint, scriptFile, outputDir) = GetFunctionMetadataInfo<TestFunctions>(nameof(TestFunctions.WithInputSchemaGeneration));
+        Environment.SetEnvironmentVariable(FunctionsApplicationDirectoryKey, outputDir);
+
+        var transformer = CreateTransformer();
+
+        var fn = CreateFunctionMetadata(entryPoint, scriptFile, "Func", new List<string> { "{\"type\":\"mcpToolTrigger\",\"toolName\":\"WithInputSchemaGeneration\"}" });
+
+        transformer.Transform(new List<IFunctionMetadata> { fn.Object });
+
+        var binding = fn.Object.RawBindings![0];
+        var json = JsonNode.Parse(binding)!.AsObject();
+
+        // Verify input schema was generated and stored
+        Assert.True(json.ContainsKey("inputSchema"));
+        Assert.True(json.ContainsKey("useWorkerInputSchema"));
+        Assert.True(json["useWorkerInputSchema"]!.GetValue<bool>());
+
+        // When useWorkerInputSchema is true, toolProperties should not be present
+        Assert.False(json.ContainsKey("toolProperties"));
+
+        var inputSchemaString = json["inputSchema"]!.GetValue<string>();
+        var schemaDoc = JsonDocument.Parse(inputSchemaString);
+        var schema = schemaDoc.RootElement;
+
+        Assert.Equal("object", schema.GetProperty("type").GetString());
+        Assert.True(schema.TryGetProperty("properties", out var propertiesElement));
+        Assert.True(schema.TryGetProperty("required", out var requiredElement));
+
+        // Verify specific properties from the test function
+        Assert.True(propertiesElement.TryGetProperty("name", out var nameProperty));
+        Assert.Equal("string", nameProperty.GetProperty("type").GetString());
+        Assert.Equal("Person's name", nameProperty.GetProperty("description").GetString());
+
+        Assert.True(propertiesElement.TryGetProperty("age", out var ageProperty));
+        Assert.Equal("integer", ageProperty.GetProperty("type").GetString());
+
+        // Verify required array
+        var requiredArray = requiredElement.EnumerateArray().Select(e => e.GetString()).ToArray();
+        Assert.Contains("name", requiredArray);
+        Assert.DoesNotContain("age", requiredArray);
+    }
+
+    [Fact]
+    public void Transform_InputSchemaGeneration_WithPocoParameter()
+    {
+        var (entryPoint, scriptFile, outputDir) = GetFunctionMetadataInfo<TestFunctions>(nameof(TestFunctions.WithPocoInputGeneration));
+        Environment.SetEnvironmentVariable(FunctionsApplicationDirectoryKey, outputDir);
+
+        var transformer = CreateTransformer();
+
+        var fn = CreateFunctionMetadata(entryPoint, scriptFile, "Func", new List<string> { "{\"type\":\"mcpToolTrigger\",\"toolName\":\"WithPocoInputGeneration\"}" });
+
+        transformer.Transform(new List<IFunctionMetadata> { fn.Object });
+
+        var binding = fn.Object.RawBindings![0];
+        var json = JsonNode.Parse(binding)!.AsObject();
+
+        Assert.True(json.ContainsKey("inputSchema"));
+        Assert.True(json.ContainsKey("useWorkerInputSchema"));
+        Assert.True(json["useWorkerInputSchema"]!.GetValue<bool>());
+
+        // When useWorkerInputSchema is true, toolProperties should not be present
+        Assert.False(json.ContainsKey("toolProperties"));
+
+        var inputSchemaString = json["inputSchema"]!.GetValue<string>();
+        var schemaDoc = JsonDocument.Parse(inputSchemaString);
+        var schema = schemaDoc.RootElement;
+        var propertiesElement = schema.GetProperty("properties");
+
+        // Verify POCO properties are included
+        Assert.True(propertiesElement.TryGetProperty("Content", out var contentProperty));
+        Assert.Equal("string", contentProperty.GetProperty("type").GetString());
+        Assert.Equal("The content of the snippet", contentProperty.GetProperty("description").GetString());
+
+        Assert.True(propertiesElement.TryGetProperty("Title", out var titleProperty));
+        Assert.Equal("string", titleProperty.GetProperty("type").GetString());
+        Assert.Equal("The title of the snippet", titleProperty.GetProperty("description").GetString());
+
+        // Verify required properties (Title is required in the POCO)
+        var requiredElement = schema.GetProperty("required");
+        var requiredArray = requiredElement.EnumerateArray().Select(e => e.GetString()).ToArray();
+        Assert.Contains("Title", requiredArray);
+        Assert.DoesNotContain("Content", requiredArray); // Content is nullable, not required
+    }
+
+    [Fact]
+    public void Transform_InputSchemaGeneration_WithEnumProperties()
+    {
+        var (entryPoint, scriptFile, outputDir) = GetFunctionMetadataInfo<TestFunctions>(nameof(TestFunctions.WithEnumInputGeneration));
+        Environment.SetEnvironmentVariable(FunctionsApplicationDirectoryKey, outputDir);
+
+        var transformer = CreateTransformer();
+
+        var fn = CreateFunctionMetadata(entryPoint, scriptFile, "Func", new List<string> { "{\"type\":\"mcpToolTrigger\",\"toolName\":\"WithEnumInputGeneration\"}" });
+
+        transformer.Transform(new List<IFunctionMetadata> { fn.Object });
+
+        var binding = fn.Object.RawBindings![0];
+        var json = JsonNode.Parse(binding)!.AsObject();
+
+        Assert.True(json.ContainsKey("inputSchema"));
+        Assert.True(json.ContainsKey("useWorkerInputSchema"));
+        Assert.True(json["useWorkerInputSchema"]!.GetValue<bool>());
+
+        // When useWorkerInputSchema is true, toolProperties should not be present
+        Assert.False(json.ContainsKey("toolProperties"));
+
+        var inputSchemaString = json["inputSchema"]!.GetValue<string>();
+        var schemaDoc = JsonDocument.Parse(inputSchemaString);
+        var schema = schemaDoc.RootElement;
+        var propertiesElement = schema.GetProperty("properties");
+
+        // Verify enum property
+        Assert.True(propertiesElement.TryGetProperty("status", out var statusProperty));
+        Assert.Equal("string", statusProperty.GetProperty("type").GetString());
+        Assert.Equal("Task status", statusProperty.GetProperty("description").GetString());
+
+        Assert.True(statusProperty.TryGetProperty("enum", out var enumProperty));
+        var enumValues = enumProperty.EnumerateArray().Select(e => e.GetString()).ToArray();
+        Assert.Contains("Active", enumValues);
+        Assert.Contains("Completed", enumValues);
+        Assert.Contains("Cancelled", enumValues);
+    }
+
+    [Fact]
+    public void Transform_InputSchemaGeneration_WithArrayProperties()
+    {
+        var (entryPoint, scriptFile, outputDir) = GetFunctionMetadataInfo<TestFunctions>(nameof(TestFunctions.WithArrayInputGeneration));
+        Environment.SetEnvironmentVariable(FunctionsApplicationDirectoryKey, outputDir);
+
+        var transformer = CreateTransformer();
+
+        var fn = CreateFunctionMetadata(entryPoint, scriptFile, "Func", new List<string> { "{\"type\":\"mcpToolTrigger\",\"toolName\":\"WithArrayInputGeneration\"}" });
+
+        transformer.Transform(new List<IFunctionMetadata> { fn.Object });
+
+        var binding = fn.Object.RawBindings![0];
+        var json = JsonNode.Parse(binding)!.AsObject();
+
+        Assert.True(json.ContainsKey("inputSchema"));
+        Assert.True(json.ContainsKey("useWorkerInputSchema"));
+        Assert.True(json["useWorkerInputSchema"]!.GetValue<bool>());
+
+        // When useWorkerInputSchema is true, toolProperties should not be present
+        Assert.False(json.ContainsKey("toolProperties"));
+
+        var inputSchemaString = json["inputSchema"]!.GetValue<string>();
+        var schemaDoc = JsonDocument.Parse(inputSchemaString);
+        var schema = schemaDoc.RootElement;
+        var propertiesElement = schema.GetProperty("properties");
+
+        // Verify array property
+        Assert.True(propertiesElement.TryGetProperty("tags", out var tagsProperty));
+        Assert.Equal("array", tagsProperty.GetProperty("type").GetString());
+        Assert.Equal("List of tags", tagsProperty.GetProperty("description").GetString());
+
+        Assert.True(tagsProperty.TryGetProperty("items", out var itemsProperty));
+        Assert.Equal("string", itemsProperty.GetProperty("type").GetString());
+    }
+
+    [Fact]
+    public void Transform_InputSchemaGeneration_HandlesToolPropertyBindings()
+    {
+        var (entryPoint, scriptFile, outputDir) = GetFunctionMetadataInfo<TestFunctions>(nameof(TestFunctions.WithInputSchemaGeneration));
+        Environment.SetEnvironmentVariable(FunctionsApplicationDirectoryKey, outputDir);
+
+        var transformer = CreateTransformer();
+
+        var bindings = new List<string>
+        {
+            "{\"type\":\"mcpToolTrigger\",\"toolName\":\"WithInputSchemaGeneration\"}",
+            "{\"type\":\"mcpToolProperty\",\"propertyName\":\"name\"}",
+            "{\"type\":\"mcpToolProperty\",\"propertyName\":\"age\"}"
+        };
+
+        var fn = CreateFunctionMetadata(entryPoint, scriptFile, "Func", bindings);
+
+        transformer.Transform(new List<IFunctionMetadata> { fn.Object });
+
+        // Verify the trigger binding has input schema
+        var triggerBinding = fn.Object.RawBindings![0];
+        var triggerJson = JsonNode.Parse(triggerBinding)!.AsObject();
+        Assert.True(triggerJson.ContainsKey("inputSchema"));
+
+        // Verify tool property bindings were patched with correct types
+        var namePropertyBinding = fn.Object.RawBindings![1];
+        var nameJson = JsonNode.Parse(namePropertyBinding)!.AsObject();
+        Assert.True(nameJson.ContainsKey("propertyType"));
+        Assert.Equal("string", nameJson["propertyType"]!.GetValue<string>());
+
+        var agePropertyBinding = fn.Object.RawBindings![2];
+        var ageJsonObj = JsonNode.Parse(agePropertyBinding)!.AsObject();
+        Assert.True(ageJsonObj.ContainsKey("propertyType"));
+        Assert.Equal("integer", ageJsonObj["propertyType"]!.GetValue<string>());
+    }
+
+    [Fact]
+    public void Transform_InputSchemaGeneration_HandlesRobustPatchingErrors()
+    {
+        var (entryPoint, scriptFile, outputDir) = GetFunctionMetadataInfo<TestFunctions>(nameof(TestFunctions.WithInputSchemaGeneration));
+        Environment.SetEnvironmentVariable(FunctionsApplicationDirectoryKey, outputDir);
+
+        var transformer = CreateTransformer();
+
+        var bindings = new List<string>
+        {
+            "{\"type\":\"mcpToolTrigger\",\"toolName\":\"WithInputSchemaGeneration\"}",
+            "{\"type\":\"mcpToolProperty\",\"propertyName\":\"name\"}",
+            "{\"type\":\"mcpToolProperty\",\"propertyName\":\"nonexistent\"}" // This property won't be in schema
+        };
+
+        var fn = CreateFunctionMetadata(entryPoint, scriptFile, "Func", bindings);
+
+        // Should not throw exception even when some properties can't be patched
+        transformer.Transform(new List<IFunctionMetadata> { fn.Object });
+
+        // Verify the trigger binding has input schema
+        var triggerBinding = fn.Object.RawBindings![0];
+        var triggerJson = JsonNode.Parse(triggerBinding)!.AsObject();
+        Assert.True(triggerJson.ContainsKey("inputSchema"));
+
+        // Verify the valid property binding was patched with correct type
+        var namePropertyBinding = fn.Object.RawBindings![1];
+        var nameJson = JsonNode.Parse(namePropertyBinding)!.AsObject();
+        Assert.True(nameJson.ContainsKey("propertyType"));
+        Assert.Equal("string", nameJson["propertyType"]!.GetValue<string>());
+
+        // Verify the invalid property binding was not patched (no propertyType added)
+        var invalidPropertyBinding = fn.Object.RawBindings![2];
+        var invalidJson = JsonNode.Parse(invalidPropertyBinding)!.AsObject();
+        // The binding should still exist, but without a propertyType since it wasn't in the schema
+        Assert.False(invalidJson.ContainsKey("propertyType"));
+    }
+
+    [Fact]
+    public void Transform_InputSchemaGeneration_ThrowsOnInvalidFunction()
+    {
+        // Set environment variable to test method resolution failure rather than environment setup failure
+        var (entryPoint, scriptFile, outputDir) = GetFunctionMetadataInfo<TestFunctions>(nameof(TestFunctions.WithToolProperty));
+        Environment.SetEnvironmentVariable(FunctionsApplicationDirectoryKey, outputDir);
+
+        var transformer = CreateTransformer();
+
+        // Use a non-existent DLL file to force assembly loading failure
+        var fn = CreateFunctionMetadata(entryPoint, "NonExistent.dll", "Func",
+            new List<string> { "{\"type\":\"mcpToolTrigger\",\"toolName\":\"Invalid\"}" });
+
+        // Should throw exception when input schema generation fails (no longer swallowing exceptions)
+        Assert.Throws<InvalidOperationException>(() => transformer.Transform(new List<IFunctionMetadata> { fn.Object }));
+    }
+
+    [Fact]
+    public void Transform_UsesConfiguredOptions_AndPatchesToolPropertyBindings()
+    {
+        var configuredProps = new List<ToolProperty>
+        {
+            new("name", "string", "Name property", true),
+            new("count", "integer", "Count property", false)
+        };
+
         var options = new Mock<IOptionsMonitor<ToolOptions>>();
-        options.Setup(o => o.Get(It.IsAny<string>())).Returns(new ToolOptions { Properties = [] });
+        options.Setup(o => o.Get("MyTool")).Returns(new ToolOptions { Properties = configuredProps });
+
         var transformer = new McpFunctionMetadataTransformer(options.Object);
 
-        var fn = CreateFunctionMetadata(entryPoint, scriptFile, "Func", ["{\"type\":\"mcpToolTrigger\",\"toolName\":\"WithContextAndPoco\"}"]);
-        transformer.Transform([fn.Object]);
-        var json = JsonNode.Parse(fn.Object.RawBindings![0])!.AsObject();
-        var tp = json["toolProperties"]!.GetValue<string>();
+        var bindings = new List<string>
+        {
+            "{\"type\":\"mcpToolTrigger\",\"toolName\":\"MyTool\"}",
+            "{\"type\":\"mcpToolProperty\",\"propertyName\":\"name\"}",
+            "{\"type\":\"mcpToolProperty\",\"propertyName\":\"count\"}"
+        };
 
-        // Should have only the property from the POCO, not the context parameter
-        Assert.DoesNotContain("mcptoolcontext", tp, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("\"propertyName\":\"Name\"", tp);
+        var fn = CreateFunctionMetadata(
+            entryPoint: null,
+            scriptFile: null,
+            name: "Func",
+            bindings: bindings);
+
+        transformer.Transform(new List<IFunctionMetadata> { fn.Object });
+
+        // Verify the trigger binding has toolProperties (not inputSchema)
+        var triggerJson = JsonNode.Parse(fn.Object.RawBindings![0])!.AsObject();
+        Assert.True(triggerJson.ContainsKey("toolProperties"));
+        Assert.False(triggerJson.ContainsKey("useWorkerInputSchema"));
+        Assert.False(triggerJson.ContainsKey("inputSchema"));
+
+        // Verify tool property bindings were patched with correct types from configured options
+        var namePropertyBinding = fn.Object.RawBindings![1];
+        var nameJson = JsonNode.Parse(namePropertyBinding)!.AsObject();
+        Assert.True(nameJson.ContainsKey("propertyType"));
+        Assert.Equal("string", nameJson["propertyType"]!.GetValue<string>());
+
+        var countPropertyBinding = fn.Object.RawBindings![2];
+        var countJson = JsonNode.Parse(countPropertyBinding)!.AsObject();
+        Assert.True(countJson.ContainsKey("propertyType"));
+        Assert.Equal("integer", countJson["propertyType"]!.GetValue<string>());
     }
 
     private static McpFunctionMetadataTransformer CreateTransformer(List<ToolProperty>? configured = null)
     {
-        var options =  new Mock<IOptionsMonitor<ToolOptions>>();
-        options.Setup(o => o.Get(It.IsAny<string>()))
-            .Returns(new ToolOptions { Properties = configured ?? [] });
-        return new McpFunctionMetadataTransformer(options.Object);
+        var toolOptionsMonitor = new Mock<IOptionsMonitor<ToolOptions>>();
+
+        // Setup the options monitor to return a ToolOptions with the configured properties
+        var toolOptions = new ToolOptions
+        {
+            Properties = configured ?? []
+        };
+
+        toolOptionsMonitor.Setup(m => m.Get(It.IsAny<string>())).Returns(toolOptions);
+
+        return new McpFunctionMetadataTransformer(toolOptionsMonitor.Object);
     }
 
     private static Mock<IFunctionMetadata> CreateFunctionMetadata(string? entryPoint, string? scriptFile, string? name, IList<string>? bindings)
@@ -241,15 +610,29 @@ public class McpFunctionMetadataTransformerTests
 
         public void WithToolProperty(
             [McpToolTrigger("WithToolProperty", "desc")] ToolInvocationContext ctx,
-            [McpToolProperty("name", "Name value", true)] string name) { }
+            [McpToolProperty("name", "Name value", true)] string name)
+        { }
 
         public void WithTriggerPoco(
-            [McpToolTrigger("WithTriggerPoco", "desc")] Snippet snippet) { }
+            [McpToolTrigger("WithTriggerPoco", "desc")] Snippet snippet)
+        { }
 
         public void WithContextAndPoco(
             [McpToolTrigger("WithContextAndPoco", "desc")] ToolInvocationContext context,
             [McpToolProperty("Name", "Name", true)] string name,
-            ExtraPoco ignored) { }
+            ExtraPoco ignored)
+        { }
+
+        public void WithInputSchemaGeneration(
+            [McpToolProperty("name", "Person's name", true)] string name,
+            [McpToolProperty("age", "Person's age", false)] int age)
+        { }
+
+        public void WithPocoInputGeneration([McpToolTrigger("WithPocoInputGeneration", "desc")] Snippet snippet) { }
+
+        public void WithEnumInputGeneration([McpToolProperty("status", "Task status", true)] TaskStatus status) { }
+
+        public void WithArrayInputGeneration([McpToolProperty("tags", "List of tags", false)] string[] tags) { }
     }
 
     public class Snippet
@@ -261,5 +644,12 @@ public class McpFunctionMetadataTransformerTests
     public class ExtraPoco
     {
         public string? Name { get; set; }
+    }
+
+    public enum TaskStatus
+    {
+        Active,
+        Completed,
+        Cancelled
     }
 }
