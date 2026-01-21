@@ -1,4 +1,3 @@
-using ChatGptSampleApp;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Extensions.Mcp;
 using Microsoft.Extensions.Logging;
@@ -93,36 +92,16 @@ public class WorkoutFunctions
     public async Task<string> LogWorkout(
         [McpToolTrigger(nameof(LogWorkout),
             "Log a completed workout session. Use this after the user describes a workout they just completed.")]
-        ToolInvocationContext context,
-
-        [McpToolProperty("type", "Type of workout: Push, Pull, Legs, Upper, Lower, FullBody, Cardio, General")]
-        WorkoutType type,
-
-        [McpToolProperty("exercises", "List of exercises performed with sets, reps, and weight")]
-        IEnumerable<ExerciseInput> exercises,
-
-        [McpToolProperty("durationMinutes", "Duration of the workout in minutes")]
-        int durationMinutes = 60,
-
-        [McpToolProperty("date", "Date of the workout (defaults to today)")]
-        DateTime? date = null,
-
-        [McpToolProperty("perceivedEffort", "Rate of perceived exertion 1-10 (how hard it felt)")]
-        int perceivedEffort = 5,
-
-        [McpToolProperty("energyLevel", "Energy level 1-10 (how energized the user felt)")]
-        int energyLevel = 5,
-
-        [McpToolProperty("notes", "Optional notes about the workout")]
-        string? notes = null)
+        LogWorkoutRequest request,
+        ToolInvocationContext context)
     {
         var workout = new WorkoutSession
         {
             Id = Guid.NewGuid().ToString(),
-            Date = date?.ToUniversalTime() ?? DateTime.UtcNow,
-            Type = type.ToString(),
-            DurationMinutes = durationMinutes,
-            Exercises = exercises.Select(e => new Exercise
+            Date = request.Date?.ToUniversalTime() ?? DateTime.UtcNow,
+            Type = request.Type.ToString(),
+            DurationMinutes = request.DurationMinutes,
+            Exercises = request.Exercises.Select(e => new Exercise
             {
                 Name = e.Name,
                 MuscleGroup = e.MuscleGroup,
@@ -136,22 +115,21 @@ public class WorkoutFunctions
                 }).ToList(),
                 Notes = e.Notes
             }).ToList(),
-            PerceivedEffort = Math.Clamp(perceivedEffort, 1, 10),
-            EnergyLevel = Math.Clamp(energyLevel, 1, 10),
-            Notes = notes
+            PerceivedEffort = Math.Clamp(request.PerceivedEffort, 1, 10),
+            EnergyLevel = Math.Clamp(request.EnergyLevel, 1, 10),
+            Notes = request.Notes
         };
 
         await _workoutRepo.SaveWorkoutAsync(workout);
         _logger.LogInformation("Logged workout {WorkoutId} on {Date}", workout.Id, workout.Date);
 
-        // Calculate some stats to return
         var totalVolume = workout.Exercises.Sum(e => e.Sets.Sum(s => s.Reps * s.Weight));
         var totalSets = workout.Exercises.Sum(e => e.Sets.Count);
 
         return JsonSerializer.Serialize(new
         {
             success = true,
-            message = $"Workout logged successfully!",
+            message = "Workout logged successfully!",
             summary = new
             {
                 workout.Id,
@@ -173,22 +151,17 @@ public class WorkoutFunctions
     public async Task<string> GetWorkoutHistory(
         [McpToolTrigger(nameof(GetWorkoutHistory),
             "Retrieve workout history for a specified time period. Returns detailed workout data including exercises, volume, and user notes. Use this to analyze patterns and tailor recommendations.")]
-        ToolInvocationContext context,
-
-        [McpToolProperty("days", "Number of days to look back (default 30)")]
-        int days = 30,
-
-        [McpToolProperty("workoutType", "Optional filter by workout type")]
-        WorkoutType? workoutType = null)
+        GetWorkoutHistoryRequest request,
+        ToolInvocationContext context)
     {
-        var typeFilter = workoutType?.ToString();
-        var workouts = await _workoutRepo.GetWorkoutsAsync(days, typeFilter);
+        var typeFilter = request.WorkoutType?.ToString();
+        var workouts = await _workoutRepo.GetWorkoutsAsync(request.Days, typeFilter);
 
-        _logger.LogInformation("Retrieved {Count} workouts from last {Days} days", workouts.Count, days);
+        _logger.LogInformation("Retrieved {Count} workouts from last {Days} days", workouts.Count, request.Days);
 
         return JsonSerializer.Serialize(new
         {
-            period = $"Last {days} days",
+            period = $"Last {request.Days} days",
             totalWorkouts = workouts.Count,
             workouts = workouts,
             summary = GenerateWorkoutSummary(workouts)
@@ -202,12 +175,10 @@ public class WorkoutFunctions
     public async Task<string> GetPersonalRecords(
         [McpToolTrigger(nameof(GetPersonalRecords),
             "Get personal records (PRs) for specific exercises or all exercises. Useful for tracking strength progression and setting goals.")]
-        ToolInvocationContext context,
-
-        [McpToolProperty("exerciseName", "Optional: filter by specific exercise name")]
-        string? exerciseName = null)
+        GetPersonalRecordsRequest request,
+        ToolInvocationContext context)
     {
-        var prs = await _workoutRepo.GetPersonalRecordsAsync(exerciseName);
+        var prs = await _workoutRepo.GetPersonalRecordsAsync(request.ExerciseName);
 
         return JsonSerializer.Serialize(new
         {
@@ -224,13 +195,11 @@ public class WorkoutFunctions
     public async Task<string> GetWorkoutStats(
         [McpToolTrigger(nameof(GetWorkoutStats),
             "Get comprehensive workout statistics including frequency, volume trends, muscle group distribution, and consistency metrics. Essential for generating personalized workout recommendations.")]
-        ToolInvocationContext context,
-
-        [McpToolProperty("days", "Number of days to analyze (default 30)")]
-        int days = 30)
+        GetWorkoutStatsRequest request,
+        ToolInvocationContext context)
     {
-        var workouts = await _workoutRepo.GetWorkoutsAsync(days, null);
-        var stats = CalculateStats(workouts, days);
+        var workouts = await _workoutRepo.GetWorkoutsAsync(request.Days, null);
+        var stats = CalculateStats(workouts, request.Days);
 
         return JsonSerializer.Serialize(stats);
     }
@@ -242,38 +211,18 @@ public class WorkoutFunctions
     public async Task<string> UpdateUserProfile(
         [McpToolTrigger(nameof(UpdateUserProfile),
             "Update user's fitness goals, preferences, and constraints. Use this when the user shares information about their goals, available equipment, schedule, or limitations.")]
-        ToolInvocationContext context,
-
-        [McpToolProperty("goals", "Fitness goals: Strength, Hypertrophy, Endurance, WeightLoss, GeneralFitness")]
-        IEnumerable<FitnessGoal>? goals = null,
-
-        [McpToolProperty("equipment", "Available equipment: Barbell, Dumbbells, Cables, Machines, BodyweightOnly, Kettlebells, ResistanceBands")]
-        IEnumerable<Equipment>? equipment = null,
-
-        [McpToolProperty("workoutDaysPerWeek", "Target number of workout days per week")]
-        int workoutDaysPerWeek = 4,
-
-        [McpToolProperty("sessionDurationMinutes", "Target workout duration in minutes")]
-        int sessionDurationMinutes = 60,
-
-        [McpToolProperty("injuries", "Any injuries or limitations to work around")]
-        IEnumerable<string>? injuries = null,
-
-        [McpToolProperty("experienceLevel", "Experience level: Beginner, Intermediate, Advanced")]
-        ExperienceLevel experienceLevel = ExperienceLevel.Intermediate,
-
-        [McpToolProperty("weightUnit", "Preferred weight unit: Lbs or Kg")]
-        WeightUnit weightUnit = WeightUnit.Lbs)
+        UpdateUserProfileRequest request,
+        ToolInvocationContext context)
     {
         var profile = new UserProfile
         {
-            Goals = goals?.Select(g => g.ToString()).ToList() ?? new List<string> { "GeneralFitness" },
-            AvailableEquipment = equipment?.Select(e => e.ToString()).ToList() ?? new List<string>(),
-            WorkoutDaysPerWeek = Math.Clamp(workoutDaysPerWeek, 1, 7),
-            SessionDurationMinutes = Math.Clamp(sessionDurationMinutes, 15, 180),
-            Injuries = injuries?.ToList() ?? new List<string>(),
-            ExperienceLevel = experienceLevel.ToString(),
-            WeightUnit = weightUnit.ToString().ToLowerInvariant()
+            Goals = request.Goals?.Select(g => g.ToString()).ToList() ?? new List<string> { "GeneralFitness" },
+            AvailableEquipment = request.Equipment?.Select(e => e.ToString()).ToList() ?? new List<string>(),
+            WorkoutDaysPerWeek = Math.Clamp(request.WorkoutDaysPerWeek, 1, 7),
+            SessionDurationMinutes = Math.Clamp(request.SessionDurationMinutes, 15, 180),
+            Injuries = request.Injuries?.ToList() ?? new List<string>(),
+            ExperienceLevel = request.ExperienceLevel.ToString(),
+            WeightUnit = request.WeightUnit.ToString().ToLowerInvariant()
         };
 
         await _workoutRepo.SaveUserProfileAsync(profile);
@@ -307,16 +256,14 @@ public class WorkoutFunctions
     public async Task<string> SearchWorkouts(
         [McpToolTrigger(nameof(SearchWorkouts),
             "Search past workouts by exercise name, workout type, or keywords in notes. Helpful for finding when the user last did a specific exercise or workout.")]
-        ToolInvocationContext context,
-
-        [McpToolProperty("query", "Search query - exercise name, workout type, or keyword", true)]
-        string query)
+        SearchWorkoutsRequest request,
+        ToolInvocationContext context)
     {
-        var results = await _workoutRepo.SearchWorkoutsAsync(query);
+        var results = await _workoutRepo.SearchWorkoutsAsync(request.Query);
 
         return JsonSerializer.Serialize(new
         {
-            query,
+            query = request.Query,
             count = results.Count,
             results
         });
@@ -329,23 +276,45 @@ public class WorkoutFunctions
     public async Task<string> DeleteWorkout(
         [McpToolTrigger(nameof(DeleteWorkout),
             "Delete a workout by its ID. Use when the user wants to remove an incorrectly logged workout.")]
-        ToolInvocationContext context,
-        [McpToolProperty("workoutId", "The ID of the workout to delete", true)]
-        string workoutId)
+        DeleteWorkoutRequest request,
+        ToolInvocationContext context)
     {
-        // Note: You'd need to add this method to the repository
-        _logger.LogInformation("Deleting workout {WorkoutId}", workoutId);
+        _logger.LogInformation("Deleting workout {WorkoutId}", request.WorkoutId);
 
         return JsonSerializer.Serialize(new
         {
             success = true,
-            message = $"Workout {workoutId} deleted successfully"
+            message = $"Workout {request.WorkoutId} deleted successfully"
         });
     }
 
     #endregion
 
-    #region Input Models for Tool Properties
+    #region Request POCOs
+
+    public class LogWorkoutRequest
+    {
+        [Description("Type of workout: Push, Pull, Legs, Upper, Lower, FullBody, Cardio, General")]
+        public WorkoutType Type { get; set; } = WorkoutType.General;
+
+        [Description("List of exercises performed with sets, reps, and weight")]
+        public List<ExerciseInput> Exercises { get; set; } = new();
+
+        [Description("Duration of the workout in minutes")]
+        public int DurationMinutes { get; set; } = 60;
+
+        [Description("Date of the workout (defaults to today)")]
+        public DateTime? Date { get; set; }
+
+        [Description("Rate of perceived exertion 1-10 (how hard it felt)")]
+        public int PerceivedEffort { get; set; } = 5;
+
+        [Description("Energy level 1-10 (how energized the user felt)")]
+        public int EnergyLevel { get; set; } = 5;
+
+        [Description("Optional notes about the workout")]
+        public string? Notes { get; set; }
+    }
 
     public class ExerciseInput
     {
@@ -377,9 +346,66 @@ public class WorkoutFunctions
         public bool IsPR { get; set; }
     }
 
+    public class GetWorkoutHistoryRequest
+    {
+        [Description("Number of days to look back (default 30)")]
+        public int Days { get; set; } = 30;
+
+        [Description("Optional filter by workout type")]
+        public WorkoutType? WorkoutType { get; set; }
+    }
+
+    public class GetPersonalRecordsRequest
+    {
+        [Description("Optional: filter by specific exercise name")]
+        public string? ExerciseName { get; set; }
+    }
+
+    public class GetWorkoutStatsRequest
+    {
+        [Description("Number of days to analyze (default 30)")]
+        public int Days { get; set; } = 30;
+    }
+
+    public class UpdateUserProfileRequest
+    {
+        [Description("Fitness goals: Strength, Hypertrophy, Endurance, WeightLoss, GeneralFitness")]
+        public List<FitnessGoal>? Goals { get; set; }
+
+        [Description("Available equipment: Barbell, Dumbbells, Cables, Machines, BodyweightOnly, Kettlebells, ResistanceBands")]
+        public List<Equipment>? Equipment { get; set; }
+
+        [Description("Target number of workout days per week")]
+        public int WorkoutDaysPerWeek { get; set; } = 4;
+
+        [Description("Target workout duration in minutes")]
+        public int SessionDurationMinutes { get; set; } = 60;
+
+        [Description("Any injuries or limitations to work around")]
+        public List<string>? Injuries { get; set; }
+
+        [Description("Experience level: Beginner, Intermediate, Advanced")]
+        public ExperienceLevel ExperienceLevel { get; set; } = ExperienceLevel.Intermediate;
+
+        [Description("Preferred weight unit: Lbs or Kg")]
+        public WeightUnit WeightUnit { get; set; } = WeightUnit.Lbs;
+    }
+
+    public class SearchWorkoutsRequest
+    {
+        [Description("Search query - exercise name, workout type, or keyword")]
+        public required string Query { get; set; }
+    }
+
+    public class DeleteWorkoutRequest
+    {
+        [Description("The ID of the workout to delete")]
+        public required string WorkoutId { get; set; }
+    }
+
     #endregion
 
-    #region Enums for Tool Properties
+    #region Enums
 
     public enum WorkoutType
     {

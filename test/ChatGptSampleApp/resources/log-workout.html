@@ -41,6 +41,48 @@
                 font-size: 14px;
             }
 
+        .success-banner {
+            background: linear-gradient(135deg, rgba(0, 255, 136, 0.2), rgba(0, 217, 255, 0.2));
+            border: 1px solid rgba(0, 255, 136, 0.3);
+            border-radius: 12px;
+            padding: 16px 20px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+            .success-banner.show {
+                display: block;
+            }
+
+            .success-banner h2 {
+                color: #00ff88;
+                font-size: 18px;
+                margin-bottom: 8px;
+            }
+
+        .success-stats {
+            display: flex;
+            gap: 24px;
+            flex-wrap: wrap;
+        }
+
+        .success-stat {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .success-stat-value {
+            font-size: 20px;
+            font-weight: 700;
+            color: #00d9ff;
+        }
+
+        .success-stat-label {
+            font-size: 11px;
+            color: #888;
+            text-transform: uppercase;
+        }
+
         .form-section {
             background: rgba(255, 255, 255, 0.05);
             border: 1px solid rgba(255, 255, 255, 0.1);
@@ -98,6 +140,11 @@
                 background: rgba(0, 217, 255, 0.1);
             }
 
+            input.pre-filled {
+                border-color: rgba(0, 255, 136, 0.4);
+                background: rgba(0, 255, 136, 0.1);
+            }
+
         select {
             cursor: pointer;
         }
@@ -120,6 +167,11 @@
             padding: 16px;
         }
 
+            .exercise-card.pre-filled {
+                border-color: rgba(0, 255, 136, 0.3);
+                background: rgba(0, 255, 136, 0.05);
+            }
+
         .exercise-header {
             display: flex;
             justify-content: space-between;
@@ -137,6 +189,11 @@
             border-radius: 0;
             padding: 4px 0;
         }
+
+            .exercise-name-input.pre-filled {
+                border-bottom-color: rgba(0, 255, 136, 0.4);
+                color: #00ff88;
+            }
 
         .remove-exercise {
             background: rgba(255, 100, 100, 0.2);
@@ -267,35 +324,45 @@
             cursor: pointer;
         }
 
-        .muscle-group-select {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 8px;
+        .pr-badge {
+            background: linear-gradient(135deg, #ffd700, #ff6b35);
+            color: #1a1a2e;
+            font-size: 10px;
+            font-weight: 700;
+            padding: 2px 6px;
+            border-radius: 4px;
+            margin-left: 8px;
         }
-
-        .muscle-chip {
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 20px;
-            padding: 8px 12px;
-            font-size: 12px;
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-            .muscle-chip.selected {
-                background: rgba(0, 217, 255, 0.2);
-                border-color: #00d9ff;
-                color: #00d9ff;
-            }
     </style>
 </head>
 <body>
     <div class="form-container">
         <div class="header">
             <h1>📝 Log Workout</h1>
-            <p>Record your session to track progress and get personalized recommendations</p>
+            <p>Review and confirm your workout details</p>
+        </div>
+
+        <!-- Success banner for when workout is already logged -->
+        <div class="success-banner" id="success-banner">
+            <h2>✅ Workout Logged!</h2>
+            <div class="success-stats">
+                <div class="success-stat">
+                    <span class="success-stat-value" id="stat-exercises">0</span>
+                    <span class="success-stat-label">Exercises</span>
+                </div>
+                <div class="success-stat">
+                    <span class="success-stat-value" id="stat-sets">0</span>
+                    <span class="success-stat-label">Total Sets</span>
+                </div>
+                <div class="success-stat">
+                    <span class="success-stat-value" id="stat-volume">0</span>
+                    <span class="success-stat-label">Volume (lbs)</span>
+                </div>
+                <div class="success-stat">
+                    <span class="success-stat-value" id="stat-duration">0</span>
+                    <span class="success-stat-label">Minutes</span>
+                </div>
+            </div>
         </div>
 
         <form id="workout-form">
@@ -310,7 +377,7 @@
                             <option value="Legs">Legs</option>
                             <option value="Upper">Upper Body</option>
                             <option value="Lower">Lower Body</option>
-                            <option value="Full Body">Full Body</option>
+                            <option value="FullBody">Full Body</option>
                             <option value="Cardio">Cardio</option>
                             <option value="General">General</option>
                         </select>
@@ -366,7 +433,7 @@
                 </div>
             </div>
 
-            <div class="submit-section">
+            <div class="submit-section" id="submit-section">
                 <button type="button" class="cancel-btn">Cancel</button>
                 <button type="submit" class="submit-btn">💾 Save Workout</button>
             </div>
@@ -374,147 +441,297 @@
     </div>
 
     <script>
-    // Set today's date as default
-    document.getElementById('workout-date').valueAsDate = new Date();
+        // Initialize
+        let exerciseCount = 0;
+        let workoutData = null;
 
-    // Slider value updates
-    document.getElementById('effort').addEventListener('input', (e) => {
-      document.getElementById('effort-value').textContent = e.target.value;
-    });
+        // Set today's date as default
+        document.getElementById('workout-date').valueAsDate = new Date();
 
-    document.getElementById('energy').addEventListener('input', (e) => {
-      document.getElementById('energy-value').textContent = e.target.value;
-    });
-
-    // Exercise management
-    let exerciseCount = 0;
-
-    function addExercise(name = '', muscleGroup = '') {
-      exerciseCount++;
-      const exerciseId = `exercise-${exerciseCount}`;
-
-      const exerciseHtml = `
-        <div class="exercise-card" id="${exerciseId}">
-          <div class="exercise-header">
-            <input type="text" class="exercise-name-input" placeholder="Exercise name..." value="${name}" required>
-            <select class="muscle-group-dropdown" style="margin: 0 12px; padding: 6px;">
-              <option value="Chest" ${muscleGroup === 'Chest' ? 'selected' : ''}>Chest</option>
-              <option value="Back" ${muscleGroup === 'Back' ? 'selected' : ''}>Back</option>
-              <option value="Shoulders" ${muscleGroup === 'Shoulders' ? 'selected' : ''}>Shoulders</option>
-              <option value="Biceps" ${muscleGroup === 'Biceps' ? 'selected' : ''}>Biceps</option>
-              <option value="Triceps" ${muscleGroup === 'Triceps' ? 'selected' : ''}>Triceps</option>
-              <option value="Legs" ${muscleGroup === 'Legs' ? 'selected' : ''}>Legs</option>
-              <option value="Core" ${muscleGroup === 'Core' ? 'selected' : ''}>Core</option>
-              <option value="Cardio" ${muscleGroup === 'Cardio' ? 'selected' : ''}>Cardio</option>
-            </select>
-            <button type="button" class="remove-exercise" onclick="removeExercise('${exerciseId}')">Remove</button>
-          </div>
-          <table class="sets-table">
-            <thead>
-              <tr>
-                <th style="width: 50px;">Set</th>
-                <th>Weight</th>
-                <th>Reps</th>
-                <th style="width: 60px;">RPE</th>
-              </tr>
-            </thead>
-            <tbody class="sets-body">
-              <tr>
-                <td class="set-number">1</td>
-                <td><input type="number" placeholder="lbs" min="0" step="2.5"></td>
-                <td><input type="number" placeholder="reps" min="1"></td>
-                <td><input type="number" placeholder="1-10" min="1" max="10"></td>
-              </tr>
-            </tbody>
-          </table>
-          <button type="button" class="add-set-btn" onclick="addSet('${exerciseId}')">+ Add Set</button>
-        </div>
-      `;
-
-      document.getElementById('exercises-list').insertAdjacentHTML('beforeend', exerciseHtml);
-    }
-
-    function removeExercise(exerciseId) {
-      document.getElementById(exerciseId).remove();
-    }
-
-    function addSet(exerciseId) {
-      const setsBody = document.querySelector(`#${exerciseId} .sets-body`);
-      const setNumber = setsBody.children.length + 1;
-
-      const setHtml = `
-        <tr>
-          <td class="set-number">${setNumber}</td>
-          <td><input type="number" placeholder="lbs" min="0" step="2.5"></td>
-          <td><input type="number" placeholder="reps" min="1"></td>
-          <td><input type="number" placeholder="1-10" min="1" max="10"></td>
-        </tr>
-      `;
-
-      setsBody.insertAdjacentHTML('beforeend', setHtml);
-    }
-
-    // Add initial exercise
-    document.getElementById('add-exercise').addEventListener('click', () => addExercise());
-    addExercise(); // Start with one exercise
-
-    // Form submission
-    document.getElementById('workout-form').addEventListener('submit', (e) => {
-      e.preventDefault();
-
-      const exercises = [];
-      document.querySelectorAll('.exercise-card').forEach(card => {
-        const name = card.querySelector('.exercise-name-input').value;
-        const muscleGroup = card.querySelector('.muscle-group-dropdown').value;
-        const sets = [];
-
-        card.querySelectorAll('.sets-body tr').forEach((row, index) => {
-          const inputs = row.querySelectorAll('input');
-          const weight = parseFloat(inputs[0].value) || 0;
-          const reps = parseInt(inputs[1].value) || 0;
-          const rpe = parseInt(inputs[2].value) || null;
-
-          if (reps > 0) {
-            sets.push({
-              setNumber: index + 1,
-              weight,
-              reps,
-              rpe,
-              isPR: false
-            });
-          }
+        // Slider value updates
+        document.getElementById('effort').addEventListener('input', (e) => {
+            document.getElementById('effort-value').textContent = e.target.value;
         });
 
-        if (name && sets.length > 0) {
-          exercises.push({ name, muscleGroup, sets });
+        document.getElementById('energy').addEventListener('input', (e) => {
+            document.getElementById('energy-value').textContent = e.target.value;
+        });
+
+        // Listen for workout data from ChatGPT/MCP
+        window.addEventListener('message', (event) => {
+            if (event.data && event.data.type === 'workout_data') {
+                populateWorkout(event.data.workout);
+            }
+            if (event.data && event.data.type === 'workout_logged') {
+                showSuccess(event.data.summary);
+            }
+        });
+
+        // Also check for data in URL params or embedded data
+        function initializeFromData() {
+            // Check if data was passed via window name or other mechanism
+            try {
+                const urlParams = new URLSearchParams(window.location.search);
+                const dataParam = urlParams.get('data');
+                if (dataParam) {
+                    const data = JSON.parse(decodeURIComponent(dataParam));
+                    populateWorkout(data);
+                }
+            } catch (e) {
+                console.log('No URL data to parse');
+            }
+
+            // Check for global workout data (set by MCP response)
+            if (window.workoutData) {
+                populateWorkout(window.workoutData);
+            }
         }
-      });
 
-      const workoutData = {
-        type: document.getElementById('workout-type').value,
-        date: document.getElementById('workout-date').value,
-        durationMinutes: parseInt(document.getElementById('duration').value),
-        exercises,
-        perceivedEffort: parseInt(document.getElementById('effort').value),
-        energyLevel: parseInt(document.getElementById('energy').value),
-        notes: document.getElementById('notes').value
-      };
+        // Populate form with workout data
+        function populateWorkout(data) {
+            if (!data) return;
 
-      // Send to ChatGPT/MCP
-      window.parent.postMessage({
-        type: 'mcp_action',
-        action: 'save_workout',
-        data: workoutData
-      }, '*');
-    });
+            workoutData = data;
 
-    // Cancel button
-    document.querySelector('.cancel-btn').addEventListener('click', () => {
-      window.parent.postMessage({
-        type: 'mcp_action',
-        action: 'cancel'
-      }, '*');
-    });
+            // Set workout type
+            if (data.type || data.Type) {
+                const type = data.type || data.Type;
+                document.getElementById('workout-type').value = type;
+                document.getElementById('workout-type').classList.add('pre-filled');
+            }
+
+            // Set duration
+            if (data.durationMinutes || data.DurationMinutes) {
+                const duration = data.durationMinutes || data.DurationMinutes;
+                document.getElementById('duration').value = duration;
+                document.getElementById('duration').classList.add('pre-filled');
+            }
+
+            // Set date
+            if (data.date || data.Date) {
+                const date = new Date(data.date || data.Date);
+                document.getElementById('workout-date').valueAsDate = date;
+            }
+
+            // Set effort/energy
+            if (data.perceivedEffort || data.PerceivedEffort) {
+                const effort = data.perceivedEffort || data.PerceivedEffort;
+                document.getElementById('effort').value = effort;
+                document.getElementById('effort-value').textContent = effort;
+            }
+
+            if (data.energyLevel || data.EnergyLevel) {
+                const energy = data.energyLevel || data.EnergyLevel;
+                document.getElementById('energy').value = energy;
+                document.getElementById('energy-value').textContent = energy;
+            }
+
+            // Set notes
+            if (data.notes || data.Notes) {
+                document.getElementById('notes').value = data.notes || data.Notes;
+            }
+
+            // Clear existing exercises
+            document.getElementById('exercises-list').innerHTML = '';
+            exerciseCount = 0;
+
+            // Add exercises
+            const exercises = data.exercises || data.Exercises || [];
+            if (exercises.length > 0) {
+                exercises.forEach(exercise => {
+                    addExercise(
+                        exercise.name || exercise.Name,
+                        exercise.muscleGroup || exercise.MuscleGroup || 'General',
+                        exercise.sets || exercise.Sets || [],
+                        true // pre-filled flag
+                    );
+                });
+            } else {
+                // Add empty exercise if none provided
+                addExercise();
+            }
+        }
+
+        // Show success banner
+        function showSuccess(summary) {
+            const banner = document.getElementById('success-banner');
+            banner.classList.add('show');
+
+            if (summary) {
+                document.getElementById('stat-exercises').textContent = summary.exerciseCount || 0;
+                document.getElementById('stat-sets').textContent = summary.totalSets || 0;
+                document.getElementById('stat-volume').textContent = formatNumber(summary.totalVolume || 0);
+                document.getElementById('stat-duration').textContent = summary.durationMinutes || summary.DurationMinutes || 0;
+            }
+
+            // Hide the form submit section
+            document.getElementById('submit-section').style.display = 'none';
+        }
+
+        function formatNumber(num) {
+            if (num >= 1000) {
+                return (num / 1000).toFixed(1) + 'K';
+            }
+            return num.toString();
+        }
+
+        // Add exercise card
+        function addExercise(name = '', muscleGroup = 'Chest', sets = [], preFilled = false) {
+            exerciseCount++;
+            const exerciseId = `exercise-${exerciseCount}`;
+
+            let setsHtml = '';
+            if (sets.length > 0) {
+                sets.forEach((set, index) => {
+                    const weight = set.weight || set.Weight || '';
+                    const reps = set.reps || set.Reps || '';
+                    const rpe = set.rpe || set.Rpe || '';
+                    const isPR = set.isPR || set.IsPR || false;
+
+                    setsHtml += `
+                        <tr>
+                            <td class="set-number">${index + 1}${isPR ? '<span class="pr-badge">PR!</span>' : ''}</td>
+                            <td><input type="number" placeholder="lbs" min="0" step="2.5" value="${weight}" class="${weight ? 'pre-filled' : ''}"></td>
+                            <td><input type="number" placeholder="reps" min="1" value="${reps}" class="${reps ? 'pre-filled' : ''}"></td>
+                            <td><input type="number" placeholder="1-10" min="1" max="10" value="${rpe || ''}"></td>
+                        </tr>
+                    `;
+                });
+            } else {
+                setsHtml = `
+                    <tr>
+                        <td class="set-number">1</td>
+                        <td><input type="number" placeholder="lbs" min="0" step="2.5"></td>
+                        <td><input type="number" placeholder="reps" min="1"></td>
+                        <td><input type="number" placeholder="1-10" min="1" max="10"></td>
+                    </tr>
+                `;
+            }
+
+            const exerciseHtml = `
+                <div class="exercise-card ${preFilled ? 'pre-filled' : ''}" id="${exerciseId}">
+                    <div class="exercise-header">
+                        <input type="text" class="exercise-name-input ${preFilled && name ? 'pre-filled' : ''}" placeholder="Exercise name..." value="${name}" required>
+                        <select class="muscle-group-dropdown" style="margin: 0 12px; padding: 6px;">
+                            <option value="Chest" ${muscleGroup === 'Chest' ? 'selected' : ''}>Chest</option>
+                            <option value="Back" ${muscleGroup === 'Back' ? 'selected' : ''}>Back</option>
+                            <option value="Shoulders" ${muscleGroup === 'Shoulders' ? 'selected' : ''}>Shoulders</option>
+                            <option value="Biceps" ${muscleGroup === 'Biceps' ? 'selected' : ''}>Biceps</option>
+                            <option value="Triceps" ${muscleGroup === 'Triceps' ? 'selected' : ''}>Triceps</option>
+                            <option value="Legs" ${muscleGroup === 'Legs' ? 'selected' : ''}>Legs</option>
+                            <option value="Core" ${muscleGroup === 'Core' ? 'selected' : ''}>Core</option>
+                            <option value="Cardio" ${muscleGroup === 'Cardio' ? 'selected' : ''}>Cardio</option>
+                        </select>
+                        <button type="button" class="remove-exercise" onclick="removeExercise('${exerciseId}')">Remove</button>
+                    </div>
+                    <table class="sets-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 50px;">Set</th>
+                                <th>Weight</th>
+                                <th>Reps</th>
+                                <th style="width: 60px;">RPE</th>
+                            </tr>
+                        </thead>
+                        <tbody class="sets-body">
+                            ${setsHtml}
+                        </tbody>
+                    </table>
+                    <button type="button" class="add-set-btn" onclick="addSet('${exerciseId}')">+ Add Set</button>
+                </div>
+            `;
+
+            document.getElementById('exercises-list').insertAdjacentHTML('beforeend', exerciseHtml);
+        }
+
+        function removeExercise(exerciseId) {
+            document.getElementById(exerciseId).remove();
+        }
+
+        function addSet(exerciseId) {
+            const setsBody = document.querySelector(`#${exerciseId} .sets-body`);
+            const setNumber = setsBody.children.length + 1;
+
+            const setHtml = `
+                <tr>
+                    <td class="set-number">${setNumber}</td>
+                    <td><input type="number" placeholder="lbs" min="0" step="2.5"></td>
+                    <td><input type="number" placeholder="reps" min="1"></td>
+                    <td><input type="number" placeholder="1-10" min="1" max="10"></td>
+                </tr>
+            `;
+
+            setsBody.insertAdjacentHTML('beforeend', setHtml);
+        }
+
+        // Add exercise button
+        document.getElementById('add-exercise').addEventListener('click', () => addExercise());
+
+        // Form submission
+        document.getElementById('workout-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+
+            const exercises = [];
+            document.querySelectorAll('.exercise-card').forEach(card => {
+                const name = card.querySelector('.exercise-name-input').value;
+                const muscleGroup = card.querySelector('.muscle-group-dropdown').value;
+                const sets = [];
+
+                card.querySelectorAll('.sets-body tr').forEach((row, index) => {
+                    const inputs = row.querySelectorAll('input');
+                    const weight = parseFloat(inputs[0].value) || 0;
+                    const reps = parseInt(inputs[1].value) || 0;
+                    const rpe = parseInt(inputs[2].value) || null;
+
+                    if (reps > 0) {
+                        sets.push({
+                            setNumber: index + 1,
+                            weight,
+                            reps,
+                            rpe,
+                            isPR: false
+                        });
+                    }
+                });
+
+                if (name && sets.length > 0) {
+                    exercises.push({ name, muscleGroup, sets });
+                }
+            });
+
+            const formData = {
+                type: document.getElementById('workout-type').value,
+                date: document.getElementById('workout-date').value,
+                durationMinutes: parseInt(document.getElementById('duration').value),
+                exercises,
+                perceivedEffort: parseInt(document.getElementById('effort').value),
+                energyLevel: parseInt(document.getElementById('energy').value),
+                notes: document.getElementById('notes').value
+            };
+
+            // Send to ChatGPT/MCP
+            window.parent.postMessage({
+                type: 'mcp_action',
+                action: 'save_workout',
+                data: formData
+            }, '*');
+        });
+
+        // Cancel button
+        document.querySelector('.cancel-btn').addEventListener('click', () => {
+            window.parent.postMessage({
+                type: 'mcp_action',
+                action: 'cancel'
+            }, '*');
+        });
+
+        // Initialize on load
+        initializeFromData();
+
+        // If no data was loaded, add one empty exercise
+        if (document.querySelectorAll('.exercise-card').length === 0) {
+            addExercise();
+        }
     </script>
 </body>
 </html>
