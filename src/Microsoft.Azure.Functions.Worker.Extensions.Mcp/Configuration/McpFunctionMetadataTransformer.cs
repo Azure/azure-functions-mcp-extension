@@ -7,7 +7,10 @@ using System.Runtime.Loader;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.Azure.Functions.Worker.Core.FunctionMetadata;
-using static Microsoft.Azure.Functions.Worker.Extensions.Mcp.Constants;
+using Microsoft.Extensions.Options;
+using System.Text.Json;
+using System.Text.Json.Nodes;
+using static Microsoft.Azure.Functions.Worker.Extensions.Mcp.Configuration.InputSchemaBindingPatcher;
 
 namespace Microsoft.Azure.Functions.Worker.Extensions.Mcp.Configuration;
 
@@ -26,6 +29,7 @@ public sealed class McpFunctionMetadataTransformer(IOptionsMonitor<ToolOptions> 
             }
 
             JsonNode? inputSchema = null;
+            List<ToolProperty>? toolProperties = null;
             Dictionary<string, ToolPropertyBinding> inputBindingProperties = [];
 
             for (int i = 0; i < function.RawBindings.Count; i++)
@@ -79,19 +83,35 @@ public sealed class McpFunctionMetadataTransformer(IOptionsMonitor<ToolOptions> 
                 }
             }
 
-            // This is required for attributed properties/input bindings:
-            PatchInputBindingMetadata(function, inputBindingProperties, inputSchema);
+            // Patch input binding metadata with type information
+            PatchInputBindingMetadata(function, inputBindingProperties, toolProperties, inputSchema);
         }
     }
 
-    /// <summary>
-    /// Attempts to generate input schema from function parameters.
-    /// </summary>
+    private bool TryGetConfiguredToolProperties(string? toolName, out List<ToolProperty>? toolProperties)
+    {
+        toolProperties = null;
+
+        if (string.IsNullOrWhiteSpace(toolName))
+        {
+            return false;
+        }
+
+        var toolOptions = toolOptionsMonitor.Get(toolName);
+
+        if (toolOptions.Properties.Count != 0)
+        {
+            toolProperties = toolOptions.Properties;
+            return true;
+        }
+
+        return false;
+    }
+
     private static bool TryGenerateInputSchema(JsonObject jsonObject, IFunctionMetadata function, out JsonNode? inputSchema)
     {
         if (InputSchemaGenerator.TryGenerateFromFunction(function, out inputSchema) && inputSchema is not null)
         {
-            // Store the generated schema directly in the binding metadata
             jsonObject["inputSchema"] = inputSchema.ToJsonString();
             return true;
         }
@@ -100,13 +120,10 @@ public sealed class McpFunctionMetadataTransformer(IOptionsMonitor<ToolOptions> 
         return false;
     }
 
-    /// <summary>
-    /// Patches input binding metadata with property types extracted from the input schema.
-    /// Uses simple helper methods for better maintainability.
-    /// </summary>
     private static void PatchInputBindingMetadata(
-        IFunctionMetadata function, 
-        Dictionary<string, ToolPropertyBinding> inputBindingProperties, 
+        IFunctionMetadata function,
+        Dictionary<string, ToolPropertyBinding> inputBindingProperties,
+        List<ToolProperty>? toolProperties,
         JsonNode? inputSchema)
     {
         if (inputBindingProperties.Count == 0)
@@ -114,26 +131,50 @@ public sealed class McpFunctionMetadataTransformer(IOptionsMonitor<ToolOptions> 
             return;
         }
 
-        if (inputSchema is null)
+        // If we have toolProperties from IOptionsMonitor, use those
+        if (toolProperties is not null && toolProperties.Count > 0)
         {
-            return;
+            PatchFromToolProperties(function, inputBindingProperties, toolProperties);
+        }
+        // Otherwise, use the generated input schema
+        else if (inputSchema is not null)
+        {
+            InputSchemaBindingPatcher.PatchBindingMetadata(inputSchema, inputBindingProperties.Values);
+            UpdateRawBindings(function, inputBindingProperties);
+        }
+    }
+
+    private static void PatchFromToolProperties(
+        IFunctionMetadata function,
+        Dictionary<string, ToolPropertyBinding> inputBindingProperties,
+        List<ToolProperty> toolProperties)
+    {
+        foreach (var property in toolProperties)
+        {
+            if (inputBindingProperties.TryGetValue(property.Name, out var binding))
+            {
+                binding.Binding[Constants.McpToolPropertyType] = property.Type;
+            }
         }
 
-        InputSchemaBindingPatcher.PatchBindingMetadata(inputSchema, inputBindingProperties.Values);
+        UpdateRawBindings(function, inputBindingProperties);
+    }
 
-        // Update the function's raw bindings with the patched binding objects
+    private static void UpdateRawBindings(
+        IFunctionMetadata function,
+        Dictionary<string, ToolPropertyBinding> inputBindingProperties)
+    {
         foreach (var (propertyName, binding) in inputBindingProperties)
         {
-            // Find the index of this binding in the raw bindings array
             for (int i = 0; i < function.RawBindings!.Count; i++)
             {
                 var rawBinding = function.RawBindings[i];
                 var node = JsonNode.Parse(rawBinding);
-                    
-                if (node is JsonObject jsonObj 
+
+                if (node is JsonObject jsonObj
                     && jsonObj.TryGetPropertyValue("type", out var typeNode)
-                    && typeNode?.ToString() == McpToolPropertyBindingType
-                    && jsonObj.TryGetPropertyValue(McpToolPropertyName, out var nameNode)
+                    && typeNode?.ToString() == Constants.McpToolPropertyBindingType
+                    && jsonObj.TryGetPropertyValue(Constants.McpToolPropertyName, out var nameNode)
                     && nameNode?.ToString() == propertyName)
                 {
                     function.RawBindings[i] = binding.Binding.ToJsonString();
