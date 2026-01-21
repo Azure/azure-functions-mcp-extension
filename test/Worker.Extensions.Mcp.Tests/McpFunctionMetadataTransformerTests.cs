@@ -59,7 +59,9 @@ public class McpFunctionMetadataTransformerTests
         var (entryPoint, scriptFile, outputDir) = GetFunctionMetadataInfo<TestFunctions>(nameof(TestFunctions.NoAttributes));
         Environment.SetEnvironmentVariable(FunctionsApplicationDirectoryKey, outputDir);
 
-        var transformer = CreateTransformer();
+        var options = new Mock<IOptionsMonitor<ToolOptions>>();
+        options.Setup(o => o.Get(It.IsAny<string>())).Returns(new ToolOptions { Properties = [] });
+        var transformer = new McpFunctionMetadataTransformer(options.Object);
 
         var fn = CreateFunctionMetadata(entryPoint, scriptFile, "Func", new List<string> { "{\"type\":\"mcpToolTrigger\",\"toolName\":\"NoAttributes\"}" });
 
@@ -118,7 +120,9 @@ public class McpFunctionMetadataTransformerTests
         var (entryPoint, scriptFile, outputDir) = GetFunctionMetadataInfo<TestFunctions>(nameof(TestFunctions.WithToolProperty));
         Environment.SetEnvironmentVariable(FunctionsApplicationDirectoryKey, outputDir);
 
-        var transformer = CreateTransformer();
+        var options = new Mock<IOptionsMonitor<ToolOptions>>();
+        options.Setup(o => o.Get(It.IsAny<string>())).Returns(new ToolOptions { Properties = [] });
+        var transformer = new McpFunctionMetadataTransformer(options.Object);
 
         var fn = CreateFunctionMetadata(entryPoint, scriptFile, "Func", new List<string> { "{\"type\":\"mcpToolTrigger\",\"toolName\":\"WithToolProperty\"}" });
 
@@ -152,7 +156,9 @@ public class McpFunctionMetadataTransformerTests
         var (entryPoint, scriptFile, outputDir) = GetFunctionMetadataInfo<TestFunctions>(nameof(TestFunctions.WithTriggerPoco));
         Environment.SetEnvironmentVariable(FunctionsApplicationDirectoryKey, outputDir);
 
-        var transformer = CreateTransformer();
+        var options = new Mock<IOptionsMonitor<ToolOptions>>();
+        options.Setup(o => o.Get(It.IsAny<string>())).Returns(new ToolOptions { Properties = [] });
+        var transformer = new McpFunctionMetadataTransformer(options.Object);
 
         var fn = CreateFunctionMetadata(entryPoint, scriptFile, "Func", new List<string> { "{\"type\":\"mcpToolTrigger\",\"toolName\":\"WithTriggerPoco\"}" });
 
@@ -178,7 +184,9 @@ public class McpFunctionMetadataTransformerTests
     [Fact]
     public void Transform_InvalidEntryPoint_Throws()
     {
-        var transformer = CreateTransformer();
+        var options = new Mock<IOptionsMonitor<ToolOptions>>();
+        options.Setup(o => o.Get(It.IsAny<string>())).Returns(new ToolOptions { Properties = [] });
+        var transformer = new McpFunctionMetadataTransformer(options.Object);
 
         var fn = CreateFunctionMetadata("BadEntryPoint", "Some.dll", "func", new List<string> { "{\"type\":\"mcpToolTrigger\",\"toolName\":\"Bad\"}" });
         fn.SetupGet(f => f.RawBindings).Returns(new List<string> { "{\"type\":\"mcpToolTrigger\",\"toolName\":\"Bad\"}" });
@@ -214,7 +222,9 @@ public class McpFunctionMetadataTransformerTests
         entryPoint = entryPoint.Replace(typeof(TestFunctions).FullName!, typeof(McpFunctionMetadataTransformerTests).FullName! + "Missing");
         Environment.SetEnvironmentVariable(FunctionsApplicationDirectoryKey, outputDir);
 
-        var transformer = CreateTransformer();
+        var options = new Mock<IOptionsMonitor<ToolOptions>>();
+        options.Setup(o => o.Get(It.IsAny<string>())).Returns(new ToolOptions { Properties = [] });
+        var transformer = new McpFunctionMetadataTransformer(options.Object);
 
         var fn = CreateFunctionMetadata(entryPoint, scriptFile, "func", new List<string> { "{\"type\":\"mcpToolTrigger\",\"toolName\":\"WithToolProperty\"}" });
         var exception = Assert.Throws<InvalidOperationException>(() =>
