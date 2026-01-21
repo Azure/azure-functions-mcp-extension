@@ -204,7 +204,9 @@ public class McpFunctionMetadataTransformerTests
         var (entryPoint, scriptFile, outputDir) = GetFunctionMetadataInfo<TestFunctions>("NonExistent");
         Environment.SetEnvironmentVariable(FunctionsApplicationDirectoryKey, outputDir);
 
-        var transformer = CreateTransformer();
+        var options = new Mock<IOptionsMonitor<ToolOptions>>();
+        options.Setup(o => o.Get(It.IsAny<string>())).Returns(new ToolOptions { Properties = [] });
+        var transformer = new McpFunctionMetadataTransformer(options.Object);
 
         var fn = CreateFunctionMetadata(entryPoint, scriptFile, "func", new List<string> { "{\"type\":\"mcpToolTrigger\",\"toolName\":\"Whatever\"}" });
         var exception = Assert.Throws<InvalidOperationException>(() =>
