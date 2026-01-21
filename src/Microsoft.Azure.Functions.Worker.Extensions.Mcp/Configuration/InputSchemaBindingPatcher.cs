@@ -29,7 +29,7 @@ internal static class InputSchemaBindingPatcher
             return;
         }
 
-        var propertiesElement = GetPropertiesElement(inputSchema);
+        var propertiesElement = GetPropertiesObject(inputSchema);
 
         foreach (var binding in bindingList)
         {
@@ -43,33 +43,31 @@ internal static class InputSchemaBindingPatcher
     /// <summary>
     /// Extracts the properties element from the input schema.
     /// </summary>
-    private static JsonElement GetPropertiesElement(JsonNode inputSchema)
+    private static JsonObject GetPropertiesObject(JsonNode inputSchema)
     {
-        var schemaString = inputSchema.ToJsonString();
-        using var doc = JsonDocument.Parse(schemaString);
-        var schema = doc.RootElement;
+        var schemaObject = inputSchema.AsObject();
 
-        if (!schema.TryGetProperty("properties", out var propertiesElement))
+        if (!schemaObject.TryGetPropertyValue("properties", out var propertiesNode))
         {
-            throw new InvalidOperationException("Input schema does not contain a 'properties' element.");
+            throw new JsonException("Input schema does not contain a 'properties' element.");
         }
 
-        if (propertiesElement.ValueKind != JsonValueKind.Object)
+        if (propertiesNode is not JsonObject propertiesObject)
         {
             throw new InvalidOperationException("Input schema 'properties' element is not an object.");
         }
 
-        return propertiesElement.Clone();
+        return propertiesObject;
     }
 
     /// <summary>
     /// Attempts to get the property type for a given property name from the schema properties.
     /// </summary>
-    private static bool TryGetPropertyType(JsonElement propertiesElement, string propertyName, out string? propertyType)
+    private static bool TryGetPropertyType(JsonObject propertiesObject, string propertyName, out string? propertyType)
     {
         propertyType = null;
 
-        if (!propertiesElement.TryGetProperty(propertyName, out var propertySchema))
+        if (!propertiesObject.TryGetPropertyValue(propertyName, out var propertySchema))
         {
             return false;
         }
@@ -80,25 +78,29 @@ internal static class InputSchemaBindingPatcher
     /// <summary>
     /// Extracts the type from a property schema element.
     /// </summary>
-    private static bool TryExtractPropertyType(JsonElement propertySchema, out string? propertyType)
+    private static bool TryExtractPropertyType(JsonNode? propertySchema, out string? propertyType)
     {
         propertyType = null;
 
-        if (!propertySchema.TryGetProperty("type", out var typeElement))
+        if (propertySchema is not JsonObject schemaObject)
         {
             return false;
         }
 
-        var typeString = typeElement.GetString();
+        if (!schemaObject.TryGetPropertyValue("type", out var typeNode))
+        {
+            return false;
+        }
+
+        var typeString = typeNode?.GetValue<string>();
         if (string.IsNullOrWhiteSpace(typeString))
         {
             return false;
         }
 
-        // Handle array types - extract the item type for arrays
         if (typeString == "array")
         {
-            return TryGetArrayItemType(propertySchema, out propertyType);
+            return TryGetArrayItemType(schemaObject, out propertyType);
         }
 
         propertyType = typeString;
@@ -108,28 +110,33 @@ internal static class InputSchemaBindingPatcher
     /// <summary>
     /// Extracts the item type from an array property schema.
     /// </summary>
-    private static bool TryGetArrayItemType(JsonElement propertySchema, out string? itemType)
+    private static bool TryGetArrayItemType(JsonObject propertySchema, out string? itemType)
     {
         itemType = null;
 
-        if (!propertySchema.TryGetProperty("items", out var itemsElement))
+        if (!propertySchema.TryGetPropertyValue("items", out var itemsNode))
         {
             return false;
         }
 
-        if (!itemsElement.TryGetProperty("type", out var itemTypeElement))
+        if (itemsNode is not JsonObject itemsObject)
         {
             return false;
         }
 
-        itemType = itemTypeElement.GetString();
+        if (!itemsObject.TryGetPropertyValue("type", out var itemTypeNode))
+        {
+            return false;
+        }
+
+        itemType = itemTypeNode?.GetValue<string>();
         return !string.IsNullOrWhiteSpace(itemType);
     }
 }
 
-/// <summary>
-/// Represents a tool property binding that can be patched with type information.
-/// </summary>
-/// <param name="PropertyName">The name of the property.</param>
-/// <param name="Binding">The JSON object representing the binding configuration.</param>
-public record ToolPropertyBinding(string PropertyName, JsonObject Binding);
+    /// <summary>
+    /// Represents a tool property binding that can be patched with type information.
+    /// </summary>
+    /// <param name="PropertyName">The name of the property.</param>
+    /// <param name="Binding">The JSON object representing the binding configuration.</param>
+    public record ToolPropertyBinding(string PropertyName, JsonObject Binding);
