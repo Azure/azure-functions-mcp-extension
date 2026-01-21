@@ -3,6 +3,7 @@
 
 using System.Text.Json;
 using Microsoft.Azure.Functions.Extensions.Mcp.Serialization;
+using Microsoft.Extensions.Logging.Abstractions;
 using ModelContextProtocol.Protocol;
 
 namespace Microsoft.Azure.Functions.Extensions.Mcp.Tests;
@@ -19,7 +20,7 @@ public class ResourceReturnValueBinderTests
             MimeType = mimeType
         };
 
-        var binder = new ResourceReturnValueBinder(context, attribute);
+        var binder = new ResourceReturnValueBinder(context, attribute, NullLogger<ResourceReturnValueBinder>.Instance);
         return (binder, context);
     }
 
@@ -104,7 +105,6 @@ public class ResourceReturnValueBinderTests
 
         var mcpResult = new McpResourceResult
         {
-            Type = "text",
             Content = JsonSerializer.Serialize(textContent, McpJsonSerializerOptions.DefaultOptions)
         };
 
@@ -137,7 +137,6 @@ public class ResourceReturnValueBinderTests
 
         var mcpResult = new McpResourceResult
         {
-            Type = "blob",
             Content = JsonSerializer.Serialize(blobContent, McpJsonSerializerOptions.DefaultOptions)
         };
 
@@ -165,7 +164,6 @@ public class ResourceReturnValueBinderTests
 
         var mcpResult = new McpResourceResult
         {
-            Type = "text",
             Content = contentJson
         };
 
@@ -192,7 +190,6 @@ public class ResourceReturnValueBinderTests
 
         var mcpResult = new McpResourceResult
         {
-            Type = "text",
             Content = contentJson
         };
 
@@ -223,7 +220,6 @@ public class ResourceReturnValueBinderTests
 
         var mcpResult = new McpResourceResult
         {
-            Type = "text",
             Content = JsonSerializer.Serialize(textContent, McpJsonSerializerOptions.DefaultOptions)
         };
 
@@ -261,7 +257,6 @@ public class ResourceReturnValueBinderTests
 
         var mcpResult = new McpResourceResult
         {
-            Type = "", // Empty type
             Content = "some content"
         };
 
@@ -327,7 +322,6 @@ public class ResourceReturnValueBinderTests
 
         var mcpResult = new McpResourceResult
         {
-            Type = "text",
             Content = "null" // Null content that deserializes to null
         };
 

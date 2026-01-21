@@ -1,8 +1,6 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the MIT License. See License.txt in the project root for license information.
 
-using System.Text.Json;
-
 namespace Microsoft.Azure.Functions.Extensions.Mcp;
 
 /// <summary>
@@ -15,10 +13,4 @@ public sealed class McpResourceResult
     /// This should be a JSON-serialized string representation of either TextResourceContents or BlobResourceContents.
     /// </summary>
     public required string Content { get; set; }
-
-    /// <summary>
-    /// The type of content being returned.
-    /// Valid values are "text_resource" for text content or "blob_resource" for binary content.
-    /// </summary>
-    public required string Type { get; init; } // Not sure that we even need a type here?
 }

@@ -11,6 +11,7 @@ using Microsoft.Azure.WebJobs.Host.Executors;
 using Microsoft.Azure.WebJobs.Host.Listeners;
 using Microsoft.Azure.WebJobs.Host.Protocols;
 using Microsoft.Azure.WebJobs.Host.Triggers;
+using Microsoft.Extensions.Logging.Abstractions;
 using ModelContextProtocol.Protocol;
 using Moq;
 
@@ -36,7 +37,7 @@ public class McpResourceTriggerBindingTests
             MimeType = "text/plain"
         };
 
-        var binding = new McpResourceTriggerBinding(parameter, resourceRegistry.Object, attribute);
+        var binding = new McpResourceTriggerBinding(parameter, resourceRegistry.Object, attribute, NullLoggerFactory.Instance);
 
         return (binding, parameter);
     }
@@ -204,7 +205,7 @@ public class McpResourceTriggerBindingTests
         var method = typeof(McpResourceTriggerBindingTests).GetMethod(nameof(DummyMethod), BindingFlags.NonPublic | BindingFlags.Static)!;
         var parameter = method.GetParameters()[0];
 
-        var binding = new McpResourceTriggerBinding(parameter, resourceRegistry.Object, attribute);
+        var binding = new McpResourceTriggerBinding(parameter, resourceRegistry.Object, attribute, NullLoggerFactory.Instance);
 
         var listener = await binding.CreateListenerAsync(listenerFactoryContext);
 

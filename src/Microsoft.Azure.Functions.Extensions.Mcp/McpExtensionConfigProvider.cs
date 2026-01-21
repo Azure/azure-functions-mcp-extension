@@ -35,7 +35,7 @@ internal sealed class McpExtensionConfigProvider(IToolRegistry toolRegistry, IRe
             .BindToTrigger(new McpToolTriggerBindingProvider(toolRegistry));
 
         context.AddBindingRule<McpResourceTriggerAttribute>()
-            .BindToTrigger(new McpResourceTriggerBindingProvider(resourceRegistry));
+            .BindToTrigger(new McpResourceTriggerBindingProvider(resourceRegistry, loggerFactory));
 
         context.AddBindingRule<McpToolPropertyAttribute>()
             .Bind(new McpToolPropertyBindingProvider());

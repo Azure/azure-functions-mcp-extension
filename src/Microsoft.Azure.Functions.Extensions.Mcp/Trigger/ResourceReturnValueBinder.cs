@@ -4,14 +4,19 @@
 using System.Text.Json;
 using Microsoft.Azure.Functions.Extensions.Mcp.Serialization;
 using Microsoft.Azure.WebJobs.Host.Bindings;
+using Microsoft.Extensions.Logging;
 using ModelContextProtocol;
 using ModelContextProtocol.Protocol;
 
 namespace Microsoft.Azure.Functions.Extensions.Mcp;
 
-internal sealed class ResourceReturnValueBinder(ReadResourceExecutionContext executionContext, McpResourceTriggerAttribute resourceAttribute) : IValueBinder
+internal sealed class ResourceReturnValueBinder(
+    ReadResourceExecutionContext executionContext,
+    McpResourceTriggerAttribute resourceAttribute,
+    ILogger<ResourceReturnValueBinder> logger) : IValueBinder
 {
     public Type Type { get; } = typeof(object);
+    private readonly ILogger<ResourceReturnValueBinder> _logger = logger;
 
     public Task SetValueAsync(object value, CancellationToken cancellationToken)
     {
@@ -38,7 +43,7 @@ internal sealed class ResourceReturnValueBinder(ReadResourceExecutionContext exe
                     Uri = resourceAttribute.Uri,
                     MimeType = resourceAttribute.MimeType,
                     Text = stringValue,
-                    Meta = null // TODO: support metadata via attribute in future PR
+                    Meta = null
                 }]
             };
 
@@ -55,7 +60,7 @@ internal sealed class ResourceReturnValueBinder(ReadResourceExecutionContext exe
                     Uri = resourceAttribute.Uri,
                     MimeType = resourceAttribute.MimeType,
                     Blob = Convert.ToBase64String(binaryData),
-                    Meta = null // TODO: support metadata via attribute in future PR
+                    Meta = null
                 }]
             };
 
@@ -84,7 +89,7 @@ internal sealed class ResourceReturnValueBinder(ReadResourceExecutionContext exe
         {
             var mcpResult = JsonSerializer.Deserialize<McpResourceResult>(jsonString, McpJsonSerializerOptions.DefaultOptions);
                     
-            if (mcpResult is null || string.IsNullOrEmpty(mcpResult.Type))
+            if (mcpResult is null)
             {
                 return false;
             }
@@ -101,6 +106,7 @@ internal sealed class ResourceReturnValueBinder(ReadResourceExecutionContext exe
         catch (JsonException)
         {
             // Not a valid McpResourceResult, will be treated as simple string
+            _logger.LogDebug("Failed to deserialize worker MCP resource result. Treating return value as plain text.");
             return false;
         }
     }
@@ -108,7 +114,7 @@ internal sealed class ResourceReturnValueBinder(ReadResourceExecutionContext exe
     private ResourceContents DeserializeToResourceContents(McpResourceResult result)
     {
         ResourceContents resourceContents = JsonSerializer.Deserialize<ResourceContents>(result.Content, McpJsonUtilities.DefaultOptions)
-            ?? throw new InvalidOperationException($"Failed to deserialize resource content type '{result.Type}'.");
+            ?? throw new InvalidOperationException($"Failed to deserialize resource content.");
 
         // Ensure URI and MimeType are set from attribute if not in the content returned or if empty
         if (string.IsNullOrEmpty(resourceContents.Uri))
@@ -120,9 +126,6 @@ internal sealed class ResourceReturnValueBinder(ReadResourceExecutionContext exe
         {
             resourceContents.MimeType = resourceAttribute.MimeType;
         }
-
-        // TODO: If metadata is provided via the attribute, but null in the content, set it here.
-        // Alternatively, consider merging attribute metadata with content metadata.
 
         return resourceContents;
     }

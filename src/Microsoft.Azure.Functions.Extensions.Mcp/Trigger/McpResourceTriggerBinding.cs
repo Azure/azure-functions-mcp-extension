@@ -3,13 +3,13 @@
 
 using System.Reflection;
 using System.Text.Json;
-using Microsoft.AspNetCore.Http;
 using Microsoft.Azure.Functions.Extensions.Mcp.Abstractions;
 using Microsoft.Azure.Functions.Extensions.Mcp.Serialization;
 using Microsoft.Azure.WebJobs.Host.Bindings;
 using Microsoft.Azure.WebJobs.Host.Listeners;
 using Microsoft.Azure.WebJobs.Host.Protocols;
 using Microsoft.Azure.WebJobs.Host.Triggers;
+using Microsoft.Extensions.Logging;
 
 namespace Microsoft.Azure.Functions.Extensions.Mcp;
 
@@ -18,14 +18,20 @@ internal sealed class McpResourceTriggerBinding : ITriggerBinding
     private readonly IResourceRegistry _resourceRegistry;
     private readonly McpResourceTriggerAttribute _resourceAttribute;
     private readonly ParameterInfo _triggerParameter;
+    private readonly ILoggerFactory _loggerFactory;
 
-    public McpResourceTriggerBinding(ParameterInfo triggerParameter, IResourceRegistry resourceRegistry, McpResourceTriggerAttribute resourceAttribute)
+    public McpResourceTriggerBinding(
+        ParameterInfo triggerParameter,
+        IResourceRegistry resourceRegistry,
+        McpResourceTriggerAttribute resourceAttribute,
+        ILoggerFactory loggerFactory)
     {
         ArgumentNullException.ThrowIfNull(triggerParameter);
 
         _resourceRegistry = resourceRegistry;
         _resourceAttribute = resourceAttribute;
         _triggerParameter = triggerParameter;
+        _loggerFactory = loggerFactory;
 
         BindingDataContract = new Dictionary<string, Type>(StringComparer.OrdinalIgnoreCase)
         {
@@ -73,7 +79,10 @@ internal sealed class McpResourceTriggerBinding : ITriggerBinding
         }
 
         IValueProvider valueProvider = new ObjectValueProvider(triggerValue, _triggerParameter.ParameterType);
-        IValueBinder returnValueBinder = new ResourceReturnValueBinder(executionContext, _resourceAttribute);
+        IValueBinder returnValueBinder = new ResourceReturnValueBinder(
+            executionContext,
+            _resourceAttribute,
+            _loggerFactory.CreateLogger<ResourceReturnValueBinder>());
 
         var data = new TriggerData(valueProvider, bindingData)
         {
@@ -98,34 +107,8 @@ internal sealed class McpResourceTriggerBinding : ITriggerBinding
         return invocationContext;
     }
 
-    private Transport GetTransportInformation(ReadResourceExecutionContext context)
-    {
-        if (context.RequestContext.Services?.GetService(typeof(IHttpContextAccessor)) is IHttpContextAccessor contextAccessor
-            && contextAccessor.HttpContext is not null)
-        {
-            var name = contextAccessor.HttpContext.Items[McpConstants.McpTransportName] as string ?? "http";
-
-            var transport = new Transport
-            {
-                Name = name
-            };
-
-            var headers = contextAccessor.HttpContext.Request.Headers.ToDictionary(h => h.Key, h => string.Join(",", h.Value!), StringComparer.OrdinalIgnoreCase);
-            transport.Properties.Add("headers", headers);
-
-            if (headers.TryGetValue(McpConstants.McpSessionIdHeaderName, out var sessionId))
-            {
-                transport.SessionId = sessionId;
-            }
-
-            return transport;
-        }
-
-        return new Transport
-        {
-            Name = "unknown"
-        };
-    }
+    private Transport GetTransportInformation(ReadResourceExecutionContext context) =>
+        McpTriggerTransportHelper.GetTransportInformation(context.RequestContext.Services);
 
     public Task<IListener> CreateListenerAsync(ListenerFactoryContext context)
     {
@@ -160,7 +143,6 @@ internal sealed class McpResourceTriggerBinding : ITriggerBinding
         };
     }
 
-    // TODO: Add Metadata support via attribute in future PR
     private static IReadOnlyCollection<KeyValuePair<string, object?>> GetMetadata(McpResourceTriggerAttribute attribute, ParameterInfo parameter)
     {
         return [];
