@@ -108,7 +108,7 @@ public class InputSchemaBindingPatcherTests
         var binding = CreateToolPropertyBinding("test");
 
         // Act & Assert
-        Assert.Throws<InvalidOperationException>(() => 
+        Assert.Throws<JsonException>(() => 
             InputSchemaBindingPatcher.PatchBindingMetadata(inputSchema, new[] { binding }));
     }
 
