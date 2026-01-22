@@ -1,7 +1,8 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-using Microsoft.AspNetCore.Http;
+using System.Reflection;
+using System.Text.Json;
 using Microsoft.Azure.Functions.Extensions.Mcp.Abstractions;
 using Microsoft.Azure.Functions.Extensions.Mcp.Serialization;
 using Microsoft.Azure.Functions.Extensions.Mcp.Validation;
@@ -9,8 +10,6 @@ using Microsoft.Azure.WebJobs.Host.Bindings;
 using Microsoft.Azure.WebJobs.Host.Listeners;
 using Microsoft.Azure.WebJobs.Host.Protocols;
 using Microsoft.Azure.WebJobs.Host.Triggers;
-using System.Reflection;
-using System.Text.Json;
 
 namespace Microsoft.Azure.Functions.Extensions.Mcp;
 
@@ -102,34 +101,8 @@ internal sealed class McpToolTriggerBinding : ITriggerBinding
         return invocationContext;
     }
 
-    private Transport GetTransportInformation(CallToolExecutionContext context)
-    {
-        if (context.RequestContext.Services?.GetService(typeof(IHttpContextAccessor)) is IHttpContextAccessor contextAccessor
-            && contextAccessor.HttpContext is not null)
-        {
-            var name = contextAccessor.HttpContext.Items[McpConstants.McpTransportName] as string ?? "http";
-
-            var transport = new Transport
-            {
-                Name = name
-            };
-
-            var headers = contextAccessor.HttpContext.Request.Headers.ToDictionary(h => h.Key, h => string.Join(",", h.Value!), StringComparer.OrdinalIgnoreCase);
-            transport.Properties.Add("headers", headers);
-
-            if (headers.TryGetValue(McpConstants.McpSessionIdHeaderName, out var sessionId))
-            {
-                transport.SessionId = sessionId;
-            }
-
-            return transport;
-        }
-
-        return new Transport
-        {
-            Name = "unknown"
-        };
-    }
+    private Transport GetTransportInformation(CallToolExecutionContext context) =>
+        McpTriggerTransportHelper.GetTransportInformation(context.RequestContext.Services);
 
     public Task<IListener> CreateListenerAsync(ListenerFactoryContext context)
     {
