@@ -12,19 +12,19 @@ namespace Microsoft.Azure.Functions.Worker.Extensions.Mcp;
 public class ResourceInvocationContext
 {
     /// <summary>
-    /// Gets or sets the URI of the resource to invoke.
+    /// Gets or initializes the URI of the resource to invoke.
     /// </summary>
     [JsonPropertyName("uri")]
     public required string Uri { get; init; }
 
     /// <summary>
-    /// Gets the session ID associated with the current resource invocation.
+    /// Gets or initializes the session ID associated with the current resource invocation.
     /// </summary>
     [JsonPropertyName("sessionid")]
     public string? SessionId { get; init; }
 
     /// <summary>
-    /// Gets the transport information.
+    /// Gets or initializes the transport information.
     /// </summary>
     [JsonPropertyName("transport")]
     public Transport? Transport { get; init; }

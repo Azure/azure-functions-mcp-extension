@@ -8,6 +8,9 @@ using System;
 
 namespace Microsoft.Azure.Functions.Worker.Extensions.Mcp;
 
+/// <summary>
+/// Attribute to designate a function parameter as an MCP Resource trigger.
+/// </summary>
 [InputConverter(typeof(ResourceInvocationContextConverter))]
 [ConverterFallbackBehavior(ConverterFallbackBehavior.Disallow)]
 public sealed class McpResourceTriggerAttribute(string uri, string resourceName) : TriggerBindingAttribute, IMcpBindingAttribute

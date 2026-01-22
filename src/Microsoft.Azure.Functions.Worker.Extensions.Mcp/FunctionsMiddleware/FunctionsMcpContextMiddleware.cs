@@ -1,8 +1,9 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the MIT License. See License.txt in the project root for license information.
 
-using System.Text.Json;
 using Microsoft.Azure.Functions.Worker.Middleware;
+using System.Text.Json;
+using System.Text.Json.Serialization.Metadata;
 
 namespace Microsoft.Azure.Functions.Worker.Extensions.Mcp;
 
@@ -13,23 +14,36 @@ internal class FunctionsMcpContextMiddleware : IFunctionsWorkerMiddleware
         ArgumentNullException.ThrowIfNull(context);
 
         // Get the tool invocation context via the name of the trigger binding
-        if (context.TryGetMcpToolTriggerName(out string? toolTriggerName)
-            && context.BindingContext.BindingData.TryGetValue(toolTriggerName, out var mcpToolContext))
-        {
-            ToolInvocationContext? toolInvocationContext = JsonSerializer.Deserialize(mcpToolContext?.ToString()!, McpJsonContext.Default.ToolInvocationContext);
-
-            context.Items.Add(Constants.ToolInvocationContextKey, toolInvocationContext!);
-        }
+        TryAddInvocationContext(
+            context,
+            (out string? name) => context.TryGetMcpToolTriggerName(out name),
+            Constants.ToolInvocationContextKey,
+            McpJsonContext.Default.ToolInvocationContext);
 
         // Get the resource invocation context via the name of the trigger binding
-        if (context.TryGetMcpResourceTriggerName(out string? resourceTriggerName)
-            && context.BindingContext.BindingData.TryGetValue(resourceTriggerName, out var mcpResourceContext))
-        {
-            ResourceInvocationContext? resourceInvocationContext = JsonSerializer.Deserialize(mcpResourceContext?.ToString()!, McpJsonContext.Default.ResourceInvocationContext);
-
-            context.Items.Add(Constants.ResourceInvocationContextKey, resourceInvocationContext!);
-        }
+        TryAddInvocationContext(
+            context,
+            (out string? name) => context.TryGetMcpResourceTriggerName(out name),
+            Constants.ResourceInvocationContextKey,
+            McpJsonContext.Default.ResourceInvocationContext);
 
         await next(context);
+    }
+
+    private delegate bool TryGetTriggerNameDelegate(out string? triggerName);
+
+    private static void TryAddInvocationContext<T>(
+        FunctionContext context,
+        TryGetTriggerNameDelegate tryGetTriggerName,
+        string contextKey,
+        JsonTypeInfo<T> jsonTypeInfo) where T : class
+    {
+        if (tryGetTriggerName(out string? triggerName)
+            && !string.IsNullOrEmpty(triggerName)
+            && context.BindingContext.BindingData.TryGetValue(triggerName, out var mcpContext))
+        {
+            T? invocationContext = JsonSerializer.Deserialize(mcpContext?.ToString()!, jsonTypeInfo);
+            context.Items.Add(contextKey, invocationContext!);
+        }
     }
 }

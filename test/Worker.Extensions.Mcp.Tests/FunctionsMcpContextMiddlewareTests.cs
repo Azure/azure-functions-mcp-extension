@@ -64,7 +64,6 @@ public class FunctionsMcpContextMiddlewareTests
         {
             Uri = "test://resource/1",
             SessionId = "session-123",
-            Properties = new Dictionary<string, object> { ["key"] = "value" }
         };
 
         var bindingData = new Dictionary<string, object>
@@ -86,8 +85,6 @@ public class FunctionsMcpContextMiddlewareTests
         Assert.NotNull(result);
         Assert.Equal("test://resource/1", result!.Uri);
         Assert.Equal("session-123", result.SessionId);
-        Assert.NotNull(result.Properties);
-        Assert.Equal("value", result.Properties!["key"].ToString());
     }
 
     [Fact]
@@ -196,9 +193,7 @@ public class FunctionsMcpContextMiddlewareTests
         Assert.NotNull(result);
         Assert.Equal("test://minimal/resource", result!.Uri);
         Assert.Null(result.SessionId);
-        Assert.Null(result.Properties);
         Assert.Null(result.Transport);
-        Assert.Null(result.ClientInfo);
     }
 
     [Fact]
@@ -269,12 +264,6 @@ public class FunctionsMcpContextMiddlewareTests
         {
             Uri = "test://complex/resource",
             SessionId = "session-456",
-            Properties = new Dictionary<string, object> 
-            { 
-                ["metadata"] = "important",
-                ["version"] = 1,
-                ["enabled"] = true
-            }
         };
 
         var bindingData = new Dictionary<string, object>
@@ -296,10 +285,5 @@ public class FunctionsMcpContextMiddlewareTests
         Assert.NotNull(result);
         Assert.Equal("test://complex/resource", result!.Uri);
         Assert.Equal("session-456", result.SessionId);
-        Assert.NotNull(result.Properties);
-        Assert.Equal(3, result.Properties!.Count);
-        Assert.Equal("important", result.Properties["metadata"].ToString());
-        Assert.Equal("1", result.Properties["version"].ToString());
-        Assert.Equal("True", result.Properties["enabled"].ToString());
     }
 }
