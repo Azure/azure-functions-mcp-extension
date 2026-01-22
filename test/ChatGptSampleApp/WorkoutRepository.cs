@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation. All rights reserved.
+// Licensed under the MIT License.
+
 using Azure;
 using Azure.Data.Tables;
 using System.Text.Json;
@@ -5,20 +8,20 @@ using System.Text.Json;
 namespace ChatGptSampleApp;
 
 /// <summary>
-/// Repository interface for workout data persistence
+/// Repository interface for workout data persistence (synchronous)
 /// </summary>
 public interface IWorkoutRepository
 {
-    Task SaveWorkoutAsync(WorkoutSession workout);
-    Task<List<WorkoutSession>> GetWorkoutsAsync(int days, string? workoutType);
-    Task<List<PersonalRecord>> GetPersonalRecordsAsync(string? exerciseName);
-    Task SaveUserProfileAsync(UserProfile profile);
-    Task<UserProfile?> GetUserProfileAsync();
-    Task<List<WorkoutSession>> SearchWorkoutsAsync(string query);
+    void SaveWorkout(WorkoutSession workout);
+    List<WorkoutSession> GetWorkouts(int days, string? workoutType);
+    List<PersonalRecord> GetPersonalRecords(string? exerciseName);
+    void SaveUserProfile(UserProfile profile);
+    UserProfile? GetUserProfile();
+    List<WorkoutSession> SearchWorkouts(string query);
 }
 
 /// <summary>
-/// Azure Table Storage implementation of workout repository.
+/// Azure Table Storage implementation of workout repository (synchronous).
 /// Uses a combination of Table Storage for structured data.
 /// </summary>
 public class AzureTableWorkoutRepository : IWorkoutRepository
@@ -44,7 +47,7 @@ public class AzureTableWorkoutRepository : IWorkoutRepository
         _prsTable.CreateIfNotExists();
     }
 
-    public async Task SaveWorkoutAsync(WorkoutSession workout)
+    public void SaveWorkout(WorkoutSession workout)
     {
         var entity = new WorkoutEntity
         {
@@ -59,21 +62,21 @@ public class AzureTableWorkoutRepository : IWorkoutRepository
             Notes = workout.Notes
         };
 
-        await _workoutsTable.UpsertEntityAsync(entity);
+        _workoutsTable.UpsertEntity(entity);
 
         // Update PRs if needed
-        await UpdatePersonalRecordsAsync(workout);
+        UpdatePersonalRecords(workout);
     }
 
-    public async Task<List<WorkoutSession>> GetWorkoutsAsync(int days, string? workoutType)
+    public List<WorkoutSession> GetWorkouts(int days, string? workoutType)
     {
         var cutoffDate = DateTime.UtcNow.AddDays(-days);
         var workouts = new List<WorkoutSession>();
 
-        var query = _workoutsTable.QueryAsync<WorkoutEntity>(
+        var query = _workoutsTable.Query<WorkoutEntity>(
             filter: $"PartitionKey eq '{_userId}' and Date ge datetime'{cutoffDate:O}'");
 
-        await foreach (var entity in query)
+        foreach (var entity in query)
         {
             if (workoutType != null && !entity.Type.Equals(workoutType, StringComparison.OrdinalIgnoreCase))
                 continue;
@@ -84,7 +87,7 @@ public class AzureTableWorkoutRepository : IWorkoutRepository
         return workouts.OrderByDescending(w => w.Date).ToList();
     }
 
-    public async Task<List<PersonalRecord>> GetPersonalRecordsAsync(string? exerciseName)
+    public List<PersonalRecord> GetPersonalRecords(string? exerciseName)
     {
         var prs = new List<PersonalRecord>();
 
@@ -94,9 +97,9 @@ public class AzureTableWorkoutRepository : IWorkoutRepository
             filter += $" and ExerciseName eq '{exerciseName}'";
         }
 
-        var query = _prsTable.QueryAsync<PersonalRecordEntity>(filter: filter);
+        var query = _prsTable.Query<PersonalRecordEntity>(filter: filter);
 
-        await foreach (var entity in query)
+        foreach (var entity in query)
         {
             prs.Add(new PersonalRecord
             {
@@ -111,7 +114,7 @@ public class AzureTableWorkoutRepository : IWorkoutRepository
         return prs.OrderByDescending(p => p.EstimatedOneRepMax).ToList();
     }
 
-    public async Task SaveUserProfileAsync(UserProfile profile)
+    public void SaveUserProfile(UserProfile profile)
     {
         var entity = new UserProfileEntity
         {
@@ -126,14 +129,14 @@ public class AzureTableWorkoutRepository : IWorkoutRepository
             WeightUnit = profile.WeightUnit
         };
 
-        await _profileTable.UpsertEntityAsync(entity);
+        _profileTable.UpsertEntity(entity);
     }
 
-    public async Task<UserProfile?> GetUserProfileAsync()
+    public UserProfile? GetUserProfile()
     {
         try
         {
-            var response = await _profileTable.GetEntityAsync<UserProfileEntity>("profiles", _userId);
+            var response = _profileTable.GetEntity<UserProfileEntity>("profiles", _userId);
             var entity = response.Value;
 
             return new UserProfile
@@ -153,9 +156,9 @@ public class AzureTableWorkoutRepository : IWorkoutRepository
         }
     }
 
-    public async Task<List<WorkoutSession>> SearchWorkoutsAsync(string query)
+    public List<WorkoutSession> SearchWorkouts(string query)
     {
-        var allWorkouts = await GetWorkoutsAsync(365, null); // Search last year
+        var allWorkouts = GetWorkouts(365, null); // Search last year
         var queryLower = query.ToLowerInvariant();
 
         return allWorkouts.Where(w =>
@@ -165,7 +168,7 @@ public class AzureTableWorkoutRepository : IWorkoutRepository
         ).ToList();
     }
 
-    private async Task UpdatePersonalRecordsAsync(WorkoutSession workout)
+    private void UpdatePersonalRecords(WorkoutSession workout)
     {
         foreach (var exercise in workout.Exercises)
         {
@@ -175,24 +178,24 @@ public class AzureTableWorkoutRepository : IWorkoutRepository
 
                 try
                 {
-                    var existing = await _prsTable.GetEntityAsync<PersonalRecordEntity>(
+                    var existing = _prsTable.GetEntity<PersonalRecordEntity>(
                         _userId, exercise.Name.ToLowerInvariant().Replace(" ", "-"));
 
                     if (estimated1RM > existing.Value.EstimatedOneRepMax)
                     {
-                        await SavePR(exercise.Name, set, estimated1RM, workout.Date);
+                        SavePR(exercise.Name, set, estimated1RM, workout.Date);
                     }
                 }
                 catch (RequestFailedException ex) when (ex.Status == 404)
                 {
                     // No existing PR, save this one
-                    await SavePR(exercise.Name, set, estimated1RM, workout.Date);
+                    SavePR(exercise.Name, set, estimated1RM, workout.Date);
                 }
             }
         }
     }
 
-    private async Task SavePR(string exerciseName, ExerciseSet set, double estimated1RM, DateTime date)
+    private void SavePR(string exerciseName, ExerciseSet set, double estimated1RM, DateTime date)
     {
         var entity = new PersonalRecordEntity
         {
@@ -205,7 +208,7 @@ public class AzureTableWorkoutRepository : IWorkoutRepository
             DateAchieved = date
         };
 
-        await _prsTable.UpsertEntityAsync(entity);
+        _prsTable.UpsertEntity(entity);
     }
 
     private double Calculate1RM(double weight, int reps)

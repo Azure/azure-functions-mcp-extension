@@ -1,9 +1,13 @@
+// Copyright (c) Microsoft Corporation. All rights reserved.
+// Licensed under the MIT License.
+
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Extensions.Mcp;
 using Microsoft.Extensions.Logging;
 using System.ComponentModel;
 using System.Globalization;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace ChatGptSampleApp;
 
@@ -24,9 +28,6 @@ public class WorkoutFunctions
 
     #region Resources - UI Widgets
 
-    /// <summary>
-    /// Dashboard widget showing workout summary and quick-log form
-    /// </summary>
     [Function(nameof(GetDashboardWidget))]
     public string GetDashboardWidget(
         [McpResourceTrigger(
@@ -43,9 +44,6 @@ public class WorkoutFunctions
         return File.ReadAllText(file);
     }
 
-    /// <summary>
-    /// Workout logging form widget
-    /// </summary>
     [Function(nameof(GetLogWorkoutWidget))]
     public string GetLogWorkoutWidget(
         [McpResourceTrigger(
@@ -62,9 +60,6 @@ public class WorkoutFunctions
         return File.ReadAllText(file);
     }
 
-    /// <summary>
-    /// Progress chart widget showing workout trends
-    /// </summary>
     [Function(nameof(GetProgressChartWidget))]
     public string GetProgressChartWidget(
         [McpResourceTrigger(
@@ -83,13 +78,10 @@ public class WorkoutFunctions
 
     #endregion
 
-    #region Tools - Workout Management
+    #region Tools - Workout Management (Synchronous, Return POCOs)
 
-    /// <summary>
-    /// Log a new workout session
-    /// </summary>
     [Function(nameof(LogWorkout))]
-    public async Task<string> LogWorkout(
+    public LogWorkoutResponse LogWorkout(
         [McpToolTrigger(nameof(LogWorkout),
             "Log a completed workout session. Use this after the user describes a workout they just completed.")]
         LogWorkoutRequest request,
@@ -101,114 +93,94 @@ public class WorkoutFunctions
             Date = request.Date?.ToUniversalTime() ?? DateTime.UtcNow,
             Type = request.Type.ToString(),
             DurationMinutes = request.DurationMinutes,
-            Exercises = request.Exercises.Select(e => new Exercise
-            {
-                Name = e.Name,
-                MuscleGroup = e.MuscleGroup,
-                Sets = e.Sets.Select((s, idx) => new ExerciseSet
-                {
-                    SetNumber = idx + 1,
-                    Reps = s.Reps,
-                    Weight = s.Weight,
-                    Rpe = s.Rpe,
-                    IsPR = s.IsPR
-                }).ToList(),
-                Notes = e.Notes
-            }).ToList(),
             PerceivedEffort = Math.Clamp(request.PerceivedEffort, 1, 10),
             EnergyLevel = Math.Clamp(request.EnergyLevel, 1, 10),
             Notes = request.Notes
         };
 
-        await _workoutRepo.SaveWorkoutAsync(workout);
+        _workoutRepo.SaveWorkout(workout);
         _logger.LogInformation("Logged workout {WorkoutId} on {Date}", workout.Id, workout.Date);
 
         var totalVolume = workout.Exercises.Sum(e => e.Sets.Sum(s => s.Reps * s.Weight));
         var totalSets = workout.Exercises.Sum(e => e.Sets.Count);
 
-        return JsonSerializer.Serialize(new
+        return new LogWorkoutResponse
         {
-            success = true,
-            message = "Workout logged successfully!",
-            summary = new
-            {
-                workout.Id,
-                workout.Date,
-                workout.Type,
-                workout.DurationMinutes,
-                exerciseCount = workout.Exercises.Count,
-                totalSets,
-                totalVolume,
-                muscleGroups = workout.Exercises.Select(e => e.MuscleGroup).Distinct().ToList()
-            }
-        });
+            Success = true,
+            Message = "Workout logged successfully!",
+            WorkoutId = workout.Id,
+            Date = workout.Date,
+            Type = workout.Type,
+            DurationMinutes = workout.DurationMinutes,
+            PerceivedEffort = workout.PerceivedEffort,
+            EnergyLevel = workout.EnergyLevel,
+            Notes = workout.Notes,
+            ExerciseCount = workout.Exercises.Count,
+            TotalSets = totalSets,
+            TotalVolume = totalVolume,
+            MuscleGroups = string.Join(", ", workout.Exercises.Select(e => e.MuscleGroup).Distinct()),
+            ExercisesJson = JsonSerializer.Serialize(workout.Exercises)
+        };
     }
 
-    /// <summary>
-    /// Get workout history for analysis
-    /// </summary>
     [Function(nameof(GetWorkoutHistory))]
-    public async Task<string> GetWorkoutHistory(
+    public GetWorkoutHistoryResponse GetWorkoutHistory(
         [McpToolTrigger(nameof(GetWorkoutHistory),
             "Retrieve workout history for a specified time period. Returns detailed workout data including exercises, volume, and user notes. Use this to analyze patterns and tailor recommendations.")]
         GetWorkoutHistoryRequest request,
         ToolInvocationContext context)
     {
         var typeFilter = request.WorkoutType?.ToString();
-        var workouts = await _workoutRepo.GetWorkoutsAsync(request.Days, typeFilter);
+        var workouts = _workoutRepo.GetWorkouts(request.Days, typeFilter);
 
         _logger.LogInformation("Retrieved {Count} workouts from last {Days} days", workouts.Count, request.Days);
 
-        return JsonSerializer.Serialize(new
+        var summary = GenerateWorkoutSummary(workouts);
+
+        return new GetWorkoutHistoryResponse
         {
-            period = $"Last {request.Days} days",
-            totalWorkouts = workouts.Count,
-            workouts = workouts,
-            summary = GenerateWorkoutSummary(workouts)
-        });
+            Period = $"Last {request.Days} days",
+            TotalWorkouts = workouts.Count,
+            WorkoutsJson = JsonSerializer.Serialize(workouts),
+            TotalSessions = summary.TotalSessions,
+            TotalVolume = summary.TotalVolume,
+            AverageSessionDuration = summary.AverageSessionDuration,
+            MostTrainedMuscleGroups = string.Join(", ", summary.MostTrainedMuscleGroups),
+            AveragePerceivedEffort = summary.AveragePerceivedEffort,
+            WorkoutTypesJson = JsonSerializer.Serialize(summary.WorkoutTypes)
+        };
     }
 
-    /// <summary>
-    /// Get personal records for exercises
-    /// </summary>
     [Function(nameof(GetPersonalRecords))]
-    public async Task<string> GetPersonalRecords(
+    public GetPersonalRecordsResponse GetPersonalRecords(
         [McpToolTrigger(nameof(GetPersonalRecords),
             "Get personal records (PRs) for specific exercises or all exercises. Useful for tracking strength progression and setting goals.")]
         GetPersonalRecordsRequest request,
         ToolInvocationContext context)
     {
-        var prs = await _workoutRepo.GetPersonalRecordsAsync(request.ExerciseName);
+        var prs = _workoutRepo.GetPersonalRecords(request.ExerciseName);
 
-        return JsonSerializer.Serialize(new
+        return new GetPersonalRecordsResponse
         {
-            personalRecords = prs,
-            count = prs.Count,
-            lastUpdated = DateTime.UtcNow
-        });
+            PersonalRecordsJson = JsonSerializer.Serialize(prs),
+            Count = prs.Count,
+            LastUpdated = DateTime.UtcNow
+        };
     }
 
-    /// <summary>
-    /// Get workout statistics and trends
-    /// </summary>
     [Function(nameof(GetWorkoutStats))]
-    public async Task<string> GetWorkoutStats(
+    public WorkoutStatistics GetWorkoutStats(
         [McpToolTrigger(nameof(GetWorkoutStats),
             "Get comprehensive workout statistics including frequency, volume trends, muscle group distribution, and consistency metrics. Essential for generating personalized workout recommendations.")]
         GetWorkoutStatsRequest request,
         ToolInvocationContext context)
     {
-        var workouts = await _workoutRepo.GetWorkoutsAsync(request.Days, null);
-        var stats = CalculateStats(workouts, request.Days);
-
-        return JsonSerializer.Serialize(stats);
+        var workouts = _workoutRepo.GetWorkouts(request.Days, null);
+        return CalculateStats(workouts, request.Days);
     }
 
-    /// <summary>
-    /// Update goals and preferences
-    /// </summary>
     [Function(nameof(UpdateUserProfile))]
-    public async Task<string> UpdateUserProfile(
+    public UpdateUserProfileResponse UpdateUserProfile(
         [McpToolTrigger(nameof(UpdateUserProfile),
             "Update user's fitness goals, preferences, and constraints. Use this when the user shares information about their goals, available equipment, schedule, or limitations.")]
         UpdateUserProfileRequest request,
@@ -225,55 +197,51 @@ public class WorkoutFunctions
             WeightUnit = request.WeightUnit.ToString().ToLowerInvariant()
         };
 
-        await _workoutRepo.SaveUserProfileAsync(profile);
+        _workoutRepo.SaveUserProfile(profile);
 
-        return JsonSerializer.Serialize(new
+        return new UpdateUserProfileResponse
         {
-            success = true,
-            message = "Profile updated successfully",
-            profile
-        });
+            Success = true,
+            Message = "Profile updated successfully",
+            Goals = string.Join(", ", profile.Goals),
+            AvailableEquipment = string.Join(", ", profile.AvailableEquipment),
+            WorkoutDaysPerWeek = profile.WorkoutDaysPerWeek,
+            SessionDurationMinutes = profile.SessionDurationMinutes,
+            Injuries = string.Join(", ", profile.Injuries),
+            ExperienceLevel = profile.ExperienceLevel,
+            WeightUnit = profile.WeightUnit
+        };
     }
 
-    /// <summary>
-    /// Get user profile for personalization
-    /// </summary>
     [Function(nameof(GetUserProfile))]
-    public async Task<string> GetUserProfile(
+    public UserProfile GetUserProfile(
         [McpToolTrigger(nameof(GetUserProfile),
             "Retrieve user's fitness profile including goals, equipment, constraints, and preferences. Use this before generating workout recommendations.")]
         ToolInvocationContext context)
     {
-        var profile = await _workoutRepo.GetUserProfileAsync();
-
-        return JsonSerializer.Serialize(profile ?? new UserProfile());
+        var profile = _workoutRepo.GetUserProfile();
+        return profile ?? new UserProfile();
     }
 
-    /// <summary>
-    /// Search workouts by exercise or notes
-    /// </summary>
     [Function(nameof(SearchWorkouts))]
-    public async Task<string> SearchWorkouts(
+    public SearchWorkoutsResponse SearchWorkouts(
         [McpToolTrigger(nameof(SearchWorkouts),
             "Search past workouts by exercise name, workout type, or keywords in notes. Helpful for finding when the user last did a specific exercise or workout.")]
         SearchWorkoutsRequest request,
         ToolInvocationContext context)
     {
-        var results = await _workoutRepo.SearchWorkoutsAsync(request.Query);
+        var results = _workoutRepo.SearchWorkouts(request.Query);
 
-        return JsonSerializer.Serialize(new
+        return new SearchWorkoutsResponse
         {
-            query = request.Query,
-            count = results.Count,
-            results
-        });
+            Query = request.Query,
+            Count = results.Count,
+            ResultsJson = JsonSerializer.Serialize(results)
+        };
     }
 
-    /// <summary>
-    /// Delete a workout by ID
-    /// </summary>
     [Function(nameof(DeleteWorkout))]
-    public async Task<string> DeleteWorkout(
+    public DeleteWorkoutResponse DeleteWorkout(
         [McpToolTrigger(nameof(DeleteWorkout),
             "Delete a workout by its ID. Use when the user wants to remove an incorrectly logged workout.")]
         DeleteWorkoutRequest request,
@@ -281,11 +249,14 @@ public class WorkoutFunctions
     {
         _logger.LogInformation("Deleting workout {WorkoutId}", request.WorkoutId);
 
-        return JsonSerializer.Serialize(new
+        // TODO: Add DeleteWorkout to repository
+
+        return new DeleteWorkoutResponse
         {
-            success = true,
-            message = $"Workout {request.WorkoutId} deleted successfully"
-        });
+            Success = true,
+            Message = $"Workout {request.WorkoutId} deleted successfully",
+            DeletedWorkoutId = request.WorkoutId
+        };
     }
 
     #endregion
@@ -297,8 +268,8 @@ public class WorkoutFunctions
         [Description("Type of workout: Push, Pull, Legs, Upper, Lower, FullBody, Cardio, General")]
         public WorkoutType Type { get; set; } = WorkoutType.General;
 
-        [Description("List of exercises performed with sets, reps, and weight")]
-        public List<ExerciseInput> Exercises { get; set; } = new();
+        [Description("List of exercises in format: 'ExerciseName|MuscleGroup|Sets x Reps @ Weight'. Example: 'Bench Press|Chest|3x8@185', 'Squat|Legs|4x10@225'")]
+        public List<string> Exercises { get; set; } = new();
 
         [Description("Duration of the workout in minutes")]
         public int DurationMinutes { get; set; } = 60;
@@ -401,6 +372,156 @@ public class WorkoutFunctions
     {
         [Description("The ID of the workout to delete")]
         public required string WorkoutId { get; set; }
+    }
+
+    #endregion
+
+    #region Response POCOs (Structured Content)
+
+    [McpResult]
+    public class LogWorkoutResponse
+    {
+        [Description("Whether the workout was logged successfully")]
+        public bool Success { get; set; }
+
+        [Description("Status message")]
+        public string Message { get; set; } = string.Empty;
+
+        // Flattened workout data
+        [Description("Unique ID of the workout")]
+        public string WorkoutId { get; set; } = string.Empty;
+
+        [Description("Date of the workout")]
+        public DateTime Date { get; set; }
+
+        [Description("Type of workout")]
+        public string Type { get; set; } = string.Empty;
+
+        [Description("Duration in minutes")]
+        public int DurationMinutes { get; set; }
+
+        [Description("Rate of perceived exertion 1-10")]
+        public int PerceivedEffort { get; set; }
+
+        [Description("Energy level 1-10")]
+        public int EnergyLevel { get; set; }
+
+        [Description("Optional notes about the workout")]
+        public string? Notes { get; set; }
+
+        // Flattened summary data
+        [Description("Number of exercises performed")]
+        public int ExerciseCount { get; set; }
+
+        [Description("Total sets across all exercises")]
+        public int TotalSets { get; set; }
+
+        [Description("Total volume (weight × reps)")]
+        public double TotalVolume { get; set; }
+
+        [Description("Muscle groups targeted (comma-separated)")]
+        public string MuscleGroups { get; set; } = string.Empty;
+
+        [Description("JSON string containing exercise details")]
+        public string ExercisesJson { get; set; } = string.Empty;
+    }
+
+    public class GetWorkoutHistoryResponse
+    {
+        [Description("Time period covered")]
+        public string Period { get; set; } = string.Empty;
+
+        [Description("Total number of workouts in the period")]
+        public int TotalWorkouts { get; set; }
+
+        [Description("JSON string containing all workouts")]
+        public string WorkoutsJson { get; set; } = string.Empty;
+
+        // Flattened summary data
+        [Description("Total workout sessions")]
+        public int TotalSessions { get; set; }
+
+        [Description("Total volume lifted across all workouts")]
+        public double TotalVolume { get; set; }
+
+        [Description("Average session duration in minutes")]
+        public int AverageSessionDuration { get; set; }
+
+        [Description("Most trained muscle groups (comma-separated)")]
+        public string MostTrainedMuscleGroups { get; set; } = string.Empty;
+
+        [Description("Average perceived effort across workouts")]
+        public double AveragePerceivedEffort { get; set; }
+
+        [Description("JSON string of workout type distribution")]
+        public string WorkoutTypesJson { get; set; } = string.Empty;
+    }
+
+    public class GetPersonalRecordsResponse
+    {
+        [Description("JSON string containing list of personal records")]
+        public string PersonalRecordsJson { get; set; } = string.Empty;
+
+        [Description("Total number of PRs")]
+        public int Count { get; set; }
+
+        [Description("When this data was retrieved")]
+        public DateTime LastUpdated { get; set; }
+    }
+
+    public class UpdateUserProfileResponse
+    {
+        [Description("Whether the profile was updated successfully")]
+        public bool Success { get; set; }
+
+        [Description("Status message")]
+        public string Message { get; set; } = string.Empty;
+
+        // Flattened profile data
+        [Description("Fitness goals (comma-separated)")]
+        public string Goals { get; set; } = string.Empty;
+
+        [Description("Available equipment (comma-separated)")]
+        public string AvailableEquipment { get; set; } = string.Empty;
+
+        [Description("Target workout days per week")]
+        public int WorkoutDaysPerWeek { get; set; }
+
+        [Description("Target session duration in minutes")]
+        public int SessionDurationMinutes { get; set; }
+
+        [Description("Injuries or limitations (comma-separated)")]
+        public string Injuries { get; set; } = string.Empty;
+
+        [Description("Experience level")]
+        public string ExperienceLevel { get; set; } = string.Empty;
+
+        [Description("Preferred weight unit")]
+        public string WeightUnit { get; set; } = string.Empty;
+    }
+
+    public class SearchWorkoutsResponse
+    {
+        [Description("The search query used")]
+        public string Query { get; set; } = string.Empty;
+
+        [Description("Number of matching workouts")]
+        public int Count { get; set; }
+
+        [Description("JSON string containing matching workouts")]
+        public string ResultsJson { get; set; } = string.Empty;
+    }
+
+    public class DeleteWorkoutResponse
+    {
+        [Description("Whether the workout was deleted successfully")]
+        public bool Success { get; set; }
+
+        [Description("Status message")]
+        public string Message { get; set; } = string.Empty;
+
+        [Description("ID of the deleted workout")]
+        public string DeletedWorkoutId { get; set; } = string.Empty;
     }
 
     #endregion

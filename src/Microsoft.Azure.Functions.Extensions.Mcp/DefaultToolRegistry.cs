@@ -86,7 +86,8 @@ internal sealed class DefaultToolRegistry : IToolRegistry
                 {
                     toolItem.Meta = new JsonObject
                     {
-                        ["openai/outputTemplate"] = "ui://widget/progress-chart.html"
+                        ["openai/outputTemplate"] = "ui://widget/progress-chart.html",
+                        ["openai/widgetAccessible"] = true
                     };
                 }
 
