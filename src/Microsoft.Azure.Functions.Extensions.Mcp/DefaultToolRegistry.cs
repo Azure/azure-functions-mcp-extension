@@ -40,7 +40,8 @@ internal sealed class DefaultToolRegistry : IToolRegistry
             {
                 Name = tool.Name,
                 Description = tool.Description,
-                InputSchema = tool.GetPropertiesInputSchema()
+                InputSchema = tool.GetPropertiesInputSchema(),
+                Meta = tool.Metadata
             }).ToList()
         };
 

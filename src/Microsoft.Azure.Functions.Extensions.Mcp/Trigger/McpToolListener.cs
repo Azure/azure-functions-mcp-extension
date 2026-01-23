@@ -4,10 +4,9 @@
 using Microsoft.Azure.Functions.Extensions.Mcp.Validation;
 using Microsoft.Azure.WebJobs.Host.Executors;
 using Microsoft.Azure.WebJobs.Host.Listeners;
-using ModelContextProtocol;
 using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
-using System.Text.Json;
+using System.Text.Json.Nodes;
 
 namespace Microsoft.Azure.Functions.Extensions.Mcp;
 
@@ -15,7 +14,8 @@ internal sealed class McpToolListener(ITriggeredFunctionExecutor executor,
                                       string functionName,
                                       string toolName,
                                       string? toolDescription,
-                                      ToolInputSchema requestHandler) : IListener, IMcpTool
+                                      ToolInputSchema requestHandler,
+                                      JsonObject? metadata = null) : IListener, IMcpTool
 {
     public ITriggeredFunctionExecutor Executor { get; } = executor;
 
@@ -26,6 +26,8 @@ internal sealed class McpToolListener(ITriggeredFunctionExecutor executor,
     public string? Description { get; set; } = toolDescription;
 
     public ToolInputSchema ToolInputSchema { get; } = requestHandler ?? throw new ArgumentNullException(nameof(requestHandler));
+
+    public JsonObject? Metadata { get; } = metadata;
 
     public void Dispose()
     {

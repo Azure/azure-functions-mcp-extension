@@ -11,6 +11,7 @@ using Microsoft.Azure.WebJobs.Host.Protocols;
 using Microsoft.Azure.WebJobs.Host.Triggers;
 using System.Reflection;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 
 namespace Microsoft.Azure.Functions.Extensions.Mcp;
 
@@ -134,9 +135,10 @@ internal sealed class McpToolTriggerBinding : ITriggerBinding
     public Task<IListener> CreateListenerAsync(ListenerFactoryContext context)
     {
         ToolInputSchema inputSchema = CreateToolInputSchema();
+        var metadata = CreateToolMetadata();
         
         var listener = new McpToolListener(context.Executor, context.Descriptor.ShortName,
-            _toolAttribute.ToolName, _toolAttribute.Description, inputSchema);
+            _toolAttribute.ToolName, _toolAttribute.Description, inputSchema, metadata);
 
         _toolRegistry.Register(listener);
 
@@ -163,6 +165,31 @@ internal sealed class McpToolTriggerBinding : ITriggerBinding
         {
             var toolProperties = GetProperties(_toolAttribute, _triggerParameter);
             return new PropertyBasedToolInputSchema(toolProperties);
+        }
+    }
+
+    private JsonObject? CreateToolMetadata()
+    {
+        if (string.IsNullOrWhiteSpace(_toolAttribute.ToolMetadata))
+        {
+            return null;
+        }
+
+        try
+        {
+            var jsonNode = JsonNode.Parse(_toolAttribute.ToolMetadata);
+            if (jsonNode is JsonObject obj)
+            {
+                return obj;
+            }
+
+            throw new InvalidOperationException(
+                $"ToolMetadata for tool '{_toolAttribute.ToolName}' must be a JSON object.");
+        }
+        catch (JsonException ex)
+        {
+            throw new InvalidOperationException(
+                $"Failed to parse ToolMetadata for tool '{_toolAttribute.ToolName}'. Metadata must be valid JSON.", ex);
         }
     }
 
