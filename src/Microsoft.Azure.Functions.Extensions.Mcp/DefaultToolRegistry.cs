@@ -46,21 +46,21 @@ internal sealed class DefaultToolRegistry : IToolRegistry
                     InputSchema = tool.GetPropertiesInputSchema()
                 };
 
-                // Hardcode metadata for GetWelcomeMessage tool for testing
-                if (tool.Name == "GetWelcomeMessage")
+                // Hardcode metadata for tools for testing
+                switch (tool.Name)
                 {
-                    toolItem.Meta = new JsonObject
-                    {
-                        ["openai/outputTemplate"] = "ui://widget/welcome.html"
-                    };
-                }
-
-                if (tool.Name == "GetFunctionsLogo")
-                {
-                    toolItem.Meta = new JsonObject
-                    {
-                        ["openai/outputTemplate"] = "file:///resources/logo.png"
-                    };
+                    case "GetWelcomeMessage":
+                        toolItem.Meta = new JsonObject
+                        {
+                            ["openai/outputTemplate"] = "ui://widget/welcome.html"
+                        };
+                        break;
+                    case "GetWeather":
+                        toolItem.Meta = new JsonObject
+                        {
+                            ["openai/outputTemplate"] = "ui://widget/weather.html"
+                        };
+                        break;
                 }
 
                 return toolItem;

@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weather Widget</title>
+    <style>
+        :root {
+            --bg: linear-gradient(145deg, #0f172a 0%, #0b324f 50%, #0f766e 100%);
+            --card: rgba(255,255,255,0.1);
+            --text: #f8fafc;
+            --muted: #cbd5e1;
+            --accent: #fbbf24;
+            --shadow: 0 20px 50px rgba(0,0,0,0.35);
+            --radius: 18px;
+        }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            padding: 24px;
+            font-family: "Poppins", "Segoe UI", system-ui, -apple-system, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .widget {
+            width: min(640px, 100%);
+            background: var(--card);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            padding: 24px;
+        }
+        .header {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            margin-bottom: 16px;
+        }
+        .icon {
+            width: 72px;
+            height: 72px;
+            border-radius: 16px;
+            background: rgba(255,255,255,0.08);
+            display: grid;
+            place-items: center;
+            font-size: 44px;
+        }
+        .title {
+            font-size: 1.4rem;
+            font-weight: 700;
+            margin: 0;
+        }
+        .subtitle {
+            margin: 4px 0 0;
+            color: var(--muted);
+            font-size: 0.95rem;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 12px;
+            margin-top: 12px;
+        }
+        .card {
+            background: rgba(255,255,255,0.08);
+            border-radius: 14px;
+            padding: 14px;
+            border: 1px solid rgba(255,255,255,0.08);
+        }
+        .label { color: var(--muted); font-size: 0.85rem; margin: 0 0 6px; }
+        .value { margin: 0; font-size: 1.1rem; font-weight: 600; }
+        .footer {
+            margin-top: 12px;
+            font-size: 0.82rem;
+            color: var(--muted);
+        }
+    </style>
+</head>
+<body>
+    <div class="widget">
+        <div class="header">
+            <div class="icon" id="weather-icon">🌤️</div>
+            <div>
+                <p class="title" id="location">Weather</p>
+                <p class="subtitle" id="condition">Waiting for tool output…</p>
+            </div>
+        </div>
+        <div class="grid">
+            <div class="card">
+                <p class="label">Temperature</p>
+                <p class="value" id="temperature">—</p>
+            </div>
+            <div class="card">
+                <p class="label">Humidity</p>
+                <p class="value" id="humidity">—</p>
+            </div>
+            <div class="card">
+                <p class="label">Wind</p>
+                <p class="value" id="wind">—</p>
+            </div>
+        </div>
+        <div class="footer" id="footer">Connect via ChatGPT to load weather.</div>
+    </div>
+    <script>
+        (() => {
+            const el = (id) => document.getElementById(id);
+
+            function pickIcon(condition) {
+                const text = (condition || '').toLowerCase();
+                if (text.includes('storm') || text.includes('thunder')) return '⛈️';
+                if (text.includes('rain') || text.includes('shower')) return '🌧️';
+                if (text.includes('snow')) return '❄️';
+                if (text.includes('fog') || text.includes('mist')) return '🌫️';
+                if (text.includes('cloud') || text.includes('overcast')) return '☁️';
+                if (text.includes('sun') || text.includes('clear') || text.includes('mainly')) return '☀️';
+                if (text.includes('wind')) return '🌬️';
+                return '🌤️';
+            }
+
+            function render() {
+                const openai = window.openai;
+                if (!openai?.toolOutput) {
+                    el('condition').textContent = 'Waiting for weather data...';
+                    el('footer').textContent = 'Connect via ChatGPT to load weather.';
+                    return;
+                }
+
+                let jsonText;
+                
+                // Extract JSON string from toolOutput
+                if (typeof openai.toolOutput === 'string') {
+                    jsonText = openai.toolOutput;
+                } else if (openai.toolOutput && typeof openai.toolOutput === 'object') {
+                    // Try to find the text property
+                    jsonText = openai.toolOutput.text || openai.toolOutput.content || openai.toolOutput.message;
+                    if (!jsonText) {
+                        console.error('No text property found in toolOutput:', openai.toolOutput);
+                        el('condition').textContent = 'Invalid response format';
+                        el('footer').textContent = 'Response missing text property';
+                        return;
+                    }
+                } else {
+                    console.error('Unexpected toolOutput type:', typeof openai.toolOutput, openai.toolOutput);
+                    el('condition').textContent = 'Unexpected response type';
+                    el('footer').textContent = `Got ${typeof openai.toolOutput}`;
+                    return;
+                }
+
+                let data;
+                try {
+                    data = JSON.parse(jsonText);
+                    console.log('Weather data:', data);
+                } catch (e) {
+                    console.error('Parse error:', e, jsonText);
+                    el('condition').textContent = 'Error parsing response';
+                    el('footer').textContent = jsonText.slice(0, 100);
+                    return;
+                }
+
+                // Check for error
+                if (data.Error) {
+                    el('location').textContent = data.Location || 'Error';
+                    el('condition').textContent = data.Error;
+                    el('weather-icon').textContent = '⚠️';
+                    el('temperature').textContent = '—';
+                    el('humidity').textContent = '—';
+                    el('wind').textContent = '—';
+                    el('footer').textContent = `Source: ${data.Source || 'weather API'}`;
+                    return;
+                }
+
+                // Display weather
+                el('location').textContent = data.location || data.Location || 'Unknown';
+                el('condition').textContent = data.condition || data.Condition || 'Unknown';
+                el('weather-icon').textContent = pickIcon(data.condition || data.Condition);
+
+                // Temperature
+                const tempC = data.temperatureC ?? data.TemperatureC;
+                const tempF = data.temperatureF ?? data.TemperatureF;
+                const tempText = tempF && tempC
+                    ? `${tempF}°F / ${tempC}°C`
+                    : tempF !== null && tempF !== undefined ? `${tempF}°F`
+                    : tempC !== null && tempC !== undefined ? `${tempC}°C`
+                    : '—';
+                el('temperature').textContent = tempText;
+
+                // Humidity
+                const humidity = data.humidityPercent ?? data.HumidityPercent;
+                el('humidity').textContent = humidity !== null && humidity !== undefined
+                    ? `${humidity}%`
+                    : '—';
+
+                // Wind
+                const wind = data.wind || data.Wind;
+                const windKph = data.windKph ?? data.WindKph;
+                el('wind').textContent = wind || (windKph ? `${windKph} km/h` : '—');
+
+                // Footer
+                const reportedAt = data.reportedAtUtc || data.ReportedAtUtc;
+                const source = data.source || data.Source;
+                if (reportedAt) {
+                    el('footer').textContent = `Reported ${reportedAt} · ${source || 'weather'}`;
+                } else {
+                    el('footer').textContent = `Source: ${source || 'weather API'}`;
+                }
+
+                if (typeof openai.notifyIntrinsicHeight === 'function') {
+                    openai.notifyIntrinsicHeight({ height: document.documentElement.scrollHeight });
+                }
+            }
+
+            document.addEventListener('DOMContentLoaded', () => {
+                render();
+                setInterval(render, 500);
+                if (window.addEventListener) {
+                    window.addEventListener('openai:set_globals', render);
+                }
+            });
+        })();
+    </script>
+</body>
+</html>
