@@ -35,10 +35,12 @@ public class ChatGptApp
     public string GetWelcomeMessage(
         [McpToolTrigger(
             nameof(GetWelcomeMessage),
-            "Returns a link to the welcome page HTML resource.")] ToolInvocationContext context)
+            "Returns a personalized welcome message for the widget.")] ToolInvocationContext context,
+        [McpToolProperty("name", "Name to greet on the welcome page.")] string name = "friend")
     {
         _logger.LogInformation("Returning welcome page resource link");
 
-        return "Hello, and welcome to the MCP Functions Test App!";
+        var trimmed = string.IsNullOrWhiteSpace(name) ? "friend" : name.Trim();
+        return $"Hello {trimmed}, welcome to the MCP Functions Test App!";
     }
 }

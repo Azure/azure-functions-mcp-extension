@@ -122,8 +122,15 @@
 <body>
     <div class="container">
         <div class="logo">🚀</div>
-        <h1>Welcome to MCP Resources!</h1>
+        <h1 id="greeting-heading">Welcome to MCP Resources!</h1>
         <p class="subtitle">A powerful Azure Functions extension for the Model Context Protocol</p>
+
+        <div id="tool-output-card" class="feature" style="margin-top:20px; text-align:left;">
+            <div class="feature-icon">🛠️</div>
+            <div class="feature-title">Latest tool result</div>
+            <div id="tool-output" class="feature-desc" style="white-space:pre-wrap; word-break:break-word;">Waiting for tool output...</div>
+            <div id="tool-meta" class="feature-desc" style="margin-top:8px; font-size:0.8em; color:#555;"></div>
+        </div>
         
         <div class="features">
             <div class="feature">
@@ -145,5 +152,64 @@
         
         <div class="badge">✨ Powered by Azure Functions</div>
     </div>
+    <script>
+        (function () {
+            const outputEl = document.getElementById('tool-output');
+            const metaEl = document.getElementById('tool-meta');
+            const headingEl = document.getElementById('greeting-heading');
+
+            function normalizeOutput(raw) {
+                if (raw === null || raw === undefined) return 'No tool output received yet.';
+                if (typeof raw === 'string') return raw;
+                if (typeof raw === 'object') {
+                    // Common patterns: { text }, { message }, { content: [...] }
+                    if (raw.text) return raw.text;
+                    if (raw.message) return raw.message;
+                    if (Array.isArray(raw.content)) return raw.content.map(c => c.text || JSON.stringify(c)).join('\n');
+                    try {
+                        return JSON.stringify(raw, null, 2);
+                    } catch {
+                        return String(raw);
+                    }
+                }
+                return String(raw);
+            }
+
+            function renderFromOpenAi(globals) {
+                const openai = window.openai;
+                if (!openai) {
+                    outputEl.textContent = 'window.openai not found. Open this page via ChatGPT Apps SDK to see live tool output.';
+                    return;
+                }
+
+                const toolOutput = globals?.toolOutput ?? openai.toolOutput;
+                outputEl.textContent = normalizeOutput(toolOutput);
+
+                if (toolOutput && typeof toolOutput === 'string') {
+                    // If the tool output looks like "Hello <name>, ...", surface it as the hero heading.
+                    headingEl.textContent = toolOutput;
+                }
+
+                const meta = globals?.toolResponseMetadata ?? openai.toolResponseMetadata;
+                metaEl.textContent = meta ? `Metadata: ${JSON.stringify(meta)}` : '';
+
+                if (typeof openai.notifyIntrinsicHeight === 'function') {
+                    const height = document.documentElement.scrollHeight;
+                    openai.notifyIntrinsicHeight({ height });
+                }
+            }
+
+            document.addEventListener('DOMContentLoaded', () => {
+                renderFromOpenAi();
+                // React to updates sent after initial load.
+                window.addEventListener('openai:set_globals', (event) => {
+                    const globals = event?.detail?.globals;
+                    if (globals && ('toolOutput' in globals || 'toolResponseMetadata' in globals)) {
+                        renderFromOpenAi(globals);
+                    }
+                });
+            });
+        })();
+    </script>
 </body>
 </html>
