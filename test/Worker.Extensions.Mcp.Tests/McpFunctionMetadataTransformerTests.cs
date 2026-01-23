@@ -69,6 +69,7 @@ public class McpFunctionMetadataTransformerTests
         var tp = json["toolProperties"]!.GetValue<string>();
 
         Assert.Equal("[]", tp);
+        Assert.False(json.ContainsKey("toolMetadata"));
     }
 
     [Fact]
@@ -79,8 +80,10 @@ public class McpFunctionMetadataTransformerTests
             new("x","string","desc", true)
         };
 
+        var metadata = "{\"openai/outputTemplate\":\"ui://widget/weather.html\"}";
+
         var options = new Mock<IOptionsMonitor<ToolOptions>>();
-        options.Setup(o => o.Get("MyTool")).Returns(new ToolOptions { Properties = configuredProps });
+        options.Setup(o => o.Get("MyTool")).Returns(CreateOptionsWithMetadata(configuredProps, metadata));
 
         var transformer = new McpFunctionMetadataTransformer(options.Object);
 
@@ -95,6 +98,32 @@ public class McpFunctionMetadataTransformerTests
         var tp = json["toolProperties"]!.GetValue<string>();
 
         Assert.Contains("\"propertyName\":\"x\"", tp);
+        Assert.Equal(metadata, json["toolMetadata"]!.GetValue<string>());
+    }
+
+    [Fact]
+    public void Transform_UsesConfiguredMetadataWithoutProperties()
+    {
+        var metadata = "{\"openai/outputTemplate\":\"ui://widget/weather.html\"}";
+
+        var options = new Mock<IOptionsMonitor<ToolOptions>>();
+        options.Setup(o => o.Get("MetaOnlyTool")).Returns(CreateOptionsWithMetadata(new List<ToolProperty>(), metadata));
+
+        var transformer = new McpFunctionMetadataTransformer(options.Object);
+
+        var fn = CreateFunctionMetadata(
+            entryPoint: null,
+            scriptFile: null,
+            name: "Func",
+            bindings: ["{\"type\":\"mcpToolTrigger\",\"toolName\":\"MetaOnlyTool\"}"]);
+
+        transformer.Transform([fn.Object]);
+        var json = JsonNode.Parse(fn.Object.RawBindings![0])!.AsObject();
+
+        Assert.True(json.ContainsKey("toolMetadata"));
+        Assert.Equal(metadata, json["toolMetadata"]!.GetValue<string>());
+        // toolProperties should still be present (empty array)
+        Assert.Equal("[]", json["toolProperties"]!.GetValue<string>());
     }
 
     [Fact]
@@ -133,6 +162,7 @@ public class McpFunctionMetadataTransformerTests
         var tp = json["toolProperties"]!.GetValue<string>();
         Assert.Contains("\"propertyName\":\"Content\"", tp);
         Assert.Contains("\"propertyName\":\"Title\"", tp);
+        Assert.False(json.ContainsKey("toolMetadata"));
     }
 
     [Fact]
@@ -206,6 +236,31 @@ public class McpFunctionMetadataTransformerTests
         // Should have only the property from the POCO, not the context parameter
         Assert.DoesNotContain("mcptoolcontext", tp, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("\"propertyName\":\"Name\"", tp);
+        Assert.False(json.ContainsKey("toolMetadata"));
+    }
+
+    [Fact]
+    public void Transform_ToolOptions_Metadata()
+    {
+        var (entryPoint, scriptFile, outputDir) = GetFunctionMetadataInfo<TestFunctions>(nameof(TestFunctions.WithMetadata));
+        Environment.SetEnvironmentVariable(FunctionsApplicationDirectoryKey, outputDir);
+
+        var options = new Mock<IOptionsMonitor<ToolOptions>>();
+        var toolOptions = new ToolOptions { Properties = [] };
+        toolOptions.AddMetadata("openai/outputTemplate", "ui://widget/weather.html");
+        options.Setup(o => o.Get("WithMetadata")).Returns(toolOptions);
+        
+        var transformer = new McpFunctionMetadataTransformer(options.Object);
+
+        var fn = CreateFunctionMetadata(entryPoint, scriptFile, "Func",
+            ["{\"type\":\"mcpToolTrigger\",\"toolName\":\"WithMetadata\"}"]);
+
+        transformer.Transform([fn.Object]);
+        var json = JsonNode.Parse(fn.Object.RawBindings![0])!.AsObject();
+
+        Assert.True(json.ContainsKey("toolMetadata"));
+        var meta = json["toolMetadata"]!.GetValue<string>();
+        Assert.Equal("{\"openai/outputTemplate\":\"ui://widget/weather.html\"}", meta);
     }
 
     private static McpFunctionMetadataTransformer CreateTransformer(List<ToolProperty>? configured = null)
@@ -214,6 +269,20 @@ public class McpFunctionMetadataTransformerTests
         options.Setup(o => o.Get(It.IsAny<string>()))
             .Returns(new ToolOptions { Properties = configured ?? [] });
         return new McpFunctionMetadataTransformer(options.Object);
+    }
+
+    private static ToolOptions CreateOptionsWithMetadata(List<ToolProperty> properties, string metadataJson)
+    {
+        var options = new ToolOptions { Properties = properties };
+        var metadata = JsonNode.Parse(metadataJson)?.AsObject();
+        if (metadata != null)
+        {
+            foreach (var kvp in metadata)
+            {
+                options.AddMetadata(kvp.Key, kvp.Value);
+            }
+        }
+        return options;
     }
 
     private static Mock<IFunctionMetadata> CreateFunctionMetadata(string? entryPoint, string? scriptFile, string? name, IList<string>? bindings)
@@ -250,6 +319,8 @@ public class McpFunctionMetadataTransformerTests
             [McpToolTrigger("WithContextAndPoco", "desc")] ToolInvocationContext context,
             [McpToolProperty("Name", "Name", true)] string name,
             ExtraPoco ignored) { }
+
+        public void WithMetadata([McpToolTrigger("WithMetadata", "desc", ToolMetadata = "{\"openai/outputTemplate\":\"ui://widget/weather.html\"}")] string context) { }
     }
 
     public class Snippet

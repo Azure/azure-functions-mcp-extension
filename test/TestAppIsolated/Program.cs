@@ -1,3 +1,4 @@
+using System.Text.Json.Nodes;
 using Microsoft.Azure.Functions.Worker.Builder;
 using Microsoft.Extensions.Hosting;
 
@@ -9,5 +10,14 @@ builder.ConfigureFunctionsWebApplication();
 // builder.Services
 //     .AddApplicationInsightsTelemetryWorkerService()
 //     .ConfigureFunctionsApplicationInsights();
+
+builder.ConfigureMcpTool("MyTestFunction")
+    .WithProperty("userId", McpToolPropertyType.String, "User ID", required: true)
+    .WithMetadata("openai/outputTemplate", "ui://widget/welcome.html")
+    .WithMetadata("openai/widgetCSP", new JsonObject
+    {
+        ["connect_domains"] = new JsonArray(),
+        ["resource_domains"] = new JsonArray()
+    });
 
 builder.Build().Run();

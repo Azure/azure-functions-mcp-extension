@@ -22,6 +22,11 @@ public sealed class McpToolTriggerAttribute(string toolName, string? description
     /// </summary>
     public string? Description { get; set; } = description;
 
+    /// <summary>
+    /// Gets or sets the metadata of the MCP tool as a JSON string.
+    /// </summary>
+    public string? ToolMetadata { get; set; }
+
     /// <inheritdoc />
     string IMcpBindingAttribute.BindingName => ToolName;
 }

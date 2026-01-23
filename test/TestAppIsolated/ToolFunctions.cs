@@ -18,6 +18,14 @@ public class TestFunction
         _logger = logger;
     }
 
+    [Function("MyTestFunction")]
+    public string MyTestFunction(
+        [McpToolTrigger("MyTestFunction", "A test function that greets the user.")] ToolInvocationContext context)
+    {
+        _logger.LogInformation("C# MCP tool trigger function processed a request: {ToolName}", context.Name);
+        return "Hello from MyTestFunction!";
+    }
+
     [Function(nameof(HappyFunction))]
     public string HappyFunction(
         [McpToolTrigger(nameof(HappyFunction), "Responds to the user with a hello message.")] ToolInvocationContext context,

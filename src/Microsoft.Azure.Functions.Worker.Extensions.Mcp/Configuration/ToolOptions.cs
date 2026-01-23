@@ -3,6 +3,7 @@
 
 using Microsoft.Azure.Functions.Worker.Builder;
 using System.ComponentModel;
+using System.Text.Json.Nodes;
 
 namespace Microsoft.Azure.Functions.Worker.Extensions.Mcp.Configuration;
 
@@ -12,6 +13,8 @@ namespace Microsoft.Azure.Functions.Worker.Extensions.Mcp.Configuration;
 /// </summary>
 public class ToolOptions
 {
+    private readonly JsonObject _metadata = [];
+
     [Obsolete($"Use the overload with an {nameof(McpToolPropertyType)} parameter.")]
     [EditorBrowsable(EditorBrowsableState.Never)]
     public void AddProperty(string name, string type, string description, bool required = false)
@@ -34,9 +37,27 @@ public class ToolOptions
 
         Properties.Add(new ToolProperty(name, type.TypeName, description, required, type.IsArray));
     }
+    
+    /// <summary>
+    /// Adds metadata for the tool using a key-value pair.
+    /// </summary>
+    /// <param name="key">The metadata key.</param>
+    /// <param name="value">The metadata value (can be a string, number, object, or array).</param>
+    public void AddMetadata(string key, JsonNode? value)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(key, nameof(key));
+        ArgumentNullException.ThrowIfNull(value, nameof(value));
+        
+        _metadata[key] = value;
+    }
 
     /// <summary>
     /// Gets or sets the collection of properties that define the characteristics or configuration of the tool.
     /// </summary>
     public required List<ToolProperty> Properties { get; set; } = [];
+
+    /// <summary>
+    /// Gets the serialized tool metadata JSON (object) if configured.
+    /// </summary>
+    public string? MetadataJson => _metadata.Count > 0 ? _metadata.ToJsonString() : null;
 }

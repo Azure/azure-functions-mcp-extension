@@ -49,10 +49,22 @@ public sealed partial class McpFunctionMetadataTransformer(IOptionsMonitor<ToolO
                 var bindingType = bindingTypeNode?.ToString();
 
                 if (string.Equals(bindingType, McpToolTriggerBindingType, StringComparison.OrdinalIgnoreCase)
-                    && jsonObject.TryGetPropertyValue("toolName", out var toolNameNode)
-                    && GetToolProperties(toolNameNode?.ToString(), function, out toolProperties))
+                    && jsonObject.TryGetPropertyValue("toolName", out var toolNameNode))
                 {
-                    jsonObject["toolProperties"] = GetPropertiesJson(function.Name, toolProperties);
+                    var hasProperties = GetToolProperties(toolNameNode?.ToString(), function, out toolProperties);
+                    var hasMetadata = GetToolMetadata(toolNameNode?.ToString(), function, out var toolMetadata);
+
+                    if (!hasProperties && !hasMetadata)
+                    {
+                        continue;
+                    }
+
+                    jsonObject["toolProperties"] = GetPropertiesJson(function.Name, toolProperties ?? []);
+                    if (toolMetadata is not null)
+                    {
+                        jsonObject["toolMetadata"] = toolMetadata.ToJsonString();
+                    }
+    
                     function.RawBindings[i] = jsonObject.ToJsonString();
                 }
                 else if (string.Equals(bindingType, McpToolPropertyBindingType, StringComparison.OrdinalIgnoreCase)
@@ -107,6 +119,87 @@ public sealed partial class McpFunctionMetadataTransformer(IOptionsMonitor<ToolO
         }
 
         return TryGetPropertiesFromAttributes(functionMetadata, ref toolProperties);
+    }
+
+    private bool GetToolMetadata(string? toolName, IFunctionMetadata functionMetadata, [NotNullWhen(true)] out JsonNode? toolMetadata)
+    {
+        toolMetadata = null;
+
+        if (string.IsNullOrWhiteSpace(toolName))
+        {
+            return false;
+        }
+
+        var toolOptions = toolOptionsMonitor.Get(toolName);
+        var metadata = ParseMetadata(toolOptions.MetadataJson);
+        if (metadata is not null)
+        {
+            toolMetadata = metadata;
+            return true;
+        }
+
+        return TryGetToolMetadataFromAttributes(functionMetadata) is JsonNode metadataNode
+            ? (toolMetadata = metadataNode) is not null
+            : false;
+    }
+
+    private static JsonNode? ParseMetadata(string? metadataJson)
+    {
+        if (string.IsNullOrWhiteSpace(metadataJson))
+        {
+            return null;
+        }
+
+        var node = JsonNode.Parse(metadataJson);
+        return node;
+    }
+
+    private static JsonNode? TryGetToolMetadataFromAttributes(IFunctionMetadata functionMetadata)
+    {
+        var match = GetEntryPointRegex().Match(functionMetadata.EntryPoint ?? string.Empty);
+
+        if (!match.Success)
+        {
+            return null;
+        }
+
+        var typeName = match.Groups["typename"].Value;
+        var methodName = match.Groups["methodname"].Value;
+
+        var scriptRoot = Environment.GetEnvironmentVariable(FunctionsApplicationDirectoryKey)
+                        ?? Environment.GetEnvironmentVariable(FunctionsWorkerDirectoryKey);
+
+        if (string.IsNullOrWhiteSpace(scriptRoot))
+        {
+            throw new InvalidOperationException($"The '{FunctionsApplicationDirectoryKey}' environment variable value is not defined. This is a required environment variable that is automatically set by the Azure Functions runtime.");
+        }
+
+        var scriptFile = Path.Combine(scriptRoot, functionMetadata.ScriptFile ?? string.Empty);
+        var assemblyPath = Path.GetFullPath(scriptFile);
+        var assembly = AssemblyLoadContext.Default.LoadFromAssemblyPath(assemblyPath);
+        var type = assembly.GetType(typeName);
+
+        if (type is null)
+        {
+            return null;
+        }
+
+        var method = type.GetMethod(methodName);
+
+        if (method is null)
+        {
+            return null;
+        }
+
+        foreach (var parameter in method.GetParameters())
+        {
+            if (TryGetToolMetadataFromToolTriggerAttribute(parameter, out var metadata))
+            {
+                return metadata;
+            }
+        }
+
+        return null;
     }
 
     private static bool TryGetPropertiesFromAttributes(IFunctionMetadata functionMetadata, ref List<ToolProperty>? toolProperties)
@@ -215,6 +308,19 @@ public sealed partial class McpFunctionMetadataTransformer(IOptionsMonitor<ToolO
         }
 
         return toolProperties.Count > 0;
+    }
+
+    private static bool TryGetToolMetadataFromToolTriggerAttribute(ParameterInfo parameter, out JsonNode? metadata)
+    {
+        metadata = null;
+        var triggerAttribute = parameter.GetCustomAttribute<McpToolTriggerAttribute>();
+        if (string.IsNullOrWhiteSpace(triggerAttribute?.ToolMetadata))
+        {
+            return false;
+        }
+
+        metadata = JsonNode.Parse(triggerAttribute.ToolMetadata);
+        return metadata is not null;
     }
 
     [GeneratedRegex(@"^(?<typename>.*)\.(?<methodname>\S*)$")]

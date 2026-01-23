@@ -4,6 +4,7 @@
 using Microsoft.Azure.Functions.Worker.Extensions.Mcp.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using System.ComponentModel;
+using System.Text.Json.Nodes;
 
 namespace Microsoft.Azure.Functions.Worker.Builder;
 
@@ -38,6 +39,22 @@ public sealed class McpToolBuilder(IFunctionsWorkerApplicationBuilder builder, s
         ArgumentNullException.ThrowIfNull(type, nameof(type));
 
         builder.Services.Configure<ToolOptions>(toolName, o => o.AddProperty(name, type, description, required));
+
+        return this;
+    }
+
+    /// <summary>
+    /// Sets metadata to be surfaced with the tool (stored in the MCP <c>_meta</c> field).
+    /// </summary>
+    /// <param name="key">The metadata key.</param>
+    /// <param name="value">The metadata value (can be a string, number, object, or array).</param>
+    /// <returns>The current <see cref="McpToolBuilder"/> instance, enabling fluent configuration.</returns>
+    public McpToolBuilder WithMetadata(string key, JsonNode? value)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(key, nameof(key));
+        ArgumentNullException.ThrowIfNull(value, nameof(value));
+
+        builder.Services.Configure<ToolOptions>(toolName, o => o.AddMetadata(key, value));
 
         return this;
     }
