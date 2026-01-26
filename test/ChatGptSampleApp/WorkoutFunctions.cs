@@ -6,8 +6,6 @@ using Microsoft.Azure.Functions.Worker.Extensions.Mcp;
 using Microsoft.Extensions.Logging;
 using System.ComponentModel;
 using System.Globalization;
-using System.Text.Json;
-using System.Text.Json.Serialization;
 
 namespace ChatGptSampleApp;
 
@@ -27,22 +25,6 @@ public class WorkoutFunctions
     }
 
     #region Resources - UI Widgets
-
-    [Function(nameof(GetDashboardWidget))]
-    public string GetDashboardWidget(
-        [McpResourceTrigger(
-            "ui://widget/dashboard.html",
-            "Workout Dashboard",
-            MimeType = "text/html+skybridge",
-            Description = "Interactive dashboard to view workout history and log new sessions")]
-        [McpResourceMetadata("openai/widgetPrefersBorder", true)]
-        [McpResourceMetadata("openai/widgetDomain", "https://chatgpt.com")]
-        [McpResourceMetadata("openai/widgetCSP", "{\"connect_domains\":[],\"resource_domains\":[]}")]
-        ResourceInvocationContext context)
-    {
-        var file = Path.Combine(AppContext.BaseDirectory, "resources", "dashboard.html");
-        return File.ReadAllText(file);
-    }
 
     [Function(nameof(GetLogWorkoutWidget))]
     public string GetLogWorkoutWidget(
@@ -95,11 +77,26 @@ public class WorkoutFunctions
             DurationMinutes = request.DurationMinutes,
             PerceivedEffort = Math.Clamp(request.PerceivedEffort, 1, 10),
             EnergyLevel = Math.Clamp(request.EnergyLevel, 1, 10),
-            Notes = request.Notes
+            Notes = request.Notes,
+            Exercises = new List<Exercise>()
         };
 
+        if (request.Exercises != null && request.Exercises.Any())
+        {
+            // Parse legacy string format: "ExerciseName|MuscleGroup|Sets x Reps @ Weight"
+            foreach (var exerciseStr in request.Exercises)
+            {
+                var exercise = ParseExerciseString(exerciseStr);
+                if (exercise != null)
+                {
+                    workout.Exercises.Add(exercise);
+                }
+            }
+        }
+
         _workoutRepo.SaveWorkout(workout);
-        _logger.LogInformation("Logged workout {WorkoutId} on {Date}", workout.Id, workout.Date);
+        _logger.LogInformation("Logged workout {WorkoutId} on {Date} with {ExerciseCount} exercises",
+            workout.Id, workout.Date, workout.Exercises.Count);
 
         var totalVolume = workout.Exercises.Sum(e => e.Sets.Sum(s => s.Reps * s.Weight));
         var totalSets = workout.Exercises.Sum(e => e.Sets.Count);
@@ -115,12 +112,93 @@ public class WorkoutFunctions
             PerceivedEffort = workout.PerceivedEffort,
             EnergyLevel = workout.EnergyLevel,
             Notes = workout.Notes,
-            ExerciseCount = workout.Exercises.Count,
-            TotalSets = totalSets,
-            TotalVolume = totalVolume,
-            MuscleGroups = string.Join(", ", workout.Exercises.Select(e => e.MuscleGroup).Distinct()),
-            ExercisesJson = JsonSerializer.Serialize(workout.Exercises)
+            Exercises = workout.Exercises.Select(e => new ExerciseOutput
+            {
+                Name = e.Name,
+                MuscleGroup = e.MuscleGroup,
+                Notes = e.Notes,
+                Sets = e.Sets.Select(s => new SetOutput
+                {
+                    Reps = s.Reps,
+                    Weight = s.Weight,
+                    Rpe = s.Rpe,
+                    IsPR = s.IsPR
+                }).ToList()
+            }).ToList(),
+            Summary = new WorkoutSummaryOutput
+            {
+                ExerciseCount = workout.Exercises.Count,
+                TotalSets = totalSets,
+                TotalVolume = totalVolume,
+                MuscleGroups = string.Join(", ", workout.Exercises.Select(e => e.MuscleGroup).Distinct())
+            }
         };
+    }
+
+    private Exercise? ParseExerciseString(string exerciseStr)
+    {
+        try
+        {
+            // Format: "ExerciseName|MuscleGroup|3x8@185" or "Bench Press|Chest|3x8@225 lbs"
+            var parts = exerciseStr.Split('|');
+            if (parts.Length < 3) return null;
+
+            var name = parts[0].Trim();
+            var muscleGroup = parts[1].Trim();
+            var setsInfo = parts[2].Trim();
+
+            // Parse "3x8@185" or "3x8@225 lbs" -> 3 sets of 8 reps at 225 lbs
+            var setsParts = setsInfo.Split('x');
+            if (setsParts.Length < 2) return null;
+
+            var numSets = int.Parse(setsParts[0].Trim());
+            var repsAndWeight = setsParts[1].Split('@');
+            var reps = int.Parse(repsAndWeight[0].Trim());
+
+            double weight = 0;
+            if (repsAndWeight.Length > 1)
+            {
+                // Remove "lbs", "kg", or any other text from the weight string
+                var weightStr = repsAndWeight[1].Trim();
+                // Remove common weight units
+                weightStr = weightStr.Replace("lbs", "", StringComparison.OrdinalIgnoreCase)
+                                   .Replace("lb", "", StringComparison.OrdinalIgnoreCase)
+                                   .Replace("kg", "", StringComparison.OrdinalIgnoreCase)
+                                   .Replace("kgs", "", StringComparison.OrdinalIgnoreCase)
+                                   .Trim();
+
+                if (!string.IsNullOrEmpty(weightStr))
+                {
+                    weight = double.Parse(weightStr);
+                }
+            }
+
+            var exercise = new Exercise
+            {
+                Name = name,
+                MuscleGroup = muscleGroup,
+                Sets = new List<ExerciseSet>()
+            };
+
+            // Create the specified number of sets
+            for (int i = 0; i < numSets; i++)
+            {
+                exercise.Sets.Add(new ExerciseSet
+                {
+                    Reps = reps,
+                    Weight = weight,
+                    Rpe = null,
+                    IsPR = false
+                });
+            }
+
+            return exercise;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to parse exercise string: {ExerciseStr}", exerciseStr);
+            return null;
+        }
     }
 
     [Function(nameof(GetWorkoutHistory))]
@@ -141,13 +219,38 @@ public class WorkoutFunctions
         {
             Period = $"Last {request.Days} days",
             TotalWorkouts = workouts.Count,
-            WorkoutsJson = JsonSerializer.Serialize(workouts),
-            TotalSessions = summary.TotalSessions,
-            TotalVolume = summary.TotalVolume,
-            AverageSessionDuration = summary.AverageSessionDuration,
-            MostTrainedMuscleGroups = string.Join(", ", summary.MostTrainedMuscleGroups),
-            AveragePerceivedEffort = summary.AveragePerceivedEffort,
-            WorkoutTypesJson = JsonSerializer.Serialize(summary.WorkoutTypes)
+            Workouts = workouts.Select(w => new WorkoutHistoryItem
+            {
+                Id = w.Id,
+                Date = w.Date,
+                Type = w.Type,
+                DurationMinutes = w.DurationMinutes,
+                PerceivedEffort = w.PerceivedEffort,
+                EnergyLevel = w.EnergyLevel,
+                Notes = w.Notes,
+                Exercises = w.Exercises.Select(e => new ExerciseOutput
+                {
+                    Name = e.Name,
+                    MuscleGroup = e.MuscleGroup,
+                    Notes = e.Notes,
+                    Sets = e.Sets.Select(s => new SetOutput
+                    {
+                        Reps = s.Reps,
+                        Weight = s.Weight,
+                        Rpe = s.Rpe,
+                        IsPR = s.IsPR
+                    }).ToList()
+                }).ToList()
+            }).ToList(),
+            Summary = new WorkoutPeriodSummary
+            {
+                TotalSessions = summary.TotalSessions,
+                TotalVolume = summary.TotalVolume,
+                AverageSessionDuration = summary.AverageSessionDuration,
+                MostTrainedMuscleGroups = summary.MostTrainedMuscleGroups,
+                AveragePerceivedEffort = summary.AveragePerceivedEffort,
+                WorkoutTypes = summary.WorkoutTypes
+            }
         };
     }
 
@@ -162,7 +265,14 @@ public class WorkoutFunctions
 
         return new GetPersonalRecordsResponse
         {
-            PersonalRecordsJson = JsonSerializer.Serialize(prs),
+            PersonalRecords = prs.Select(pr => new PersonalRecordItem
+            {
+                ExerciseName = pr.ExerciseName,
+                MaxWeight = pr.Weight,
+                Reps = pr.Reps,
+                Date = pr.DateAchieved,
+                WorkoutId = string.Empty
+            }).ToList(),
             Count = prs.Count,
             LastUpdated = DateTime.UtcNow
         };
@@ -176,7 +286,8 @@ public class WorkoutFunctions
         ToolInvocationContext context)
     {
         var workouts = _workoutRepo.GetWorkouts(request.Days, null);
-        return CalculateStats(workouts, request.Days);
+        var stats = CalculateStats(workouts, request.Days);
+        return stats;
     }
 
     [Function(nameof(UpdateUserProfile))]
@@ -236,7 +347,29 @@ public class WorkoutFunctions
         {
             Query = request.Query,
             Count = results.Count,
-            ResultsJson = JsonSerializer.Serialize(results)
+            Results = results.Select(w => new WorkoutHistoryItem
+            {
+                Id = w.Id,
+                Date = w.Date,
+                Type = w.Type,
+                DurationMinutes = w.DurationMinutes,
+                PerceivedEffort = w.PerceivedEffort,
+                EnergyLevel = w.EnergyLevel,
+                Notes = w.Notes,
+                Exercises = w.Exercises.Select(e => new ExerciseOutput
+                {
+                    Name = e.Name,
+                    MuscleGroup = e.MuscleGroup,
+                    Notes = e.Notes,
+                    Sets = e.Sets.Select(s => new SetOutput
+                    {
+                        Reps = s.Reps,
+                        Weight = s.Weight,
+                        Rpe = s.Rpe,
+                        IsPR = s.IsPR
+                    }).ToList()
+                }).ToList()
+            }).ToList()
         };
     }
 
@@ -285,36 +418,6 @@ public class WorkoutFunctions
 
         [Description("Optional notes about the workout")]
         public string? Notes { get; set; }
-    }
-
-    public class ExerciseInput
-    {
-        [Description("Name of the exercise (e.g., 'Bench Press', 'Squat')")]
-        public required string Name { get; set; }
-
-        [Description("Primary muscle group: Chest, Back, Shoulders, Biceps, Triceps, Legs, Core, Cardio")]
-        public string MuscleGroup { get; set; } = "General";
-
-        [Description("List of sets performed")]
-        public List<SetInput> Sets { get; set; } = new();
-
-        [Description("Optional notes for this exercise")]
-        public string? Notes { get; set; }
-    }
-
-    public class SetInput
-    {
-        [Description("Number of reps performed")]
-        public int Reps { get; set; }
-
-        [Description("Weight used (in user's preferred unit)")]
-        public double Weight { get; set; }
-
-        [Description("Rate of perceived exertion for this set (1-10)")]
-        public int? Rpe { get; set; }
-
-        [Description("Whether this was a personal record attempt")]
-        public bool IsPR { get; set; }
     }
 
     public class GetWorkoutHistoryRequest
@@ -409,7 +512,47 @@ public class WorkoutFunctions
         [Description("Optional notes about the workout")]
         public string? Notes { get; set; }
 
-        // Flattened summary data
+        // Exercise details
+        [Description("List of exercises performed in this workout")]
+        public List<ExerciseOutput> Exercises { get; set; } = new();
+
+        // Summary data
+        [Description("Summary statistics for this workout")]
+        public WorkoutSummaryOutput Summary { get; set; } = new();
+    }
+
+    public class ExerciseOutput
+    {
+        [Description("Name of the exercise")]
+        public string Name { get; set; } = string.Empty;
+
+        [Description("Primary muscle group targeted")]
+        public string MuscleGroup { get; set; } = string.Empty;
+
+        [Description("List of sets performed for this exercise")]
+        public List<SetOutput> Sets { get; set; } = new();
+
+        [Description("Optional notes for this exercise")]
+        public string? Notes { get; set; }
+    }
+
+    public class SetOutput
+    {
+        [Description("Number of reps performed")]
+        public int Reps { get; set; }
+
+        [Description("Weight used")]
+        public double Weight { get; set; }
+
+        [Description("Rate of perceived exertion (1-10)")]
+        public int? Rpe { get; set; }
+
+        [Description("Whether this was a personal record")]
+        public bool IsPR { get; set; }
+    }
+
+    public class WorkoutSummaryOutput
+    {
         [Description("Number of exercises performed")]
         public int ExerciseCount { get; set; }
 
@@ -421,11 +564,9 @@ public class WorkoutFunctions
 
         [Description("Muscle groups targeted (comma-separated)")]
         public string MuscleGroups { get; set; } = string.Empty;
-
-        [Description("JSON string containing exercise details")]
-        public string ExercisesJson { get; set; } = string.Empty;
     }
 
+    [McpResult]
     public class GetWorkoutHistoryResponse
     {
         [Description("Time period covered")]
@@ -434,10 +575,42 @@ public class WorkoutFunctions
         [Description("Total number of workouts in the period")]
         public int TotalWorkouts { get; set; }
 
-        [Description("JSON string containing all workouts")]
-        public string WorkoutsJson { get; set; } = string.Empty;
+        [Description("List of workouts in the period")]
+        public List<WorkoutHistoryItem> Workouts { get; set; } = new();
 
-        // Flattened summary data
+        [Description("Summary statistics for the period")]
+        public WorkoutPeriodSummary Summary { get; set; } = new();
+    }
+
+    public class WorkoutHistoryItem
+    {
+        [Description("Unique ID of the workout")]
+        public string Id { get; set; } = string.Empty;
+
+        [Description("Date of the workout")]
+        public DateTime Date { get; set; }
+
+        [Description("Type of workout")]
+        public string Type { get; set; } = string.Empty;
+
+        [Description("Duration in minutes")]
+        public int DurationMinutes { get; set; }
+
+        [Description("Rate of perceived exertion 1-10")]
+        public int PerceivedEffort { get; set; }
+
+        [Description("Energy level 1-10")]
+        public int EnergyLevel { get; set; }
+
+        [Description("Optional notes about the workout")]
+        public string? Notes { get; set; }
+
+        [Description("List of exercises performed")]
+        public List<ExerciseOutput> Exercises { get; set; } = new();
+    }
+
+    public class WorkoutPeriodSummary
+    {
         [Description("Total workout sessions")]
         public int TotalSessions { get; set; }
 
@@ -447,26 +620,45 @@ public class WorkoutFunctions
         [Description("Average session duration in minutes")]
         public int AverageSessionDuration { get; set; }
 
-        [Description("Most trained muscle groups (comma-separated)")]
-        public string MostTrainedMuscleGroups { get; set; } = string.Empty;
+        [Description("Most trained muscle groups")]
+        public List<string> MostTrainedMuscleGroups { get; set; } = new();
 
         [Description("Average perceived effort across workouts")]
         public double AveragePerceivedEffort { get; set; }
 
-        [Description("JSON string of workout type distribution")]
-        public string WorkoutTypesJson { get; set; } = string.Empty;
+        [Description("Workout type distribution")]
+        public Dictionary<string, int> WorkoutTypes { get; set; } = new();
     }
 
+    [McpResult]
     public class GetPersonalRecordsResponse
     {
-        [Description("JSON string containing list of personal records")]
-        public string PersonalRecordsJson { get; set; } = string.Empty;
+        [Description("List of personal records")]
+        public List<PersonalRecordItem> PersonalRecords { get; set; } = new();
 
         [Description("Total number of PRs")]
         public int Count { get; set; }
 
         [Description("When this data was retrieved")]
         public DateTime LastUpdated { get; set; }
+    }
+
+    public class PersonalRecordItem
+    {
+        [Description("Exercise name")]
+        public string ExerciseName { get; set; } = string.Empty;
+
+        [Description("Maximum weight lifted")]
+        public double MaxWeight { get; set; }
+
+        [Description("Reps performed at max weight")]
+        public int Reps { get; set; }
+
+        [Description("Date the PR was achieved")]
+        public DateTime Date { get; set; }
+
+        [Description("Workout ID where the PR occurred")]
+        public string WorkoutId { get; set; } = string.Empty;
     }
 
     public class UpdateUserProfileResponse
@@ -500,6 +692,7 @@ public class WorkoutFunctions
         public string WeightUnit { get; set; } = string.Empty;
     }
 
+    [McpResult]
     public class SearchWorkoutsResponse
     {
         [Description("The search query used")]
@@ -508,8 +701,8 @@ public class WorkoutFunctions
         [Description("Number of matching workouts")]
         public int Count { get; set; }
 
-        [Description("JSON string containing matching workouts")]
-        public string ResultsJson { get; set; } = string.Empty;
+        [Description("List of matching workouts")]
+        public List<WorkoutHistoryItem> Results { get; set; } = new();
     }
 
     public class DeleteWorkoutResponse
@@ -604,26 +797,81 @@ public class WorkoutFunctions
 
     private WorkoutStatistics CalculateStats(List<WorkoutSession> workouts, int days)
     {
-        var weeks = days / 7.0;
+        if (!workouts.Any())
+        {
+            return new WorkoutStatistics
+            {
+                TotalWorkouts = 0,
+                WorkoutsPerWeek = 0,
+                TotalVolumeLifted = 0,
+                UniqueExercises = 0,
+                ConsistencyScore = 0,
+                MuscleGroupDistribution = new Dictionary<string, int>(),
+                WeeklyTrend = new List<WeeklyData>(),
+                RecentFatigue = "Rested",
+                ExerciseNames = new List<string>(),
+                ExerciseProgressions = new List<ExerciseProgressionData>(),
+                PersonalRecords = new List<PersonalRecordSummary>()
+            };
+        }
+
+        // Get the actual date range of workouts
+        var oldestWorkout = workouts.Min(w => w.Date);
+        var newestWorkout = workouts.Max(w => w.Date);
+        var actualDays = (newestWorkout - oldestWorkout).TotalDays;
+
+        // If all workouts are on the same day, count it as 1 day
+        if (actualDays == 0) actualDays = 1;
+
+        var weeks = actualDays / 7.0;
+
+        // Prevent division by zero and ensure at least 1 week for calculation
+        if (weeks < 0.14) weeks = 0.14; // ~1 day as fraction of week
+
+        // Get unique exercise names
+        var exerciseNames = workouts
+            .SelectMany(w => w.Exercises)
+            .Select(e => e.Name)
+            .Distinct()
+            .OrderBy(n => n)
+            .ToList();
 
         return new WorkoutStatistics
         {
             TotalWorkouts = workouts.Count,
             WorkoutsPerWeek = Math.Round(workouts.Count / weeks, 1),
             TotalVolumeLifted = workouts.Sum(w => w.Exercises.Sum(e => e.Sets.Sum(s => s.Reps * s.Weight))),
-            UniqueExercises = workouts.SelectMany(w => w.Exercises).Select(e => e.Name).Distinct().Count(),
+            UniqueExercises = exerciseNames.Count,
             ConsistencyScore = CalculateConsistencyScore(workouts, days),
             MuscleGroupDistribution = CalculateMuscleGroupDistribution(workouts),
             WeeklyTrend = CalculateWeeklyTrend(workouts),
-            RecentFatigue = CalculateFatigueIndicator(workouts)
+            RecentFatigue = CalculateFatigueIndicator(workouts),
+            ExerciseNames = exerciseNames,
+            ExerciseProgressions = CalculateExerciseProgressions(workouts),
+            PersonalRecords = CalculatePersonalRecords(workouts)
         };
     }
 
     private double CalculateConsistencyScore(List<WorkoutSession> workouts, int days)
     {
+        if (!workouts.Any()) return 0;
+
+        // Calculate based on actual date distribution
+        var oldestWorkout = workouts.Min(w => w.Date);
+        var newestWorkout = workouts.Max(w => w.Date);
+        var actualDays = Math.Max(1, (newestWorkout - oldestWorkout).TotalDays);
+
+        // Count unique workout days
+        var uniqueWorkoutDays = workouts.Select(w => w.Date.Date).Distinct().Count();
+
+        // Expected: 4 workouts per week, so ~0.57 days per workout
         var expectedWorkoutsPerWeek = 4;
-        var expectedTotal = (days / 7.0) * expectedWorkoutsPerWeek;
-        return Math.Min(100, Math.Round((workouts.Count / expectedTotal) * 100, 1));
+        var expectedTotal = (actualDays / 7.0) * expectedWorkoutsPerWeek;
+
+        // Calculate score based on unique workout days vs expected
+        var score = (uniqueWorkoutDays / expectedTotal) * 100;
+
+        return Math.Min(100, Math.Round(score, 1));
     }
 
     private Dictionary<string, int> CalculateMuscleGroupDistribution(List<WorkoutSession> workouts)
@@ -649,18 +897,106 @@ public class WorkoutFunctions
             .ToList();
     }
 
-    private string CalculateFatigueIndicator(List<WorkoutSession> workouts)
-    {
-        var recentWorkouts = workouts.Where(w => w.Date >= DateTime.UtcNow.AddDays(-7)).ToList();
-        if (!recentWorkouts.Any()) return "Rested";
+        private string CalculateFatigueIndicator(List<WorkoutSession> workouts)
+        {
+            var recentWorkouts = workouts.Where(w => w.Date >= DateTime.UtcNow.AddDays(-7)).ToList();
+            if (!recentWorkouts.Any()) return "Rested";
 
-        var avgEffort = recentWorkouts.Average(w => w.PerceivedEffort);
-        var avgEnergy = recentWorkouts.Average(w => w.EnergyLevel);
+            var avgEffort = recentWorkouts.Average(w => w.PerceivedEffort);
+            var avgEnergy = recentWorkouts.Average(w => w.EnergyLevel);
 
-        if (avgEffort > 8 && avgEnergy < 4) return "High - Consider deload";
-        if (avgEffort > 7 || avgEnergy < 5) return "Moderate";
-        return "Low - Good to push";
+            if (avgEffort > 8 && avgEnergy < 4) return "High - Consider deload";
+            if (avgEffort > 7 || avgEnergy < 5) return "Moderate";
+            return "Low - Good to push";
+        }
+
+        private List<ExerciseProgressionData> CalculateExerciseProgressions(List<WorkoutSession> workouts)
+        {
+            // Group all exercises by name across all workouts
+            var exerciseData = workouts
+                .SelectMany(w => w.Exercises.Select(e => new { Workout = w, Exercise = e }))
+                .GroupBy(x => x.Exercise.Name)
+                .Select(g =>
+                {
+                    var dataPoints = g
+                        .OrderBy(x => x.Workout.Date)
+                        .Select(x =>
+                        {
+                            var maxSet = x.Exercise.Sets.OrderByDescending(s => s.Weight).FirstOrDefault();
+                            var maxWeight = maxSet?.Weight ?? 0;
+                            var reps = maxSet?.Reps ?? 0;
+                            // Epley formula for estimated 1RM
+                            var e1rm = maxWeight * (1 + reps / 30.0);
+
+                            return new ExerciseProgressionPoint
+                            {
+                                Date = x.Workout.Date,
+                                MaxWeight = maxWeight,
+                                BestReps = reps,
+                                EstimatedOneRepMax = Math.Round(e1rm, 1)
+                            };
+                        })
+                        .ToList();
+
+                    var startWeight = dataPoints.FirstOrDefault()?.MaxWeight ?? 0;
+                    var currentWeight = dataPoints.LastOrDefault()?.MaxWeight ?? 0;
+                    var progressPercent = startWeight > 0
+                        ? Math.Round((currentWeight - startWeight) / startWeight * 100, 1)
+                        : 0;
+
+                    return new ExerciseProgressionData
+                    {
+                        ExerciseName = g.Key,
+                        MuscleGroup = g.First().Exercise.MuscleGroup,
+                        DataPoints = dataPoints,
+                        StartingWeight = startWeight,
+                        CurrentWeight = currentWeight,
+                        ProgressPercent = progressPercent
+                    };
+                })
+                .Where(e => e.DataPoints.Count > 0)
+                .OrderByDescending(e => e.DataPoints.Count)
+                .ToList();
+
+            return exerciseData;
+        }
+
+        private List<PersonalRecordSummary> CalculatePersonalRecords(List<WorkoutSession> workouts)
+        {
+            var recentCutoff = DateTime.UtcNow.AddDays(-7);
+
+            // Find the max weight for each exercise
+            var prs = workouts
+                .SelectMany(w => w.Exercises.Select(e => new { Workout = w, Exercise = e }))
+                .SelectMany(x => x.Exercise.Sets.Select(s => new
+                {
+                    x.Workout,
+                    x.Exercise,
+                    Set = s
+                }))
+                .GroupBy(x => x.Exercise.Name)
+                .Select(g =>
+                {
+                    var best = g.OrderByDescending(x => x.Set.Weight).First();
+                    var e1rm = best.Set.Weight * (1 + best.Set.Reps / 30.0);
+
+                    return new PersonalRecordSummary
+                    {
+                        ExerciseName = best.Exercise.Name,
+                        MuscleGroup = best.Exercise.MuscleGroup,
+                        MaxWeight = best.Set.Weight,
+                        Reps = best.Set.Reps,
+                        EstimatedOneRepMax = Math.Round(e1rm, 1),
+                        DateAchieved = best.Workout.Date,
+                        IsRecent = best.Workout.Date >= recentCutoff
+                    };
+                })
+                .OrderByDescending(pr => pr.MaxWeight)
+                .Take(10)
+                .ToList();
+
+            return prs;
+        }
+
+        #endregion
     }
-
-    #endregion
-}

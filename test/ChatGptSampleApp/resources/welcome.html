@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ChatGPT App Widget</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            padding: 20px;
+            background: var(--bg-color);
+            color: var(--text-color);
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+            /* Theme variables */
+            body.light {
+                --bg-color: #ffffff;
+                --text-color: #1a1a1a;
+                --card-bg: #f7f9fc;
+                --border-color: #e0e0e0;
+                --accent-color: #10a37f;
+            }
+
+            body.dark {
+                --bg-color: #1a1a1a;
+                --text-color: #ececec;
+                --card-bg: #2d2d2d;
+                --border-color: #404040;
+                --accent-color: #19c37d;
+            }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+
+            .header h1 {
+                font-size: 24px;
+                margin-bottom: 8px;
+                color: var(--text-color);
+            }
+
+            .header p {
+                font-size: 14px;
+                color: var(--text-color);
+                opacity: 0.7;
+            }
+
+        .message-card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 16px;
+            border: 1px solid var(--border-color);
+        }
+
+        .message-content {
+            line-height: 1.6;
+            font-size: 15px;
+        }
+
+            .message-content pre {
+                background: rgba(0, 0, 0, 0.05);
+                padding: 12px;
+                border-radius: 6px;
+                overflow-x: auto;
+                margin: 12px 0;
+            }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 12px;
+            margin-top: 20px;
+        }
+
+        .info-item {
+            background: var(--card-bg);
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
+
+        .info-label {
+            font-size: 12px;
+            opacity: 0.7;
+            margin-bottom: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .info-value {
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 20px;
+        }
+
+        button {
+            background: var(--accent-color);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+
+            button:hover {
+                opacity: 0.9;
+            }
+
+            button:active {
+                opacity: 0.8;
+            }
+
+        .secondary-btn {
+            background: var(--card-bg);
+            color: var(--text-color);
+            border: 1px solid var(--border-color);
+        }
+
+        .debug-section {
+            margin-top: 20px;
+            padding: 16px;
+            background: var(--card-bg);
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            font-size: 12px;
+            font-family: 'Courier New', monospace;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .placeholder {
+            text-align: center;
+            opacity: 0.5;
+            padding: 40px 20px;
+        }
+    </style>
+</head>
+<body class="light">
+    <div id="root"></div>
+
+    <script>
+        // Check if window.openai is available
+        function checkOpenAI() {
+            if (typeof window.openai !== 'undefined') {
+                console.log('✓ window.openai is available');
+                return true;
+            } else {
+                console.warn('✗ window.openai is not available');
+                return false;
+            }
+        }
+
+        // Initialize the app
+        function initApp() {
+            const root = document.getElementById('root');
+
+            // Apply theme
+            if (window.openai?.theme) {
+                document.body.className = window.openai.theme;
+            }
+
+            // Listen for theme changes
+            window.addEventListener('openai:set_globals', (event) => {
+                if (event.detail?.globals?.theme) {
+                    document.body.className = event.detail.globals.theme;
+                }
+            });
+
+            // Get data from window.openai
+            const toolInput = window.openai?.toolInput || null;
+            const toolOutput = window.openai?.toolOutput || null;
+            const metadata = window.openai?.toolResponseMetadata || null;
+            const widgetState = window.openai?.widgetState || null;
+            const locale = window.openai?.locale || 'en-US';
+            const displayMode = window.openai?.displayMode || 'inline';
+
+            // Render the UI
+            root.innerHTML = `
+                    <div class="container">
+                        <div class="header">
+                            <h1>Welcome Widget</h1>
+                            <p>ChatGPT App powered by window.openai</p>
+                        </div>
+
+                        ${toolOutput ? `
+                            <div class="message-card">
+                                <div class="message-content">
+                                    ${formatMessage(toolOutput)}
+                                </div>
+                            </div>
+                        ` : `
+                            <div class="message-card">
+                                <div class="placeholder">
+                                    No tool output received yet. This widget is waiting for data from your MCP server.
+                                </div>
+                            </div>
+                        `}
+
+                        <div class="info-grid">
+                            <div class="info-item">
+                                <div class="info-label">Theme</div>
+                                <div class="info-value">${window.openai?.theme || 'N/A'}</div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-label">Display Mode</div>
+                                <div class="info-value">${displayMode}</div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-label">Locale</div>
+                                <div class="info-value">${locale}</div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-label">Widget State</div>
+                                <div class="info-value">${widgetState ? 'Present' : 'None'}</div>
+                            </div>
+                        </div>
+
+                        ${toolInput ? `
+                            <div class="actions">
+                                <button onclick="handleFollowUp()">Send Follow-up</button>
+                                <button class="secondary-btn" onclick="handleFullscreen()">Toggle Fullscreen</button>
+                                <button class="secondary-btn" onclick="handleClose()">Close Widget</button>
+                            </div>
+                        ` : ''}
+
+                        <div class="debug-section">
+                            <strong>Debug Info:</strong><br>
+                            window.openai available: ${checkOpenAI() ? 'Yes' : 'No'}<br>
+                            Tool Input: ${toolInput ? JSON.stringify(toolInput).substring(0, 100) + '...' : 'null'}<br>
+                            Tool Output: ${toolOutput ? JSON.stringify(toolOutput).substring(0, 100) + '...' : 'null'}<br>
+                            Metadata: ${metadata ? JSON.stringify(metadata).substring(0, 100) + '...' : 'null'}
+                        </div>
+                    </div>
+                `;
+        }
+
+        // Format message for display
+        function formatMessage(data) {
+            if (typeof data === 'string') {
+                return data;
+            } else if (data.message) {
+                return data.message;
+            } else if (data.content) {
+                return data.content;
+            } else {
+                return '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
+            }
+        }
+
+        // Handler functions
+        async function handleFollowUp() {
+            if (window.openai?.sendFollowUpMessage) {
+                await window.openai.sendFollowUpMessage({
+                    prompt: "Tell me more about this"
+                });
+            } else {
+                alert('sendFollowUpMessage not available');
+            }
+        }
+
+        async function handleFullscreen() {
+            if (window.openai?.requestDisplayMode) {
+                const current = window.openai.displayMode;
+                const next = current === 'fullscreen' ? 'inline' : 'fullscreen';
+                await window.openai.requestDisplayMode({ mode: next });
+            } else {
+                alert('requestDisplayMode not available');
+            }
+        }
+
+        function handleClose() {
+            if (window.openai?.requestClose) {
+                window.openai.requestClose();
+            } else {
+                alert('requestClose not available');
+            }
+        }
+
+        // Initialize when DOM is ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initApp);
+        } else {
+            initApp();
+        }
+
+        // Re-render on global changes
+        window.addEventListener('openai:set_globals', () => {
+            console.log('Globals updated, re-rendering...');
+            initApp();
+        });
+    </script>
+</body>
+</html>

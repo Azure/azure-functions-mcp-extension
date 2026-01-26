@@ -1,5 +1,7 @@
 
 
+using Microsoft.Azure.Functions.Worker.Extensions.Mcp;
+
 namespace ChatGptSampleApp;
 
 /// <summary>
@@ -138,6 +140,7 @@ public class WorkoutSummary
 /// <summary>
 /// Comprehensive workout statistics
 /// </summary>
+[McpResult]
 public class WorkoutStatistics
 {
     public int TotalWorkouts { get; set; }
@@ -157,6 +160,21 @@ public class WorkoutStatistics
     /// Fatigue indicator based on recent perceived effort and energy levels
     /// </summary>
     public string RecentFatigue { get; set; } = "Unknown";
+
+    /// <summary>
+    /// List of unique exercise names for the exercise selector
+    /// </summary>
+    public List<string> ExerciseNames { get; set; } = new();
+
+    /// <summary>
+    /// Strength progression data for each exercise
+    /// </summary>
+    public List<ExerciseProgressionData> ExerciseProgressions { get; set; } = new();
+
+    /// <summary>
+    /// Personal records achieved in this period
+    /// </summary>
+    public List<PersonalRecordSummary> PersonalRecords { get; set; } = new();
 }
 
 /// <summary>
@@ -167,4 +185,42 @@ public class WeeklyData
     public int Week { get; set; }
     public int Workouts { get; set; }
     public double TotalVolume { get; set; }
+}
+
+/// <summary>
+/// Exercise progression data for strength tracking
+/// </summary>
+public class ExerciseProgressionData
+{
+    public string ExerciseName { get; set; } = string.Empty;
+    public string MuscleGroup { get; set; } = string.Empty;
+    public List<ExerciseProgressionPoint> DataPoints { get; set; } = new();
+    public double StartingWeight { get; set; }
+    public double CurrentWeight { get; set; }
+    public double ProgressPercent { get; set; }
+}
+
+/// <summary>
+/// Single data point for exercise progression over time
+/// </summary>
+public class ExerciseProgressionPoint
+{
+    public DateTime Date { get; set; }
+    public double MaxWeight { get; set; }
+    public int BestReps { get; set; }
+    public double EstimatedOneRepMax { get; set; }
+}
+
+/// <summary>
+/// Summary of a personal record for display
+/// </summary>
+public class PersonalRecordSummary
+{
+    public string ExerciseName { get; set; } = string.Empty;
+    public string MuscleGroup { get; set; } = string.Empty;
+    public double MaxWeight { get; set; }
+    public int Reps { get; set; }
+    public double EstimatedOneRepMax { get; set; }
+    public DateTime DateAchieved { get; set; }
+    public bool IsRecent { get; set; }
 }

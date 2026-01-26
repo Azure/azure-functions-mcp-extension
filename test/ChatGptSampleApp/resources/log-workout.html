@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Log Workout</title>
+    <title>Log Workout - Claude Edition</title>
     <style>
         * {
             box-sizing: border-box;
@@ -332,15 +332,29 @@
             <h1>📝 Log Workout</h1>
             <p id="header-subtitle">Review and confirm your workout details</p>
         </div>
+
         <div class="success-banner" id="success-banner">
             <h2>✅ Workout Logged!</h2>
             <div class="success-stats">
-                <div class="success-stat"><span class="success-stat-value" id="stat-exercises">0</span><span class="success-stat-label">Exercises</span></div>
-                <div class="success-stat"><span class="success-stat-value" id="stat-sets">0</span><span class="success-stat-label">Total Sets</span></div>
-                <div class="success-stat"><span class="success-stat-value" id="stat-volume">0</span><span class="success-stat-label">Volume (lbs)</span></div>
-                <div class="success-stat"><span class="success-stat-value" id="stat-duration">0</span><span class="success-stat-label">Minutes</span></div>
+                <div class="success-stat">
+                    <span class="success-stat-value" id="stat-exercises">0</span>
+                    <span class="success-stat-label">Exercises</span>
+                </div>
+                <div class="success-stat">
+                    <span class="success-stat-value" id="stat-sets">0</span>
+                    <span class="success-stat-label">Total Sets</span>
+                </div>
+                <div class="success-stat">
+                    <span class="success-stat-value" id="stat-volume">0</span>
+                    <span class="success-stat-label">Volume (lbs)</span>
+                </div>
+                <div class="success-stat">
+                    <span class="success-stat-value" id="stat-duration">0</span>
+                    <span class="success-stat-label">Minutes</span>
+                </div>
             </div>
         </div>
+
         <form id="workout-form">
             <div class="form-section">
                 <div class="section-title">Workout Details</div>
@@ -364,15 +378,23 @@
                     </div>
                 </div>
                 <div class="form-row">
-                    <div class="form-group"><label>Date</label><input type="date" id="workout-date" required></div>
-                    <div class="form-group"><label>Time</label><input type="time" id="workout-time"></div>
+                    <div class="form-group">
+                        <label>Date</label>
+                        <input type="date" id="workout-date" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Time</label>
+                        <input type="time" id="workout-time">
+                    </div>
                 </div>
             </div>
+
             <div class="form-section">
                 <div class="section-title">Exercises</div>
                 <div class="exercises-list" id="exercises-list"></div>
                 <button type="button" class="add-exercise-btn" id="add-exercise">+ Add Exercise</button>
             </div>
+
             <div class="form-section">
                 <div class="section-title">How Did It Feel?</div>
                 <div class="form-row">
@@ -396,78 +418,185 @@
                     <textarea id="notes" placeholder="How did the workout go?"></textarea>
                 </div>
             </div>
+
             <div class="submit-section" id="submit-section">
                 <button type="button" class="cancel-btn" id="cancel-btn">Cancel</button>
                 <button type="submit" class="submit-btn">💾 Save Workout</button>
             </div>
         </form>
     </div>
+
     <script>
-        console.log("toolInput:", window.openai?.toolInput)
-
         let exerciseCount = 0;
-        document.getElementById('workout-date').valueAsDate = new Date();
-        document.getElementById('effort').addEventListener('input', e => document.getElementById('effort-value').textContent = e.target.value);
-        document.getElementById('energy').addEventListener('input', e => document.getElementById('energy-value').textContent = e.target.value);
 
-        // =============================================
-        // KEY: Read from window.openai.toolOutput
-        // ChatGPT injects structured content here!
-        // =============================================
-        function initializeFromHostState() {
-            const input = window.openai?.toolInput;     // <-- BEFORE tool runs
-            const output = window.openai?.toolOutput;   // <-- AFTER tool runs
-
-            console.log("toolInput:", input);
-            console.log("toolOutput:", output);
-
-            // If tool already ran and succeeded, show success + populate from output
-            if (output && (output.Success || output.success)) {
-                showSuccess(output);
-                populateWorkout(output.Workout || output.workout || output);
-                return;
+        // Initialize the app
+        function initApp() {
+            // Apply theme
+            if (window.openai?.theme) {
+                document.body.className = window.openai.theme;
             }
 
-            // Otherwise, populate from whatever we have (prefer toolInput pre-run)
-            const data =
-                (output && (output.Workout || output.workout || output)) ||
-                (input && (input.Workout || input.workout || input));
+            // Listen for theme changes
+            window.addEventListener('openai:set_globals', (event) => {
+                if (event.detail?.globals?.theme) {
+                    document.body.className = event.detail.globals.theme;
+                }
+            });
 
-            if (data) {
-                populateWorkout(data);
+            // Get data from window.openai
+            const toolInput = window.openai?.toolInput || null;
+            const toolOutput = window.openai?.toolOutput || null;
+            const metadata = window.openai?.toolResponseMetadata || null;
+            const widgetState = window.openai?.widgetState || null;
+            const locale = window.openai?.locale || 'en-US';
+            const displayMode = window.openai?.displayMode || 'inline';
+
+            console.log('toolInput:', toolInput);
+            console.log('toolOutput:', toolOutput);
+            console.log('metadata:', metadata);
+
+            // Initialize date and sliders
+            document.getElementById('workout-date').valueAsDate = new Date();
+
+            // Setup slider listeners
+            document.getElementById('effort').addEventListener('input', e => {
+                document.getElementById('effort-value').textContent = e.target.value;
+            });
+            document.getElementById('energy').addEventListener('input', e => {
+                document.getElementById('energy-value').textContent = e.target.value;
+            });
+
+            // Setup button listeners
+            document.getElementById('add-exercise').addEventListener('click', () => addExercise());
+
+            document.getElementById('workout-form').addEventListener('submit', async e => {
+                e.preventDefault();
+                const exercises = [...document.querySelectorAll('.exercise-card')].map(card => {
+                    const sets = [...card.querySelectorAll('.sets-body tr')].map(row => {
+                        const inputs = row.querySelectorAll('input');
+                        return {
+                            Weight: +inputs[0].value || 0,
+                            Reps: +inputs[1].value || 0,
+                            Rpe: +inputs[2].value || null,
+                            IsPR: false
+                        };
+                    }).filter(s => s.Reps > 0);
+                    return {
+                        Name: card.querySelector('.exercise-name-input').value,
+                        MuscleGroup: card.querySelector('.muscle-group-dropdown').value,
+                        Sets: sets
+                    };
+                }).filter(e => e.Name && e.Sets.length);
+
+                const data = {
+                    Type: document.getElementById('workout-type').value,
+                    DurationMinutes: +document.getElementById('duration').value,
+                    Date: document.getElementById('workout-date').value,
+                    Exercises: exercises,
+                    PerceivedEffort: +document.getElementById('effort').value,
+                    EnergyLevel: +document.getElementById('energy').value,
+                    Notes: document.getElementById('notes').value
+                };
+
+                if (window.openai?.callTool) {
+                    await window.openai.callTool('LogWorkout', data);
+                }
+            });
+
+            document.getElementById('cancel-btn').addEventListener('click', () => {
+                if (window.openai?.requestClose) {
+                    window.openai.requestClose();
+                }
+            });
+
+            // Populate form based on toolOutput
+            if (toolOutput) {
+                console.log('Full toolOutput:', toolOutput);
+
+                // If tool already ran and succeeded, show success banner
+                if (toolOutput.Success || toolOutput.success) {
+                    showSuccess(toolOutput);
+                }
+
+                // Populate workout data from toolOutput
+                // toolOutput IS the workout data when Success is true
+                const workoutData = toolOutput;
+                console.log('Workout data to populate:', workoutData);
+                console.log('Exercises in workout data:', workoutData.Exercises || workoutData.exercises);
+                populateWorkout(workoutData);
+            } else if (toolInput) {
+                // If we have toolInput, populate from that
+                const workoutData = toolInput.Workout || toolInput.workout || toolInput;
+                populateWorkout(workoutData);
             } else {
+                // Default: add one empty exercise
                 addExercise();
             }
         }
 
-
         function populateWorkout(data) {
-            if (!data) { addExercise(); return; }
+            console.log('populateWorkout called with:', data);
 
+            if (!data) {
+                addExercise();
+                return;
+            }
+
+            // Populate workout details
             const type = data.Type || data.type;
-            if (type) { document.getElementById('workout-type').value = type; document.getElementById('workout-type').classList.add('pre-filled'); }
+            if (type) {
+                document.getElementById('workout-type').value = type;
+                document.getElementById('workout-type').classList.add('pre-filled');
+            }
 
             const duration = data.DurationMinutes || data.durationMinutes;
-            if (duration) { document.getElementById('duration').value = duration; document.getElementById('duration').classList.add('pre-filled'); }
+            if (duration) {
+                document.getElementById('duration').value = duration;
+                document.getElementById('duration').classList.add('pre-filled');
+            }
 
             const date = data.Date || data.date;
-            if (date) document.getElementById('workout-date').valueAsDate = new Date(date);
+            if (date) {
+                document.getElementById('workout-date').valueAsDate = new Date(date);
+            }
 
             const effort = data.PerceivedEffort || data.perceivedEffort;
-            if (effort) { document.getElementById('effort').value = effort; document.getElementById('effort-value').textContent = effort; }
+            if (effort) {
+                document.getElementById('effort').value = effort;
+                document.getElementById('effort-value').textContent = effort;
+            }
 
             const energy = data.EnergyLevel || data.energyLevel;
-            if (energy) { document.getElementById('energy').value = energy; document.getElementById('energy-value').textContent = energy; }
+            if (energy) {
+                document.getElementById('energy').value = energy;
+                document.getElementById('energy-value').textContent = energy;
+            }
 
             const notes = data.Notes || data.notes;
-            if (notes) document.getElementById('notes').value = notes;
+            if (notes) {
+                document.getElementById('notes').value = notes;
+            }
 
+            // Clear and populate exercises
             document.getElementById('exercises-list').innerHTML = '';
             exerciseCount = 0;
+
             const exercises = data.Exercises || data.exercises || [];
+            console.log('Exercises to populate:', exercises);
+            console.log('Number of exercises:', exercises.length);
+
             if (exercises.length > 0) {
-                exercises.forEach(ex => addExercise(ex.Name || ex.name, ex.MuscleGroup || ex.muscleGroup || 'Chest', ex.Sets || ex.sets || [], true));
+                exercises.forEach((ex, index) => {
+                    console.log(`Exercise ${index}:`, ex);
+                    addExercise(
+                        ex.Name || ex.name,
+                        ex.MuscleGroup || ex.muscleGroup || 'Chest',
+                        ex.Sets || ex.sets || [],
+                        true
+                    );
+                });
             } else {
+                console.log('No exercises found, adding empty exercise');
                 addExercise();
             }
         }
@@ -475,109 +604,99 @@
         function showSuccess(output) {
             document.getElementById('success-banner').classList.add('show');
             document.getElementById('header-subtitle').textContent = 'Your workout has been saved!';
+
             const summary = output.Summary || output.summary;
             if (summary) {
                 document.getElementById('stat-exercises').textContent = summary.ExerciseCount || summary.exerciseCount || 0;
                 document.getElementById('stat-sets').textContent = summary.TotalSets || summary.totalSets || 0;
                 document.getElementById('stat-volume').textContent = formatNumber(summary.TotalVolume || summary.totalVolume || 0);
-                document.getElementById('stat-duration').textContent = summary.DurationMinutes || summary.durationMinutes || 0;
             }
+
+            // Get duration from main output object, not summary
+            const duration = output.DurationMinutes || output.durationMinutes || 0;
+            document.getElementById('stat-duration').textContent = duration;
+
             document.getElementById('submit-section').style.display = 'none';
         }
 
-        function formatNumber(n) { return n >= 1000 ? (n / 1000).toFixed(1) + 'K' : Math.round(n).toString(); }
+        function formatNumber(n) {
+            return n >= 1000 ? (n / 1000).toFixed(1) + 'K' : Math.round(n).toString();
+        }
 
         function addExercise(name = '', muscleGroup = 'Chest', sets = [], preFilled = false) {
+            console.log('addExercise called:', { name, muscleGroup, sets: sets, setsLength: sets.length, preFilled });
+
             exerciseCount++;
             const id = `exercise-${exerciseCount}`;
-            let setsHtml = sets.length > 0 ? sets.map((s, i) => `
-                <tr>
-                    <td class="set-number">${i + 1}${(s.IsPR || s.isPR) ? '<span class="pr-badge">PR!</span>' : ''}</td>
-                    <td><input type="number" placeholder="lbs" value="${s.Weight || s.weight || ''}" class="${(s.Weight || s.weight) ? 'pre-filled' : ''}"></td>
-                    <td><input type="number" placeholder="reps" value="${s.Reps || s.reps || ''}" class="${(s.Reps || s.reps) ? 'pre-filled' : ''}"></td>
-                    <td><input type="number" placeholder="1-10" value="${s.Rpe || s.rpe || ''}"></td>
-                </tr>`).join('') : '<tr><td class="set-number">1</td><td><input type="number" placeholder="lbs"></td><td><input type="number" placeholder="reps"></td><td><input type="number" placeholder="1-10"></td></tr>';
+
+            let setsHtml = sets.length > 0
+                ? sets.map((s, i) => {
+                    console.log(`Set ${i}:`, s);
+                    return `
+                        <tr>
+                            <td class="set-number">${i + 1}${(s.IsPR || s.isPR) ? '<span class="pr-badge">PR!</span>' : ''}</td>
+                            <td><input type="number" placeholder="lbs" value="${s.Weight || s.weight || ''}" class="${(s.Weight || s.weight) ? 'pre-filled' : ''}"></td>
+                            <td><input type="number" placeholder="reps" value="${s.Reps || s.reps || ''}" class="${(s.Reps || s.reps) ? 'pre-filled' : ''}"></td>
+                            <td><input type="number" placeholder="1-10" value="${s.Rpe || s.rpe || ''}"></td>
+                        </tr>
+                    `}).join('')
+                : '<tr><td class="set-number">1</td><td><input type="number" placeholder="lbs"></td><td><input type="number" placeholder="reps"></td><td><input type="number" placeholder="1-10"></td></tr>';
 
             document.getElementById('exercises-list').insertAdjacentHTML('beforeend', `
-                <div class="exercise-card ${preFilled ? 'pre-filled' : ''}" id="${id}">
-                    <div class="exercise-header">
-                        <input type="text" class="exercise-name-input ${preFilled && name ? 'pre-filled' : ''}" placeholder="Exercise name..." value="${name}" required>
-                        <select class="muscle-group-dropdown" style="margin:0 12px;padding:6px;">
-                            ${['Chest', 'Back', 'Shoulders', 'Biceps', 'Triceps', 'Legs', 'Core', 'Cardio'].map(m => `<option value="${m}" ${muscleGroup === m ? 'selected' : ''}>${m}</option>`).join('')}
-                        </select>
-                        <button type="button" class="remove-exercise" onclick="removeExercise('${id}')">Remove</button>
+                    <div class="exercise-card ${preFilled ? 'pre-filled' : ''}" id="${id}">
+                        <div class="exercise-header">
+                            <input type="text" class="exercise-name-input ${preFilled && name ? 'pre-filled' : ''}" placeholder="Exercise name..." value="${name}" required>
+                            <select class="muscle-group-dropdown" style="margin:0 12px;padding:6px;">
+                                ${['Chest', 'Back', 'Shoulders', 'Biceps', 'Triceps', 'Legs', 'Core', 'Cardio']
+                    .map(m => `<option value="${m}" ${muscleGroup === m ? 'selected' : ''}>${m}</option>`)
+                    .join('')}
+                            </select>
+                            <button type="button" class="remove-exercise" onclick="removeExercise('${id}')">Remove</button>
+                        </div>
+                        <table class="sets-table">
+                            <thead>
+                                <tr>
+                                    <th style="width:50px">Set</th>
+                                    <th>Weight</th>
+                                    <th>Reps</th>
+                                    <th style="width:60px">RPE</th>
+                                </tr>
+                            </thead>
+                            <tbody class="sets-body">${setsHtml}</tbody>
+                        </table>
+                        <button type="button" class="add-set-btn" onclick="addSet('${id}')">+ Add Set</button>
                     </div>
-                    <table class="sets-table">
-                        <thead><tr><th style="width:50px">Set</th><th>Weight</th><th>Reps</th><th style="width:60px">RPE</th></tr></thead>
-                        <tbody class="sets-body">${setsHtml}</tbody>
-                    </table>
-                    <button type="button" class="add-set-btn" onclick="addSet('${id}')">+ Add Set</button>
-                </div>`);
+                `);
         }
 
-        function removeExercise(id) { document.getElementById(id).remove(); }
+        function removeExercise(id) {
+            document.getElementById(id).remove();
+        }
+
         function addSet(id) {
             const tbody = document.querySelector(`#${id} .sets-body`);
-            tbody.insertAdjacentHTML('beforeend', `<tr><td class="set-number">${tbody.children.length + 1}</td><td><input type="number" placeholder="lbs"></td><td><input type="number" placeholder="reps"></td><td><input type="number" placeholder="1-10"></td></tr>`);
+            tbody.insertAdjacentHTML('beforeend', `
+                    <tr>
+                        <td class="set-number">${tbody.children.length + 1}</td>
+                        <td><input type="number" placeholder="lbs"></td>
+                        <td><input type="number" placeholder="reps"></td>
+                        <td><input type="number" placeholder="1-10"></td>
+                    </tr>
+                `);
         }
 
-        document.getElementById('add-exercise').addEventListener('click', () => addExercise());
-
-        document.getElementById('workout-form').addEventListener('submit', async e => {
-            e.preventDefault();
-            const exercises = [...document.querySelectorAll('.exercise-card')].map(card => {
-                const sets = [...card.querySelectorAll('.sets-body tr')].map(row => {
-                    const inputs = row.querySelectorAll('input');
-                    return { Reps: +inputs[1].value || 0, Weight: +inputs[0].value || 0, Rpe: +inputs[2].value || null, IsPR: false };
-                }).filter(s => s.Reps > 0);
-                return { Name: card.querySelector('.exercise-name-input').value, MuscleGroup: card.querySelector('.muscle-group-dropdown').value, Sets: sets };
-            }).filter(e => e.Name && e.Sets.length);
-
-            const data = {
-                Type: document.getElementById('workout-type').value,
-                DurationMinutes: +document.getElementById('duration').value,
-                Date: document.getElementById('workout-date').value,
-                Exercises: exercises,
-                PerceivedEffort: +document.getElementById('effort').value,
-                EnergyLevel: +document.getElementById('energy').value,
-                Notes: document.getElementById('notes').value
-            };
-
-            if (window.openai?.callTool) {
-                await window.openai.callTool('LogWorkout', data);
-            }
-        });
-
-        document.getElementById('cancel-btn').addEventListener('click', () => window.openai?.requestClose?.());
-
-        const SET_GLOBALS_EVENT_TYPE = "openai:set_globals";
-
-        function boot() {
-            // Run once for initial load
-            initializeFromHostState();
-
-            // Run again whenever ChatGPT updates globals (including toolOutput)
-            window.addEventListener(SET_GLOBALS_EVENT_TYPE, (event) => {
-                // If you want, you can gate this on toolOutput being present:
-                // if (event?.detail?.globals?.toolOutput === undefined) return;
-                initializeFromHostState();
-
-                // Optional: helps if content height changes after rendering
-                window.openai?.notifyIntrinsicHeight?.();
-            });
-
-            window.addEventListener("openai:set_globals", () => {
-                initializeFromHostState();
-                window.openai?.notifyIntrinsicHeight?.(); // optional
-            });
-        }
-
-        if (document.readyState === "loading") {
-            document.addEventListener('DOMContentLoaded', initializeFromHostState);
+        // Initialize when DOM is ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initApp);
         } else {
-            boot();
+            initApp();
         }
 
+        // Re-render on global changes
+        window.addEventListener('openai:set_globals', () => {
+            console.log('Globals updated, re-rendering...');
+            initApp();
+        });
     </script>
 </body>
 </html>

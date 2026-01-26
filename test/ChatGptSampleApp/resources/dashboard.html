@@ -98,7 +98,16 @@
             align-items: center;
             padding: 12px 0;
             border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            cursor: pointer;
+            transition: all 0.2s;
         }
+
+            .workout-item:hover {
+                background: rgba(0, 217, 255, 0.05);
+                margin: 0 -8px;
+                padding: 12px 8px;
+                border-radius: 8px;
+            }
 
             .workout-item:last-child {
                 border-bottom: none;
@@ -186,6 +195,7 @@
             border-radius: 4px 4px 0 0;
             margin-bottom: 4px;
             position: relative;
+            transition: height 0.3s ease;
         }
 
         .muscle-bar-label {
@@ -217,91 +227,63 @@
             font-weight: 600;
             color: #ffd700;
         }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #888;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #888;
+        }
+
+            .empty-state p {
+                margin-bottom: 16px;
+            }
     </style>
 </head>
 <body>
     <div class="dashboard">
         <div class="header">
             <h1>💪 Workout Tracker</h1>
-            <div class="streak-badge">🔥 12 Day Streak</div>
+            <div class="streak-badge" id="streak-badge">🔥 0 Day Streak</div>
         </div>
 
-        <div class="pr-alert">
-            <span class="pr-alert-icon">🏆</span>
-            <span class="pr-alert-text">New PR! <span class="pr-exercise">Bench Press</span> - 225 lbs × 5 reps</span>
-        </div>
+        <div id="pr-alert-container"></div>
 
         <div class="stats-grid">
             <div class="stat-card">
-                <div class="stat-value" id="workouts-week">4</div>
+                <div class="stat-value" id="workouts-week">-</div>
                 <div class="stat-label">This Week</div>
             </div>
             <div class="stat-card">
-                <div class="stat-value" id="workouts-month">16</div>
+                <div class="stat-value" id="workouts-month">-</div>
                 <div class="stat-label">This Month</div>
             </div>
             <div class="stat-card">
-                <div class="stat-value" id="total-volume">42.5K</div>
+                <div class="stat-value" id="total-volume">-</div>
                 <div class="stat-label">Volume (lbs)</div>
             </div>
             <div class="stat-card">
-                <div class="stat-value" id="avg-duration">58</div>
+                <div class="stat-value" id="avg-duration">-</div>
                 <div class="stat-label">Avg. Minutes</div>
             </div>
         </div>
 
         <div class="recent-workouts">
             <div class="section-title">📋 Recent Workouts</div>
-            <div class="workout-item">
-                <div class="workout-info">
-                    <span class="workout-type">Push Day</span>
-                    <span class="workout-date">Today • Chest, Shoulders, Triceps</span>
-                </div>
-                <span class="workout-duration">62 min</span>
-            </div>
-            <div class="workout-item">
-                <div class="workout-info">
-                    <span class="workout-type">Pull Day</span>
-                    <span class="workout-date">Yesterday • Back, Biceps</span>
-                </div>
-                <span class="workout-duration">55 min</span>
-            </div>
-            <div class="workout-item">
-                <div class="workout-info">
-                    <span class="workout-type">Leg Day</span>
-                    <span class="workout-date">2 days ago • Quads, Hamstrings, Calves</span>
-                </div>
-                <span class="workout-duration">68 min</span>
+            <div id="recent-workouts-list">
+                <div class="loading">Loading workouts...</div>
             </div>
         </div>
 
         <div class="recent-workouts">
             <div class="section-title">📊 Muscle Group Balance (Last 7 Days)</div>
-            <div class="muscle-chart">
-                <div class="muscle-bar">
-                    <div class="muscle-bar-fill" style="height: 80px;"></div>
-                    <div class="muscle-bar-label">Chest</div>
-                </div>
-                <div class="muscle-bar">
-                    <div class="muscle-bar-fill" style="height: 70px;"></div>
-                    <div class="muscle-bar-label">Back</div>
-                </div>
-                <div class="muscle-bar">
-                    <div class="muscle-bar-fill" style="height: 60px;"></div>
-                    <div class="muscle-bar-label">Shoulders</div>
-                </div>
-                <div class="muscle-bar">
-                    <div class="muscle-bar-fill" style="height: 90px;"></div>
-                    <div class="muscle-bar-label">Legs</div>
-                </div>
-                <div class="muscle-bar">
-                    <div class="muscle-bar-fill" style="height: 40px;"></div>
-                    <div class="muscle-bar-label">Arms</div>
-                </div>
-                <div class="muscle-bar">
-                    <div class="muscle-bar-fill" style="height: 30px;"></div>
-                    <div class="muscle-bar-label">Core</div>
-                </div>
+            <div class="muscle-chart" id="muscle-chart">
+                <div class="loading">Loading muscle data...</div>
             </div>
         </div>
 
@@ -320,57 +302,238 @@
     </div>
 
     <script>
-    // Widget communication with ChatGPT
-    document.querySelectorAll('.log-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const type = btn.dataset.type;
-        const action = btn.dataset.action;
+        // Initialize the app
+        function initApp() {
+            console.log('Dashboard initializing...');
 
-        if (action === 'custom') {
-          // Request ChatGPT to help log a custom workout
-          window.parent.postMessage({
-            type: 'mcp_action',
-            action: 'log_custom_workout'
-          }, '*');
-        } else if (type) {
-          // Quick log a specific workout type
-          window.parent.postMessage({
-            type: 'mcp_action',
-            action: 'quick_log',
-            workoutType: type
-          }, '*');
+            // Apply theme
+            if (window.openai?.theme) {
+                document.body.className = window.openai.theme;
+            }
+
+            // Listen for theme changes
+            window.addEventListener('openai:set_globals', (event) => {
+                if (event.detail?.globals?.theme) {
+                    document.body.className = event.detail.globals.theme;
+                }
+            });
+
+            // Get data from window.openai
+            const toolInput = window.openai?.toolInput || null;
+            const toolOutput = window.openai?.toolOutput || null;
+            const metadata = window.openai?.toolResponseMetadata || null;
+            const widgetState = window.openai?.widgetState || null;
+            const locale = window.openai?.locale || 'en-US';
+            const displayMode = window.openai?.displayMode || 'inline';
+
+            console.log('toolInput:', toolInput);
+            console.log('toolOutput:', toolOutput);
+            console.log('metadata:', metadata);
+
+            // Setup button event listeners
+            setupQuickLogButtons();
+
+            // Populate dashboard with data
+            if (toolOutput) {
+                console.log('Populating dashboard with toolOutput:', toolOutput);
+                populateDashboard(toolOutput);
+            } else if (toolInput) {
+                console.log('Populating dashboard with toolInput:', toolInput);
+                populateDashboard(toolInput);
+            } else {
+                console.log('No data available, showing empty state');
+                showEmptyState();
+            }
         }
-      });
-    });
 
-    // Listen for data updates from ChatGPT
-    window.addEventListener('message', (event) => {
-      if (event.data.type === 'workout_stats_update') {
-        updateStats(event.data.stats);
-      }
-    });
+        function setupQuickLogButtons() {
+            document.querySelectorAll('.log-btn').forEach(btn => {
+                btn.addEventListener('click', async () => {
+                    const type = btn.dataset.type;
+                    const action = btn.dataset.action;
 
-    function updateStats(stats) {
-      if (stats.workoutsThisWeek !== undefined) {
-        document.getElementById('workouts-week').textContent = stats.workoutsThisWeek;
-      }
-      if (stats.workoutsThisMonth !== undefined) {
-        document.getElementById('workouts-month').textContent = stats.workoutsThisMonth;
-      }
-      if (stats.totalVolume !== undefined) {
-        document.getElementById('total-volume').textContent = formatVolume(stats.totalVolume);
-      }
-      if (stats.avgDuration !== undefined) {
-        document.getElementById('avg-duration').textContent = stats.avgDuration;
-      }
-    }
+                    if (action === 'custom') {
+                        // Request to open the log workout widget
+                        if (window.openai?.sendFollowUpMessage) {
+                            await window.openai.sendFollowUpMessage({
+                                prompt: "Help me log a custom workout"
+                            });
+                        }
+                    } else if (type) {
+                        // Quick log a specific workout type
+                        if (window.openai?.sendFollowUpMessage) {
+                            await window.openai.sendFollowUpMessage({
+                                prompt: `Log a ${type} workout`
+                            });
+                        }
+                    }
+                });
+            });
+        }
 
-    function formatVolume(volume) {
-      if (volume >= 1000) {
-        return (volume / 1000).toFixed(1) + 'K';
-      }
-      return volume.toString();
-    }
+        function populateDashboard(data) {
+            console.log('Populating dashboard with data:', data);
+
+            // Populate stats from toolOutput
+            if (data.TotalWorkouts !== undefined || data.totalWorkouts !== undefined) {
+                const total = data.TotalWorkouts || data.totalWorkouts || 0;
+                document.getElementById('workouts-month').textContent = total;
+            }
+
+            if (data.Summary || data.summary) {
+                const summary = data.Summary || data.summary;
+
+                if (summary.TotalVolume !== undefined || summary.totalVolume !== undefined) {
+                    const volume = summary.TotalVolume || summary.totalVolume || 0;
+                    document.getElementById('total-volume').textContent = formatVolume(volume);
+                }
+
+                if (summary.AverageSessionDuration !== undefined || summary.averageSessionDuration !== undefined) {
+                    const avgDuration = summary.AverageSessionDuration || summary.averageSessionDuration || 0;
+                    document.getElementById('avg-duration').textContent = avgDuration;
+                }
+            }
+
+            // Populate recent workouts
+            if (data.Workouts || data.workouts) {
+                const workouts = data.Workouts || data.workouts;
+                populateRecentWorkouts(workouts);
+            }
+
+            // Populate muscle chart
+            if (data.Summary?.MuscleGroupDistribution || data.summary?.muscleGroupDistribution) {
+                const distribution = data.Summary?.MuscleGroupDistribution || data.summary?.muscleGroupDistribution;
+                populateMuscleChart(distribution);
+            }
+
+            // Show PR alert if available
+            if (data.LatestPR || data.latestPR) {
+                showPRAlert(data.LatestPR || data.latestPR);
+            }
+        }
+
+        function populateRecentWorkouts(workouts) {
+            const container = document.getElementById('recent-workouts-list');
+
+            if (!workouts || workouts.length === 0) {
+                container.innerHTML = '<div class="empty-state">No workouts logged yet</div>';
+                return;
+            }
+
+            // Take the 5 most recent workouts
+            const recentWorkouts = workouts.slice(0, 5);
+
+            container.innerHTML = recentWorkouts.map(workout => {
+                const date = new Date(workout.Date || workout.date);
+                const dateStr = formatWorkoutDate(date);
+                const muscleGroups = getMuscleGroupsFromWorkout(workout);
+
+                return `
+                        <div class="workout-item" onclick="viewWorkout('${workout.Id || workout.id}')">
+                            <div class="workout-info">
+                                <span class="workout-type">${workout.Type || workout.type || 'Workout'}</span>
+                                <span class="workout-date">${dateStr}${muscleGroups ? ' • ' + muscleGroups : ''}</span>
+                            </div>
+                            <span class="workout-duration">${workout.DurationMinutes || workout.durationMinutes || 0} min</span>
+                        </div>
+                    `;
+            }).join('');
+        }
+
+        function populateMuscleChart(distribution) {
+            const container = document.getElementById('muscle-chart');
+
+            if (!distribution || Object.keys(distribution).length === 0) {
+                container.innerHTML = '<div class="empty-state">No muscle group data yet</div>';
+                return;
+            }
+
+            // Get max value for scaling
+            const maxValue = Math.max(...Object.values(distribution));
+            const maxHeight = 100;
+
+            container.innerHTML = Object.entries(distribution).map(([muscle, count]) => {
+                const height = (count / maxValue) * maxHeight;
+                return `
+                        <div class="muscle-bar">
+                            <div class="muscle-bar-fill" style="height: ${height}px;"></div>
+                            <div class="muscle-bar-label">${muscle}</div>
+                        </div>
+                    `;
+            }).join('');
+        }
+
+        function showPRAlert(pr) {
+            const container = document.getElementById('pr-alert-container');
+            container.innerHTML = `
+                    <div class="pr-alert">
+                        <span class="pr-alert-icon">🏆</span>
+                        <span class="pr-alert-text">New PR! <span class="pr-exercise">${pr.ExerciseName || pr.exerciseName}</span> - ${pr.MaxWeight || pr.maxWeight} lbs × ${pr.Reps || pr.reps} reps</span>
+                    </div>
+                `;
+        }
+
+        function showEmptyState() {
+            document.getElementById('recent-workouts-list').innerHTML = `
+                    <div class="empty-state">
+                        <p>No workouts logged yet</p>
+                        <p style="font-size: 12px;">Click "Log Custom Workout" below to get started!</p>
+                    </div>
+                `;
+
+            document.getElementById('muscle-chart').innerHTML = `
+                    <div class="empty-state">No muscle group data yet</div>
+                `;
+        }
+
+        function formatVolume(volume) {
+            if (volume >= 1000) {
+                return (volume / 1000).toFixed(1) + 'K';
+            }
+            return Math.round(volume).toString();
+        }
+
+        function formatWorkoutDate(date) {
+            const now = new Date();
+            const diffTime = Math.abs(now - date);
+            const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+            if (diffDays === 0) return 'Today';
+            if (diffDays === 1) return 'Yesterday';
+            if (diffDays < 7) return `${diffDays} days ago`;
+
+            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        }
+
+        function getMuscleGroupsFromWorkout(workout) {
+            const exercises = workout.Exercises || workout.exercises || [];
+            if (exercises.length === 0) return '';
+
+            const muscleGroups = [...new Set(exercises.map(ex => ex.MuscleGroup || ex.muscleGroup))];
+            return muscleGroups.slice(0, 3).join(', ');
+        }
+
+        async function viewWorkout(workoutId) {
+            console.log('Viewing workout:', workoutId);
+            if (window.openai?.sendFollowUpMessage) {
+                await window.openai.sendFollowUpMessage({
+                    prompt: `Show me details for workout ${workoutId}`
+                });
+            }
+        }
+
+        // Initialize when DOM is ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initApp);
+        } else {
+            initApp();
+        }
+
+        // Re-render on global changes
+        window.addEventListener('openai:set_globals', () => {
+            console.log('Globals updated, re-rendering dashboard...');
+            initApp();
+        });
     </script>
 </body>
 </html>
