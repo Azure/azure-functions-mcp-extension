@@ -36,7 +36,7 @@ public sealed class McpResourceTriggerAttribute(string uri, string resourceName)
     public string? Description { get; set; }
 
     /// <summary>
-    /// Gets or sets the size of the MCP resource.
+    /// Gets or sets the optional size of the resource in bytes.
     /// </summary>
     public long? Size { get; set; }
 
