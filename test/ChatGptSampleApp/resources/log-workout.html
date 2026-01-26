@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Log Workout - Claude Edition</title>
+    <title>Log Workout - Enhanced Edition</title>
     <style>
         * {
             box-sizing: border-box;
@@ -20,7 +20,7 @@
         }
 
         .form-container {
-            max-width: 600px;
+            max-width: 700px;
             margin: 0 auto;
         }
 
@@ -41,6 +41,128 @@
                 font-size: 14px;
             }
 
+        /* Quick Actions Bar */
+        .quick-actions {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .quick-action-btn {
+            background: rgba(0, 217, 255, 0.1);
+            border: 1px solid rgba(0, 217, 255, 0.3);
+            color: #00d9ff;
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+            .quick-action-btn:hover {
+                background: rgba(0, 217, 255, 0.2);
+                transform: translateY(-1px);
+            }
+
+            .quick-action-btn:active {
+                transform: translateY(0);
+            }
+
+        /* Templates Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+            .modal.show {
+                display: flex;
+            }
+
+        .modal-content {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 16px;
+            padding: 24px;
+            max-width: 500px;
+            width: 100%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .modal-title {
+            font-size: 20px;
+            color: #00d9ff;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            color: #888;
+            font-size: 24px;
+            cursor: pointer;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+        }
+
+        .template-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 12px;
+        }
+
+        .template-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 16px;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: center;
+        }
+
+            .template-card:hover {
+                background: rgba(0, 217, 255, 0.1);
+                border-color: #00d9ff;
+                transform: translateY(-2px);
+            }
+
+        .template-icon {
+            font-size: 32px;
+            margin-bottom: 8px;
+        }
+
+        .template-name {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .template-desc {
+            font-size: 11px;
+            color: #666;
+        }
+
         .success-banner {
             background: linear-gradient(135deg, rgba(0, 255, 136, 0.2), rgba(0, 217, 255, 0.2));
             border: 1px solid rgba(0, 255, 136, 0.3);
@@ -48,17 +170,30 @@
             padding: 16px 20px;
             margin-bottom: 20px;
             display: none;
+            animation: slideIn 0.3s ease-out;
         }
 
-            .success-banner.show {
-                display: block;
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
             }
 
-            .success-banner h2 {
-                color: #00ff88;
-                font-size: 18px;
-                margin-bottom: 8px;
+            to {
+                opacity: 1;
+                transform: translateY(0);
             }
+        }
+
+        .success-banner.show {
+            display: block;
+        }
+
+        .success-banner h2 {
+            color: #00ff88;
+            font-size: 18px;
+            margin-bottom: 8px;
+        }
 
         .success-stats {
             display: flex;
@@ -98,7 +233,31 @@
             color: #00d9ff;
             text-transform: uppercase;
             letter-spacing: 1px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
         }
+
+        .section-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .icon-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            color: #888;
+            padding: 4px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.2s;
+        }
+
+            .icon-btn:hover {
+                background: rgba(0, 217, 255, 0.2);
+                color: #00d9ff;
+            }
 
         .form-row {
             display: grid;
@@ -131,6 +290,7 @@
             padding: 12px;
             color: #fff;
             font-size: 14px;
+            transition: all 0.2s;
         }
 
             input:focus, select:focus, textarea:focus {
@@ -164,7 +324,12 @@
             border: 1px solid rgba(255, 255, 255, 0.1);
             border-radius: 8px;
             padding: 16px;
+            transition: all 0.2s;
         }
+
+            .exercise-card:hover {
+                border-color: rgba(0, 217, 255, 0.3);
+            }
 
             .exercise-card.pre-filled {
                 border-color: rgba(0, 255, 136, 0.3);
@@ -173,7 +338,7 @@
 
         .exercise-header {
             display: flex;
-            justify-content: space-between;
+            gap: 12px;
             align-items: center;
             margin-bottom: 12px;
         }
@@ -194,6 +359,11 @@
                 color: #00ff88;
             }
 
+        .exercise-actions {
+            display: flex;
+            gap: 8px;
+        }
+
         .remove-exercise {
             background: rgba(255, 100, 100, 0.2);
             border: none;
@@ -202,7 +372,26 @@
             border-radius: 4px;
             cursor: pointer;
             font-size: 12px;
+            transition: all 0.2s;
         }
+
+            .remove-exercise:hover {
+                background: rgba(255, 100, 100, 0.3);
+            }
+
+        .copy-exercise {
+            background: rgba(0, 217, 255, 0.2);
+            border: none;
+            color: #00d9ff;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+            .copy-exercise:hover {
+                background: rgba(0, 217, 255, 0.3);
+            }
 
         .sets-table {
             width: 100%;
@@ -228,11 +417,36 @@
                 font-size: 14px;
             }
 
+                .sets-table input:focus {
+                    background: rgba(0, 217, 255, 0.15);
+                    border-color: #00d9ff;
+                }
+
         .set-number {
             color: #00d9ff;
             font-weight: 600;
             text-align: center;
         }
+
+        .set-actions {
+            display: flex;
+            justify-content: center;
+            gap: 4px;
+        }
+
+        .set-action-btn {
+            background: none;
+            border: none;
+            color: #666;
+            cursor: pointer;
+            padding: 4px;
+            font-size: 12px;
+            transition: all 0.2s;
+        }
+
+            .set-action-btn:hover {
+                color: #00d9ff;
+            }
 
         .add-set-btn {
             width: 100%;
@@ -244,7 +458,12 @@
             border-radius: 4px;
             cursor: pointer;
             font-size: 13px;
+            transition: all 0.2s;
         }
+
+            .add-set-btn:hover {
+                background: rgba(0, 217, 255, 0.2);
+            }
 
         .add-exercise-btn {
             width: 100%;
@@ -255,7 +474,12 @@
             border-radius: 8px;
             cursor: pointer;
             font-size: 14px;
+            transition: all 0.2s;
         }
+
+            .add-exercise-btn:hover {
+                background: rgba(0, 255, 136, 0.2);
+            }
 
         .feeling-slider {
             display: flex;
@@ -283,10 +507,15 @@
                 }
 
         .feeling-value {
-            min-width: 30px;
+            min-width: 50px;
             text-align: center;
             font-weight: 600;
             color: #00d9ff;
+            font-size: 18px;
+        }
+
+        .feeling-emoji {
+            font-size: 24px;
         }
 
         .submit-section {
@@ -304,7 +533,17 @@
             font-size: 16px;
             font-weight: 600;
             cursor: pointer;
+            transition: all 0.2s;
         }
+
+            .submit-btn:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 4px 12px rgba(0, 217, 255, 0.3);
+            }
+
+            .submit-btn:active {
+                transform: translateY(0);
+            }
 
         .cancel-btn {
             background: rgba(255, 255, 255, 0.1);
@@ -313,7 +552,12 @@
             padding: 16px 24px;
             border-radius: 8px;
             cursor: pointer;
+            transition: all 0.2s;
         }
+
+            .cancel-btn:hover {
+                background: rgba(255, 255, 255, 0.15);
+            }
 
         .pr-badge {
             background: linear-gradient(135deg, #ffd700, #ff6b35);
@@ -324,13 +568,126 @@
             border-radius: 4px;
             margin-left: 8px;
         }
+
+        /* Calculator tooltip */
+        .calculator-tooltip {
+            position: relative;
+            display: inline-block;
+        }
+
+        .calculator-content {
+            display: none;
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(26, 26, 46, 0.95);
+            border: 1px solid rgba(0, 217, 255, 0.3);
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 8px;
+            min-width: 200px;
+            z-index: 100;
+        }
+
+        .calculator-tooltip:hover .calculator-content {
+            display: block;
+        }
+
+        .calc-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 4px 0;
+            font-size: 12px;
+        }
+
+        .calc-label {
+            color: #888;
+        }
+
+        .calc-value {
+            color: #00d9ff;
+            font-weight: 600;
+        }
+
+        /* Live stats preview */
+        .live-stats {
+            background: rgba(0, 217, 255, 0.1);
+            border: 1px solid rgba(0, 217, 255, 0.2);
+            border-radius: 8px;
+            padding: 12px 16px;
+            margin-bottom: 16px;
+            display: flex;
+            justify-content: space-around;
+            gap: 16px;
+        }
+
+        .live-stat {
+            text-align: center;
+        }
+
+        .live-stat-value {
+            font-size: 18px;
+            font-weight: 700;
+            color: #00d9ff;
+        }
+
+        .live-stat-label {
+            font-size: 10px;
+            color: #666;
+            text-transform: uppercase;
+            margin-top: 2px;
+        }
+
+        /* Drag handle */
+        .drag-handle {
+            cursor: grab;
+            color: #666;
+            padding: 4px;
+        }
+
+            .drag-handle:active {
+                cursor: grabbing;
+            }
     </style>
 </head>
 <body>
     <div class="form-container">
         <div class="header">
             <h1>📝 Log Workout</h1>
-            <p id="header-subtitle">Review and confirm your workout details</p>
+            <p id="header-subtitle">Track your session and crush your goals</p>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="quick-actions">
+            <button class="quick-action-btn" id="btn-templates">
+                📋 Templates
+            </button>
+            <button class="quick-action-btn" id="btn-copy-last">
+                🔄 Copy Last Workout
+            </button>
+            <button class="quick-action-btn" id="btn-timer">
+                ⏱️ Rest Timer
+            </button>
+            <button class="quick-action-btn" id="btn-calculator">
+                🧮 1RM Calculator
+            </button>
+        </div>
+
+        <!-- Live Stats Preview -->
+        <div class="live-stats" id="live-stats">
+            <div class="live-stat">
+                <div class="live-stat-value" id="live-exercises">0</div>
+                <div class="live-stat-label">Exercises</div>
+            </div>
+            <div class="live-stat">
+                <div class="live-stat-value" id="live-sets">0</div>
+                <div class="live-stat-label">Total Sets</div>
+            </div>
+            <div class="live-stat">
+                <div class="live-stat-value" id="live-volume">0</div>
+                <div class="live-stat-label">Volume (lbs)</div>
+            </div>
         </div>
 
         <div class="success-banner" id="success-banner">
@@ -357,7 +714,12 @@
 
         <form id="workout-form">
             <div class="form-section">
-                <div class="section-title">Workout Details</div>
+                <div class="section-title">
+                    <span>Workout Details</span>
+                    <div class="section-actions">
+                        <button type="button" class="icon-btn" id="btn-quick-fill">⚡ Quick Fill</button>
+                    </div>
+                </div>
                 <div class="form-row">
                     <div class="form-group">
                         <label>Workout Type</label>
@@ -390,7 +752,12 @@
             </div>
 
             <div class="form-section">
-                <div class="section-title">Exercises</div>
+                <div class="section-title">
+                    <span>Exercises</span>
+                    <div class="section-actions">
+                        <button type="button" class="icon-btn" id="btn-clear-all">🗑️ Clear All</button>
+                    </div>
+                </div>
                 <div class="exercises-list" id="exercises-list"></div>
                 <button type="button" class="add-exercise-btn" id="add-exercise">+ Add Exercise</button>
             </div>
@@ -402,20 +769,26 @@
                         <label>Perceived Effort (RPE)</label>
                         <div class="feeling-slider">
                             <input type="range" id="effort" min="1" max="10" value="7">
-                            <span class="feeling-value" id="effort-value">7</span>
+                            <span class="feeling-value">
+                                <span id="effort-value">7</span>
+                                <span class="feeling-emoji" id="effort-emoji">😊</span>
+                            </span>
                         </div>
                     </div>
                     <div class="form-group">
                         <label>Energy Level</label>
                         <div class="feeling-slider">
                             <input type="range" id="energy" min="1" max="10" value="7">
-                            <span class="feeling-value" id="energy-value">7</span>
+                            <span class="feeling-value">
+                                <span id="energy-value">7</span>
+                                <span class="feeling-emoji" id="energy-emoji">⚡</span>
+                            </span>
                         </div>
                     </div>
                 </div>
                 <div class="form-group full-width">
                     <label>Notes (optional)</label>
-                    <textarea id="notes" placeholder="How did the workout go?"></textarea>
+                    <textarea id="notes" placeholder="How did the workout go? Any PRs? Challenges?"></textarea>
                 </div>
             </div>
 
@@ -426,68 +799,262 @@
         </form>
     </div>
 
+    <!-- Templates Modal -->
+    <div class="modal" id="templates-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">Workout Templates</h2>
+                <button class="modal-close" id="close-templates">×</button>
+            </div>
+            <div class="template-grid" id="template-grid"></div>
+        </div>
+    </div>
+
+    <!-- 1RM Calculator Modal -->
+    <div class="modal" id="calculator-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">1RM Calculator</h2>
+                <button class="modal-close" id="close-calculator">×</button>
+            </div>
+            <div class="form-group">
+                <label>Weight Lifted (lbs)</label>
+                <input type="number" id="calc-weight" placeholder="225">
+            </div>
+            <div class="form-group" style="margin-top: 16px;">
+                <label>Reps Performed</label>
+                <input type="number" id="calc-reps" placeholder="8">
+            </div>
+            <div style="margin-top: 24px; padding: 16px; background: rgba(0, 217, 255, 0.1); border-radius: 8px;">
+                <div class="calc-row">
+                    <span class="calc-label">Estimated 1RM:</span>
+                    <span class="calc-value" id="calc-result">-</span>
+                </div>
+                <div class="calc-row">
+                    <span class="calc-label">90% (3-4 reps):</span>
+                    <span class="calc-value" id="calc-90">-</span>
+                </div>
+                <div class="calc-row">
+                    <span class="calc-label">85% (5-6 reps):</span>
+                    <span class="calc-value" id="calc-85">-</span>
+                </div>
+                <div class="calc-row">
+                    <span class="calc-label">80% (7-8 reps):</span>
+                    <span class="calc-value" id="calc-80">-</span>
+                </div>
+                <div class="calc-row">
+                    <span class="calc-label">75% (9-10 reps):</span>
+                    <span class="calc-value" id="calc-75">-</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Rest Timer Modal -->
+    <div class="modal" id="timer-modal">
+        <div class="modal-content" style="text-align: center;">
+            <div class="modal-header">
+                <h2 class="modal-title">Rest Timer</h2>
+                <button class="modal-close" id="close-timer">×</button>
+            </div>
+            <div style="font-size: 64px; font-weight: 700; color: #00d9ff; margin: 32px 0;" id="timer-display">0:00</div>
+            <div style="display: flex; gap: 12px; justify-content: center;">
+                <button class="quick-action-btn" id="timer-start">▶️ Start</button>
+                <button class="quick-action-btn" id="timer-pause">⏸️ Pause</button>
+                <button class="quick-action-btn" id="timer-reset">🔄 Reset</button>
+            </div>
+            <div style="display: flex; gap: 8px; margin-top: 20px; justify-content: center;">
+                <button class="icon-btn" id="timer-60">1 min</button>
+                <button class="icon-btn" id="timer-90">90s</button>
+                <button class="icon-btn" id="timer-120">2 min</button>
+                <button class="icon-btn" id="timer-180">3 min</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         let exerciseCount = 0;
+        let timerInterval = null;
+        let timerSeconds = 0;
+        let timerRunning = false;
+
+        // Workout templates
+        const templates = {
+            push: {
+                name: 'Push Day',
+                icon: '💪',
+                desc: 'Chest, shoulders, triceps',
+                exercises: [
+                    { name: 'Bench Press', muscle: 'Chest', sets: [[185, 8], [185, 8], [185, 8]] },
+                    { name: 'Overhead Press', muscle: 'Shoulders', sets: [[95, 8], [95, 8], [95, 8]] },
+                    { name: 'Incline Dumbbell Press', muscle: 'Chest', sets: [[60, 10], [60, 10], [60, 10]] },
+                    { name: 'Tricep Dips', muscle: 'Triceps', sets: [[0, 12], [0, 12], [0, 12]] }
+                ],
+                type: 'Push'
+            },
+            pull: {
+                name: 'Pull Day',
+                icon: '🏋️',
+                desc: 'Back, biceps',
+                exercises: [
+                    { name: 'Deadlift', muscle: 'Back', sets: [[225, 5], [225, 5], [225, 5]] },
+                    { name: 'Pull-ups', muscle: 'Back', sets: [[0, 10], [0, 10], [0, 10]] },
+                    { name: 'Barbell Row', muscle: 'Back', sets: [[135, 8], [135, 8], [135, 8]] },
+                    { name: 'Bicep Curls', muscle: 'Biceps', sets: [[30, 12], [30, 12], [30, 12]] }
+                ],
+                type: 'Pull'
+            },
+            legs: {
+                name: 'Leg Day',
+                icon: '🦵',
+                desc: 'Quads, hamstrings, glutes',
+                exercises: [
+                    { name: 'Squat', muscle: 'Legs', sets: [[225, 8], [225, 8], [225, 8]] },
+                    { name: 'Romanian Deadlift', muscle: 'Legs', sets: [[185, 10], [185, 10], [185, 10]] },
+                    { name: 'Leg Press', muscle: 'Legs', sets: [[270, 12], [270, 12], [270, 12]] },
+                    { name: 'Leg Curl', muscle: 'Legs', sets: [[70, 12], [70, 12], [70, 12]] }
+                ],
+                type: 'Legs'
+            },
+            upper: {
+                name: 'Upper Body',
+                icon: '💪',
+                desc: 'Full upper body',
+                exercises: [
+                    { name: 'Bench Press', muscle: 'Chest', sets: [[185, 8], [185, 8], [185, 8]] },
+                    { name: 'Lat Pulldown', muscle: 'Back', sets: [[120, 10], [120, 10], [120, 10]] },
+                    { name: 'Overhead Press', muscle: 'Shoulders', sets: [[95, 8], [95, 8], [95, 8]] },
+                    { name: 'Dumbbell Row', muscle: 'Back', sets: [[60, 10], [60, 10], [60, 10]] }
+                ],
+                type: 'Upper'
+            },
+            cardio: {
+                name: 'Cardio',
+                icon: '🏃',
+                desc: 'Conditioning',
+                exercises: [
+                    { name: 'Running', muscle: 'Cardio', sets: [[0, 20]] },
+                    { name: 'Rowing', muscle: 'Cardio', sets: [[0, 15]] },
+                    { name: 'Jump Rope', muscle: 'Cardio', sets: [[0, 10]] }
+                ],
+                type: 'Cardio'
+            }
+        };
+
+        // Effort/Energy emojis
+        const effortEmojis = {
+            1: '😴', 2: '😌', 3: '🙂', 4: '😊', 5: '😅',
+            6: '😤', 7: '💪', 8: '😰', 9: '🥵', 10: '🔥'
+        };
+
+        const energyEmojis = {
+            1: '🪫', 2: '😴', 3: '😐', 4: '🙂', 5: '😊',
+            6: '😃', 7: '⚡', 8: '🚀', 9: '💥', 10: '⭐'
+        };
 
         // Initialize the app
         function initApp() {
-            // Apply theme
             if (window.openai?.theme) {
                 document.body.className = window.openai.theme;
             }
 
-            // Listen for theme changes
             window.addEventListener('openai:set_globals', (event) => {
                 if (event.detail?.globals?.theme) {
                     document.body.className = event.detail.globals.theme;
                 }
             });
 
-            // Get data from window.openai
             const toolInput = window.openai?.toolInput || null;
             const toolOutput = window.openai?.toolOutput || null;
-            const metadata = window.openai?.toolResponseMetadata || null;
-            const widgetState = window.openai?.widgetState || null;
-            const locale = window.openai?.locale || 'en-US';
-            const displayMode = window.openai?.displayMode || 'inline';
 
-            console.log('toolInput:', toolInput);
-            console.log('toolOutput:', toolOutput);
-            console.log('metadata:', metadata);
-
-            // Initialize date and sliders
             document.getElementById('workout-date').valueAsDate = new Date();
 
-            // Setup slider listeners
+            // Setup event listeners
+            setupSliders();
+            setupButtons();
+            setupCalculator();
+            setupTimer();
+
+            // Populate form
+            if (toolOutput) {
+                if (toolOutput.Success || toolOutput.success) {
+                    showSuccess(toolOutput);
+                }
+                populateWorkout(toolOutput);
+            } else if (toolInput) {
+                populateWorkout(toolInput.Workout || toolInput.workout || toolInput);
+            } else {
+                addExercise();
+            }
+
+            updateLiveStats();
+        }
+
+        function setupSliders() {
             document.getElementById('effort').addEventListener('input', e => {
-                document.getElementById('effort-value').textContent = e.target.value;
-            });
-            document.getElementById('energy').addEventListener('input', e => {
-                document.getElementById('energy-value').textContent = e.target.value;
+                const value = e.target.value;
+                document.getElementById('effort-value').textContent = value;
+                document.getElementById('effort-emoji').textContent = effortEmojis[value];
             });
 
-            // Setup button listeners
+            document.getElementById('energy').addEventListener('input', e => {
+                const value = e.target.value;
+                document.getElementById('energy-value').textContent = value;
+                document.getElementById('energy-emoji').textContent = energyEmojis[value];
+            });
+        }
+
+        function setupButtons() {
             document.getElementById('add-exercise').addEventListener('click', () => addExercise());
+
+            document.getElementById('btn-templates').addEventListener('click', showTemplates);
+            document.getElementById('close-templates').addEventListener('click', () => {
+                document.getElementById('templates-modal').classList.remove('show');
+            });
+
+            document.getElementById('btn-calculator').addEventListener('click', () => {
+                document.getElementById('calculator-modal').classList.add('show');
+            });
+            document.getElementById('close-calculator').addEventListener('click', () => {
+                document.getElementById('calculator-modal').classList.remove('show');
+            });
+
+            document.getElementById('btn-timer').addEventListener('click', () => {
+                document.getElementById('timer-modal').classList.add('show');
+            });
+            document.getElementById('close-timer').addEventListener('click', () => {
+                document.getElementById('timer-modal').classList.remove('show');
+            });
+
+            document.getElementById('btn-copy-last').addEventListener('click', async () => {
+                if (window.openai?.sendFollowUpMessage) {
+                    await window.openai.sendFollowUpMessage({
+                        prompt: 'Copy my last workout into the log form'
+                    });
+                }
+            });
+
+            document.getElementById('btn-clear-all').addEventListener('click', () => {
+                if (confirm('Clear all exercises?')) {
+                    document.getElementById('exercises-list').innerHTML = '';
+                    exerciseCount = 0;
+                    addExercise();
+                    updateLiveStats();
+                }
+            });
+
+            document.getElementById('btn-quick-fill').addEventListener('click', () => {
+                document.getElementById('effort').value = 7;
+                document.getElementById('energy').value = 7;
+                document.getElementById('effort-value').textContent = '7';
+                document.getElementById('energy-value').textContent = '7';
+                document.getElementById('effort-emoji').textContent = '💪';
+                document.getElementById('energy-emoji').textContent = '⚡';
+            });
 
             document.getElementById('workout-form').addEventListener('submit', async e => {
                 e.preventDefault();
-                const exercises = [...document.querySelectorAll('.exercise-card')].map(card => {
-                    const sets = [...card.querySelectorAll('.sets-body tr')].map(row => {
-                        const inputs = row.querySelectorAll('input');
-                        return {
-                            Weight: +inputs[0].value || 0,
-                            Reps: +inputs[1].value || 0,
-                            Rpe: +inputs[2].value || null,
-                            IsPR: false
-                        };
-                    }).filter(s => s.Reps > 0);
-                    return {
-                        Name: card.querySelector('.exercise-name-input').value,
-                        MuscleGroup: card.querySelector('.muscle-group-dropdown').value,
-                        Sets: sets
-                    };
-                }).filter(e => e.Name && e.Sets.length);
-
+                const exercises = gatherExercises();
                 const data = {
                     Type: document.getElementById('workout-type').value,
                     DurationMinutes: +document.getElementById('duration').value,
@@ -509,40 +1076,162 @@
                 }
             });
 
-            // Populate form based on toolOutput
-            if (toolOutput) {
-                console.log('Full toolOutput:', toolOutput);
+            // Live stats update
+            document.getElementById('exercises-list').addEventListener('input', updateLiveStats);
+        }
 
-                // If tool already ran and succeeded, show success banner
-                if (toolOutput.Success || toolOutput.success) {
-                    showSuccess(toolOutput);
+        function setupCalculator() {
+            const weightInput = document.getElementById('calc-weight');
+            const repsInput = document.getElementById('calc-reps');
+
+            function calculate() {
+                const weight = parseFloat(weightInput.value);
+                const reps = parseInt(repsInput.value);
+
+                if (weight && reps) {
+                    const oneRM = weight * (1 + reps / 30);
+                    document.getElementById('calc-result').textContent = Math.round(oneRM) + ' lbs';
+                    document.getElementById('calc-90').textContent = Math.round(oneRM * 0.9) + ' lbs';
+                    document.getElementById('calc-85').textContent = Math.round(oneRM * 0.85) + ' lbs';
+                    document.getElementById('calc-80').textContent = Math.round(oneRM * 0.8) + ' lbs';
+                    document.getElementById('calc-75').textContent = Math.round(oneRM * 0.75) + ' lbs';
                 }
+            }
 
-                // Populate workout data from toolOutput
-                // toolOutput IS the workout data when Success is true
-                const workoutData = toolOutput;
-                console.log('Workout data to populate:', workoutData);
-                console.log('Exercises in workout data:', workoutData.Exercises || workoutData.exercises);
-                populateWorkout(workoutData);
-            } else if (toolInput) {
-                // If we have toolInput, populate from that
-                const workoutData = toolInput.Workout || toolInput.workout || toolInput;
-                populateWorkout(workoutData);
-            } else {
-                // Default: add one empty exercise
-                addExercise();
+            weightInput.addEventListener('input', calculate);
+            repsInput.addEventListener('input', calculate);
+        }
+
+        function setupTimer() {
+            document.getElementById('timer-start').addEventListener('click', () => {
+                if (!timerRunning) {
+                    timerRunning = true;
+                    timerInterval = setInterval(() => {
+                        timerSeconds++;
+                        updateTimerDisplay();
+                    }, 1000);
+                }
+            });
+
+            document.getElementById('timer-pause').addEventListener('click', () => {
+                timerRunning = false;
+                clearInterval(timerInterval);
+            });
+
+            document.getElementById('timer-reset').addEventListener('click', () => {
+                timerRunning = false;
+                clearInterval(timerInterval);
+                timerSeconds = 0;
+                updateTimerDisplay();
+            });
+
+            document.getElementById('timer-60').addEventListener('click', () => setTimer(60));
+            document.getElementById('timer-90').addEventListener('click', () => setTimer(90));
+            document.getElementById('timer-120').addEventListener('click', () => setTimer(120));
+            document.getElementById('timer-180').addEventListener('click', () => setTimer(180));
+        }
+
+        function setTimer(seconds) {
+            timerSeconds = seconds;
+            updateTimerDisplay();
+            if (!timerRunning) {
+                timerRunning = true;
+                timerInterval = setInterval(() => {
+                    timerSeconds--;
+                    updateTimerDisplay();
+                    if (timerSeconds <= 0) {
+                        clearInterval(timerInterval);
+                        timerRunning = false;
+                        alert('Rest time complete! 💪');
+                    }
+                }, 1000);
             }
         }
 
-        function populateWorkout(data) {
-            console.log('populateWorkout called with:', data);
+        function updateTimerDisplay() {
+            const mins = Math.floor(timerSeconds / 60);
+            const secs = timerSeconds % 60;
+            document.getElementById('timer-display').textContent =
+                `${mins}:${secs.toString().padStart(2, '0')}`;
+        }
 
+        function showTemplates() {
+            const grid = document.getElementById('template-grid');
+            grid.innerHTML = '';
+
+            Object.entries(templates).forEach(([key, template]) => {
+                const card = document.createElement('div');
+                card.className = 'template-card';
+                card.innerHTML = `
+                        <div class="template-icon">${template.icon}</div>
+                        <div class="template-name">${template.name}</div>
+                        <div class="template-desc">${template.desc}</div>
+                    `;
+                card.addEventListener('click', () => {
+                    applyTemplate(template);
+                    document.getElementById('templates-modal').classList.remove('show');
+                });
+                grid.appendChild(card);
+            });
+
+            document.getElementById('templates-modal').classList.add('show');
+        }
+
+        function applyTemplate(template) {
+            document.getElementById('workout-type').value = template.type;
+            document.getElementById('exercises-list').innerHTML = '';
+            exerciseCount = 0;
+
+            template.exercises.forEach(ex => {
+                const sets = ex.sets.map(([weight, reps]) => ({
+                    Weight: weight,
+                    Reps: reps,
+                    Rpe: null,
+                    IsPR: false
+                }));
+                addExercise(ex.name, ex.muscle, sets, true);
+            });
+
+            updateLiveStats();
+        }
+
+        function gatherExercises() {
+            return [...document.querySelectorAll('.exercise-card')].map(card => {
+                const sets = [...card.querySelectorAll('.sets-body tr')].map(row => {
+                    const inputs = row.querySelectorAll('input');
+                    return {
+                        Weight: +inputs[0].value || 0,
+                        Reps: +inputs[1].value || 0,
+                        Rpe: +inputs[2].value || null,
+                        IsPR: false
+                    };
+                }).filter(s => s.Reps > 0);
+                return {
+                    Name: card.querySelector('.exercise-name-input').value,
+                    MuscleGroup: card.querySelector('.muscle-group-dropdown').value,
+                    Sets: sets
+                };
+            }).filter(e => e.Name && e.Sets.length);
+        }
+
+        function updateLiveStats() {
+            const exercises = gatherExercises();
+            const exerciseCount = exercises.length;
+            const totalSets = exercises.reduce((sum, ex) => sum + ex.Sets.length, 0);
+            const totalVolume = exercises.reduce((sum, ex) =>
+                sum + ex.Sets.reduce((s, set) => s + (set.Weight * set.Reps), 0), 0);
+
+            document.getElementById('live-exercises').textContent = exerciseCount;
+            document.getElementById('live-sets').textContent = totalSets;
+            document.getElementById('live-volume').textContent = formatNumber(totalVolume);
+        }
+
+        function populateWorkout(data) {
             if (!data) {
                 addExercise();
                 return;
             }
 
-            // Populate workout details
             const type = data.Type || data.type;
             if (type) {
                 document.getElementById('workout-type').value = type;
@@ -564,12 +1253,14 @@
             if (effort) {
                 document.getElementById('effort').value = effort;
                 document.getElementById('effort-value').textContent = effort;
+                document.getElementById('effort-emoji').textContent = effortEmojis[effort];
             }
 
             const energy = data.EnergyLevel || data.energyLevel;
             if (energy) {
                 document.getElementById('energy').value = energy;
                 document.getElementById('energy-value').textContent = energy;
+                document.getElementById('energy-emoji').textContent = energyEmojis[energy];
             }
 
             const notes = data.Notes || data.notes;
@@ -577,17 +1268,12 @@
                 document.getElementById('notes').value = notes;
             }
 
-            // Clear and populate exercises
             document.getElementById('exercises-list').innerHTML = '';
             exerciseCount = 0;
 
             const exercises = data.Exercises || data.exercises || [];
-            console.log('Exercises to populate:', exercises);
-            console.log('Number of exercises:', exercises.length);
-
             if (exercises.length > 0) {
-                exercises.forEach((ex, index) => {
-                    console.log(`Exercise ${index}:`, ex);
+                exercises.forEach(ex => {
                     addExercise(
                         ex.Name || ex.name,
                         ex.MuscleGroup || ex.muscleGroup || 'Chest',
@@ -596,9 +1282,10 @@
                     );
                 });
             } else {
-                console.log('No exercises found, adding empty exercise');
                 addExercise();
             }
+
+            updateLiveStats();
         }
 
         function showSuccess(output) {
@@ -612,7 +1299,6 @@
                 document.getElementById('stat-volume').textContent = formatNumber(summary.TotalVolume || summary.totalVolume || 0);
             }
 
-            // Get duration from main output object, not summary
             const duration = output.DurationMinutes || output.durationMinutes || 0;
             document.getElementById('stat-duration').textContent = duration;
 
@@ -624,34 +1310,47 @@
         }
 
         function addExercise(name = '', muscleGroup = 'Chest', sets = [], preFilled = false) {
-            console.log('addExercise called:', { name, muscleGroup, sets: sets, setsLength: sets.length, preFilled });
-
             exerciseCount++;
             const id = `exercise-${exerciseCount}`;
 
             let setsHtml = sets.length > 0
-                ? sets.map((s, i) => {
-                    console.log(`Set ${i}:`, s);
-                    return `
+                ? sets.map((s, i) => `
                         <tr>
                             <td class="set-number">${i + 1}${(s.IsPR || s.isPR) ? '<span class="pr-badge">PR!</span>' : ''}</td>
                             <td><input type="number" placeholder="lbs" value="${s.Weight || s.weight || ''}" class="${(s.Weight || s.weight) ? 'pre-filled' : ''}"></td>
                             <td><input type="number" placeholder="reps" value="${s.Reps || s.reps || ''}" class="${(s.Reps || s.reps) ? 'pre-filled' : ''}"></td>
                             <td><input type="number" placeholder="1-10" value="${s.Rpe || s.rpe || ''}"></td>
+                            <td class="set-actions">
+                                <button type="button" class="set-action-btn" onclick="copySet(this)">📋</button>
+                                <button type="button" class="set-action-btn" onclick="removeSet(this)">🗑️</button>
+                            </td>
                         </tr>
-                    `}).join('')
-                : '<tr><td class="set-number">1</td><td><input type="number" placeholder="lbs"></td><td><input type="number" placeholder="reps"></td><td><input type="number" placeholder="1-10"></td></tr>';
+                    `).join('')
+                : `<tr>
+                        <td class="set-number">1</td>
+                        <td><input type="number" placeholder="lbs"></td>
+                        <td><input type="number" placeholder="reps"></td>
+                        <td><input type="number" placeholder="1-10"></td>
+                        <td class="set-actions">
+                            <button type="button" class="set-action-btn" onclick="copySet(this)">📋</button>
+                            <button type="button" class="set-action-btn" onclick="removeSet(this)">🗑️</button>
+                        </td>
+                    </tr>`;
 
             document.getElementById('exercises-list').insertAdjacentHTML('beforeend', `
                     <div class="exercise-card ${preFilled ? 'pre-filled' : ''}" id="${id}">
                         <div class="exercise-header">
+                            <span class="drag-handle">⋮⋮</span>
                             <input type="text" class="exercise-name-input ${preFilled && name ? 'pre-filled' : ''}" placeholder="Exercise name..." value="${name}" required>
-                            <select class="muscle-group-dropdown" style="margin:0 12px;padding:6px;">
+                            <select class="muscle-group-dropdown" style="padding:6px 12px;">
                                 ${['Chest', 'Back', 'Shoulders', 'Biceps', 'Triceps', 'Legs', 'Core', 'Cardio']
                     .map(m => `<option value="${m}" ${muscleGroup === m ? 'selected' : ''}>${m}</option>`)
                     .join('')}
                             </select>
-                            <button type="button" class="remove-exercise" onclick="removeExercise('${id}')">Remove</button>
+                            <div class="exercise-actions">
+                                <button type="button" class="copy-exercise" onclick="copyExercise('${id}')">📋</button>
+                                <button type="button" class="remove-exercise" onclick="removeExercise('${id}')">Remove</button>
+                            </div>
                         </div>
                         <table class="sets-table">
                             <thead>
@@ -660,6 +1359,7 @@
                                     <th>Weight</th>
                                     <th>Reps</th>
                                     <th style="width:60px">RPE</th>
+                                    <th style="width:80px">Actions</th>
                                 </tr>
                             </thead>
                             <tbody class="sets-body">${setsHtml}</tbody>
@@ -667,22 +1367,91 @@
                         <button type="button" class="add-set-btn" onclick="addSet('${id}')">+ Add Set</button>
                     </div>
                 `);
+
+            updateLiveStats();
         }
 
         function removeExercise(id) {
             document.getElementById(id).remove();
+            updateLiveStats();
+        }
+
+        function copyExercise(id) {
+            const card = document.getElementById(id);
+            const name = card.querySelector('.exercise-name-input').value;
+            const muscle = card.querySelector('.muscle-group-dropdown').value;
+            const sets = [...card.querySelectorAll('.sets-body tr')].map(row => {
+                const inputs = row.querySelectorAll('input');
+                return {
+                    Weight: +inputs[0].value || 0,
+                    Reps: +inputs[1].value || 0,
+                    Rpe: +inputs[2].value || null,
+                    IsPR: false
+                };
+            });
+            addExercise(name, muscle, sets, true);
         }
 
         function addSet(id) {
             const tbody = document.querySelector(`#${id} .sets-body`);
+            const setNum = tbody.children.length + 1;
+
+            // Copy values from previous set if it exists
+            let prevWeight = '';
+            let prevReps = '';
+            if (tbody.children.length > 0) {
+                const lastRow = tbody.children[tbody.children.length - 1];
+                const inputs = lastRow.querySelectorAll('input');
+                prevWeight = inputs[0].value;
+                prevReps = inputs[1].value;
+            }
+
             tbody.insertAdjacentHTML('beforeend', `
                     <tr>
-                        <td class="set-number">${tbody.children.length + 1}</td>
-                        <td><input type="number" placeholder="lbs"></td>
-                        <td><input type="number" placeholder="reps"></td>
+                        <td class="set-number">${setNum}</td>
+                        <td><input type="number" placeholder="lbs" value="${prevWeight}"></td>
+                        <td><input type="number" placeholder="reps" value="${prevReps}"></td>
                         <td><input type="number" placeholder="1-10"></td>
+                        <td class="set-actions">
+                            <button type="button" class="set-action-btn" onclick="copySet(this)">📋</button>
+                            <button type="button" class="set-action-btn" onclick="removeSet(this)">🗑️</button>
+                        </td>
                     </tr>
                 `);
+            updateLiveStats();
+        }
+
+        function removeSet(btn) {
+            const row = btn.closest('tr');
+            const tbody = row.parentElement;
+            row.remove();
+
+            // Renumber remaining sets
+            [...tbody.querySelectorAll('tr')].forEach((row, i) => {
+                row.querySelector('.set-number').textContent = i + 1;
+            });
+            updateLiveStats();
+        }
+
+        function copySet(btn) {
+            const row = btn.closest('tr');
+            const tbody = row.parentElement;
+            const inputs = row.querySelectorAll('input');
+            const setNum = tbody.children.length + 1;
+
+            tbody.insertAdjacentHTML('beforeend', `
+                    <tr>
+                        <td class="set-number">${setNum}</td>
+                        <td><input type="number" placeholder="lbs" value="${inputs[0].value}"></td>
+                        <td><input type="number" placeholder="reps" value="${inputs[1].value}"></td>
+                        <td><input type="number" placeholder="1-10" value="${inputs[2].value}"></td>
+                        <td class="set-actions">
+                            <button type="button" class="set-action-btn" onclick="copySet(this)">📋</button>
+                            <button type="button" class="set-action-btn" onclick="removeSet(this)">🗑️</button>
+                        </td>
+                    </tr>
+                `);
+            updateLiveStats();
         }
 
         // Initialize when DOM is ready
@@ -692,9 +1461,7 @@
             initApp();
         }
 
-        // Re-render on global changes
         window.addEventListener('openai:set_globals', () => {
-            console.log('Globals updated, re-rendering...');
             initApp();
         });
     </script>

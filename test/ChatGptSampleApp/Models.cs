@@ -76,6 +76,7 @@ public class ExerciseSet
 /// <summary>
 /// User's fitness profile for personalized recommendations
 /// </summary>
+[McpResult]
 public class UserProfile
 {
     /// <summary>

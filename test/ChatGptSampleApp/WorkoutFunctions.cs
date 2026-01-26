@@ -26,6 +26,22 @@ public class WorkoutFunctions
 
     #region Resources - UI Widgets
 
+    [Function(nameof(GetDashboardWidget))]
+    public string GetDashboardWidget(
+        [McpResourceTrigger(
+            "ui://widget/dashboard.html",
+            "Workout Dashboard",
+            MimeType = "text/html+skybridge",
+            Description = "Interactive dashboard to view workout history and log new sessions")]
+        [McpResourceMetadata("openai/widgetPrefersBorder", true)]
+        [McpResourceMetadata("openai/widgetDomain", "https://chatgpt.com")]
+        [McpResourceMetadata("openai/widgetCSP", "{\"connect_domains\":[],\"resource_domains\":[]}")]
+        ResourceInvocationContext context)
+    {
+        var file = Path.Combine(AppContext.BaseDirectory, "resources", "dashboard.html");
+        return File.ReadAllText(file);
+    }
+
     [Function(nameof(GetLogWorkoutWidget))]
     public string GetLogWorkoutWidget(
         [McpResourceTrigger(
@@ -418,6 +434,36 @@ public class WorkoutFunctions
 
         [Description("Optional notes about the workout")]
         public string? Notes { get; set; }
+    }
+
+    public class ExerciseInput
+    {
+        [Description("Name of the exercise (e.g., 'Bench Press', 'Squat')")]
+        public required string Name { get; set; }
+
+        [Description("Primary muscle group: Chest, Back, Shoulders, Biceps, Triceps, Legs, Core, Cardio")]
+        public string MuscleGroup { get; set; } = "General";
+
+        [Description("List of sets performed")]
+        public List<SetInput> Sets { get; set; } = new();
+
+        [Description("Optional notes for this exercise")]
+        public string? Notes { get; set; }
+    }
+
+    public class SetInput
+    {
+        [Description("Number of reps performed")]
+        public int Reps { get; set; }
+
+        [Description("Weight used (in user's preferred unit)")]
+        public double Weight { get; set; }
+
+        [Description("Rate of perceived exertion for this set (1-10)")]
+        public int? Rpe { get; set; }
+
+        [Description("Whether this was a personal record attempt")]
+        public bool IsPR { get; set; }
     }
 
     public class GetWorkoutHistoryRequest
