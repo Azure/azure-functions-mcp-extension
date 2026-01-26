@@ -29,13 +29,13 @@ public class ResourceFunctions
     [Function(nameof(GetImageResource))]
     public byte[] GetImageResource(
         [McpResourceTrigger(
-        "file://resources/icon.png",
+        "file://icon.png",
         "Icon",
         Description = "Azure Functions logo",
         MimeType = "image/png")] ResourceInvocationContext context)
     {
         _logger.LogInformation("Reading image from local file system");
-        var filePath = Path.Combine(AppContext.BaseDirectory, "resources", "icon.png");
+        var filePath = Path.Combine(AppContext.BaseDirectory, "icon.png");
         return File.ReadAllBytes(filePath);
     }
 }
