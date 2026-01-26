@@ -58,7 +58,10 @@ internal sealed class DefaultToolRegistry : IToolRegistry
                     case "GetWeather":
                         toolItem.Meta = new JsonObject
                         {
-                            ["openai/outputTemplate"] = "ui://widget/weather.html"
+                            ["ui"] = new JsonObject
+                            {
+                                ["resourceUri"] = "ui://weather/index.html"
+                            }
                         };
                         break;
                 }

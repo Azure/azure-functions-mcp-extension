@@ -134,11 +134,6 @@ internal sealed class ResourceReturnValueBinder(ReadResourceExecutionContext exe
 
     private JsonObject? GetMetaJsonObject()
     {
-        if (metadata is null || metadata.Count == 0)
-        {
-            return null;
-        }
-
-        return JsonSerializer.SerializeToNode(metadata.ToDictionary(kvp => kvp.Key, kvp => kvp.Value))?.AsObject();
+        return Utility.BuildNestedMetadataJson(metadata);
     }
 }

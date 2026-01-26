@@ -21,19 +21,17 @@ public class WeatherFunction
     [Function(nameof(GetWeatherWidget))]
     public string GetWeatherWidget(
         [McpResourceTrigger(
-            "ui://widget/weather.html",
+            "ui://weather/index.html",
             "Weather Widget",
-            MimeType = "text/html+skybridge",
-            Description = "Interactive weather display for ChatGPT Apps")]
-        [McpResourceMetadata("openai/widgetPrefersBorder", true)]
-        [McpResourceMetadata("openai/widgetDomain", "https://chatgpt.com")]
+            MimeType = "text/html;profile=mcp-app",
+            Description = "Interactive weather display for MCP Apps")]
         ResourceInvocationContext context)
     {
-        var file = Path.Combine(AppContext.BaseDirectory, "resources", "weather.html");
+        var file = Path.Combine(AppContext.BaseDirectory, "app", "dist", "index.html");
         return File.ReadAllText(file);
     }
 
-    // ["openai/outputTemplate"] = "ui://widget/weather.html"
+    // meta: ui.resourceId = "ui://weather/index.html"
     [Function(nameof(GetWeather))]
     public async Task<object> GetWeather(
         [McpToolTrigger(nameof(GetWeather), "Returns current weather for a location via Open-Meteo.")] ToolInvocationContext context,
