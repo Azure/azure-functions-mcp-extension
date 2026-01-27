@@ -16,6 +16,7 @@ namespace Microsoft.Azure.Functions.Worker.Extensions.Mcp;
 /// [McpMetadata("author", "John Doe")]                    // { "author": "John Doe" }
 /// [McpMetadata("ui:resourceUri", "ui://my-app/widget")]  // { "ui": { "resourceUri": "ui://my-app/widget" } }
 /// [McpMetadata("ui:prefersBorder", "true")]              // Merges into ui object
+/// [McpMetadata("tags", new[] { "a", "b", "c" })]         // { "tags": ["a", "b", "c"] }
 /// </code>
 /// <para>
 /// Multiple attributes with the same nested path prefix will be merged into a single object.
@@ -24,10 +25,11 @@ namespace Microsoft.Azure.Functions.Worker.Extensions.Mcp;
 /// <example>
 /// <code>
 /// [McpMetadata("ui:resourceUri", "ui://time/widget.html")]
+/// [McpMetadata("categories", new[] { "tools", "utilities" })]
 /// </code>
 /// </example>
 [AttributeUsage(AttributeTargets.Parameter, AllowMultiple = true)]
-public sealed class McpMetadataAttribute(string key, string? value) : Attribute, IKeyValueMetadataAttribute
+public sealed class McpMetadataAttribute(string key, object? value) : Attribute, IKeyValueMetadataAttribute
 {
     /// <summary>
     /// Gets the metadata key. Use colon notation (e.g., "ui:resourceUri") for nested paths.
@@ -35,9 +37,7 @@ public sealed class McpMetadataAttribute(string key, string? value) : Attribute,
     public string Key { get; } = key;
 
     /// <summary>
-    /// Gets the metadata value.
+    /// Gets the metadata value. Can be a string, number, boolean, or array.
     /// </summary>
-    public string? Value { get; } = value;
-
-    object? IKeyValueMetadataAttribute.Value => Value;
+    public object? Value { get; } = value;
 }

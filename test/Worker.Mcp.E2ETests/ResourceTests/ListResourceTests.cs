@@ -62,18 +62,24 @@ public class ListResourceTests(DefaultProjectFixture fixture, ITestOutputHelper 
         var meta = readmeResource.ProtocolResource.Meta;
         Assert.NotNull(meta);
         
-        // Check flat metadata: [McpMetadata("author", "John Doe")]
         Assert.True(meta.ContainsKey("author"));
         Assert.Equal("John Doe", meta["author"]!.ToString());
         
-        // Check nested metadata: [McpMetadata("file:version", "1.0.0")] and [McpMetadata("file:releaseDate", "2024-01-01")]
         Assert.True(meta.ContainsKey("file"));
         var fileNode = meta["file"]!.AsObject();
-        Assert.Equal("1.0.0", fileNode["version"]!.ToString());
+        Assert.Equal(1.0, fileNode["version"]!.GetValue<double>());
         Assert.Equal("2024-01-01", fileNode["releaseDate"]!.ToString());
 
+        Assert.True(meta.ContainsKey("test"));
+        var testNode = meta["test"]!.AsObject();
+        var exampleArray = testNode["example"]!.AsArray();
+        Assert.Equal(3, exampleArray.Count);
+        Assert.Equal("list", exampleArray[0]!.ToString());
+        Assert.Equal("of", exampleArray[1]!.ToString());
+        Assert.Equal("values", exampleArray[2]!.ToString());
+
         TestOutputHelper.WriteLine($"Resource: Name={readmeResource.Name}, Description={readmeResource.Description}, MimeType={readmeResource.MimeType}");
-        TestOutputHelper.WriteLine($"Metadata: author={meta["author"]}, file.version={fileNode["version"]}, file.releaseDate={fileNode["releaseDate"]}");
+        TestOutputHelper.WriteLine($"Metadata: author={meta["author"]}, file.version={fileNode["version"]}, file.releaseDate={fileNode["releaseDate"]}, test.example=[{string.Join(", ", exampleArray)}]");
     }
 
     [Theory]

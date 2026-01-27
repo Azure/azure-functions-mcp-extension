@@ -21,8 +21,10 @@ public class ResourceFunctions
             Description = "Application readme file",
             MimeType = "text/plain")]
         [McpMetadata("author", "John Doe")]
-        [McpMetadata("file:version", "1.0.0")]
-        [McpMetadata("file:releaseDate", "2024-01-01")] ResourceInvocationContext context)
+        [McpMetadata("file:version", 1.0)]
+        [McpMetadata("file:releaseDate", "2024-01-01")]
+        [McpMetadata("test:example", new[] { "list", "of", "values" })]
+        ResourceInvocationContext context)
     {
         _logger.LogInformation("Reading text resource from local file storage");
         var file = Path.Combine(AppContext.BaseDirectory, "assets", "readme.md");
