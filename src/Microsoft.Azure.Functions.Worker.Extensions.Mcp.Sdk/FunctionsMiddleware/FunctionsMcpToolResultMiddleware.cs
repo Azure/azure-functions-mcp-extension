@@ -123,44 +123,140 @@ internal class FunctionsMcpToolResultMiddleware : IFunctionsWorkerMiddleware
         return (type, content, structuredContent);
     }
 
+    /// <summary>
+    /// Determines whether structured content should be created for the given object.
+    /// </summary>
+    /// <remarks>
+    /// <para><b>Type Resolution Rules (evaluated in order):</b></para>
+    /// <list type="number">
+    ///   <item>
+    ///     <term>Direct Attribution</term>
+    ///     <description>If the type is decorated with <see cref="McpResultAttribute"/>, returns true.</description>
+    ///   </item>
+    ///   <item>
+    ///     <term>Inherited Attribution</term>
+    ///     <description>If the type inherits from a type with <see cref="McpResultAttribute"/>, returns true.</description>
+    ///   </item>
+    ///   <item>
+    ///     <term>Collection Element Attribution</term>
+    ///     <description>If the type is a collection and any element type has <see cref="McpResultAttribute"/>, returns true.
+    ///     Nested collections are recursively checked.</description>
+    ///   </item>
+    ///   <item>
+    ///     <term>No Attribution</term>
+    ///     <description>Otherwise, returns false (text content only).</description>
+    ///   </item>
+    /// </list>
+    /// 
+    /// <para><b>Supported Types:</b></para>
+    /// <list type="bullet">
+    ///   <item><c>class</c>, <c>record class</c>, <c>struct</c>, <c>record struct</c> - Fully supported</item>
+    ///   <item><c>interface</c>, <c>enum</c> - Not supported (cannot be decorated with attributes in a meaningful way)</item>
+    /// </list>
+    /// 
+    /// <para><b>Collection Handling:</b></para>
+    /// <list type="bullet">
+    ///   <item>Arrays: Element type is checked recursively</item>
+    ///   <item>Generic collections (List, IEnumerable, etc.): First type argument is checked recursively</item>
+    ///   <item>Dictionaries: Both key and value types are checked</item>
+    ///   <item>Nested collections: Recursively unwrapped until a non-collection element type is found</item>
+    /// </list>
+    /// </remarks>
+    /// <param name="obj">The object to evaluate.</param>
+    /// <returns>True if structured content should be created; otherwise, false.</returns>
     private static bool ShouldCreateStructuredContent(object obj)
     {
         var type = obj.GetType();
+        return HasMcpResultAttributeRecursive(type);
+    }
 
-        // Check if the type is decorated with McpResultAttribute
-        if (type.GetCustomAttributes(typeof(McpResultAttribute), inherit: false).Length > 0)
+    private static bool HasMcpResultAttributeRecursive(Type type)
+    {
+        // Check if the type itself is decorated with McpResultAttribute
+        if (HasMcpResultAttribute(type))
         {
             return true;
         }
 
-        // Check if it's an array or enumerable of types with McpResultAttribute
+        // Check if it's a collection type
         if (typeof(IEnumerable).IsAssignableFrom(type) && type != typeof(string))
         {
-            // Get the element type
-            Type? elementType = null;
+            // Get all element types (for dictionaries, this includes both key and value)
+            var elementTypes = GetElementTypes(type);
 
-            if (type.IsArray)
+            foreach (var elementType in elementTypes)
             {
-                elementType = type.GetElementType();
-            }
-            else if (type.IsGenericType)
-            {
-                var genericArgs = type.GetGenericArguments();
-                if (genericArgs.Length > 0)
+                // Recursively check element types (handles nested collections)
+                if (HasMcpResultAttributeRecursive(elementType))
                 {
-                    elementType = genericArgs[0];
+                    return true;
                 }
-            }
-
-            // Check if the element type has McpResultAttribute
-            if (elementType != null && 
-                elementType.GetCustomAttributes(typeof(McpResultAttribute), inherit: false).Length > 0)
-            {
-                return true;
             }
         }
 
         return false;
+    }
+
+    private static bool HasMcpResultAttribute(Type type)
+    {
+        return type.GetCustomAttributes(typeof(McpResultAttribute), inherit: true).Length > 0;
+    }
+
+    private static IEnumerable<Type> GetElementTypes(Type type)
+    {
+        if (type.IsArray)
+        {
+            var elementType = type.GetElementType();
+            if (elementType != null)
+            {
+                yield return elementType;
+            }
+            yield break;
+        }
+
+        if (!type.IsGenericType)
+        {
+            yield break;
+        }
+
+        var genericDefinition = type.GetGenericTypeDefinition();
+        var genericArgs = type.GetGenericArguments();
+
+        // Handle Dictionary<TKey, TValue> - check both key and value types
+        if (genericDefinition == typeof(Dictionary<,>) ||
+            genericDefinition == typeof(IDictionary<,>) ||
+            genericDefinition == typeof(IReadOnlyDictionary<,>))
+        {
+            if (genericArgs.Length > 0)
+            {
+                yield return genericArgs[0]; // Key type
+            }
+            if (genericArgs.Length > 1)
+            {
+                yield return genericArgs[1]; // Value type
+            }
+            yield break;
+        }
+
+        // Handle KeyValuePair<TKey, TValue>
+        if (genericDefinition == typeof(KeyValuePair<,>))
+        {
+            if (genericArgs.Length > 0)
+            {
+                yield return genericArgs[0]; // Key type
+            }
+            if (genericArgs.Length > 1)
+            {
+                yield return genericArgs[1]; // Value type
+            }
+            yield break;
+        }
+
+        // Handle other generic collections - check the first type argument
+        if (genericArgs.Length > 0)
+        {
+            yield return genericArgs[0];
+        }
     }
 
     private static bool IsMcpToolInvocation(FunctionContext context)
