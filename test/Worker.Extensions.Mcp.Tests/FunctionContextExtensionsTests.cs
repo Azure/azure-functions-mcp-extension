@@ -91,7 +91,7 @@ public class FunctionContextExtensionsTests
     {
         // Arrange
         var mockContext = new Mock<FunctionContext>();
-        var expectedResourceContext = new ResourceInvocationContext { Uri = "test://resource" };
+        var expectedResourceContext = new ResourceInvocationContext("test://resource");
 
         var items = new Dictionary<object, object>
         {

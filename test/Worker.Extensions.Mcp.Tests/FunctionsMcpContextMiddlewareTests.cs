@@ -60,9 +60,8 @@ public class FunctionsMcpContextMiddlewareTests
     public async Task Invoke_AddsResourceInvocationContext_WhenResourceTriggerPresent()
     {
         var triggerName = "myResourceTrigger";
-        var resourceContext = new ResourceInvocationContext
+        var resourceContext = new ResourceInvocationContext("test://resource/1")
         {
-            Uri = "test://resource/1",
             SessionId = "session-123",
         };
 
@@ -114,9 +113,8 @@ public class FunctionsMcpContextMiddlewareTests
             Arguments = new Dictionary<string, object> { ["foo"] = "bar" }
         };
 
-        var resourceContext = new ResourceInvocationContext
+        var resourceContext = new ResourceInvocationContext("test://resource/1")
         {
-            Uri = "test://resource/1",
             SessionId = "session-123"
         };
 
@@ -169,10 +167,7 @@ public class FunctionsMcpContextMiddlewareTests
     public async Task Invoke_ResourceContextWithMinimalData_WorksCorrectly()
     {
         var triggerName = "myResourceTrigger";
-        var resourceContext = new ResourceInvocationContext
-        {
-            Uri = "test://minimal/resource"
-        };
+        var resourceContext = new ResourceInvocationContext("test://minimal/resource");
 
         var bindingData = new Dictionary<string, object>
         {
@@ -260,9 +255,8 @@ public class FunctionsMcpContextMiddlewareTests
     public async Task Invoke_ResourceContextDeserialization_PreservesAllProperties()
     {
         var triggerName = "myResourceTrigger";
-        var resourceContext = new ResourceInvocationContext
+        var resourceContext = new ResourceInvocationContext("test://complex/resource")
         {
-            Uri = "test://complex/resource",
             SessionId = "session-456",
         };
 
