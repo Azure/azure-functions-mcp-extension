@@ -19,6 +19,7 @@ internal sealed class McpResourceTriggerBinding : ITriggerBinding
     private readonly McpResourceTriggerAttribute _resourceAttribute;
     private readonly ParameterInfo _triggerParameter;
     private readonly ILoggerFactory _loggerFactory;
+    private readonly IReadOnlyDictionary<string, object?> _resourceMetadata;
 
     public McpResourceTriggerBinding(
         ParameterInfo triggerParameter,
@@ -32,6 +33,8 @@ internal sealed class McpResourceTriggerBinding : ITriggerBinding
         _resourceAttribute = resourceAttribute;
         _triggerParameter = triggerParameter;
         _loggerFactory = loggerFactory;
+        var logger = _loggerFactory.CreateLogger<McpResourceTriggerBinding>();
+        _resourceMetadata = MetadataParser.ParseMetadata(resourceAttribute.Metadata, logger);
 
         BindingDataContract = new Dictionary<string, Type>(StringComparer.OrdinalIgnoreCase)
         {
@@ -111,8 +114,6 @@ internal sealed class McpResourceTriggerBinding : ITriggerBinding
 
     public Task<IListener> CreateListenerAsync(ListenerFactoryContext context)
     {
-        var resourceMetadata = GetMetadata(_resourceAttribute, _triggerParameter);
-
         var listener = new McpResourceListener(
             context.Executor,
             context.Descriptor.ShortName,
@@ -121,8 +122,7 @@ internal sealed class McpResourceTriggerBinding : ITriggerBinding
             _resourceAttribute.Description,
             _resourceAttribute.MimeType,
             _resourceAttribute.Size,
-            resourceMetadata);
-
+            _resourceMetadata);
         _resourceRegistry.Register(listener);
 
         return Task.FromResult<IListener>(listener);
@@ -142,8 +142,4 @@ internal sealed class McpResourceTriggerBinding : ITriggerBinding
         };
     }
 
-    private static IReadOnlyCollection<KeyValuePair<string, object?>> GetMetadata(McpResourceTriggerAttribute attribute, ParameterInfo parameter)
-    {
-        return [];
-    }
 }

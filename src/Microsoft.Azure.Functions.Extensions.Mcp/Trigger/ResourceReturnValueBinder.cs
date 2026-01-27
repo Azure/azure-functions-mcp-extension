@@ -42,8 +42,7 @@ internal sealed class ResourceReturnValueBinder(
                 {
                     Uri = resourceAttribute.Uri,
                     MimeType = resourceAttribute.MimeType,
-                    Text = stringValue,
-                    Meta = null
+                    Text = stringValue
                 }]
             };
 
@@ -59,8 +58,7 @@ internal sealed class ResourceReturnValueBinder(
                 {
                     Uri = resourceAttribute.Uri,
                     MimeType = resourceAttribute.MimeType,
-                    Blob = Convert.ToBase64String(binaryData),
-                    Meta = null
+                    Blob = Convert.ToBase64String(binaryData)
                 }]
             };
 
