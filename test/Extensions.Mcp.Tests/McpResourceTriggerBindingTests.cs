@@ -10,7 +10,6 @@ using Microsoft.Azure.WebJobs.Host.Bindings;
 using Microsoft.Azure.WebJobs.Host.Executors;
 using Microsoft.Azure.WebJobs.Host.Listeners;
 using Microsoft.Azure.WebJobs.Host.Protocols;
-using Microsoft.Azure.WebJobs.Host.Triggers;
 using Microsoft.Extensions.Logging.Abstractions;
 using ModelContextProtocol.Protocol;
 using Moq;
@@ -45,6 +44,12 @@ public class McpResourceTriggerBindingTests
     private static void DummyMethod([McpResourceTrigger("test://resource/1", "TestResource")] ResourceInvocationContext ctx) { }
 
     private static void DummyStringMethod([McpResourceTrigger("test://resource/1", "TestResource")] string ctx) { }
+
+    private static void DummyMethodWithMetadata(
+        [McpResourceTrigger("test://resource/1", "TestResource")]
+        ResourceInvocationContext ctx) { }
+
+    private static void DummyMethodWithoutMetadata([McpResourceTrigger("test://resource/1", "TestResource")] ResourceInvocationContext ctx) { }
 
     private static ValueBindingContext CreateValueBindingContext()
     {
@@ -239,5 +244,97 @@ public class McpResourceTriggerBindingTests
         var (binding, _) = CreateBinding();
 
         Assert.Equal(typeof(object), binding.TriggerValueType);
+    }
+
+    [Fact]
+    public async Task CreateListenerAsync_WithMetadata_IncludesMetadataInListener()
+    {
+        var executorMock = new Mock<ITriggeredFunctionExecutor>();
+        var resourceRegistry = new Mock<IResourceRegistry>();
+
+        var listenerFactoryContext = new ListenerFactoryContext(
+            new FunctionDescriptor { ShortName = "MyFunction" },
+            executorMock.Object,
+            CancellationToken.None);
+
+        var metadata = """{"key1":"value1","key2":123,"key3":true}""";
+        var attribute = new McpResourceTriggerAttribute("test://resource/1", "TestResource")
+        {
+            Metadata = metadata
+        };
+
+        var method = typeof(McpResourceTriggerBindingTests).GetMethod(nameof(DummyMethodWithMetadata), BindingFlags.NonPublic | BindingFlags.Static)!;
+        var parameter = method.GetParameters()[0];
+
+        var binding = new McpResourceTriggerBinding(parameter, resourceRegistry.Object, attribute, NullLoggerFactory.Instance);
+
+        var listener = await binding.CreateListenerAsync(listenerFactoryContext);
+
+        var resourceListener = Assert.IsType<McpResourceListener>(listener);
+        Assert.NotNull(resourceListener.Metadata);
+        Assert.Equal(3, resourceListener.Metadata.Count);
+
+        var metadataDict = resourceListener.Metadata.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+        Assert.Equal("value1", metadataDict["key1"]);
+        Assert.Equal(123L, metadataDict["key2"]);
+        Assert.Equal(true, metadataDict["key3"]);
+    }
+
+    [Fact]
+    public async Task CreateListenerAsync_WithoutMetadata_HasEmptyMetadataCollection()
+    {
+        var executorMock = new Mock<ITriggeredFunctionExecutor>();
+        var resourceRegistry = new Mock<IResourceRegistry>();
+
+        var listenerFactoryContext = new ListenerFactoryContext(
+            new FunctionDescriptor { ShortName = "MyFunction" },
+            executorMock.Object,
+            CancellationToken.None);
+
+        var attribute = new McpResourceTriggerAttribute("test://resource/1", "TestResource");
+
+        var method = typeof(McpResourceTriggerBindingTests).GetMethod(nameof(DummyMethodWithoutMetadata), BindingFlags.NonPublic | BindingFlags.Static)!;
+        var parameter = method.GetParameters()[0];
+
+        var binding = new McpResourceTriggerBinding(parameter, resourceRegistry.Object, attribute, NullLoggerFactory.Instance);
+
+        var listener = await binding.CreateListenerAsync(listenerFactoryContext);
+
+        var resourceListener = Assert.IsType<McpResourceListener>(listener);
+        Assert.NotNull(resourceListener.Metadata);
+        Assert.Empty(resourceListener.Metadata);
+    }
+
+    [Fact]
+    public async Task CreateListenerAsync_WithNullValueMetadata_IncludesNullValue()
+    {
+        var executorMock = new Mock<ITriggeredFunctionExecutor>();
+        var resourceRegistry = new Mock<IResourceRegistry>();
+
+        var listenerFactoryContext = new ListenerFactoryContext(
+            new FunctionDescriptor { ShortName = "MyFunction" },
+            executorMock.Object,
+            CancellationToken.None);
+
+        var metadata = """{"nullKey":null}""";
+        var attribute = new McpResourceTriggerAttribute("test://resource/1", "TestResource")
+        {
+            Metadata = metadata
+        };
+
+        var method = typeof(McpResourceTriggerBindingTests).GetMethod(nameof(DummyMethodWithoutMetadata), BindingFlags.NonPublic | BindingFlags.Static)!;
+        var parameter = method.GetParameters()[0];
+
+        var binding = new McpResourceTriggerBinding(parameter, resourceRegistry.Object, attribute, NullLoggerFactory.Instance);
+
+        var listener = await binding.CreateListenerAsync(listenerFactoryContext);
+
+        var resourceListener = Assert.IsType<McpResourceListener>(listener);
+        Assert.NotNull(resourceListener.Metadata);
+        Assert.Single(resourceListener.Metadata);
+
+        var metadataDict = resourceListener.Metadata.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+        Assert.True(metadataDict.ContainsKey("nullKey"));
+        Assert.Null(metadataDict["nullKey"]);
     }
 }

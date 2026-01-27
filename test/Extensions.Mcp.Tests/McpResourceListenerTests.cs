@@ -25,10 +25,7 @@ public class McpResourceListenerTests
     public void Constructor_SetsProperties()
     {
         var executor = new Mock<ITriggeredFunctionExecutor>().Object;
-        var metadata = new List<KeyValuePair<string, object?>>
-        {
-            new("key1", "value1")
-        };
+        var metadata = new Dictionary<string, object?> { { "key1", "value1" } };
 
         var listener = new McpResourceListener(
             executor,
@@ -61,7 +58,7 @@ public class McpResourceListenerTests
             null,
             null,
             null,
-            []);
+            new Dictionary<string, object?>());
 
         await listener.StartAsync(CancellationToken.None);
         // Should complete without throwing
@@ -79,7 +76,7 @@ public class McpResourceListenerTests
             null,
             null,
             null,
-            []);
+            new Dictionary<string, object?>());
 
         await listener.StopAsync(CancellationToken.None);
         // Should complete without throwing
@@ -97,7 +94,7 @@ public class McpResourceListenerTests
             null,
             null,
             null,
-            []);
+            new Dictionary<string, object?>());
 
         listener.Dispose();
         // Should complete without throwing
@@ -115,7 +112,7 @@ public class McpResourceListenerTests
             null,
             null,
             null,
-            []);
+            new Dictionary<string, object?>());
 
         listener.Cancel();
         // Should complete without throwing

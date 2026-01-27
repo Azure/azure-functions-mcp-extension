@@ -8,7 +8,7 @@ public class ResourceFunctions
 {
     [FunctionName("GetTextResource")]
     public static string GetTextResource(
-        [McpResourceTrigger("file://resources/readme.txt", "ReadMe", Description = "Application readme file", MimeType = "text/plain")] 
+        [McpResourceTrigger("file://resources/readme.txt", "ReadMe", Description = "Application readme file", MimeType = "text/plain")]
         string context,
         ILogger logger)
     {

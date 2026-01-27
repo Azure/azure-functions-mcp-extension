@@ -221,10 +221,10 @@ public class DefaultResourceRegistryTests
     public async Task ListResourcesAsync_WithMetadata_IncludesMetaJsonObject()
     {
         var registry = new DefaultResourceRegistry();
-        var metadata = new List<KeyValuePair<string, object?>>
+        var metadata = new Dictionary<string, object?>
         {
-            new("key1", "value1"),
-            new("key2", true)
+            ["key1"] = "value1",
+            ["key2"] = true
         };
         var resource = CreateTestResource("test://resource/1", metadata: metadata);
         registry.Register(resource);
@@ -255,7 +255,7 @@ public class DefaultResourceRegistryTests
     public async Task ListResourcesAsync_WithEmptyMetadata_ExcludesMeta()
     {
         var registry = new DefaultResourceRegistry();
-        var resource = CreateTestResource("test://resource/1", metadata: []);
+        var resource = CreateTestResource("test://resource/1", metadata: new Dictionary<string, object?>());
         registry.Register(resource);
 
         var result = await registry.ListResourcesAsync();
@@ -317,7 +317,7 @@ public class DefaultResourceRegistryTests
         string? mimeType = null,
         string? description = null,
         long? size = null,
-        IReadOnlyCollection<KeyValuePair<string, object?>>? metadata = null)
+        IReadOnlyDictionary<string, object?>? metadata = null)
     {
         return new TestResource
         {
@@ -326,7 +326,7 @@ public class DefaultResourceRegistryTests
             MimeType = mimeType,
             Description = description,
             Size = size,
-            Metadata = metadata ?? []
+            Metadata = metadata ?? new Dictionary<string, object?>()
         };
     }
 
@@ -337,7 +337,7 @@ public class DefaultResourceRegistryTests
         public string? MimeType { get; set; }
         public string? Description { get; set; }
         public long? Size { get; set; }
-        public IReadOnlyCollection<KeyValuePair<string, object?>> Metadata { get; set; } = [];
+        public IReadOnlyDictionary<string, object?> Metadata { get; set; } = new Dictionary<string, object?>();
 
         public Task<ReadResourceResult> ReadAsync(RequestContext<ReadResourceRequestParams> readResourceRequest, CancellationToken cancellationToken)
         {

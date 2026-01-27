@@ -9,12 +9,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-	<None Include="$(EngResourceRoot)icon.png" Link="icon.png">
-		<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-  </ItemGroup>
-
-  <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
     <!-- Application Insights isn't enabled by default. See https://aka.ms/AAt8mw4. -->
     <!-- <PackageReference Include="Microsoft.ApplicationInsights.WorkerService" Version="2.22.0" /> -->
@@ -26,18 +20,18 @@
   </ItemGroup>
 
   <ItemGroup>
-	<None Update="resources\*">
-		<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-	</None>
-  </ItemGroup>
-
-  <ItemGroup>
     <ProjectReference Include="$(SrcRoot)Microsoft.Azure.Functions.Worker.Extensions.Mcp\Worker.Extensions.Mcp.csproj" />
     <ProjectReference Include="$(SrcRoot)Microsoft.Azure.Functions.Worker.Extensions.Mcp.Sdk\Worker.Extensions.Mcp.Sdk.csproj" />
   </ItemGroup>
 
   <ItemGroup>
     <Using Include="System.Threading.ExecutionContext" Alias="ExecutionContext" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="assets\**\*">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 
 </Project>
