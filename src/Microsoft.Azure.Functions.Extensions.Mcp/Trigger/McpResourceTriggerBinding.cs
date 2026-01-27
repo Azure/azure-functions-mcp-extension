@@ -96,9 +96,8 @@ internal sealed class McpResourceTriggerBinding : ITriggerBinding
     {
         Transport transport = GetTransportInformation(executionContext);
 
-        var invocationContext = new ResourceInvocationContext
+        var invocationContext = new ResourceInvocationContext(executionContext.Request.Uri)
         {
-            Uri = executionContext.Request.Uri,
             SessionId = transport.SessionId ?? executionContext.RequestContext.Server.SessionId,
             ClientInfo = executionContext.RequestContext.Server.ClientInfo,
             Transport = transport
