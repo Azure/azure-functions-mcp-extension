@@ -9,7 +9,7 @@
   </PropertyGroup>
 	
   <ItemGroup>
-	<None Include="..\..\eng\res\icon.png" Link="icon.png">
+	<None Include="$(EngResourceRoot)icon.png" Link="icon.png">
 		<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>

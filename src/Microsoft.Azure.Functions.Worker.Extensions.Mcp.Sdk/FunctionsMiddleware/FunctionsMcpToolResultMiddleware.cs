@@ -158,7 +158,7 @@ internal class FunctionsMcpToolResultMiddleware : IFunctionsWorkerMiddleware
     /// <list type="bullet">
     ///   <item>Arrays: Element type is checked recursively</item>
     ///   <item>Generic collections (List, IEnumerable, etc.): First type argument is checked recursively</item>
-    ///   <item>Dictionaries: Both key and value types are checked</item>
+    ///   <item>Dictionaries: Only value type is checked (key types must be primitives/strings for JSON serialization)</item>
     ///   <item>Nested collections: Recursively unwrapped until a non-collection element type is found</item>
     /// </list>
     /// </remarks>
@@ -222,32 +222,27 @@ internal class FunctionsMcpToolResultMiddleware : IFunctionsWorkerMiddleware
         var genericDefinition = type.GetGenericTypeDefinition();
         var genericArgs = type.GetGenericArguments();
 
-        // Handle Dictionary<TKey, TValue> - check both key and value types
+        // Handle Dictionary<TKey, TValue> - only check value type (keys must be serializable as property names)
         if (genericDefinition == typeof(Dictionary<,>) ||
             genericDefinition == typeof(IDictionary<,>) ||
             genericDefinition == typeof(IReadOnlyDictionary<,>))
         {
-            if (genericArgs.Length > 0)
-            {
-                yield return genericArgs[0]; // Key type
-            }
+            // Only check value type (genericArgs[1]) - key types must be primitives/strings
+            // for JSON serialization to work, so checking them for [McpResult] isn't useful
             if (genericArgs.Length > 1)
             {
-                yield return genericArgs[1]; // Value type
+                yield return genericArgs[1]; // Value type only
             }
             yield break;
         }
 
-        // Handle KeyValuePair<TKey, TValue>
+        // Handle KeyValuePair<TKey, TValue> - only check value type
         if (genericDefinition == typeof(KeyValuePair<,>))
         {
-            if (genericArgs.Length > 0)
-            {
-                yield return genericArgs[0]; // Key type
-            }
+            // Only check value type (genericArgs[1])
             if (genericArgs.Length > 1)
             {
-                yield return genericArgs[1]; // Value type
+                yield return genericArgs[1]; // Value type only
             }
             yield break;
         }
