@@ -19,17 +19,16 @@ internal static class MetadataExtractor
     /// </summary>
     public static bool TryGetResourceMetadata(IFunctionMetadata functionMetadata, [NotNullWhen(true)] out List<KeyValuePair<string, object?>>? metadata)
     {
-        return TryGetMetadata<McpResourceTriggerAttribute, McpMetadataAttribute>(functionMetadata, out metadata);
+        return TryGetMetadata<McpResourceTriggerAttribute>(functionMetadata, out metadata);
     }
 
     /// <summary>
-    /// Generic method to extract metadata from function parameters based on trigger and metadata attribute types.
+    /// Generic method to extract metadata from function parameters based on trigger attribute type.
     /// </summary>
-    public static bool TryGetMetadata<TTriggerAttribute, TMetadataAttribute>(
+    public static bool TryGetMetadata<TTriggerAttribute>(
         IFunctionMetadata functionMetadata,
         [NotNullWhen(true)] out List<KeyValuePair<string, object?>>? metadata)
         where TTriggerAttribute : Attribute
-        where TMetadataAttribute : Attribute, IKeyValueMetadataAttribute
     {
         metadata = null;
 
@@ -38,19 +37,18 @@ internal static class MetadataExtractor
             return false;
         }
 
-        return TryExtractMetadataFromParameter<TTriggerAttribute, TMetadataAttribute>(
+        return TryExtractMetadataFromParameter<TTriggerAttribute>(
             method!.GetParameters(),
             out metadata);
     }
 
     /// <summary>
-    /// Extracts metadata attributes from parameters that have the specified trigger attribute.
+    /// Extracts MCP metadata attributes from parameters that have the specified trigger attribute.
     /// </summary>
-    public static bool TryExtractMetadataFromParameter<TTriggerAttribute, TMetadataAttribute>(
+    public static bool TryExtractMetadataFromParameter<TTriggerAttribute>(
         ParameterInfo[] parameters,
         [NotNullWhen(true)] out List<KeyValuePair<string, object?>>? metadata)
         where TTriggerAttribute : Attribute
-        where TMetadataAttribute : Attribute, IKeyValueMetadataAttribute
     {
         metadata = null;
 
@@ -62,7 +60,7 @@ internal static class MetadataExtractor
                 continue;
             }
 
-            var metadataAttributes = parameter.GetCustomAttributes<TMetadataAttribute>();
+            var metadataAttributes = parameter.GetCustomAttributes<McpMetadataAttribute>();
             if (!metadataAttributes.Any())
             {
                 continue;
@@ -71,7 +69,7 @@ internal static class MetadataExtractor
             metadata = [];
             foreach (var attr in metadataAttributes)
             {
-                if (attr.Key is { Length: > 0 })
+                if (!string.IsNullOrEmpty(attr.Key))
                 {
                     metadata.Add(new KeyValuePair<string, object?>(attr.Key, attr.Value));
                 }

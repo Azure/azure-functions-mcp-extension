@@ -29,7 +29,7 @@ namespace Microsoft.Azure.Functions.Worker.Extensions.Mcp;
 /// </code>
 /// </example>
 [AttributeUsage(AttributeTargets.Parameter, AllowMultiple = true)]
-public sealed class McpMetadataAttribute(string key, object? value) : Attribute, IKeyValueMetadataAttribute
+public sealed class McpMetadataAttribute(string key, object? value) : Attribute
 {
     /// <summary>
     /// Gets the metadata key. Use colon notation (e.g., "ui:resourceUri") for nested paths.

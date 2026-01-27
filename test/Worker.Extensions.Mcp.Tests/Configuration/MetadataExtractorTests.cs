@@ -152,7 +152,7 @@ public class MetadataExtractorTests
         var method = typeof(TestClass).GetMethod(nameof(TestClass.NoTrigger))!;
         var parameters = method.GetParameters();
 
-        var result = MetadataExtractor.TryExtractMetadataFromParameter<McpResourceTriggerAttribute, McpMetadataAttribute>(
+        var result = MetadataExtractor.TryExtractMetadataFromParameter<McpResourceTriggerAttribute>(
             parameters, out var metadata);
 
         Assert.False(result);
@@ -165,7 +165,7 @@ public class MetadataExtractorTests
         var method = typeof(TestClass).GetMethod(nameof(TestClass.TriggerNoMetadata))!;
         var parameters = method.GetParameters();
 
-        var result = MetadataExtractor.TryExtractMetadataFromParameter<McpResourceTriggerAttribute, McpMetadataAttribute>(
+        var result = MetadataExtractor.TryExtractMetadataFromParameter<McpResourceTriggerAttribute>(
             parameters, out var metadata);
 
         Assert.False(result);
@@ -178,7 +178,7 @@ public class MetadataExtractorTests
         var method = typeof(TestClass).GetMethod(nameof(TestClass.TriggerWithSingleMetadata))!;
         var parameters = method.GetParameters();
 
-        var result = MetadataExtractor.TryExtractMetadataFromParameter<McpResourceTriggerAttribute, McpMetadataAttribute>(
+        var result = MetadataExtractor.TryExtractMetadataFromParameter<McpResourceTriggerAttribute>(
             parameters, out var metadata);
 
         Assert.True(result);
@@ -194,7 +194,7 @@ public class MetadataExtractorTests
         var method = typeof(TestClass).GetMethod(nameof(TestClass.TriggerWithMultipleMetadata))!;
         var parameters = method.GetParameters();
 
-        var result = MetadataExtractor.TryExtractMetadataFromParameter<McpResourceTriggerAttribute, McpMetadataAttribute>(
+        var result = MetadataExtractor.TryExtractMetadataFromParameter<McpResourceTriggerAttribute>(
             parameters, out var metadata);
 
         Assert.True(result);
