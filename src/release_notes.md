@@ -7,6 +7,7 @@
 ### Microsoft.Azure.Functions.Extensions <version>
 
 - Added feature for the extension to consume worker generated input schema if `UseWorkerInputSchema` is enabled. (#136)
+- Added structured content support (#172)
 
 ### Microsoft.Azure.Functions.Worker.Extensions.Mcp <version>
 
@@ -15,3 +16,4 @@
 ### Microsoft.Azure.Functions.Worker.Extensions.Mcp.Sdk 1.0.0-preview.3
 
 - Updated `Microsoft.Azure.Functions.Worker.Extensions.Mcp.Sdk` to take a dependency on `Microsoft.Azure.Functions.Worker.Extensions.Mcp` (#181)
+- Added structured content support (#172)

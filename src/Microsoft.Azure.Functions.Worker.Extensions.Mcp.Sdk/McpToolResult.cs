@@ -22,4 +22,10 @@ public class McpToolResult
     /// </summary>
     [JsonPropertyName("type")]
     public required string Type { get; set; }
+
+    /// <summary>
+    /// Gets or sets the structured content as a JSON object.
+    /// </summary>
+    [JsonPropertyName("structuredContent")]
+    public string? StructuredContent { get; set; }
 }

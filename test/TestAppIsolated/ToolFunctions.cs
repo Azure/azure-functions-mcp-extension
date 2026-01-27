@@ -1,6 +1,8 @@
 using System.Collections;
 using System.ComponentModel;
 using System.Globalization;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Extensions.Mcp;
 using Microsoft.Extensions.Logging;
@@ -115,6 +117,61 @@ public class TestFunction
         return SnippetsCache.Snippets
             .Where(kvp => kvp.Key.Contains(searchRequest.Pattern, comparisonType))
             .ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+    }
+
+    [Function(nameof(GetImageWithMetadata))]
+    public CallToolResult GetImageWithMetadata(
+        [McpToolTrigger("GetImageWithMetadata", "Returns an image with metadata as structured content")] ToolInvocationContext context)
+    {
+        // Manually construct CallToolResult with explicit content blocks and structured content
+        var metadata = new
+        {
+            ImageId = "icon",
+            Format = "png",
+            CreatedAt = DateTime.UtcNow,
+            Tags = new[] { "functions" }
+        };
+
+        var metadataJson = JsonSerializer.Serialize(metadata);
+        byte[] imageBytes = File.ReadAllBytes("icon.png");
+
+        return new CallToolResult
+        {
+            Content = new List<ContentBlock> 
+            { 
+                // REQUIRED: TextContent block with serialized structured content (for backwards compatibility)
+                new TextContentBlock { Text = metadataJson },
+                new ImageContentBlock { Data = Convert.ToBase64String(imageBytes), MimeType = "image/png" }
+            },
+            // Structured content for clients that support it
+            StructuredContent = JsonNode.Parse(metadataJson)
+        };
+    }
+
+    [Function(nameof(GetUserInfo))]
+    public UserInfo GetUserInfo(
+        [McpToolTrigger("GetUserInfo", "Returns user information as POCO")] ToolInvocationContext context,
+        [McpToolProperty(nameof(userId), "The unique identifier of the user")] string userId,
+        [McpToolProperty(nameof(includeName), "Whether to include the user's name", false)] bool includeName = true,
+        [McpToolProperty(nameof(includeHobbies), "Whether to include the user's hobbies", false)] bool includeHobbies = true)
+    {
+        // Simulate fetching user data based on userId
+        return new UserInfo
+        {
+            UserId = userId,
+            Name = includeName ? "Alice" : null,
+            Age = 30,
+            Hobbies = includeHobbies ? new List<string> { "reading", "coding", "gaming" } : null
+        };
+    }
+
+    [McpResult]
+    public class UserInfo
+    {
+        public required string UserId { get; set; }
+        public string? Name { get; set; }
+        public int Age { get; set; }
+        public List<string>? Hobbies { get; set; }
     }
 
     public class Snippet
