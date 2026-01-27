@@ -493,7 +493,7 @@ public class FunctionsMcpToolResultMiddlewareTests
         McpToolResult? mcpToolResult = JsonSerializer.Deserialize(result, McpJsonContext.Default.McpToolResult);
         Assert.NotNull(mcpToolResult);
         Assert.Equal(Constants.TextContextResult, mcpToolResult.Type);
-        
+
         // Verify structured content is populated
         Assert.NotNull(mcpToolResult.StructuredContent);
         Assert.Contains("\"name\":\"Alice\"", mcpToolResult.StructuredContent);
@@ -528,7 +528,7 @@ public class FunctionsMcpToolResultMiddlewareTests
         McpToolResult? mcpToolResult = JsonSerializer.Deserialize(result, McpJsonContext.Default.McpToolResult);
         Assert.NotNull(mcpToolResult);
         Assert.Equal(Constants.TextContextResult, mcpToolResult.Type);
-        
+
         // Verify structured content is NOT created for POCO without attribute
         Assert.Null(mcpToolResult.StructuredContent);
 
@@ -564,7 +564,7 @@ public class FunctionsMcpToolResultMiddlewareTests
         McpToolResult? mcpToolResult = JsonSerializer.Deserialize(result, McpJsonContext.Default.McpToolResult);
         Assert.NotNull(mcpToolResult);
         Assert.Equal(Constants.TextContextResult, mcpToolResult.Type);
-        
+
         // Verify structured content is created for array of POCOs with attribute
         Assert.NotNull(mcpToolResult.StructuredContent);
         Assert.Contains("\"name\":\"Alice\"", mcpToolResult.StructuredContent);
@@ -604,7 +604,7 @@ public class FunctionsMcpToolResultMiddlewareTests
         McpToolResult? mcpToolResult = JsonSerializer.Deserialize(result, McpJsonContext.Default.McpToolResult);
         Assert.NotNull(mcpToolResult);
         Assert.Equal(Constants.TextContextResult, mcpToolResult.Type);
-        
+
         // Verify structured content is NOT created for array of POCOs without attribute
         Assert.Null(mcpToolResult.StructuredContent);
 
@@ -640,7 +640,7 @@ public class FunctionsMcpToolResultMiddlewareTests
         McpToolResult? mcpToolResult = JsonSerializer.Deserialize(result, McpJsonContext.Default.McpToolResult);
         Assert.NotNull(mcpToolResult);
         Assert.Equal(Constants.TextContextResult, mcpToolResult.Type);
-        
+
         // Verify structured content is created for list of POCOs with attribute
         Assert.NotNull(mcpToolResult.StructuredContent);
         Assert.Contains("\"name\":\"Eve\"", mcpToolResult.StructuredContent);
@@ -757,7 +757,7 @@ public class FunctionsMcpToolResultMiddlewareTests
         var context = CreateMcpFunctionContext();
         var metadata = new { Key = "value", Count = 42 };
         var metadataJson = JsonSerializer.Serialize(metadata);
-        
+
         var callToolResult = new CallToolResult
         {
             Content = new List<ContentBlock>
@@ -783,7 +783,7 @@ public class FunctionsMcpToolResultMiddlewareTests
         Assert.NotNull(mcpToolResult);
         Assert.Equal(Constants.CallToolResultType, mcpToolResult.Type);
         Assert.Null(mcpToolResult.StructuredContent); // Not preserved in McpToolResult wrapper
-        
+
         // Verify the CallToolResult is serialized in content
         var deserializedCallToolResult = JsonSerializer.Deserialize<CallToolResult>(mcpToolResult.Content!, McpJsonUtilities.DefaultOptions);
         Assert.NotNull(deserializedCallToolResult);
@@ -798,7 +798,7 @@ public class FunctionsMcpToolResultMiddlewareTests
         var context = CreateMcpFunctionContext();
         var metadata = new { Status = "success", Code = 200 };
         var metadataJson = JsonSerializer.Serialize(metadata);
-        
+
         var callToolResult = new CallToolResult
         {
             Content = new List<ContentBlock>
@@ -819,11 +819,11 @@ public class FunctionsMcpToolResultMiddlewareTests
         // Assert - Should not throw
         var result = _currentResult as string;
         Assert.NotNull(result);
-        
+
         McpToolResult? mcpToolResult = JsonSerializer.Deserialize(result, McpJsonContext.Default.McpToolResult);
         Assert.NotNull(mcpToolResult);
         Assert.Equal(Constants.CallToolResultType, mcpToolResult.Type);
-        
+
         // Deserialize the CallToolResult from content
         var deserializedCallToolResult = JsonSerializer.Deserialize<CallToolResult>(mcpToolResult.Content!, McpJsonUtilities.DefaultOptions);
         Assert.NotNull(deserializedCallToolResult);
@@ -835,7 +835,7 @@ public class FunctionsMcpToolResultMiddlewareTests
     {
         // Arrange
         var context = CreateMcpFunctionContext();
-        
+
         var callToolResult = new CallToolResult
         {
             Content = new List<ContentBlock>
@@ -861,7 +861,7 @@ public class FunctionsMcpToolResultMiddlewareTests
         Assert.NotNull(mcpToolResult);
         Assert.Equal(Constants.CallToolResultType, mcpToolResult.Type);
         Assert.Null(mcpToolResult.StructuredContent);
-        
+
         // Deserialize the CallToolResult from content
         var deserializedCallToolResult = JsonSerializer.Deserialize<CallToolResult>(mcpToolResult.Content!, McpJsonUtilities.DefaultOptions);
         Assert.NotNull(deserializedCallToolResult);
@@ -893,7 +893,7 @@ public class FunctionsMcpToolResultMiddlewareTests
         McpToolResult? mcpToolResult = JsonSerializer.Deserialize(result, McpJsonContext.Default.McpToolResult);
         Assert.NotNull(mcpToolResult);
         Assert.Equal(Constants.CallToolResultType, mcpToolResult.Type);
-        
+
         // Deserialize the CallToolResult from content
         var deserializedCallToolResult = JsonSerializer.Deserialize<CallToolResult>(mcpToolResult.Content!, McpJsonUtilities.DefaultOptions);
         Assert.NotNull(deserializedCallToolResult);
@@ -927,7 +927,7 @@ public class FunctionsMcpToolResultMiddlewareTests
         McpToolResult? mcpToolResult = JsonSerializer.Deserialize(result, McpJsonContext.Default.McpToolResult);
         Assert.NotNull(mcpToolResult);
         Assert.Equal(Constants.CallToolResultType, mcpToolResult.Type); // Should use call_tool_result type
-        
+
         // Deserialize the CallToolResult from content
         var deserializedCallToolResult = JsonSerializer.Deserialize<CallToolResult>(mcpToolResult.Content!, McpJsonUtilities.DefaultOptions);
         Assert.NotNull(deserializedCallToolResult);
@@ -948,5 +948,501 @@ public class FunctionsMcpToolResultMiddlewareTests
         public int Age { get; set; }
         public string Email { get; set; } = string.Empty;
     }
-}
 
+    #region ShouldCreateStructuredContent Test Types
+
+    // Base class with [McpResult] attribute for inheritance tests
+    [McpResult]
+    private class BasePocoWithAttribute
+    {
+        public string BaseProperty { get; set; } = string.Empty;
+    }
+
+    // Derived class inherits from [McpResult] base
+    private class DerivedPocoInheritingAttribute : BasePocoWithAttribute
+    {
+        public string DerivedProperty { get; set; } = string.Empty;
+    }
+
+    // Record class with [McpResult] attribute
+    [McpResult]
+    private record RecordWithAttribute(string Name, int Value);
+
+    // Record class without attribute
+    private record RecordWithoutAttribute(string Name, int Value);
+
+    // Record with [McpResult] attribute for use as dictionary key
+    // Note: System.Text.Json doesn't support complex types as dictionary keys by default
+    [McpResult]
+    private record RecordKeyWithAttribute(string Id);
+
+    // Struct with [McpResult] attribute (though structs are less common)
+    [McpResult]
+    private struct StructWithAttribute
+    {
+        public string Data { get; set; }
+    }
+
+    // Struct without attribute
+    private struct StructWithoutAttribute
+    {
+        public string Data { get; set; }
+    }
+
+    #endregion
+
+    // ========================
+    // Direct Attribution Tests
+    // ========================
+
+    [Fact]
+    public async Task ShouldCreateStructuredContent_DirectAttribution_Class_ReturnsTrue()
+    {
+        var context = CreateMcpFunctionContext();
+        var poco = new TestPocoWithAttribute { Name = "Test", Age = 25, Email = "test@example.com" };
+
+        await _middleware.Invoke(context, ctx =>
+        {
+            SetInvocationResult(ctx, poco);
+            return Task.CompletedTask;
+        });
+
+        var result = _currentResult as string;
+        Assert.NotNull(result);
+        var mcpToolResult = JsonSerializer.Deserialize(result, McpJsonContext.Default.McpToolResult);
+        Assert.NotNull(mcpToolResult);
+        Assert.NotNull(mcpToolResult.StructuredContent);
+    }
+
+    [Fact]
+    public async Task ShouldCreateStructuredContent_DirectAttribution_Record_ReturnsTrue()
+    {
+        var context = CreateMcpFunctionContext();
+        var record = new RecordWithAttribute("RecordTest", 42);
+
+        await _middleware.Invoke(context, ctx =>
+        {
+            SetInvocationResult(ctx, record);
+            return Task.CompletedTask;
+        });
+
+        var result = _currentResult as string;
+        Assert.NotNull(result);
+        var mcpToolResult = JsonSerializer.Deserialize(result, McpJsonContext.Default.McpToolResult);
+        Assert.NotNull(mcpToolResult);
+        Assert.NotNull(mcpToolResult.StructuredContent);
+    }
+
+    [Fact]
+    public async Task ShouldCreateStructuredContent_DirectAttribution_Struct_ReturnsTrue()
+    {
+        var context = CreateMcpFunctionContext();
+        var structValue = new StructWithAttribute { Data = "StructData" };
+
+        await _middleware.Invoke(context, ctx =>
+        {
+            SetInvocationResult(ctx, structValue);
+            return Task.CompletedTask;
+        });
+
+        var result = _currentResult as string;
+        Assert.NotNull(result);
+        var mcpToolResult = JsonSerializer.Deserialize(result, McpJsonContext.Default.McpToolResult);
+        Assert.NotNull(mcpToolResult);
+        Assert.NotNull(mcpToolResult.StructuredContent);
+    }
+
+    // ========================
+    // Inherited Attribution Tests
+    // ========================
+
+    [Fact]
+    public async Task ShouldCreateStructuredContent_InheritedAttribution_DerivedClass_ReturnsTrue()
+    {
+        var context = CreateMcpFunctionContext();
+        var derived = new DerivedPocoInheritingAttribute { BaseProperty = "Base", DerivedProperty = "Derived" };
+
+        await _middleware.Invoke(context, ctx =>
+        {
+            SetInvocationResult(ctx, derived);
+            return Task.CompletedTask;
+        });
+
+        var result = _currentResult as string;
+        Assert.NotNull(result);
+        var mcpToolResult = JsonSerializer.Deserialize(result, McpJsonContext.Default.McpToolResult);
+        Assert.NotNull(mcpToolResult);
+        Assert.NotNull(mcpToolResult.StructuredContent);
+        Assert.Contains("derivedProperty", mcpToolResult.StructuredContent);
+    }
+
+    // ========================
+    // Collection Element Attribution Tests
+    // ========================
+
+    [Fact]
+    public async Task ShouldCreateStructuredContent_Array_ElementsWithAttribute_ReturnsTrue()
+    {
+        var context = CreateMcpFunctionContext();
+        var array = new TestPocoWithAttribute[]
+        {
+                new() { Name = "Item1", Age = 1, Email = "item1@example.com" },
+                new() { Name = "Item2", Age = 2, Email = "item2@example.com" }
+        };
+
+        await _middleware.Invoke(context, ctx =>
+        {
+            SetInvocationResult(ctx, array);
+            return Task.CompletedTask;
+        });
+
+        var result = _currentResult as string;
+        Assert.NotNull(result);
+        var mcpToolResult = JsonSerializer.Deserialize(result, McpJsonContext.Default.McpToolResult);
+        Assert.NotNull(mcpToolResult);
+        Assert.NotNull(mcpToolResult.StructuredContent);
+    }
+
+    [Fact]
+    public async Task ShouldCreateStructuredContent_List_ElementsWithAttribute_ReturnsTrue()
+    {
+        var context = CreateMcpFunctionContext();
+        var list = new List<TestPocoWithAttribute>
+            {
+                new() { Name = "ListItem1", Age = 10, Email = "list1@example.com" },
+                new() { Name = "ListItem2", Age = 20, Email = "list2@example.com" }
+            };
+
+        await _middleware.Invoke(context, ctx =>
+        {
+            SetInvocationResult(ctx, list);
+            return Task.CompletedTask;
+        });
+
+        var result = _currentResult as string;
+        Assert.NotNull(result);
+        var mcpToolResult = JsonSerializer.Deserialize(result, McpJsonContext.Default.McpToolResult);
+        Assert.NotNull(mcpToolResult);
+        Assert.NotNull(mcpToolResult.StructuredContent);
+    }
+
+    [Fact]
+    public async Task ShouldCreateStructuredContent_IEnumerable_ElementsWithAttribute_ReturnsTrue()
+    {
+        var context = CreateMcpFunctionContext();
+        IEnumerable<TestPocoWithAttribute> enumerable = new[]
+        {
+                new TestPocoWithAttribute { Name = "EnumItem", Age = 30, Email = "enum@example.com" }
+            };
+
+        await _middleware.Invoke(context, ctx =>
+        {
+            SetInvocationResult(ctx, enumerable);
+            return Task.CompletedTask;
+        });
+
+        var result = _currentResult as string;
+        Assert.NotNull(result);
+        var mcpToolResult = JsonSerializer.Deserialize(result, McpJsonContext.Default.McpToolResult);
+        Assert.NotNull(mcpToolResult);
+        Assert.NotNull(mcpToolResult.StructuredContent);
+    }
+
+    [Fact]
+    public async Task ShouldCreateStructuredContent_Dictionary_ValueTypeWithAttribute_ReturnsTrue()
+    {
+        var context = CreateMcpFunctionContext();
+        var dictionary = new Dictionary<string, TestPocoWithAttribute>
+        {
+            ["key1"] = new() { Name = "DictValue1", Age = 100, Email = "dict1@example.com" },
+            ["key2"] = new() { Name = "DictValue2", Age = 200, Email = "dict2@example.com" }
+        };
+
+        await _middleware.Invoke(context, ctx =>
+        {
+            SetInvocationResult(ctx, dictionary);
+            return Task.CompletedTask;
+        });
+
+        var result = _currentResult as string;
+        Assert.NotNull(result);
+        var mcpToolResult = JsonSerializer.Deserialize(result, McpJsonContext.Default.McpToolResult);
+        Assert.NotNull(mcpToolResult);
+        Assert.NotNull(mcpToolResult.StructuredContent);
+    }
+
+    // ========================
+    // Nested Collection Tests
+    // ========================
+
+    [Fact]
+    public async Task ShouldCreateStructuredContent_NestedList_InnerElementsWithAttribute_ReturnsTrue()
+    {
+        var context = CreateMcpFunctionContext();
+        var nestedList = new List<List<TestPocoWithAttribute>>
+            {
+                new()
+                {
+                    new() { Name = "Nested1", Age = 1, Email = "nested1@example.com" }
+                },
+                new()
+                {
+                    new() { Name = "Nested2", Age = 2, Email = "nested2@example.com" }
+                }
+            };
+
+        await _middleware.Invoke(context, ctx =>
+        {
+            SetInvocationResult(ctx, nestedList);
+            return Task.CompletedTask;
+        });
+
+        var result = _currentResult as string;
+        Assert.NotNull(result);
+        var mcpToolResult = JsonSerializer.Deserialize(result, McpJsonContext.Default.McpToolResult);
+        Assert.NotNull(mcpToolResult);
+        Assert.NotNull(mcpToolResult.StructuredContent);
+    }
+
+    [Fact]
+    public async Task ShouldCreateStructuredContent_ArrayOfArrays_InnerElementsWithAttribute_ReturnsTrue()
+    {
+        var context = CreateMcpFunctionContext();
+        var jaggedArray = new TestPocoWithAttribute[][]
+        {
+                new[] { new TestPocoWithAttribute { Name = "Jagged1", Age = 1, Email = "j1@example.com" } },
+                new[] { new TestPocoWithAttribute { Name = "Jagged2", Age = 2, Email = "j2@example.com" } }
+        };
+
+        await _middleware.Invoke(context, ctx =>
+        {
+            SetInvocationResult(ctx, jaggedArray);
+            return Task.CompletedTask;
+        });
+
+        var result = _currentResult as string;
+        Assert.NotNull(result);
+        var mcpToolResult = JsonSerializer.Deserialize(result, McpJsonContext.Default.McpToolResult);
+        Assert.NotNull(mcpToolResult);
+        Assert.NotNull(mcpToolResult.StructuredContent);
+    }
+
+    // ========================
+    // No Attribution Tests (should return false)
+    // ========================
+
+    [Fact]
+    public async Task ShouldCreateStructuredContent_ClassWithoutAttribute_ReturnsFalse()
+    {
+        var context = CreateMcpFunctionContext();
+        var poco = new TestPoco { Name = "NoAttr", Age = 50, Email = "noattr@example.com" };
+
+        await _middleware.Invoke(context, ctx =>
+        {
+            SetInvocationResult(ctx, poco);
+            return Task.CompletedTask;
+        });
+
+        var result = _currentResult as string;
+        Assert.NotNull(result);
+        var mcpToolResult = JsonSerializer.Deserialize(result, McpJsonContext.Default.McpToolResult);
+        Assert.NotNull(mcpToolResult);
+        Assert.Null(mcpToolResult.StructuredContent);
+    }
+
+    [Fact]
+    public async Task ShouldCreateStructuredContent_RecordWithoutAttribute_ReturnsFalse()
+    {
+        var context = CreateMcpFunctionContext();
+        var record = new RecordWithoutAttribute("NoAttrRecord", 99);
+
+        await _middleware.Invoke(context, ctx =>
+        {
+            SetInvocationResult(ctx, record);
+            return Task.CompletedTask;
+        });
+
+        var result = _currentResult as string;
+        Assert.NotNull(result);
+        var mcpToolResult = JsonSerializer.Deserialize(result, McpJsonContext.Default.McpToolResult);
+        Assert.NotNull(mcpToolResult);
+        Assert.Null(mcpToolResult.StructuredContent);
+    }
+
+    [Fact]
+    public async Task ShouldCreateStructuredContent_StructWithoutAttribute_ReturnsFalse()
+    {
+        var context = CreateMcpFunctionContext();
+        var structValue = new StructWithoutAttribute { Data = "NoAttrStruct" };
+
+        await _middleware.Invoke(context, ctx =>
+        {
+            SetInvocationResult(ctx, structValue);
+            return Task.CompletedTask;
+        });
+
+        var result = _currentResult as string;
+        Assert.NotNull(result);
+        var mcpToolResult = JsonSerializer.Deserialize(result, McpJsonContext.Default.McpToolResult);
+        Assert.NotNull(mcpToolResult);
+        Assert.Null(mcpToolResult.StructuredContent);
+    }
+
+    [Fact]
+    public async Task ShouldCreateStructuredContent_ArrayWithoutAttribute_ReturnsFalse()
+    {
+        var context = CreateMcpFunctionContext();
+        var array = new TestPoco[]
+        {
+                new() { Name = "NoAttrArray1", Age = 1, Email = "arr1@example.com" }
+        };
+
+        await _middleware.Invoke(context, ctx =>
+        {
+            SetInvocationResult(ctx, array);
+            return Task.CompletedTask;
+        });
+
+        var result = _currentResult as string;
+        Assert.NotNull(result);
+        var mcpToolResult = JsonSerializer.Deserialize(result, McpJsonContext.Default.McpToolResult);
+        Assert.NotNull(mcpToolResult);
+        Assert.Null(mcpToolResult.StructuredContent);
+    }
+
+    [Fact]
+    public async Task ShouldCreateStructuredContent_ListWithoutAttribute_ReturnsFalse()
+    {
+        var context = CreateMcpFunctionContext();
+        var list = new List<TestPoco>
+            {
+                new() { Name = "NoAttrList1", Age = 1, Email = "list1@example.com" }
+            };
+
+        await _middleware.Invoke(context, ctx =>
+        {
+            SetInvocationResult(ctx, list);
+            return Task.CompletedTask;
+        });
+
+        var result = _currentResult as string;
+        Assert.NotNull(result);
+        var mcpToolResult = JsonSerializer.Deserialize(result, McpJsonContext.Default.McpToolResult);
+        Assert.NotNull(mcpToolResult);
+        Assert.Null(mcpToolResult.StructuredContent);
+    }
+
+    [Fact]
+    public async Task ShouldCreateStructuredContent_DictionaryWithoutAttribute_ReturnsFalse()
+    {
+        var context = CreateMcpFunctionContext();
+        var dictionary = new Dictionary<string, TestPoco>
+        {
+            ["key1"] = new() { Name = "NoAttrDict", Age = 1, Email = "dict@example.com" }
+        };
+
+        await _middleware.Invoke(context, ctx =>
+        {
+            SetInvocationResult(ctx, dictionary);
+            return Task.CompletedTask;
+        });
+
+        var result = _currentResult as string;
+        Assert.NotNull(result);
+        var mcpToolResult = JsonSerializer.Deserialize(result, McpJsonContext.Default.McpToolResult);
+        Assert.NotNull(mcpToolResult);
+        Assert.Null(mcpToolResult.StructuredContent);
+    }
+
+    [Fact]
+    public async Task ShouldCreateStructuredContent_PrimitiveString_ReturnsFalse()
+    {
+        var context = CreateMcpFunctionContext();
+
+        await _middleware.Invoke(context, ctx =>
+        {
+            SetInvocationResult(ctx, "primitive string");
+            return Task.CompletedTask;
+        });
+
+        var result = _currentResult as string;
+        Assert.NotNull(result);
+        var mcpToolResult = JsonSerializer.Deserialize(result, McpJsonContext.Default.McpToolResult);
+        Assert.NotNull(mcpToolResult);
+        Assert.Null(mcpToolResult.StructuredContent);
+    }
+
+    [Fact]
+    public async Task ShouldCreateStructuredContent_PrimitiveInt_ReturnsFalse()
+    {
+        var context = CreateMcpFunctionContext();
+
+        await _middleware.Invoke(context, ctx =>
+        {
+            SetInvocationResult(ctx, 12345);
+            return Task.CompletedTask;
+        });
+
+        var result = _currentResult as string;
+        Assert.NotNull(result);
+        var mcpToolResult = JsonSerializer.Deserialize(result, McpJsonContext.Default.McpToolResult);
+        Assert.NotNull(mcpToolResult);
+        Assert.Null(mcpToolResult.StructuredContent);
+    }
+
+    [Fact]
+    public async Task ShouldCreateStructuredContent_PrimitiveBool_ReturnsFalse()
+    {
+        var context = CreateMcpFunctionContext();
+
+        await _middleware.Invoke(context, ctx =>
+        {
+            SetInvocationResult(ctx, true);
+            return Task.CompletedTask;
+        });
+
+        var result = _currentResult as string;
+        Assert.NotNull(result);
+        var mcpToolResult = JsonSerializer.Deserialize(result, McpJsonContext.Default.McpToolResult);
+        Assert.NotNull(mcpToolResult);
+        Assert.Null(mcpToolResult.StructuredContent);
+    }
+
+    [Fact]
+    public async Task ShouldCreateStructuredContent_ListOfStrings_ReturnsFalse()
+    {
+        var context = CreateMcpFunctionContext();
+        var list = new List<string> { "a", "b", "c" };
+
+        await _middleware.Invoke(context, ctx =>
+        {
+            SetInvocationResult(ctx, list);
+            return Task.CompletedTask;
+        });
+
+        var result = _currentResult as string;
+        Assert.NotNull(result);
+        var mcpToolResult = JsonSerializer.Deserialize(result, McpJsonContext.Default.McpToolResult);
+        Assert.NotNull(mcpToolResult);
+        Assert.Null(mcpToolResult.StructuredContent);
+    }
+
+    [Fact]
+    public async Task ShouldCreateStructuredContent_DictionaryOfPrimitives_ReturnsFalse()
+    {
+        var context = CreateMcpFunctionContext();
+        var dict = new Dictionary<string, int> { ["one"] = 1, ["two"] = 2 };
+
+        await _middleware.Invoke(context, ctx =>
+        {
+            SetInvocationResult(ctx, dict);
+            return Task.CompletedTask;
+        });
+
+        var result = _currentResult as string;
+        Assert.NotNull(result);
+        var mcpToolResult = JsonSerializer.Deserialize(result, McpJsonContext.Default.McpToolResult);
+        Assert.NotNull(mcpToolResult);
+        Assert.Null(mcpToolResult.StructuredContent);
+    }
+}
