@@ -6,13 +6,13 @@ using ModelContextProtocol.Protocol;
 
 namespace Microsoft.Azure.Functions.Extensions.Mcp;
 
-internal sealed class ResourceInvocationContext
+internal sealed class ResourceInvocationContext(string uri)
 {
     /// <summary>
     /// Gets or sets the URI of the resource to invoke.
     /// </summary>
     [JsonPropertyName("uri")]
-    public required string Uri { get; init; }
+    public string Uri { get; } = uri;
 
     /// <summary>
     /// Gets the session ID associated with the current resource invocation.

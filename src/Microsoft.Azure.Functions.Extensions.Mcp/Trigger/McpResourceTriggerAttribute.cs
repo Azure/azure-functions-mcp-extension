@@ -17,30 +17,30 @@ public sealed class McpResourceTriggerAttribute(string uri, string resourceName)
     /// <summary>
     /// Gets or sets the unique identifier for the resource.
     /// </summary>
-    public string Uri { get; set; } = uri;
+    public string Uri { get; } = uri;
 
     /// <summary>
     /// Gets or sets the name of the resource.
     /// </summary>
-    public string ResourceName { get; set; } = resourceName;
+    public string ResourceName { get; } = resourceName;
 
     /// <summary>
     /// Gets or sets an optional human-readable title for display purposes.
     /// </summary>
-    public string? Title { get; set; }
+    public string? Title { get; init; }
 
     /// <summary>
     /// Gets or sets an optional description of the resource.
     /// </summary>
-    public string? Description { get; set; }
+    public string? Description { get; init; }
 
     /// <summary>
     /// Gets or sets the optional MIME type of the resource.
     /// </summary>
-    public string? MimeType { get; set; }
+    public string? MimeType { get; init; }
 
     /// <summary>
     /// Gets or sets the optional size of the resource in bytes.
     /// </summary>
-    public long? Size { get; set; }
+    public long? Size { get; init; }
 }
