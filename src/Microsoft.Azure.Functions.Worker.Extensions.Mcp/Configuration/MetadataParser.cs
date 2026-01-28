@@ -22,6 +22,14 @@ internal static class MetadataParser
     }
 
     /// <summary>
+    /// Gets tool metadata JSON from function metadata.
+    /// </summary>
+    public static bool TryGetToolMetadata(IFunctionMetadata functionMetadata, [NotNullWhen(true)] out string? metadataJson)
+    {
+        return TryGetMetadata<McpToolTriggerAttribute>(functionMetadata, out metadataJson);
+    }
+
+    /// <summary>
     /// Generic method to extract metadata JSON from function parameters based on trigger attribute type.
     /// </summary>
     public static bool TryGetMetadata<TTriggerAttribute>(
