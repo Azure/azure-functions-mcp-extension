@@ -4,7 +4,6 @@
 using Microsoft.Azure.Functions.Extensions.Mcp.Abstractions;
 using ModelContextProtocol.Protocol;
 using System.Diagnostics.CodeAnalysis;
-using System.Text.Json;
 
 namespace Microsoft.Azure.Functions.Extensions.Mcp;
 
@@ -56,9 +55,7 @@ internal sealed class DefaultResourceRegistry : IResourceRegistry
                 Description = resource.Description,
                 MimeType = resource.MimeType,
                 Size = resource.Size,
-                Meta = resource.Metadata is not null && resource.Metadata.Any()
-                    ? JsonSerializer.SerializeToNode(resource.Metadata.ToDictionary(kvp => kvp.Key, kvp => kvp.Value))?.AsObject()
-                    : null
+                Meta = MetadataParser.SerializeMetadata(resource.Metadata)
             })]
         };
 

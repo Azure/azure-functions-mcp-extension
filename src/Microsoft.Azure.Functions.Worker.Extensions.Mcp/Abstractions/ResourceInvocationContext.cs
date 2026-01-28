@@ -2,7 +2,6 @@
 // Licensed under the MIT License.
 
 using System.Text.Json.Serialization;
-using Microsoft.Azure.Functions.Worker.Extensions.Mcp.JsonConverters;
 
 namespace Microsoft.Azure.Functions.Worker.Extensions.Mcp;
 

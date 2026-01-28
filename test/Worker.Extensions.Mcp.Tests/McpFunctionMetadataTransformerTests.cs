@@ -1,5 +1,4 @@
 using System.ComponentModel;
-using System.Reflection;
 using System.Text.Json.Nodes;
 using Microsoft.Azure.Functions.Worker.Core.FunctionMetadata;
 using Microsoft.Azure.Functions.Worker.Extensions.Mcp;
@@ -208,6 +207,99 @@ public class McpFunctionMetadataTransformerTests
         Assert.Contains("\"propertyName\":\"Name\"", tp);
     }
 
+    [Fact]
+    public void Transform_ResourceMetadata_WithResourceMetadataAttribute_ExtractsMetadata()
+    {
+        var (entryPoint, scriptFile, outputDir) = GetFunctionMetadataInfo<TestFunctions>(nameof(TestFunctions.WithResourceMetadata));
+        Environment.SetEnvironmentVariable(FunctionsApplicationDirectoryKey, outputDir);
+
+        var options = new Mock<IOptionsMonitor<ToolOptions>>();
+        var transformer = new McpFunctionMetadataTransformer(options.Object);
+
+        var fn = CreateFunctionMetadata(
+            entryPoint,
+            scriptFile,
+            "Func",
+            ["{\"type\":\"mcpResourceTrigger\",\"uri\":\"file://test\",\"resourceName\":\"test\"}"]);
+
+        transformer.Transform([fn.Object]);
+        var json = JsonNode.Parse(fn.Object.RawBindings![0])!.AsObject();
+        
+        Assert.True(json.ContainsKey("metadata"));
+        var metadata = json["metadata"]!.GetValue<string>();
+        Assert.NotEmpty(metadata);
+    }
+
+    [Fact]
+    public void Transform_ResourceMetadata_MultipleAttributes_CombinesAllMetadata()
+    {
+        var (entryPoint, scriptFile, outputDir) = GetFunctionMetadataInfo<TestFunctions>(nameof(TestFunctions.WithMultipleResourceMetadata));
+        Environment.SetEnvironmentVariable(FunctionsApplicationDirectoryKey, outputDir);
+
+        var options = new Mock<IOptionsMonitor<ToolOptions>>();
+        var transformer = new McpFunctionMetadataTransformer(options.Object);
+
+        var fn = CreateFunctionMetadata(
+            entryPoint,
+            scriptFile,
+            "Func",
+            ["{\"type\":\"mcpResourceTrigger\",\"uri\":\"file://test\",\"resourceName\":\"test\"}"]);
+
+        transformer.Transform([fn.Object]);
+        var json = JsonNode.Parse(fn.Object.RawBindings![0])!.AsObject();
+        
+        Assert.True(json.ContainsKey("metadata"));
+        var metadata = json["metadata"]!.GetValue<string>();
+        Assert.Contains("\"prop1\"", metadata);
+        Assert.Contains("\"prop2\"", metadata);
+    }
+
+    [Fact]
+    public void Transform_ResourceMetadata_WithJsonValue_ParsesCorrectly()
+    {
+        var (entryPoint, scriptFile, outputDir) = GetFunctionMetadataInfo<TestFunctions>(nameof(TestFunctions.WithResourceMetadataJson));
+        Environment.SetEnvironmentVariable(FunctionsApplicationDirectoryKey, outputDir);
+
+        var options = new Mock<IOptionsMonitor<ToolOptions>>();
+        var transformer = new McpFunctionMetadataTransformer(options.Object);
+
+        var fn = CreateFunctionMetadata(
+            entryPoint,
+            scriptFile,
+            "Func",
+            ["{\"type\":\"mcpResourceTrigger\",\"uri\":\"file://test\",\"resourceName\":\"test\"}"]);
+
+        transformer.Transform([fn.Object]);
+        var json = JsonNode.Parse(fn.Object.RawBindings![0])!.AsObject();
+        var metadata = json["metadata"]!.GetValue<string>();
+        
+        // Should contain parsed JSON object with nested structure
+        Assert.Contains("nested", metadata);
+        Assert.Contains("config", metadata);
+    }
+
+    [Fact]
+    public void Transform_ResourceMetadata_NoMetadataAttribute_NoMetadataAdded()
+    {
+        var (entryPoint, scriptFile, outputDir) = GetFunctionMetadataInfo<TestFunctions>(nameof(TestFunctions.NoAttributes));
+        Environment.SetEnvironmentVariable(FunctionsApplicationDirectoryKey, outputDir);
+
+        var options = new Mock<IOptionsMonitor<ToolOptions>>();
+        var transformer = new McpFunctionMetadataTransformer(options.Object);
+
+        var fn = CreateFunctionMetadata(
+            entryPoint,
+            scriptFile,
+            "Func",
+            ["{\"type\":\"mcpResourceTrigger\",\"uri\":\"file://test\",\"resourceName\":\"test\"}"]);
+
+        transformer.Transform([fn.Object]);
+        var json = JsonNode.Parse(fn.Object.RawBindings![0])!.AsObject();
+        
+        // Should not add metadata if no attributes present
+        Assert.False(json.ContainsKey("metadata"));
+    }
+
     private static McpFunctionMetadataTransformer CreateTransformer(List<ToolProperty>? configured = null)
     {
         var options =  new Mock<IOptionsMonitor<ToolOptions>>();
@@ -250,6 +342,18 @@ public class McpFunctionMetadataTransformerTests
             [McpToolTrigger("WithContextAndPoco", "desc")] ToolInvocationContext context,
             [McpToolProperty("Name", "Name", true)] string name,
             ExtraPoco ignored) { }
+
+        public void WithResourceMetadata(
+            [McpResourceTrigger("file://test", "test")]
+            [McpMetadata("""{"prop1": "value1"}""")] ResourceInvocationContext context) { }
+
+        public void WithMultipleResourceMetadata(
+            [McpResourceTrigger("file://test", "test")]
+            [McpMetadata("""{"prop1": "value1", "prop2": "value2"}""")] ResourceInvocationContext context) { }
+
+        public void WithResourceMetadataJson(
+            [McpResourceTrigger("file://test", "test")]
+            [McpMetadata("""{"config": {"nested": {"key": "value"}}}""")] ResourceInvocationContext context) { }
     }
 
     public class Snippet
