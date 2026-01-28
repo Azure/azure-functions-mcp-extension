@@ -8,6 +8,17 @@ public class ResourceFunctions
 {
     private readonly ILogger<TestFunction> _logger;
 
+    private const string ReadmeMetadata = """
+        {
+            "author": "John Doe",
+            "file": {
+                "version": "1.0.0",
+                "releaseDate": "2024-01-01"
+            },
+            "tags": ["documentation", "readme"]
+        }
+        """;
+
     public ResourceFunctions(ILogger<TestFunction> logger)
     {
         _logger = logger;
@@ -20,10 +31,7 @@ public class ResourceFunctions
             "readme",
             Description = "Application readme file",
             MimeType = "text/plain")]
-        [McpMetadata("author", "John Doe")]
-        [McpMetadata("file:version", 1.0)]
-        [McpMetadata("file:releaseDate", "2024-01-01")]
-        [McpMetadata("test:example", new[] { "list", "of", "values" })]
+        [McpMetadata(ReadmeMetadata)]
         ResourceInvocationContext context)
     {
         _logger.LogInformation("Reading text resource from local file storage");

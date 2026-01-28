@@ -250,8 +250,8 @@ public class McpFunctionMetadataTransformerTests
         
         Assert.True(json.ContainsKey("metadata"));
         var metadata = json["metadata"]!.GetValue<string>();
-        Assert.Contains("\"Key\":\"prop1\"", metadata);
-        Assert.Contains("\"Key\":\"prop2\"", metadata);
+        Assert.Contains("\"prop1\"", metadata);
+        Assert.Contains("\"prop2\"", metadata);
     }
 
     [Fact]
@@ -275,7 +275,7 @@ public class McpFunctionMetadataTransformerTests
         
         // Should contain parsed JSON object with nested structure
         Assert.Contains("nested", metadata);
-        Assert.Contains("\"Key\":\"config\"", metadata);
+        Assert.Contains("config", metadata);
     }
 
     [Fact]
@@ -345,16 +345,15 @@ public class McpFunctionMetadataTransformerTests
 
         public void WithResourceMetadata(
             [McpResourceTrigger("file://test", "test")]
-            [McpMetadata("prop1", "value1")] ResourceInvocationContext context) { }
+            [McpMetadata("""{"prop1": "value1"}""")] ResourceInvocationContext context) { }
 
         public void WithMultipleResourceMetadata(
             [McpResourceTrigger("file://test", "test")]
-            [McpMetadata("prop1", "value1")]
-            [McpMetadata("prop2", "value2")] ResourceInvocationContext context) { }
+            [McpMetadata("""{"prop1": "value1", "prop2": "value2"}""")] ResourceInvocationContext context) { }
 
         public void WithResourceMetadataJson(
             [McpResourceTrigger("file://test", "test")]
-            [McpMetadata("config", "{\"nested\": {\"key\": \"value\"}}")] ResourceInvocationContext context) { }
+            [McpMetadata("""{"config": {"nested": {"key": "value"}}}""")] ResourceInvocationContext context) { }
     }
 
     public class Snippet

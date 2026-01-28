@@ -28,7 +28,9 @@
     <Using Include="System.Threading.ExecutionContext" Alias="ExecutionContext" />
   </ItemGroup>
 
-  <None Include="$(EngResourceRoot)icon.png" Link="assets/logo.png" />
+  <ItemGroup>
+    <None Include="$(EngResourceRoot)icon.png" Link="assets/logo.png" />
+  </ItemGroup>
 
   <ItemGroup>
     <None Update="assets\**\*">

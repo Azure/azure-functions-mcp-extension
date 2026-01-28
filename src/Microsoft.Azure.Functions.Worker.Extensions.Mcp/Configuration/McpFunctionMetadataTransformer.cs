@@ -47,9 +47,9 @@ public sealed class McpFunctionMetadataTransformer(IOptionsMonitor<ToolOptions> 
                     function.RawBindings[i] = jsonObject.ToJsonString();
                 }
                 else if (string.Equals(bindingType, McpResourceTriggerBindingType, StringComparison.OrdinalIgnoreCase)
-                    && MetadataParser.TryGetResourceMetadata(function, out var resourceMetadata))
+                    && MetadataParser.TryGetResourceMetadata(function, out var resourceMetadataJson))
                 {
-                    jsonObject["metadata"] = MetadataParser.BuildMetadataJson(resourceMetadata);
+                    jsonObject["metadata"] = resourceMetadataJson;
                     function.RawBindings[i] = jsonObject.ToJsonString();
                 }
                 else if (string.Equals(bindingType, McpToolPropertyBindingType, StringComparison.OrdinalIgnoreCase)

@@ -5,39 +5,27 @@ namespace Microsoft.Azure.Functions.Worker.Extensions.Mcp;
 
 /// <summary>
 /// Attribute to add metadata to an MCP trigger.
-/// Can be applied multiple times to add multiple metadata key-value pairs.
 /// This is a declarative attribute read during registration, not an input binding.
 /// </summary>
 /// <remarks>
 /// <para>
-/// Supports colon notation for nested metadata paths. For example:
+/// Provide metadata as a JSON string. For example:
 /// </para>
 /// <code>
-/// [McpMetadata("author", "John Doe")]                    // { "author": "John Doe" }
-/// [McpMetadata("ui:resourceUri", "ui://my-app/widget")]  // { "ui": { "resourceUri": "ui://my-app/widget" } }
-/// [McpMetadata("ui:prefersBorder", "true")]              // Merges into ui object
-/// [McpMetadata("tags", new[] { "a", "b", "c" })]         // { "tags": ["a", "b", "c"] }
+/// [McpMetadata("{\"author\":\"John Doe\",\"version\":1.0}")]
 /// </code>
-/// <para>
-/// Multiple attributes with the same nested path prefix will be merged into a single object.
-/// </para>
 /// </remarks>
 /// <example>
 /// <code>
-/// [McpMetadata("ui:resourceUri", "ui://time/widget.html")]
-/// [McpMetadata("categories", new[] { "tools", "utilities" })]
+/// [McpMetadata("{\"author\":\"John\",\"tags\":[\"utility\",\"time\"]}")]
+/// [McpMetadata("{\"ui\":{\"resourceUri\":\"ui://my-app/widget\",\"prefersBorder\":true}}")]
 /// </code>
 /// </example>
-[AttributeUsage(AttributeTargets.Parameter, AllowMultiple = true)]
-public sealed class McpMetadataAttribute(string key, object? value) : Attribute
+[AttributeUsage(AttributeTargets.Parameter, AllowMultiple = false)]
+public sealed class McpMetadataAttribute(string json) : Attribute
 {
     /// <summary>
-    /// Gets the metadata key. Use colon notation (e.g., "ui:resourceUri") for nested paths.
+    /// Gets the metadata as a JSON string.
     /// </summary>
-    public string Key { get; } = key;
-
-    /// <summary>
-    /// Gets the metadata value. Can be a string, number, boolean, or array.
-    /// </summary>
-    public object? Value { get; } = value;
+    public string Json { get; } = json;
 }

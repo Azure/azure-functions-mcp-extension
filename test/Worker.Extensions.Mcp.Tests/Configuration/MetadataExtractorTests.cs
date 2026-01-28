@@ -10,153 +10,16 @@ namespace Worker.Extensions.Mcp.Tests.Configuration;
 public class MetadataParserTests
 {
     [Fact]
-    public void BuildMetadataJson_SingleFlatKey_ReturnsSimpleJson()
-    {
-        var metadata = new List<KeyValuePair<string, object?>>
-        {
-            new("key1", "value1")
-        };
-
-        var result = MetadataParser.BuildMetadataJson(metadata);
-        var json = JsonNode.Parse(result)!.AsObject();
-
-        Assert.Equal("value1", json["key1"]!.GetValue<string>());
-    }
-
-    [Fact]
-    public void BuildMetadataJson_MultipleFlatKeys_ReturnsAllKeys()
-    {
-        var metadata = new List<KeyValuePair<string, object?>>
-        {
-            new("key1", "value1"),
-            new("key2", "value2"),
-            new("key3", "value3")
-        };
-
-        var result = MetadataParser.BuildMetadataJson(metadata);
-        var json = JsonNode.Parse(result)!.AsObject();
-
-        Assert.Equal("value1", json["key1"]!.GetValue<string>());
-        Assert.Equal("value2", json["key2"]!.GetValue<string>());
-        Assert.Equal("value3", json["key3"]!.GetValue<string>());
-    }
-
-    [Fact]
-    public void BuildMetadataJson_NestedKeyWithColon_CreatesNestedStructure()
-    {
-        var metadata = new List<KeyValuePair<string, object?>>
-        {
-            new("ui:resourceUri", "test-uri")
-        };
-
-        var result = MetadataParser.BuildMetadataJson(metadata);
-        var json = JsonNode.Parse(result)!.AsObject();
-
-        Assert.True(json.ContainsKey("ui"));
-        var ui = json["ui"]!.AsObject();
-        Assert.Equal("test-uri", ui["resourceUri"]!.GetValue<string>());
-    }
-
-    [Fact]
-    public void BuildMetadataJson_DeeplyNestedKey_CreatesDeepStructure()
-    {
-        var metadata = new List<KeyValuePair<string, object?>>
-        {
-            new("level1:level2:level3", "deep-value")
-        };
-
-        var result = MetadataParser.BuildMetadataJson(metadata);
-        var json = JsonNode.Parse(result)!.AsObject();
-
-        var level1 = json["level1"]!.AsObject();
-        var level2 = level1["level2"]!.AsObject();
-        Assert.Equal("deep-value", level2["level3"]!.GetValue<string>());
-    }
-
-    [Fact]
-    public void BuildMetadataJson_MultipleNestedKeysWithSharedParent_MergesCorrectly()
-    {
-        var metadata = new List<KeyValuePair<string, object?>>
-        {
-            new("file:version", "1.0.0"),
-            new("file:releaseDate", "2024-01-01"),
-            new("author", "John Doe")
-        };
-
-        var result = MetadataParser.BuildMetadataJson(metadata);
-        var json = JsonNode.Parse(result)!.AsObject();
-
-        Assert.Equal("John Doe", json["author"]!.GetValue<string>());
-        var file = json["file"]!.AsObject();
-        Assert.Equal("1.0.0", file["version"]!.GetValue<string>());
-        Assert.Equal("2024-01-01", file["releaseDate"]!.GetValue<string>());
-    }
-
-    [Fact]
-    public void BuildMetadataJson_NullValue_SerializesAsNull()
-    {
-        var metadata = new List<KeyValuePair<string, object?>>
-        {
-            new("nullKey", null)
-        };
-
-        var result = MetadataParser.BuildMetadataJson(metadata);
-        var json = JsonNode.Parse(result)!.AsObject();
-
-        Assert.True(json.ContainsKey("nullKey"));
-        Assert.Null(json["nullKey"]);
-    }
-
-    [Fact]
-    public void BuildMetadataJson_EmptyList_ReturnsEmptyObject()
-    {
-        var metadata = new List<KeyValuePair<string, object?>>();
-
-        var result = MetadataParser.BuildMetadataJson(metadata);
-        var json = JsonNode.Parse(result)!.AsObject();
-
-        Assert.Empty(json);
-    }
-
-    [Fact]
-    public void BuildMetadataJson_IntegerValue_SerializesCorrectly()
-    {
-        var metadata = new List<KeyValuePair<string, object?>>
-        {
-            new("count", 42)
-        };
-
-        var result = MetadataParser.BuildMetadataJson(metadata);
-        var json = JsonNode.Parse(result)!.AsObject();
-
-        Assert.Equal(42, json["count"]!.GetValue<int>());
-    }
-
-    [Fact]
-    public void BuildMetadataJson_BooleanValue_SerializesCorrectly()
-    {
-        var metadata = new List<KeyValuePair<string, object?>>
-        {
-            new("enabled", true)
-        };
-
-        var result = MetadataParser.BuildMetadataJson(metadata);
-        var json = JsonNode.Parse(result)!.AsObject();
-
-        Assert.True(json["enabled"]!.GetValue<bool>());
-    }
-
-    [Fact]
     public void TryExtractMetadataFromParameter_NoTriggerAttribute_ReturnsFalse()
     {
         var method = typeof(TestClass).GetMethod(nameof(TestClass.NoTrigger))!;
         var parameters = method.GetParameters();
 
         var result = MetadataParser.TryExtractMetadataFromParameter<McpResourceTriggerAttribute>(
-            parameters, out var metadata);
+            parameters, out var metadataJson);
 
         Assert.False(result);
-        Assert.Null(metadata);
+        Assert.Null(metadataJson);
     }
 
     [Fact]
@@ -166,40 +29,87 @@ public class MetadataParserTests
         var parameters = method.GetParameters();
 
         var result = MetadataParser.TryExtractMetadataFromParameter<McpResourceTriggerAttribute>(
-            parameters, out var metadata);
+            parameters, out var metadataJson);
 
         Assert.False(result);
-        Assert.Null(metadata);
+        Assert.Null(metadataJson);
     }
 
     [Fact]
-    public void TryExtractMetadataFromParameter_TriggerWithSingleMetadata_ReturnsMetadata()
+    public void TryExtractMetadataFromParameter_TriggerWithMetadata_ReturnsJsonString()
     {
-        var method = typeof(TestClass).GetMethod(nameof(TestClass.TriggerWithSingleMetadata))!;
+        var method = typeof(TestClass).GetMethod(nameof(TestClass.TriggerWithMetadata))!;
         var parameters = method.GetParameters();
 
         var result = MetadataParser.TryExtractMetadataFromParameter<McpResourceTriggerAttribute>(
-            parameters, out var metadata);
+            parameters, out var metadataJson);
 
         Assert.True(result);
-        Assert.NotNull(metadata);
-        Assert.Single(metadata);
-        Assert.Equal("author", metadata[0].Key);
-        Assert.Equal("John", metadata[0].Value);
+        Assert.NotNull(metadataJson);
+
+        var json = JsonNode.Parse(metadataJson)!.AsObject();
+        Assert.Equal("John", json["author"]!.GetValue<string>());
+        Assert.Equal("1.0", json["version"]!.GetValue<string>());
     }
 
     [Fact]
-    public void TryExtractMetadataFromParameter_TriggerWithMultipleMetadata_ReturnsAllMetadata()
+    public void TryExtractMetadataFromParameter_TriggerWithNestedMetadata_ReturnsNestedJson()
     {
-        var method = typeof(TestClass).GetMethod(nameof(TestClass.TriggerWithMultipleMetadata))!;
+        var method = typeof(TestClass).GetMethod(nameof(TestClass.TriggerWithNestedMetadata))!;
         var parameters = method.GetParameters();
 
         var result = MetadataParser.TryExtractMetadataFromParameter<McpResourceTriggerAttribute>(
-            parameters, out var metadata);
+            parameters, out var metadataJson);
 
         Assert.True(result);
-        Assert.NotNull(metadata);
-        Assert.Equal(3, metadata.Count);
+        Assert.NotNull(metadataJson);
+
+        var json = JsonNode.Parse(metadataJson)!.AsObject();
+        var ui = json["ui"]!.AsObject();
+        Assert.Equal("ui://test/widget", ui["resourceUri"]!.GetValue<string>());
+        Assert.True(ui["prefersBorder"]!.GetValue<bool>());
+    }
+
+    [Fact]
+    public void TryExtractMetadataFromParameter_InvalidJson_ReturnsFalse()
+    {
+        var method = typeof(TestClass).GetMethod(nameof(TestClass.TriggerWithInvalidJson))!;
+        var parameters = method.GetParameters();
+
+        var result = MetadataParser.TryExtractMetadataFromParameter<McpResourceTriggerAttribute>(
+            parameters, out var metadataJson);
+
+        Assert.False(result);
+        Assert.Null(metadataJson);
+    }
+
+    [Fact]
+    public void TryExtractMetadataFromParameter_EmptyJson_ReturnsFalse()
+    {
+        var method = typeof(TestClass).GetMethod(nameof(TestClass.TriggerWithEmptyJson))!;
+        var parameters = method.GetParameters();
+
+        var result = MetadataParser.TryExtractMetadataFromParameter<McpResourceTriggerAttribute>(
+            parameters, out var metadataJson);
+
+        Assert.False(result);
+        Assert.Null(metadataJson);
+    }
+
+    [Fact]
+    public void TryExtractMetadataFromParameter_ToolTrigger_ReturnsMetadata()
+    {
+        var method = typeof(TestClass).GetMethod(nameof(TestClass.ToolTriggerWithMetadata))!;
+        var parameters = method.GetParameters();
+
+        var result = MetadataParser.TryExtractMetadataFromParameter<McpToolTriggerAttribute>(
+            parameters, out var metadataJson);
+
+        Assert.True(result);
+        Assert.NotNull(metadataJson);
+
+        var json = JsonNode.Parse(metadataJson)!.AsObject();
+        Assert.Equal("utility", json["category"]!.GetValue<string>());
     }
 
     private class TestClass
@@ -209,14 +119,24 @@ public class MetadataParserTests
         public void TriggerNoMetadata(
             [McpResourceTrigger("file://test", "test")] ResourceInvocationContext context) { }
 
-        public void TriggerWithSingleMetadata(
+        public void TriggerWithMetadata(
             [McpResourceTrigger("file://test", "test")]
-            [McpMetadata("author", "John")] ResourceInvocationContext context) { }
+            [McpMetadata("{\"author\":\"John\",\"version\":\"1.0\"}")] ResourceInvocationContext context) { }
 
-        public void TriggerWithMultipleMetadata(
+        public void TriggerWithNestedMetadata(
             [McpResourceTrigger("file://test", "test")]
-            [McpMetadata("author", "John")]
-            [McpMetadata("version", "1.0")]
-            [McpMetadata("date", "2024-01-01")] ResourceInvocationContext context) { }
+            [McpMetadata("{\"ui\":{\"resourceUri\":\"ui://test/widget\",\"prefersBorder\":true}}")] ResourceInvocationContext context) { }
+
+        public void TriggerWithInvalidJson(
+            [McpResourceTrigger("file://test", "test")]
+            [McpMetadata("not valid json")] ResourceInvocationContext context) { }
+
+        public void TriggerWithEmptyJson(
+            [McpResourceTrigger("file://test", "test")]
+            [McpMetadata("")] ResourceInvocationContext context) { }
+
+        public void ToolTriggerWithMetadata(
+            [McpToolTrigger("TestTool")]
+            [McpMetadata("{\"category\":\"utility\"}")] ToolInvocationContext context) { }
     }
 }
