@@ -1,0 +1,44 @@
+parameters:
+- name: packageName
+  type: string
+- name: buildTag
+  type: string
+- name: dropPath
+  type: string
+  default: $(Pipeline.Workspace)/drop
+- name: excludePattern
+  type: string
+  default: ''
+
+steps:
+# Parse the version from the nupkg being released, as Directory.Version.props
+# can be influenced by other targets and may not reflect the actual package version.
+- pwsh: |
+    $ErrorActionPreference = 'Stop'
+
+    $name = "${{ parameters.packageName }}"
+    $excludePattern = "${{ parameters.excludePattern }}"
+    Write-Host "Getting version for $name"
+    
+    $packages = Get-ChildItem -Path "${{ parameters.dropPath }}" -Recurse -Filter "$name.?.*.nupkg"
+    
+    if ($excludePattern) {
+      $packages = $packages | Where-Object { $_.Name -notlike $excludePattern }
+    }
+
+    if ($packages.Count -eq 0) {
+      Write-Host "##vso[task.LogIssue type=error;]Could not find package $name."
+      exit 1
+    }
+
+    if ($packages.Count -gt 1) {
+      Write-Host "##vso[task.LogIssue type=error;]Too many packages matched $name."
+      exit 1
+    }
+
+    $version = $packages.Name.Replace("$name.", '').Replace('.nupkg', '')
+    Write-Host "Package Version: $version"
+    Write-Host "##vso[build.updatebuildnumber]$version"
+    Write-Host "##vso[build.addbuildtag]${{ parameters.buildTag }}"
+    Write-Host "##vso[build.addbuildtag]$version"
+  displayName: Get ${{ parameters.buildTag }} package version

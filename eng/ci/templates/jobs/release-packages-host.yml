@@ -41,31 +41,10 @@ extends:
               targetPath: $(Pipeline.Workspace)/drop
 
           steps:
-          # Parse the version from the nupkg being released, as Directory.Version.props
-          # can be influenced by other targets and may not reflect the actual package version.
-          - pwsh: |
-              $ErrorActionPreference = 'Stop'
-
-              $name = "Microsoft.Azure.Functions.Extensions.Mcp"
-              Write-Host "Getting version for $name"
-              $package = Get-ChildItem -Path "$(Pipeline.Workspace)/drop" -Recurse -Filter "$name.?.*.nupkg"
-
-              if ($package.Count -eq 0) {
-                Write-Host "##vso[task.LogIssue type=error;]Could not find package $name."
-                exit 1
-              }
-
-              if ($package.Count -gt 1) {
-                Write-Host "##vso[task.LogIssue type=error;]Too many packages matched $name."
-                exit 1
-              }
-
-              $version = $package.Name.Replace("$name.", '').Replace('.nupkg', '')
-              Write-Host "Host Extension Version: $version"
-              Write-Host "##vso[build.updatebuildnumber]$version"
-              Write-Host "##vso[build.addbuildtag]host-extension"
-              Write-Host "##vso[build.addbuildtag]$version"
-            displayName: Get Host package version
+          - template: /eng/ci/templates/steps/get-package-version.yml
+            parameters:
+              packageName: Microsoft.Azure.Functions.Extensions.Mcp
+              buildTag: host-extension
 
     - stage: Release
       dependsOn: Prepare

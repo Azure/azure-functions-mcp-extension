@@ -41,32 +41,11 @@ extends:
               targetPath: $(Pipeline.Workspace)/drop
 
           steps:
-          # Parse the version from the nupkg being released, as Directory.Version.props
-          # can be influenced by other targets and may not reflect the actual package version.
-          - pwsh: |
-              $ErrorActionPreference = 'Stop'
-
-              $name = "Microsoft.Azure.Functions.Worker.Extensions.Mcp"
-              Write-Host "Getting version for $name"
-              # Match the package but exclude the SDK package
-              $package = Get-ChildItem -Path "$(Pipeline.Workspace)/drop" -Recurse -Filter "$name.?.*.nupkg" | Where-Object { $_.Name -notlike "*Sdk*" }
-
-              if ($package.Count -eq 0) {
-                Write-Host "##vso[task.LogIssue type=error;]Could not find package $name."
-                exit 1
-              }
-
-              if ($package.Count -gt 1) {
-                Write-Host "##vso[task.LogIssue type=error;]Too many packages matched $name."
-                exit 1
-              }
-
-              $version = $package.Name.Replace("$name.", '').Replace('.nupkg', '')
-              Write-Host "Worker Extension Version: $version"
-              Write-Host "##vso[build.updatebuildnumber]$version"
-              Write-Host "##vso[build.addbuildtag]worker-extension"
-              Write-Host "##vso[build.addbuildtag]$version"
-            displayName: Get Worker package version
+          - template: /eng/ci/templates/steps/get-package-version.yml
+            parameters:
+              packageName: Microsoft.Azure.Functions.Worker.Extensions.Mcp
+              buildTag: worker-extension
+              excludePattern: '*Sdk*'
 
     - stage: Release
       dependsOn: Prepare
