@@ -13,7 +13,7 @@ namespace Microsoft.Azure.Functions.Worker.Extensions.Mcp.Configuration;
 /// <summary>
 /// Extracts tool properties from function parameters and attributes.
 /// </summary>
-internal static class ToolPropertyExtractor
+internal static class ToolPropertyParser
 {
     /// <summary>
     /// Attempts to get tool properties from function attributes.

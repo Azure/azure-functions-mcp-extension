@@ -7,7 +7,7 @@ using Microsoft.Azure.Functions.Worker.Extensions.Mcp.Configuration;
 
 namespace Worker.Extensions.Mcp.Tests.Configuration;
 
-public class MetadataExtractorTests
+public class MetadataParserTests
 {
     [Fact]
     public void BuildMetadataJson_SingleFlatKey_ReturnsSimpleJson()
@@ -17,7 +17,7 @@ public class MetadataExtractorTests
             new("key1", "value1")
         };
 
-        var result = MetadataExtractor.BuildMetadataJson(metadata);
+        var result = MetadataParser.BuildMetadataJson(metadata);
         var json = JsonNode.Parse(result)!.AsObject();
 
         Assert.Equal("value1", json["key1"]!.GetValue<string>());
@@ -33,7 +33,7 @@ public class MetadataExtractorTests
             new("key3", "value3")
         };
 
-        var result = MetadataExtractor.BuildMetadataJson(metadata);
+        var result = MetadataParser.BuildMetadataJson(metadata);
         var json = JsonNode.Parse(result)!.AsObject();
 
         Assert.Equal("value1", json["key1"]!.GetValue<string>());
@@ -49,7 +49,7 @@ public class MetadataExtractorTests
             new("ui:resourceUri", "test-uri")
         };
 
-        var result = MetadataExtractor.BuildMetadataJson(metadata);
+        var result = MetadataParser.BuildMetadataJson(metadata);
         var json = JsonNode.Parse(result)!.AsObject();
 
         Assert.True(json.ContainsKey("ui"));
@@ -65,7 +65,7 @@ public class MetadataExtractorTests
             new("level1:level2:level3", "deep-value")
         };
 
-        var result = MetadataExtractor.BuildMetadataJson(metadata);
+        var result = MetadataParser.BuildMetadataJson(metadata);
         var json = JsonNode.Parse(result)!.AsObject();
 
         var level1 = json["level1"]!.AsObject();
@@ -83,7 +83,7 @@ public class MetadataExtractorTests
             new("author", "John Doe")
         };
 
-        var result = MetadataExtractor.BuildMetadataJson(metadata);
+        var result = MetadataParser.BuildMetadataJson(metadata);
         var json = JsonNode.Parse(result)!.AsObject();
 
         Assert.Equal("John Doe", json["author"]!.GetValue<string>());
@@ -100,7 +100,7 @@ public class MetadataExtractorTests
             new("nullKey", null)
         };
 
-        var result = MetadataExtractor.BuildMetadataJson(metadata);
+        var result = MetadataParser.BuildMetadataJson(metadata);
         var json = JsonNode.Parse(result)!.AsObject();
 
         Assert.True(json.ContainsKey("nullKey"));
@@ -112,7 +112,7 @@ public class MetadataExtractorTests
     {
         var metadata = new List<KeyValuePair<string, object?>>();
 
-        var result = MetadataExtractor.BuildMetadataJson(metadata);
+        var result = MetadataParser.BuildMetadataJson(metadata);
         var json = JsonNode.Parse(result)!.AsObject();
 
         Assert.Empty(json);
@@ -126,7 +126,7 @@ public class MetadataExtractorTests
             new("count", 42)
         };
 
-        var result = MetadataExtractor.BuildMetadataJson(metadata);
+        var result = MetadataParser.BuildMetadataJson(metadata);
         var json = JsonNode.Parse(result)!.AsObject();
 
         Assert.Equal(42, json["count"]!.GetValue<int>());
@@ -140,7 +140,7 @@ public class MetadataExtractorTests
             new("enabled", true)
         };
 
-        var result = MetadataExtractor.BuildMetadataJson(metadata);
+        var result = MetadataParser.BuildMetadataJson(metadata);
         var json = JsonNode.Parse(result)!.AsObject();
 
         Assert.True(json["enabled"]!.GetValue<bool>());
@@ -152,7 +152,7 @@ public class MetadataExtractorTests
         var method = typeof(TestClass).GetMethod(nameof(TestClass.NoTrigger))!;
         var parameters = method.GetParameters();
 
-        var result = MetadataExtractor.TryExtractMetadataFromParameter<McpResourceTriggerAttribute>(
+        var result = MetadataParser.TryExtractMetadataFromParameter<McpResourceTriggerAttribute>(
             parameters, out var metadata);
 
         Assert.False(result);
@@ -165,7 +165,7 @@ public class MetadataExtractorTests
         var method = typeof(TestClass).GetMethod(nameof(TestClass.TriggerNoMetadata))!;
         var parameters = method.GetParameters();
 
-        var result = MetadataExtractor.TryExtractMetadataFromParameter<McpResourceTriggerAttribute>(
+        var result = MetadataParser.TryExtractMetadataFromParameter<McpResourceTriggerAttribute>(
             parameters, out var metadata);
 
         Assert.False(result);
@@ -178,7 +178,7 @@ public class MetadataExtractorTests
         var method = typeof(TestClass).GetMethod(nameof(TestClass.TriggerWithSingleMetadata))!;
         var parameters = method.GetParameters();
 
-        var result = MetadataExtractor.TryExtractMetadataFromParameter<McpResourceTriggerAttribute>(
+        var result = MetadataParser.TryExtractMetadataFromParameter<McpResourceTriggerAttribute>(
             parameters, out var metadata);
 
         Assert.True(result);
@@ -194,7 +194,7 @@ public class MetadataExtractorTests
         var method = typeof(TestClass).GetMethod(nameof(TestClass.TriggerWithMultipleMetadata))!;
         var parameters = method.GetParameters();
 
-        var result = MetadataExtractor.TryExtractMetadataFromParameter<McpResourceTriggerAttribute>(
+        var result = MetadataParser.TryExtractMetadataFromParameter<McpResourceTriggerAttribute>(
             parameters, out var metadata);
 
         Assert.True(result);

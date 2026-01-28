@@ -8,7 +8,7 @@ using Microsoft.Azure.Functions.Worker.Extensions.Mcp.Configuration;
 
 namespace Worker.Extensions.Mcp.Tests.Configuration;
 
-public class ToolPropertyExtractorTests
+public class ToolPropertyParserTests
 {
     [Fact]
     public void TryGetToolPropertyFromToolPropertyAttribute_NoAttribute_ReturnsFalse()
@@ -16,7 +16,7 @@ public class ToolPropertyExtractorTests
         var method = typeof(TestClass).GetMethod(nameof(TestClass.NoToolPropertyAttribute))!;
         var parameter = method.GetParameters()[0];
 
-        var result = ToolPropertyExtractor.TryGetToolPropertyFromToolPropertyAttribute(parameter, out var toolProperty);
+        var result = ToolPropertyParser.TryGetToolPropertyFromToolPropertyAttribute(parameter, out var toolProperty);
 
         Assert.False(result);
     }
@@ -27,7 +27,7 @@ public class ToolPropertyExtractorTests
         var method = typeof(TestClass).GetMethod(nameof(TestClass.WithToolPropertyAttribute))!;
         var parameter = method.GetParameters()[0];
 
-        var result = ToolPropertyExtractor.TryGetToolPropertyFromToolPropertyAttribute(parameter, out var toolProperty);
+        var result = ToolPropertyParser.TryGetToolPropertyFromToolPropertyAttribute(parameter, out var toolProperty);
 
         Assert.True(result);
         Assert.Equal("name", toolProperty.Name);
@@ -42,7 +42,7 @@ public class ToolPropertyExtractorTests
         var method = typeof(TestClass).GetMethod(nameof(TestClass.WithOptionalToolProperty))!;
         var parameter = method.GetParameters()[0];
 
-        var result = ToolPropertyExtractor.TryGetToolPropertyFromToolPropertyAttribute(parameter, out var toolProperty);
+        var result = ToolPropertyParser.TryGetToolPropertyFromToolPropertyAttribute(parameter, out var toolProperty);
 
         Assert.True(result);
         Assert.False(toolProperty.IsRequired);
@@ -54,7 +54,7 @@ public class ToolPropertyExtractorTests
         var method = typeof(TestClass).GetMethod(nameof(TestClass.WithIntProperty))!;
         var parameter = method.GetParameters()[0];
 
-        var result = ToolPropertyExtractor.TryGetToolPropertyFromToolPropertyAttribute(parameter, out var toolProperty);
+        var result = ToolPropertyParser.TryGetToolPropertyFromToolPropertyAttribute(parameter, out var toolProperty);
 
         Assert.True(result);
         Assert.Equal("integer", toolProperty.Type);
@@ -66,7 +66,7 @@ public class ToolPropertyExtractorTests
         var method = typeof(TestClass).GetMethod(nameof(TestClass.WithBoolProperty))!;
         var parameter = method.GetParameters()[0];
 
-        var result = ToolPropertyExtractor.TryGetToolPropertyFromToolPropertyAttribute(parameter, out var toolProperty);
+        var result = ToolPropertyParser.TryGetToolPropertyFromToolPropertyAttribute(parameter, out var toolProperty);
 
         Assert.True(result);
         Assert.Equal("boolean", toolProperty.Type);
@@ -78,7 +78,7 @@ public class ToolPropertyExtractorTests
         var method = typeof(TestClass).GetMethod(nameof(TestClass.WithArrayProperty))!;
         var parameter = method.GetParameters()[0];
 
-        var result = ToolPropertyExtractor.TryGetToolPropertyFromToolPropertyAttribute(parameter, out var toolProperty);
+        var result = ToolPropertyParser.TryGetToolPropertyFromToolPropertyAttribute(parameter, out var toolProperty);
 
         Assert.True(result);
         Assert.True(toolProperty.IsArray);
@@ -91,7 +91,7 @@ public class ToolPropertyExtractorTests
         var method = typeof(TestClass).GetMethod(nameof(TestClass.NoToolPropertyAttribute))!;
         var parameter = method.GetParameters()[0];
 
-        var result = ToolPropertyExtractor.TryGetToolPropertiesFromToolTriggerAttribute(parameter, out var toolProperties);
+        var result = ToolPropertyParser.TryGetToolPropertiesFromToolTriggerAttribute(parameter, out var toolProperties);
 
         Assert.False(result);
         Assert.Empty(toolProperties);
@@ -103,7 +103,7 @@ public class ToolPropertyExtractorTests
         var method = typeof(TestClass).GetMethod(nameof(TestClass.WithToolInvocationContext))!;
         var parameter = method.GetParameters()[0];
 
-        var result = ToolPropertyExtractor.TryGetToolPropertiesFromToolTriggerAttribute(parameter, out var toolProperties);
+        var result = ToolPropertyParser.TryGetToolPropertiesFromToolTriggerAttribute(parameter, out var toolProperties);
 
         Assert.False(result);
     }
@@ -114,7 +114,7 @@ public class ToolPropertyExtractorTests
         var method = typeof(TestClass).GetMethod(nameof(TestClass.WithPoco))!;
         var parameter = method.GetParameters()[0];
 
-        var result = ToolPropertyExtractor.TryGetToolPropertiesFromToolTriggerAttribute(parameter, out var toolProperties);
+        var result = ToolPropertyParser.TryGetToolPropertiesFromToolTriggerAttribute(parameter, out var toolProperties);
 
         Assert.True(result);
         Assert.Equal(2, toolProperties.Count);
@@ -128,7 +128,7 @@ public class ToolPropertyExtractorTests
         var method = typeof(TestClass).GetMethod(nameof(TestClass.WithPoco))!;
         var parameter = method.GetParameters()[0];
 
-        ToolPropertyExtractor.TryGetToolPropertiesFromToolTriggerAttribute(parameter, out var toolProperties);
+        ToolPropertyParser.TryGetToolPropertiesFromToolTriggerAttribute(parameter, out var toolProperties);
 
         var titleProp = toolProperties.First(p => p.Name == "Title");
         Assert.Equal("The title", titleProp.Description);
@@ -140,7 +140,7 @@ public class ToolPropertyExtractorTests
         var method = typeof(TestClass).GetMethod(nameof(TestClass.WithPoco))!;
         var parameter = method.GetParameters()[0];
 
-        ToolPropertyExtractor.TryGetToolPropertiesFromToolTriggerAttribute(parameter, out var toolProperties);
+        ToolPropertyParser.TryGetToolPropertiesFromToolTriggerAttribute(parameter, out var toolProperties);
 
         var titleProp = toolProperties.First(p => p.Name == "Title");
         Assert.True(titleProp.IsRequired);
@@ -152,7 +152,7 @@ public class ToolPropertyExtractorTests
     [Fact]
     public void GetPropertiesJson_EmptyList_ReturnsEmptyArray()
     {
-        var result = ToolPropertyExtractor.GetPropertiesJson([]);
+        var result = ToolPropertyParser.GetPropertiesJson([]);
 
         Assert.Equal("[]", result!.ToString());
     }
@@ -166,7 +166,7 @@ public class ToolPropertyExtractorTests
             new("count", "integer", "The count", false)
         };
 
-        var result = ToolPropertyExtractor.GetPropertiesJson(properties);
+        var result = ToolPropertyParser.GetPropertiesJson(properties);
         var json = result!.ToString();
 
         Assert.Contains("\"propertyName\":\"name\"", json);

@@ -12,7 +12,7 @@ namespace Microsoft.Azure.Functions.Worker.Extensions.Mcp.Configuration;
 /// <summary>
 /// Extracts metadata from function parameters and builds JSON representations.
 /// </summary>
-internal static class MetadataExtractor
+internal static class MetadataParser
 {
     /// <summary>
     /// Gets resource metadata from function metadata.
@@ -52,33 +52,32 @@ internal static class MetadataExtractor
     {
         metadata = null;
 
-        foreach (var parameter in parameters)
+        var triggerParameter = Array.Find(
+            parameters,
+            parameter => Attribute.IsDefined(parameter, typeof(TTriggerAttribute), inherit: false));
+
+        if (triggerParameter is null
+            || !Attribute.IsDefined(triggerParameter, typeof(McpMetadataAttribute), inherit: false))
         {
-            var triggerAttribute = parameter.GetCustomAttribute<TTriggerAttribute>();
-            if (triggerAttribute is null)
-            {
-                continue;
-            }
-
-            var metadataAttributes = parameter.GetCustomAttributes<McpMetadataAttribute>();
-            if (!metadataAttributes.Any())
-            {
-                continue;
-            }
-
-            metadata = [];
-            foreach (var attr in metadataAttributes)
-            {
-                if (!string.IsNullOrEmpty(attr.Key))
-                {
-                    metadata.Add(new KeyValuePair<string, object?>(attr.Key, attr.Value));
-                }
-            }
-
-            return true;
+            return false;
         }
 
-        return false;
+        metadata = [];
+        foreach (var attr in triggerParameter.GetCustomAttributes<McpMetadataAttribute>(inherit: false))
+        {
+            if (!string.IsNullOrEmpty(attr.Key))
+            {
+                metadata.Add(new KeyValuePair<string, object?>(attr.Key, attr.Value));
+            }
+        }
+
+        if (metadata.Count == 0)
+        {
+            metadata = null;
+            return false;
+        }
+
+        return true;
     }
 
     /// <summary>

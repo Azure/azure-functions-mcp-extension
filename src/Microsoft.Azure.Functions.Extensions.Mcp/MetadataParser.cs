@@ -19,7 +19,7 @@ internal static class MetadataParser
     /// </summary>
     /// <param name="metadataString">The JSON metadata string to parse.</param>
     /// <param name="logger">Optional logger for error reporting.</param>
-    /// <returns>A dictionary containing the parsed metadata, or an empty dictionary if parsing fails.</returns>
+    /// <returns>A dictionary containing the parsed metadata.</returns>
     public static IReadOnlyDictionary<string, object?> ParseMetadata(string? metadataString, ILogger? logger = null)
     {
         if (string.IsNullOrWhiteSpace(metadataString))
@@ -98,7 +98,7 @@ internal static class MetadataParser
         };
     }
 
-    private static object ConvertObject(JsonElement element)
+    private static IReadOnlyDictionary<string, object?> ConvertObject(JsonElement element)
     {
         var dictionary = ImmutableDictionary.CreateBuilder<string, object?>(StringComparer.OrdinalIgnoreCase);
         foreach (var property in element.EnumerateObject())
@@ -106,10 +106,10 @@ internal static class MetadataParser
             dictionary[property.Name] = ConvertJsonElement(property.Value);
         }
 
-        return dictionary;
+        return dictionary.ToImmutable();
     }
 
-    private static object ConvertArray(JsonElement element)
+    private static IList<object?> ConvertArray(JsonElement element)
     {
         var list = new List<object?>();
         foreach (var item in element.EnumerateArray())

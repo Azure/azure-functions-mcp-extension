@@ -80,13 +80,56 @@ internal sealed class MetadataListJsonConverter : JsonConverter<List<KeyValuePai
     {
         if (node.Children is null)
         {
-            JsonSerializer.Serialize(writer, node.Value, options);
+            WriteValue(writer, node.Value, options);
             return;
         }
 
         writer.WriteStartObject();
         WriteChildren(writer, node, options);
         writer.WriteEndObject();
+    }
+
+    private static void WriteValue(Utf8JsonWriter writer, object? value, JsonSerializerOptions options)
+    {
+        // Check if the value is a JSON string that should be written as raw JSON
+        if (value is string str && TryWriteRawJson(writer, str))
+        {
+            return;
+        }
+
+        JsonSerializer.Serialize(writer, value, options);
+    }
+
+    private static bool TryWriteRawJson(Utf8JsonWriter writer, string value)
+    {
+        if (string.IsNullOrEmpty(value))
+        {
+            return false;
+        }
+
+        var trimmed = value.AsSpan().Trim();
+        if (trimmed.Length == 0)
+        {
+            return false;
+        }
+
+        // Only attempt to parse strings that look like JSON objects or arrays
+        char first = trimmed[0];
+        if (first != '{' && first != '[')
+        {
+            return false;
+        }
+
+        try
+        {
+            using var doc = JsonDocument.Parse(value);
+            doc.RootElement.WriteTo(writer);
+            return true;
+        }
+        catch (JsonException)
+        {
+            return false;
+        }
     }
 
     private sealed class Node

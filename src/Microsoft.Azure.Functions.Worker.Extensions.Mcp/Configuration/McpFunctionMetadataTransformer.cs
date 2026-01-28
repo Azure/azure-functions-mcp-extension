@@ -43,13 +43,13 @@ public sealed class McpFunctionMetadataTransformer(IOptionsMonitor<ToolOptions> 
                     && jsonObject.TryGetPropertyValue("toolName", out var toolNameNode)
                     && GetToolProperties(toolNameNode?.ToString(), function, out toolProperties))
                 {
-                    jsonObject["toolProperties"] = ToolPropertyExtractor.GetPropertiesJson(toolProperties);
+                    jsonObject["toolProperties"] = ToolPropertyParser.GetPropertiesJson(toolProperties);
                     function.RawBindings[i] = jsonObject.ToJsonString();
                 }
                 else if (string.Equals(bindingType, McpResourceTriggerBindingType, StringComparison.OrdinalIgnoreCase)
-                    && MetadataExtractor.TryGetResourceMetadata(function, out var resourceMetadata))
+                    && MetadataParser.TryGetResourceMetadata(function, out var resourceMetadata))
                 {
-                    jsonObject["metadata"] = MetadataExtractor.BuildMetadataJson(resourceMetadata);
+                    jsonObject["metadata"] = MetadataParser.BuildMetadataJson(resourceMetadata);
                     function.RawBindings[i] = jsonObject.ToJsonString();
                 }
                 else if (string.Equals(bindingType, McpToolPropertyBindingType, StringComparison.OrdinalIgnoreCase)
@@ -103,7 +103,7 @@ public sealed class McpFunctionMetadataTransformer(IOptionsMonitor<ToolOptions> 
             return true;
         }
 
-        return ToolPropertyExtractor.TryGetPropertiesFromAttributes(functionMetadata, out toolProperties);
+        return ToolPropertyParser.TryGetPropertiesFromAttributes(functionMetadata, out toolProperties);
     }
 
     private record ToolPropertyBinding(int Index, JsonObject Binding);
