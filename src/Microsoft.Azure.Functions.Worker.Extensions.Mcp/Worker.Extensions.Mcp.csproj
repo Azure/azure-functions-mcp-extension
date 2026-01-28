@@ -11,13 +11,8 @@
     <PackageReference Include="Microsoft.Azure.Functions.Worker.Extensions.Abstractions" Version="1.3.0" />
   </ItemGroup>
 
-  <Target Name="IncludeExtensionInformationAttribute" BeforeTargets="GenerateAdditionalSources">
-    <ItemGroup>
-      <AssemblyAttribute Include="Microsoft.Azure.Functions.Worker.Extensions.Abstractions.ExtensionInformationAttribute">
-        <_Parameter1>Microsoft.Azure.Functions.Extensions.Mcp</_Parameter1>
-        <_Parameter2>$(Version)</_Parameter2>
-      </AssemblyAttribute>
-    </ItemGroup>
-  </Target>
+  <ItemGroup>
+    <WebJobsReference Include="$(SrcRoot)Microsoft.Azure.Functions.Extensions.Mcp/Extensions.Mcp.csproj" />
+  </ItemGroup>
 
 </Project>
