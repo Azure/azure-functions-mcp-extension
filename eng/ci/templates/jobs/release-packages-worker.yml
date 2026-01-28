@@ -34,20 +34,38 @@ extends:
         - job: Prepare
           templateContext:
             type: validationJob
+            inputs:
+            - input: pipelineArtifact
+              pipeline: build
+              artifactName: ${{ parameters.artifactName }}
+              targetPath: $(Pipeline.Workspace)/drop
 
           steps:
-          - checkout: self
+          # Parse the version from the nupkg being released, as Directory.Version.props
+          # can be influenced by other targets and may not reflect the actual package version.
           - pwsh: |
-              [xml]$versionProps = Get-Content "$(Build.SourcesDirectory)/src/Microsoft.Azure.Functions.Worker.Extensions.Mcp/Directory.Version.props"
-              $versionPrefix = $versionProps.Project.PropertyGroup.VersionPrefix
-              $versionSuffix = $versionProps.Project.PropertyGroup.VersionSuffix
-              if ($versionSuffix) {
-                $version = "$versionPrefix-$versionSuffix"
-              } else {
-                $version = $versionPrefix
+              $ErrorActionPreference = 'Stop'
+
+              $name = "Microsoft.Azure.Functions.Worker.Extensions.Mcp"
+              Write-Host "Getting version for $name"
+              # Match the package but exclude the SDK package
+              $package = Get-ChildItem -Path "$(Pipeline.Workspace)/drop" -Recurse -Filter "$name.?.*.nupkg" | Where-Object { $_.Name -notlike "*Sdk*" }
+
+              if ($package.Count -eq 0) {
+                Write-Host "##vso[task.LogIssue type=error;]Could not find package $name."
+                exit 1
               }
+
+              if ($package.Count -gt 1) {
+                Write-Host "##vso[task.LogIssue type=error;]Too many packages matched $name."
+                exit 1
+              }
+
+              $version = $package.Name.Replace("$name.", '').Replace('.nupkg', '')
               Write-Host "Worker Extension Version: $version"
               Write-Host "##vso[build.updatebuildnumber]$version"
+              Write-Host "##vso[build.addbuildtag]worker-extension"
+              Write-Host "##vso[build.addbuildtag]$version"
             displayName: Get Worker package version
 
     - stage: Release
