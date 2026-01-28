@@ -8,6 +8,7 @@ using Microsoft.Azure.Functions.Extensions.Mcp.Abstractions;
 using Microsoft.Azure.Functions.Extensions.Mcp.Serialization;
 using Microsoft.Azure.WebJobs.Host.Bindings;
 using Microsoft.Azure.WebJobs.Host.Triggers;
+using Microsoft.Extensions.Logging;
 using Moq;
 using Newtonsoft.Json;
 
@@ -25,8 +26,10 @@ public class McpToolTriggerBindingTests
 
         var toolRegistry = new Mock<IToolRegistry>();
         var attribute = new McpToolTriggerAttribute("MyTool", "desc");
+        var loggerFactory = new Mock<ILoggerFactory>();
+        loggerFactory.Setup(x => x.CreateLogger(It.IsAny<string>())).Returns(new Mock<ILogger>().Object);
 
-        var binding = new McpToolTriggerBinding(parameter, toolRegistry.Object, attribute);
+        var binding = new McpToolTriggerBinding(parameter, toolRegistry.Object, attribute, loggerFactory.Object);
 
         return (binding, parameter);
     }
