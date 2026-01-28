@@ -1,0 +1,69 @@
+parameters:
+- name: publishToNugetOrg
+  type: boolean
+- name: artifactName
+  type: string
+  default: drop
+- name: targetFolder
+  type: string
+  default: ''
+
+resources:
+  repositories:
+  - repository: 1es
+    type: git
+    name: 1ESPipelineTemplates/1ESPipelineTemplates
+    ref: refs/tags/release
+  - repository: eng
+    type: git
+    name: engineering
+    ref: refs/tags/release
+
+extends:
+  template: v1/1ES.Official.PipelineTemplate.yml@1es
+  parameters:
+    pool:
+      name: 1es-pool-azfunc
+      image: 1es-windows-2022
+      os: windows
+
+    stages:
+
+    - stage: Prepare
+      jobs:
+        - job: Prepare
+          templateContext:
+            type: validationJob
+
+          steps:
+          - checkout: self
+          - pwsh: |
+              [xml]$versionProps = Get-Content "$(Build.SourcesDirectory)/src/Microsoft.Azure.Functions.Extensions.Mcp/Directory.Version.props"
+              $versionPrefix = $versionProps.Project.PropertyGroup.VersionPrefix
+              $versionSuffix = $versionProps.Project.PropertyGroup.VersionSuffix
+              if ($versionSuffix) {
+                $version = "$versionPrefix-$versionSuffix"
+              } else {
+                $version = $versionPrefix
+              }
+              Write-Host "Host Extension Version: $version"
+              Write-Host "##vso[build.updatebuildnumber]$version"
+            displayName: Get Host package version
+
+    - stage: Release
+      dependsOn: Prepare
+
+      jobs:
+      - template: /ci/release-nuget-package.yml@eng
+        parameters:
+          isProduction: true
+          approvers: '[internal]\Azure Functions Core'
+          stagingFeed: public/pre-release
+          packages: '**/Microsoft.Azure.Functions.Extensions.Mcp.*.nupkg'
+          artifact:
+            name: ${{ parameters.artifactName }}
+            pipeline: build
+          ${{ if eq(parameters.publishToNugetOrg, true) }}:
+            partnerDrop:
+              serviceConnection: azure-sdk-partner-drops
+              targetFolder: azure-functions/dotnet/mcp-extension/$(Build.BuildNumber)
