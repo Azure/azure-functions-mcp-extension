@@ -43,4 +43,9 @@ public sealed class McpResourceTriggerAttribute(string uri, string resourceName)
     /// Gets or sets the optional size of the resource in bytes.
     /// </summary>
     public long? Size { get; init; }
+
+    /// <summary>
+    /// Gets or sets optional metadata associated with the resource, in JSON format.
+    /// </summary>
+    public string? Metadata { get; init; }
 }

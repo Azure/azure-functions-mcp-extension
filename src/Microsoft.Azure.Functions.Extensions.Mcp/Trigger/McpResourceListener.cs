@@ -15,7 +15,7 @@ internal sealed class McpResourceListener(ITriggeredFunctionExecutor executor,
                                           string? resourceDescription,
                                           string? resourceMimeType,
                                           long? resourceSize,
-                                          IReadOnlyCollection<KeyValuePair<string, object?>> metadata) : IListener, IMcpResource
+                                          IReadOnlyDictionary<string, object?> metadata) : IListener, IMcpResource
 {
     public ITriggeredFunctionExecutor Executor { get; } = executor;
 
@@ -31,7 +31,7 @@ internal sealed class McpResourceListener(ITriggeredFunctionExecutor executor,
 
     public long? Size { get; set; } = resourceSize;
 
-    public IReadOnlyCollection<KeyValuePair<string, object?>> Metadata { get; set; } = metadata;
+    public IReadOnlyDictionary<string, object?> Metadata { get; set; } = metadata;
 
     public void Dispose() { }
 
