@@ -46,7 +46,6 @@ internal static class MetadataParser
             }
 
             var message = $"Metadata root must be a JSON object; received {root.ValueKind}.";
-            logger?.LogError(message);
             throw new JsonException(message);
         }
         catch (JsonException ex)

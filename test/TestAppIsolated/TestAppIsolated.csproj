@@ -29,7 +29,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Include="$(EngResourceRoot)icon.png" Link="assets/logo.png" />
+    <None Include="$(EngResourceRoot)icon.png" Link="assets/logo.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 
   <ItemGroup>
