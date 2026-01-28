@@ -43,8 +43,8 @@ extends:
           steps:
           - template: /eng/ci/templates/steps/get-package-version.yml
             parameters:
-              packageName: Microsoft.Azure.Functions.Worker.Extensions.Mcp.Sdk
-              buildTag: sdk
+              packageName: Microsoft.Azure.Functions.Extensions.Mcp
+              buildTag: host-extension
 
     - stage: Release
       dependsOn: Prepare
@@ -55,11 +55,11 @@ extends:
           isProduction: true
           approvers: '[internal]\Azure Functions Core'
           stagingFeed: public/pre-release
-          packages: '**/Microsoft.Azure.Functions.Worker.Extensions.Mcp.Sdk.*.nupkg'
+          packages: '**/Microsoft.Azure.Functions.Extensions.Mcp.*.nupkg'
           artifact:
             name: ${{ parameters.artifactName }}
             pipeline: build
           ${{ if eq(parameters.publishToNugetOrg, true) }}:
             partnerDrop:
               serviceConnection: azure-sdk-partner-drops
-              targetFolder: azure-functions/dotnet/mcp-extension/sdk/$(Build.BuildNumber)
+              targetFolder: azure-functions/dotnet/mcp-extension/$(Build.BuildNumber)
