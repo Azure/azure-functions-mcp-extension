@@ -12,10 +12,12 @@ public class ResourceFunctions
         {
             "author": "John Doe",
             "file": {
-                "version": "1.0.0",
+                "version": 1.0,
                 "releaseDate": "2024-01-01"
             },
-            "tags": ["documentation", "readme"]
+            "test": {
+                "example": ["list", "of", "values"]
+            }
         }
         """;
 
