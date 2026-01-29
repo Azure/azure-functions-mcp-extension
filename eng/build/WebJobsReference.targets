@@ -1,0 +1,23 @@
+<Project>
+
+  <Target Name="GetExtensionAssemblyAttribute" Returns="@(_ExtensionAssemblyAttribute)">
+    <ItemGroup>
+      <_ExtensionAssemblyAttribute Include="Microsoft.Azure.Functions.Worker.Extensions.Abstractions.ExtensionInformationAttribute">
+        <_Parameter1>$(PackageId)</_Parameter1>
+        <_Parameter2>$(Version)</_Parameter2>
+      </_ExtensionAssemblyAttribute>
+    </ItemGroup>
+  </Target>
+
+  <Target Name="IncludeExtensionInformationAttribute" Condition="'@(WebJobsReference)' != ''"
+    BeforeTargets="GenerateAdditionalSources">
+    <MSBuild Projects="@(WebJobsReference)" Targets="GetExtensionAssemblyAttribute">
+      <Output TaskParameter="TargetOutputs" ItemName="_ExtensionAssemblyAttribute" />
+    </MSBuild>
+
+    <ItemGroup>
+      <AssemblyAttribute Include="@(_ExtensionAssemblyAttribute)" KeepMetadata="_Parameter1;_Parameter2" />
+    </ItemGroup>
+  </Target>
+
+</Project>
