@@ -15,7 +15,7 @@ internal interface IMcpTool
     string Name { get; }
 
     /// <summary>
-    /// Gets the description of the tool.
+    /// Gets or sets the description of the tool.
     /// </summary>
     public string? Description { get; set; }
 
@@ -25,7 +25,7 @@ internal interface IMcpTool
     public ToolInputSchema ToolInputSchema { get; }
 
     /// <summary>
-    /// Gets or sets metadata properties associated with the tool.
+    /// Gets the metadata dictionary associated with the tool.
     /// </summary>
     IReadOnlyDictionary<string, object?> Metadata { get; }
 
