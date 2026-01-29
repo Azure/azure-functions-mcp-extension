@@ -1,5 +1,4 @@
 using System.ComponentModel;
-using System.Reflection;
 using System.Text.Json.Nodes;
 using Microsoft.Azure.Functions.Worker.Core.FunctionMetadata;
 using Microsoft.Azure.Functions.Worker.Extensions.Mcp;
@@ -56,19 +55,19 @@ public class McpFunctionMetadataTransformerTests
         var (entryPoint, scriptFile, outputDir) = GetFunctionMetadataInfo<TestFunctions>(nameof(TestFunctions.NoAttributes));
         Environment.SetEnvironmentVariable(FunctionsApplicationDirectoryKey, outputDir);
 
-        var options = new Mock<IOptionsMonitor<ToolOptions>>();
-        options.Setup(o => o.Get(It.IsAny<string>())).Returns(new ToolOptions { Properties = [] });
-        var transformer = new McpFunctionMetadataTransformer(options.Object);
+            var options = new Mock<IOptionsMonitor<ToolOptions>>();
+            options.Setup(o => o.Get(It.IsAny<string>())).Returns(new ToolOptions { Properties = [] });
+            var transformer = new McpFunctionMetadataTransformer(options.Object);
 
-        var fn = CreateFunctionMetadata(entryPoint, scriptFile, "Func", ["{\"type\":\"mcpToolTrigger\",\"toolName\":\"NoAttributes\"}"]);
+            var fn = CreateFunctionMetadata(entryPoint, scriptFile, "Func", ["{\"type\":\"mcpToolTrigger\",\"toolName\":\"NoAttributes\"}"]);
 
-        transformer.Transform([fn.Object]);
+            transformer.Transform([fn.Object]);
 
-        var binding = fn.Object.RawBindings![0];
-        var json = JsonNode.Parse(binding)!.AsObject();
-        var tp = json["toolProperties"]!.GetValue<string>();
+            var binding = fn.Object.RawBindings![0];
+            var json = JsonNode.Parse(binding)!.AsObject();
+            var tp = json["toolProperties"]!.GetValue<string>();
 
-        Assert.Equal("[]", tp);
+            Assert.Equal("[]", tp);
     }
 
     [Fact]
@@ -103,17 +102,17 @@ public class McpFunctionMetadataTransformerTests
         var (entryPoint, scriptFile, outputDir) = GetFunctionMetadataInfo<TestFunctions>(nameof(TestFunctions.WithToolProperty));
         Environment.SetEnvironmentVariable(FunctionsApplicationDirectoryKey, outputDir);
 
-        var options = new Mock<IOptionsMonitor<ToolOptions>>();
-        options.Setup(o => o.Get(It.IsAny<string>())).Returns(new ToolOptions { Properties = [] });
-        var transformer = new McpFunctionMetadataTransformer(options.Object);
+            var options = new Mock<IOptionsMonitor<ToolOptions>>();
+            options.Setup(o => o.Get(It.IsAny<string>())).Returns(new ToolOptions { Properties = [] });
+            var transformer = new McpFunctionMetadataTransformer(options.Object);
 
-        var fn = CreateFunctionMetadata(entryPoint, scriptFile, "Func", ["{\"type\":\"mcpToolTrigger\",\"toolName\":\"WithToolProperty\"}"]);
+            var fn = CreateFunctionMetadata(entryPoint, scriptFile, "Func", ["{\"type\":\"mcpToolTrigger\",\"toolName\":\"WithToolProperty\"}"]);
 
-        transformer.Transform([fn.Object]);
-        var json = JsonNode.Parse(fn.Object.RawBindings![0])!.AsObject();
-        var tp = json["toolProperties"]!.GetValue<string>();
+            transformer.Transform([fn.Object]);
+            var json = JsonNode.Parse(fn.Object.RawBindings![0])!.AsObject();
+            var tp = json["toolProperties"]!.GetValue<string>();
 
-        Assert.Equal("[{\"propertyName\":\"name\",\"propertyType\":\"string\",\"description\":\"Name value\",\"isRequired\":true,\"isArray\":false,\"enumValues\":[]}]", tp);
+            Assert.Equal("[{\"propertyName\":\"name\",\"propertyType\":\"string\",\"description\":\"Name value\",\"isRequired\":true,\"isArray\":false,\"enumValues\":[]}]", tp);
     }
 
     [Fact]
@@ -122,18 +121,18 @@ public class McpFunctionMetadataTransformerTests
         var (entryPoint, scriptFile, outputDir) = GetFunctionMetadataInfo<TestFunctions>(nameof(TestFunctions.WithTriggerPoco));
         Environment.SetEnvironmentVariable(FunctionsApplicationDirectoryKey, outputDir);
 
-        var options = new Mock<IOptionsMonitor<ToolOptions>>();
-        options.Setup(o => o.Get(It.IsAny<string>())).Returns(new ToolOptions { Properties = [] });
-        var transformer = new McpFunctionMetadataTransformer(options.Object);
+            var options = new Mock<IOptionsMonitor<ToolOptions>>();
+            options.Setup(o => o.Get(It.IsAny<string>())).Returns(new ToolOptions { Properties = [] });
+            var transformer = new McpFunctionMetadataTransformer(options.Object);
 
-        var fn = CreateFunctionMetadata(entryPoint, scriptFile, "Func", ["{\"type\":\"mcpToolTrigger\",\"toolName\":\"WithTriggerPoco\"}"]);
+            var fn = CreateFunctionMetadata(entryPoint, scriptFile, "Func", ["{\"type\":\"mcpToolTrigger\",\"toolName\":\"WithTriggerPoco\"}"]);
 
-        transformer.Transform([fn.Object]);
-        var json = JsonNode.Parse(fn.Object.RawBindings![0])!.AsObject();
-        var tp = json["toolProperties"]!.GetValue<string>();
-        Assert.Contains("\"propertyName\":\"Content\"", tp);
-        Assert.Contains("\"propertyName\":\"Title\"", tp);
-    }
+            transformer.Transform([fn.Object]);
+            var json = JsonNode.Parse(fn.Object.RawBindings![0])!.AsObject();
+            var tp = json["toolProperties"]!.GetValue<string>();
+            Assert.Contains("\"propertyName\":\"Content\"", tp);
+            Assert.Contains("\"propertyName\":\"Title\"", tp);
+        }
 
     [Fact]
     public void Transform_InvalidEntryPoint_NoChange()
@@ -158,16 +157,16 @@ public class McpFunctionMetadataTransformerTests
         var (entryPoint, scriptFile, outputDir) = GetFunctionMetadataInfo<TestFunctions>("NonExistent");
         Environment.SetEnvironmentVariable(FunctionsApplicationDirectoryKey, outputDir);
 
-        var options = new Mock<IOptionsMonitor<ToolOptions>>();
-        options.Setup(o => o.Get(It.IsAny<string>())).Returns(new ToolOptions { Properties = [] });
-        var transformer = new McpFunctionMetadataTransformer(options.Object);
+            var options = new Mock<IOptionsMonitor<ToolOptions>>();
+            options.Setup(o => o.Get(It.IsAny<string>())).Returns(new ToolOptions { Properties = [] });
+            var transformer = new McpFunctionMetadataTransformer(options.Object);
 
-        var fn = CreateFunctionMetadata(entryPoint, scriptFile, "Func", ["{\"type\":\"mcpToolTrigger\",\"toolName\":\"Whatever\"}"]);
-        transformer.Transform([fn.Object]);
-        var json = JsonNode.Parse(fn.Object.RawBindings![0])!.AsObject();
+            var fn = CreateFunctionMetadata(entryPoint, scriptFile, "Func", ["{\"type\":\"mcpToolTrigger\",\"toolName\":\"Whatever\"}"]);
+            transformer.Transform([fn.Object]);
+            var json = JsonNode.Parse(fn.Object.RawBindings![0])!.AsObject();
 
-        Assert.False(json.ContainsKey("toolProperties"));
-    }
+            Assert.False(json.ContainsKey("toolProperties"));
+        }
 
     [Fact]
     public void Transform_TypeNotFound_NoChange()
@@ -177,16 +176,16 @@ public class McpFunctionMetadataTransformerTests
         entryPoint = entryPoint.Replace(typeof(TestFunctions).FullName!, typeof(McpFunctionMetadataTransformerTests).FullName! + "Missing");
         Environment.SetEnvironmentVariable(FunctionsApplicationDirectoryKey, outputDir);
 
-        var options = new Mock<IOptionsMonitor<ToolOptions>>();
-        options.Setup(o => o.Get(It.IsAny<string>())).Returns(new ToolOptions { Properties = [] });
-        var transformer = new McpFunctionMetadataTransformer(options.Object);
+            var options = new Mock<IOptionsMonitor<ToolOptions>>();
+            options.Setup(o => o.Get(It.IsAny<string>())).Returns(new ToolOptions { Properties = [] });
+            var transformer = new McpFunctionMetadataTransformer(options.Object);
 
-        var fn = CreateFunctionMetadata(entryPoint, scriptFile, "Func", ["{\"type\":\"mcpToolTrigger\",\"toolName\":\"WithToolProperty\"}"]);
-        transformer.Transform([fn.Object]);
-        var json = JsonNode.Parse(fn.Object.RawBindings![0])!.AsObject();
+            var fn = CreateFunctionMetadata(entryPoint, scriptFile, "Func", ["{\"type\":\"mcpToolTrigger\",\"toolName\":\"WithToolProperty\"}"]);
+            transformer.Transform([fn.Object]);
+            var json = JsonNode.Parse(fn.Object.RawBindings![0])!.AsObject();
 
-        Assert.False(json.ContainsKey("toolProperties"));
-    }
+            Assert.False(json.ContainsKey("toolProperties"));
+        }
 
     [Fact]
     public void Transform_ToolInvocationContextParameter_IgnoredForPocoProperties()
@@ -206,6 +205,100 @@ public class McpFunctionMetadataTransformerTests
         // Should have only the property from the POCO, not the context parameter
         Assert.DoesNotContain("mcptoolcontext", tp, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("\"propertyName\":\"Name\"", tp);
+    }
+
+    [Fact]
+    public void Transform_ResourceMetadata_WithJsonValue_ParsesCorrectly()
+    {
+        var (entryPoint, scriptFile, outputDir) = GetFunctionMetadataInfo<TestFunctions>(nameof(TestFunctions.WithResourceMetadataJson));
+        Environment.SetEnvironmentVariable(FunctionsApplicationDirectoryKey, outputDir);
+
+        var options = new Mock<IOptionsMonitor<ToolOptions>>();
+        var transformer = new McpFunctionMetadataTransformer(options.Object);
+
+        var fn = CreateFunctionMetadata(
+            entryPoint,
+            scriptFile,
+            "Func",
+            ["{\"type\":\"mcpResourceTrigger\",\"uri\":\"file://test\",\"resourceName\":\"test\"}"]);
+
+        transformer.Transform([fn.Object]);
+        var json = JsonNode.Parse(fn.Object.RawBindings![0])!.AsObject();
+        var metadata = json["metadata"]!.GetValue<string>();
+        
+        // Should contain parsed JSON object with nested structure
+        Assert.Contains("nested", metadata);
+        Assert.Contains("config", metadata);
+    }
+
+    [Fact]
+    public void Transform_ResourceMetadata_NoMetadataAttribute_NoMetadataAdded()
+    {
+        var (entryPoint, scriptFile, outputDir) = GetFunctionMetadataInfo<TestFunctions>(nameof(TestFunctions.NoAttributes));
+        Environment.SetEnvironmentVariable(FunctionsApplicationDirectoryKey, outputDir);
+
+        var options = new Mock<IOptionsMonitor<ToolOptions>>();
+        var transformer = new McpFunctionMetadataTransformer(options.Object);
+
+        var fn = CreateFunctionMetadata(
+            entryPoint,
+            scriptFile,
+            "Func",
+            ["{\"type\":\"mcpResourceTrigger\",\"uri\":\"file://test\",\"resourceName\":\"test\"}"]);
+
+        transformer.Transform([fn.Object]);
+        var json = JsonNode.Parse(fn.Object.RawBindings![0])!.AsObject();
+        
+        // Should not add metadata if no attributes present
+        Assert.False(json.ContainsKey("metadata"));
+    }
+
+    [Fact]
+    public void Transform_ToolMetadata_WithToolMetadataAttribute_ExtractsMetadata()
+    {
+        var (entryPoint, scriptFile, outputDir) = GetFunctionMetadataInfo<TestFunctions>(nameof(TestFunctions.WithToolMetadataJson));
+        Environment.SetEnvironmentVariable(FunctionsApplicationDirectoryKey, outputDir);
+
+        var options = new Mock<IOptionsMonitor<ToolOptions>>();
+        options.Setup(o => o.Get(It.IsAny<string>())).Returns(new ToolOptions { Properties = [] });
+        var transformer = new McpFunctionMetadataTransformer(options.Object);
+
+        var fn = CreateFunctionMetadata(
+            entryPoint,
+            scriptFile,
+            "Func",
+            ["{\"type\":\"mcpToolTrigger\",\"toolName\":\"WithToolMetadata\"}"]);
+
+        transformer.Transform([fn.Object]);
+        var json = JsonNode.Parse(fn.Object.RawBindings![0])!.AsObject();
+        
+        Assert.True(json.ContainsKey("metadata"));
+        var metadata = json["metadata"]!.GetValue<string>();
+        Assert.NotEmpty(metadata);
+        Assert.Contains("author", metadata);
+    }
+
+    [Fact]
+    public void Transform_ToolMetadata_NoMetadataAttribute_NoMetadataAdded()
+    {
+        var (entryPoint, scriptFile, outputDir) = GetFunctionMetadataInfo<TestFunctions>(nameof(TestFunctions.NoAttributes));
+        Environment.SetEnvironmentVariable(FunctionsApplicationDirectoryKey, outputDir);
+
+        var options = new Mock<IOptionsMonitor<ToolOptions>>();
+        options.Setup(o => o.Get(It.IsAny<string>())).Returns(new ToolOptions { Properties = [] });
+        var transformer = new McpFunctionMetadataTransformer(options.Object);
+
+        var fn = CreateFunctionMetadata(
+            entryPoint,
+            scriptFile,
+            "Func",
+            ["{\"type\":\"mcpToolTrigger\",\"toolName\":\"NoAttributes\"}"]);
+
+        transformer.Transform([fn.Object]);
+        var json = JsonNode.Parse(fn.Object.RawBindings![0])!.AsObject();
+        
+        // Should not add metadata if no attributes present
+        Assert.False(json.ContainsKey("metadata"));
     }
 
     private static McpFunctionMetadataTransformer CreateTransformer(List<ToolProperty>? configured = null)
@@ -250,6 +343,14 @@ public class McpFunctionMetadataTransformerTests
             [McpToolTrigger("WithContextAndPoco", "desc")] ToolInvocationContext context,
             [McpToolProperty("Name", "Name", true)] string name,
             ExtraPoco ignored) { }
+
+        public void WithResourceMetadataJson(
+            [McpResourceTrigger("file://test", "test")]
+            [McpMetadata("""{"config": {"nested": {"key": "value"}}}""")] ResourceInvocationContext context) { }
+
+        public void WithToolMetadataJson(
+            [McpToolTrigger("WithToolMetadata", "desc")]
+            [McpMetadata("""{"author": "Jane Doe"}""")] ToolInvocationContext context) { }
     }
 
     public class Snippet

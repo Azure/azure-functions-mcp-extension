@@ -1,7 +1,8 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-using Microsoft.AspNetCore.Http;
+using System.Reflection;
+using System.Text.Json;
 using Microsoft.Azure.Functions.Extensions.Mcp.Abstractions;
 using Microsoft.Azure.Functions.Extensions.Mcp.Serialization;
 using Microsoft.Azure.Functions.Extensions.Mcp.Validation;
@@ -9,8 +10,7 @@ using Microsoft.Azure.WebJobs.Host.Bindings;
 using Microsoft.Azure.WebJobs.Host.Listeners;
 using Microsoft.Azure.WebJobs.Host.Protocols;
 using Microsoft.Azure.WebJobs.Host.Triggers;
-using System.Reflection;
-using System.Text.Json;
+using Microsoft.Extensions.Logging;
 
 namespace Microsoft.Azure.Functions.Extensions.Mcp;
 
@@ -19,14 +19,20 @@ internal sealed class McpToolTriggerBinding : ITriggerBinding
     private readonly IToolRegistry _toolRegistry;
     private readonly McpToolTriggerAttribute _toolAttribute;
     private readonly ParameterInfo _triggerParameter;
+    private readonly ILoggerFactory _loggerFactory;
+    private readonly IReadOnlyDictionary<string, object?> _toolMetadata;
 
-    public McpToolTriggerBinding(ParameterInfo triggerParameter, IToolRegistry toolRegistry, McpToolTriggerAttribute toolAttribute)
+    public McpToolTriggerBinding(ParameterInfo triggerParameter, IToolRegistry toolRegistry, McpToolTriggerAttribute toolAttribute, ILoggerFactory loggerFactory)
     {
         ArgumentNullException.ThrowIfNull(triggerParameter);
 
         _toolRegistry = toolRegistry;
         _toolAttribute = toolAttribute;
         _triggerParameter = triggerParameter;
+        _loggerFactory = loggerFactory;
+
+        var logger = _loggerFactory.CreateLogger<McpToolTriggerBinding>();
+        _toolMetadata = MetadataParser.ParseMetadata(toolAttribute.Metadata, logger);
 
         BindingDataContract = new Dictionary<string, Type>(StringComparer.OrdinalIgnoreCase)
         {
@@ -102,41 +108,20 @@ internal sealed class McpToolTriggerBinding : ITriggerBinding
         return invocationContext;
     }
 
-    private Transport GetTransportInformation(CallToolExecutionContext context)
-    {
-        if (context.RequestContext.Services?.GetService(typeof(IHttpContextAccessor)) is IHttpContextAccessor contextAccessor
-            && contextAccessor.HttpContext is not null)
-        {
-            var name = contextAccessor.HttpContext.Items[McpConstants.McpTransportName] as string ?? "http";
-
-            var transport = new Transport
-            {
-                Name = name
-            };
-
-            var headers = contextAccessor.HttpContext.Request.Headers.ToDictionary(h => h.Key, h => string.Join(",", h.Value!), StringComparer.OrdinalIgnoreCase);
-            transport.Properties.Add("headers", headers);
-
-            if (headers.TryGetValue(McpConstants.McpSessionIdHeaderName, out var sessionId))
-            {
-                transport.SessionId = sessionId;
-            }
-
-            return transport;
-        }
-
-        return new Transport
-        {
-            Name = "unknown"
-        };
-    }
+    private Transport GetTransportInformation(CallToolExecutionContext context) =>
+        McpTriggerTransportHelper.GetTransportInformation(context.RequestContext.Services);
 
     public Task<IListener> CreateListenerAsync(ListenerFactoryContext context)
     {
         ToolInputSchema inputSchema = CreateToolInputSchema();
-        
-        var listener = new McpToolListener(context.Executor, context.Descriptor.ShortName,
-            _toolAttribute.ToolName, _toolAttribute.Description, inputSchema);
+
+        var listener = new McpToolListener(
+            context.Executor,
+            context.Descriptor.ShortName,
+            _toolAttribute.ToolName,
+            _toolAttribute.Description,
+            inputSchema,
+            _toolMetadata);
 
         _toolRegistry.Register(listener);
 

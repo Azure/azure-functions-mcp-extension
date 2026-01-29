@@ -34,21 +34,17 @@ extends:
         - job: Prepare
           templateContext:
             type: validationJob
+            inputs:
+            - input: pipelineArtifact
+              pipeline: build
+              artifactName: ${{ parameters.artifactName }}
+              targetPath: $(Pipeline.Workspace)/drop
 
           steps:
-          - checkout: self
-          - pwsh: |
-              [xml]$versionProps = Get-Content "$(Build.SourcesDirectory)/src/Microsoft.Azure.Functions.Worker.Extensions.Mcp.Sdk/Directory.Version.props"
-              $versionPrefix = $versionProps.Project.PropertyGroup.VersionPrefix
-              $versionSuffix = $versionProps.Project.PropertyGroup.VersionSuffix
-              if ($versionSuffix) {
-                $version = "$versionPrefix-$versionSuffix"
-              } else {
-                $version = $versionPrefix
-              }
-              Write-Host "SDK Version: $version"
-              Write-Host "##vso[build.updatebuildnumber]$version"
-            displayName: Get SDK package version
+          - template: /eng/ci/templates/steps/get-package-version.yml
+            parameters:
+              packageName: Microsoft.Azure.Functions.Worker.Extensions.Mcp.Sdk
+              buildTag: sdk
 
     - stage: Release
       dependsOn: Prepare

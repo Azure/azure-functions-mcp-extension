@@ -18,6 +18,20 @@ public class TestFunction
         _logger = logger;
     }
 
+    [Function(nameof(GetFunctionsLogo))]
+    public ResourceLinkBlock GetFunctionsLogo(
+        [McpToolTrigger("GetFunctionsLogo", "Returns the Azure Functions logo as a base64-encoded string.")]
+        [McpMetadata("""{"version": 1.0, "author": "Jane Doe"}""")]
+        ToolInvocationContext context)
+    {
+        return new ResourceLinkBlock
+        {
+            Uri = "file://logo.png",
+            Name = "Azure Functions Logo",
+            MimeType = "image/png"
+        };
+    }
+
     [Function(nameof(HappyFunction))]
     public string HappyFunction(
         [McpToolTrigger(nameof(HappyFunction), "Responds to the user with a hello message.")] ToolInvocationContext context,
