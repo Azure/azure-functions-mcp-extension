@@ -10,6 +10,7 @@ using Microsoft.Azure.WebJobs.Host.Bindings;
 using Microsoft.Azure.WebJobs.Host.Listeners;
 using Microsoft.Azure.WebJobs.Host.Protocols;
 using Microsoft.Azure.WebJobs.Host.Triggers;
+using Microsoft.Extensions.Logging;
 
 namespace Microsoft.Azure.Functions.Extensions.Mcp;
 
@@ -18,14 +19,20 @@ internal sealed class McpToolTriggerBinding : ITriggerBinding
     private readonly IToolRegistry _toolRegistry;
     private readonly McpToolTriggerAttribute _toolAttribute;
     private readonly ParameterInfo _triggerParameter;
+    private readonly ILoggerFactory _loggerFactory;
+    private readonly IReadOnlyDictionary<string, object?> _toolMetadata;
 
-    public McpToolTriggerBinding(ParameterInfo triggerParameter, IToolRegistry toolRegistry, McpToolTriggerAttribute toolAttribute)
+    public McpToolTriggerBinding(ParameterInfo triggerParameter, IToolRegistry toolRegistry, McpToolTriggerAttribute toolAttribute, ILoggerFactory loggerFactory)
     {
         ArgumentNullException.ThrowIfNull(triggerParameter);
 
         _toolRegistry = toolRegistry;
         _toolAttribute = toolAttribute;
         _triggerParameter = triggerParameter;
+        _loggerFactory = loggerFactory;
+
+        var logger = _loggerFactory.CreateLogger<McpToolTriggerBinding>();
+        _toolMetadata = MetadataParser.ParseMetadata(toolAttribute.Metadata, logger);
 
         BindingDataContract = new Dictionary<string, Type>(StringComparer.OrdinalIgnoreCase)
         {
@@ -107,9 +114,14 @@ internal sealed class McpToolTriggerBinding : ITriggerBinding
     public Task<IListener> CreateListenerAsync(ListenerFactoryContext context)
     {
         ToolInputSchema inputSchema = CreateToolInputSchema();
-        
-        var listener = new McpToolListener(context.Executor, context.Descriptor.ShortName,
-            _toolAttribute.ToolName, _toolAttribute.Description, inputSchema);
+
+        var listener = new McpToolListener(
+            context.Executor,
+            context.Descriptor.ShortName,
+            _toolAttribute.ToolName,
+            _toolAttribute.Description,
+            inputSchema,
+            _toolMetadata);
 
         _toolRegistry.Register(listener);
 

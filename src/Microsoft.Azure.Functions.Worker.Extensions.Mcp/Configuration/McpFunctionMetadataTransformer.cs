@@ -39,25 +39,39 @@ public sealed class McpFunctionMetadataTransformer(IOptionsMonitor<ToolOptions> 
 
                 var bindingType = bindingTypeNode?.ToString();
 
-                if (string.Equals(bindingType, McpToolTriggerBindingType, StringComparison.OrdinalIgnoreCase)
-                    && jsonObject.TryGetPropertyValue("toolName", out var toolNameNode)
-                    && GetToolProperties(toolNameNode?.ToString(), function, out toolProperties))
+                switch (bindingType)
                 {
-                    jsonObject["toolProperties"] = ToolPropertyParser.GetPropertiesJson(toolProperties);
-                    function.RawBindings[i] = jsonObject.ToJsonString();
-                }
-                else if (string.Equals(bindingType, McpResourceTriggerBindingType, StringComparison.OrdinalIgnoreCase)
-                    && MetadataParser.TryGetResourceMetadata(function, out var resourceMetadataJson))
-                {
-                    jsonObject["metadata"] = resourceMetadataJson;
-                    function.RawBindings[i] = jsonObject.ToJsonString();
-                }
-                else if (string.Equals(bindingType, McpToolPropertyBindingType, StringComparison.OrdinalIgnoreCase)
-                    && jsonObject.TryGetPropertyValue(McpToolPropertyName, out var propertyNameNode)
-                    && propertyNameNode is not null)
-                {
-                    var propertyName = propertyNameNode.ToString();
-                    inputBindingProperties.TryAdd(propertyName, new ToolPropertyBinding(i, jsonObject));
+                    case McpToolTriggerBindingType:
+                        if (jsonObject.TryGetPropertyValue("toolName", out var toolNameNode)
+                            && GetToolProperties(toolNameNode?.ToString(), function, out toolProperties))
+                        {
+                            jsonObject["toolProperties"] = ToolPropertyParser.GetPropertiesJson(toolProperties);
+                        }
+
+                        if (MetadataParser.TryGetToolMetadata(function, out var toolMetadataJson))
+                        {
+                            jsonObject["metadata"] = toolMetadataJson;
+                        }
+
+                        function.RawBindings[i] = jsonObject.ToJsonString();
+                        break;
+
+                    case McpResourceTriggerBindingType:
+                        if (MetadataParser.TryGetResourceMetadata(function, out var resourceMetadataJson))
+                        {
+                            jsonObject["metadata"] = resourceMetadataJson;
+                            function.RawBindings[i] = jsonObject.ToJsonString();
+                        }
+                        break;
+
+                    case McpToolPropertyBindingType:
+                        if (jsonObject.TryGetPropertyValue(McpToolPropertyName, out var propertyNameNode)
+                            && propertyNameNode is not null)
+                        {
+                            var propertyName = propertyNameNode.ToString();
+                            inputBindingProperties.TryAdd(propertyName, new ToolPropertyBinding(i, jsonObject));
+                        }
+                        break;
                 }
             }
 
