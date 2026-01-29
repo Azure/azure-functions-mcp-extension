@@ -63,49 +63,69 @@ internal sealed class DefaultToolRegistry : IToolRegistry
                     };
                 }
 
-                // When getting workout stats/history, show the dashboard
-                if (tool.Name == "GetWorkoutHistory")
+                if (tool.Name == "GetWorkoutTemplates")
                 {
                     toolItem.Meta = new JsonObject
                     {
-                        ["openai/outputTemplate"] = "ui://widget/dashboard.html"
+                        ["ui"] = new JsonObject
+                        {
+                            ["resourceUri"] = "ui://workout/start-workout.html"
+                        }
                     };
                 }
 
-                // When getting stats, show the progress charts
-                if (tool.Name == "GetWorkoutStats")
+                if (tool.Name == "StartWorkoutSession")
                 {
                     toolItem.Meta = new JsonObject
                     {
-                        ["openai/outputTemplate"] = "ui://widget/progress-chart.html"
+                        ["ui"] = new JsonObject
+                        {
+                            ["resourceUri"] = "ui://workout/active-workout.html"
+                        }
                     };
                 }
 
-                // When getting PRs, also show progress charts (strength progression)
-                if (tool.Name == "GetPersonalRecords")
+                if (tool.Name == "GetActiveWorkout")
                 {
                     toolItem.Meta = new JsonObject
                     {
-                        ["openai/outputTemplate"] = "ui://widget/progress-chart.html",
-                        ["openai/widgetAccessible"] = true
+                        ["ui"] = new JsonObject
+                        {
+                            ["resourceUri"] = "ui://workout/active-workout.html"
+                        }
                     };
                 }
 
-                // When logging a workout, show the log form widget
-                if (tool.Name == "LogWorkout")
+                if (tool.Name == "LogSet")
                 {
                     toolItem.Meta = new JsonObject
                     {
-                        ["openai/outputTemplate"] = "ui://widget/log-workout.html"
+                        ["ui"] = new JsonObject
+                        {
+                            ["resourceUri"] = "ui://workout/active-workout.html"
+                        }
                     };
                 }
 
-                // When getting user profile, show dashboard (has profile summary)
-                if (tool.Name == "GetUserProfile")
+                if (tool.Name == "NextExercise")
                 {
                     toolItem.Meta = new JsonObject
                     {
-                        ["openai/outputTemplate"] = "ui://widget/dashboard.html"
+                        ["ui"] = new JsonObject
+                        {
+                            ["resourceUri"] = "ui://workout/active-workout.html"
+                        }
+                    };
+                }
+
+                if (tool.Name == "CompleteWorkout")
+                {
+                    toolItem.Meta = new JsonObject
+                    {
+                        ["ui"] = new JsonObject
+                        {
+                            ["resourceUri"] = "ui://workout/workout-summary.html"
+                        }
                     };
                 }
 
