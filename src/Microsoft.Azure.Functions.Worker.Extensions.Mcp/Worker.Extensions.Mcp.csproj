@@ -16,7 +16,7 @@
     <ItemGroup>
       <AssemblyAttribute Include="Microsoft.Azure.Functions.Worker.Extensions.Abstractions.ExtensionInformationAttribute">
         <_Parameter1>Microsoft.Azure.Functions.Extensions.Mcp</_Parameter1>
-        <_Parameter2>1.1.0</_Parameter2>
+        <_Parameter2>1.2.0</_Parameter2>
       </AssemblyAttribute>
     </ItemGroup>
   </Target>
