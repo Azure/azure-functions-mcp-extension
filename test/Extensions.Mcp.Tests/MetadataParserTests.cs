@@ -52,18 +52,18 @@ public class MetadataParserTests
         Assert.Equal(2, result.Count);
         Assert.Equal("ui://widget/welcome.html", result["openai/outputTemplate"]);
         
-        var nestedObj = result["openai/widgetCSP"] as Dictionary<string, object?>;
+        var nestedObj = result["openai/widgetCSP"] as IReadOnlyDictionary<string, object?>;
         Assert.NotNull(nestedObj);
         Assert.Equal(2, nestedObj.Count);
         
-        var connectDomains = nestedObj["connect_domains"] as List<object?>;
+        var connectDomains = nestedObj["connect_domains"] as IList<object?>;
         Assert.NotNull(connectDomains);
         Assert.Equal(3, connectDomains.Count);
         Assert.Equal("array", connectDomains[0]);
         Assert.Equal("of", connectDomains[1]);
         Assert.Equal("domains", connectDomains[2]);
         
-        var resourceDomains = nestedObj["resource_domains"] as List<object?>;
+        var resourceDomains = nestedObj["resource_domains"] as IList<object?>;
         Assert.NotNull(resourceDomains);
         Assert.Empty(resourceDomains);
     }
@@ -76,7 +76,7 @@ public class MetadataParserTests
         var result = MetadataParser.ParseMetadata(json);
 
         Assert.NotNull(result);
-        var items = result["items"] as List<object?>;
+        var items = result["items"] as IList<object?>;
         Assert.NotNull(items);
         Assert.Equal(3, items.Count);
         Assert.Equal("one", items[0]);
@@ -152,16 +152,16 @@ public class MetadataParserTests
         var result = MetadataParser.ParseMetadata(json);
 
         Assert.NotNull(result);
-        var resources = result["resources"] as List<object?>;
+        var resources = result["resources"] as IList<object?>;
         Assert.NotNull(resources);
         Assert.Equal(2, resources.Count);
         
-        var res1 = resources[0] as Dictionary<string, object?>;
+        var res1 = resources[0] as IReadOnlyDictionary<string, object?>;
         Assert.NotNull(res1);
         Assert.Equal("resource1", res1["name"]);
         Assert.Equal("type1", res1["type"]);
         
-        var res2 = resources[1] as Dictionary<string, object?>;
+        var res2 = resources[1] as IReadOnlyDictionary<string, object?>;
         Assert.NotNull(res2);
         Assert.Equal("resource2", res2["name"]);
         Assert.Equal("type2", res2["type"]);
@@ -176,14 +176,11 @@ public class MetadataParserTests
     }
 
     [Fact]
-    public void ParseMetadata_JsonArray_ReturnsEmptyDictionary()
+    public void ParseMetadata_JsonArray_ThrowsJsonException()
     {
         var json = """["one","two","three"]""";
 
-        var result = MetadataParser.ParseMetadata(json);
-
-        Assert.NotNull(result);
-        Assert.Empty(result); // Only objects are supported at root level
+        Assert.ThrowsAny<System.Text.Json.JsonException>(() => MetadataParser.ParseMetadata(json));
     }
 
     [Fact]

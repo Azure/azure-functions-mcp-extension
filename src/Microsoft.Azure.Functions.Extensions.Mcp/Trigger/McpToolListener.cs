@@ -15,7 +15,8 @@ internal sealed class McpToolListener(ITriggeredFunctionExecutor executor,
                                       string functionName,
                                       string toolName,
                                       string? toolDescription,
-                                      ToolInputSchema requestHandler) : IListener, IMcpTool
+                                      ToolInputSchema requestHandler,
+                                      IReadOnlyDictionary<string, object?> metadata) : IListener, IMcpTool
 {
     public ITriggeredFunctionExecutor Executor { get; } = executor;
 
@@ -24,6 +25,8 @@ internal sealed class McpToolListener(ITriggeredFunctionExecutor executor,
     public string Name { get; } = toolName;
 
     public string? Description { get; set; } = toolDescription;
+
+    public IReadOnlyDictionary<string, object?> Metadata { get; } = metadata;
 
     public ToolInputSchema ToolInputSchema { get; } = requestHandler ?? throw new ArgumentNullException(nameof(requestHandler));
 

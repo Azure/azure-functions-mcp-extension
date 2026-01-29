@@ -139,4 +139,48 @@ public class MetadataParserTests
             [McpToolTrigger("TestTool")]
             [McpMetadata("{\"category\":\"utility\"}")] ToolInvocationContext context) { }
     }
+
+    #region Tool Trigger Metadata Tests
+
+    [Fact]
+    public void TryExtractMetadataFromParameter_ToolTriggerNoMetadata_ReturnsFalse()
+    {
+        var method = typeof(ToolTestClass).GetMethod(nameof(ToolTestClass.ToolNoMetadata))!;
+        var parameters = method.GetParameters();
+
+        var result = MetadataParser.TryExtractMetadataFromParameter<McpToolTriggerAttribute>(
+            parameters, out var metadataJson);
+
+        Assert.False(result);
+        Assert.Null(metadataJson);
+    }
+
+    [Fact]
+    public void TryExtractMetadataFromParameter_ToolTriggerWithMetadata_ReturnsMetadata()
+    {
+        var method = typeof(ToolTestClass).GetMethod(nameof(ToolTestClass.ToolWithMetadata))!;
+        var parameters = method.GetParameters();
+
+        var result = MetadataParser.TryExtractMetadataFromParameter<McpToolTriggerAttribute>(
+            parameters, out var metadataJson);
+
+        Assert.True(result);
+        Assert.NotNull(metadataJson);
+
+        var json = JsonNode.Parse(metadataJson)!.AsObject();
+        Assert.Equal(1.0, json["version"]!.GetValue<double>());
+        Assert.Equal("Jane", json["author"]!.GetValue<string>());
+    }
+
+    private class ToolTestClass
+    {
+        public void ToolNoMetadata(
+            [McpToolTrigger("test-tool", "A test tool")] ToolInvocationContext context) { }
+
+        public void ToolWithMetadata(
+            [McpToolTrigger("test-tool", "A test tool")]
+            [McpMetadata("""{"version": 1.0, "author": "Jane"}""")] ToolInvocationContext context) { }
+    }
+
+    #endregion
 }

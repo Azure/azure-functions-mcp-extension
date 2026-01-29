@@ -46,7 +46,8 @@ public class McpToolListenerTests
         var executor = new Mock<ITriggeredFunctionExecutor>().Object;
         var properties = new[] { CreateProperty("foo", true) };
         var inputSchema = new PropertyBasedToolInputSchema(properties);
-        var listener = new McpToolListener(executor, "func", "tool", null, inputSchema);
+        var metadata = new Dictionary<string, object?>();
+        var listener = new McpToolListener(executor, "func", "tool", null, inputSchema, metadata);
 
         var request = CreateRequest(); // No arguments
 
@@ -62,7 +63,8 @@ public class McpToolListenerTests
         var executor = new Mock<ITriggeredFunctionExecutor>().Object;
         var properties = new[] { CreateProperty("foo", true) };
         var inputSchema = new PropertyBasedToolInputSchema(properties);
-        var listener = new McpToolListener(executor, "func", "tool", null, inputSchema);
+        var metadata = new Dictionary<string, object?>();
+        var listener = new McpToolListener(executor, "func", "tool", null, inputSchema, metadata);
 
         var request = CreateRequest(("foo", JsonDocument.Parse("null").RootElement));
 
@@ -312,7 +314,8 @@ public class McpToolListenerTests
         // Test with tool properties validator
         var propertiesOnly = new[] { CreateProperty("prop1", true) };
         var inputSchema = new PropertyBasedToolInputSchema(propertiesOnly);
-        var listener = new McpToolListener(executor, "func", "tool", null, inputSchema);
+        var metadata = new Dictionary<string, object?>();
+        var listener = new McpToolListener(executor, "func", "tool", null, inputSchema, metadata);
         
         Assert.NotNull(listener.ToolInputSchema);
         
@@ -342,7 +345,8 @@ public class McpToolListenerTests
             """;
         var jsonDoc = JsonDocument.Parse(inputSchemaJson);
         var inputSchema = new JsonSchemaToolInputSchema(jsonDoc);
-        var listener = new McpToolListener(executor, "func", "tool", null, inputSchema);
+        var metadata = new Dictionary<string, object?>();
+        var listener = new McpToolListener(executor, "func", "tool", null, inputSchema, metadata);
         
         Assert.NotNull(listener.ToolInputSchema);
         
@@ -402,7 +406,8 @@ public class McpToolListenerTests
             """;
         var jsonDoc = JsonDocument.Parse(schemaJson);
         var inputSchema = new JsonSchemaToolInputSchema(jsonDoc);
-        var listener = new McpToolListener(executor, "func", "tool", null, inputSchema);
+        var metadata = new Dictionary<string, object?>();
+        var listener = new McpToolListener(executor, "func", "tool", null, inputSchema, metadata);
 
         var request = CreateRequest(); // No arguments
 
@@ -426,12 +431,63 @@ public class McpToolListenerTests
             """;
         var jsonDoc = JsonDocument.Parse(schemaJson);
         var inputSchema = new JsonSchemaToolInputSchema(jsonDoc);
-        var listener = new McpToolListener(executor, "func", "tool", null, inputSchema);
+        var metadata = new Dictionary<string, object?>();
+        var listener = new McpToolListener(executor, "func", "tool", null, inputSchema, metadata);
 
         var request = CreateRequestParams(("schemaRequiredProp", JsonDocument.Parse("\"value\"").RootElement));
 
         var ex = Record.Exception(() => inputSchema.Validate(request));
 
         Assert.Null(ex); // Should not throw because input schema's required property is provided
+    }
+
+    [Fact]
+    public void Metadata_WithValues_ReturnsMetadata()
+    {
+        var executor = new Mock<ITriggeredFunctionExecutor>().Object;
+        var inputSchema = new PropertyBasedToolInputSchema([]);
+        var metadata = new Dictionary<string, object?>
+        {
+            ["author"] = "Jane Doe",
+            ["version"] = 1.0
+        };
+        var listener = new McpToolListener(executor, "func", "tool", "description", inputSchema, metadata);
+
+        Assert.NotNull(listener.Metadata);
+        Assert.Equal("Jane Doe", listener.Metadata["author"]);
+        Assert.Equal(1.0, listener.Metadata["version"]);
+    }
+
+    [Fact]
+    public void Metadata_WithNestedValues_ReturnsNestedMetadata()
+    {
+        var executor = new Mock<ITriggeredFunctionExecutor>().Object;
+        var inputSchema = new PropertyBasedToolInputSchema([]);
+        var metadata = new Dictionary<string, object?>
+        {
+            ["ui"] = new Dictionary<string, object?>
+            {
+                ["resourceUri"] = "ui://test/widget",
+                ["prefersBorder"] = true
+            }
+        };
+        var listener = new McpToolListener(executor, "func", "tool", "description", inputSchema, metadata);
+
+        Assert.NotNull(listener.Metadata);
+        var ui = Assert.IsType<Dictionary<string, object?>>(listener.Metadata["ui"]);
+        Assert.Equal("ui://test/widget", ui["resourceUri"]);
+        Assert.Equal(true, ui["prefersBorder"]);
+    }
+
+    [Fact]
+    public void Metadata_WhenEmpty_ReturnsEmptyDictionary()
+    {
+        var executor = new Mock<ITriggeredFunctionExecutor>().Object;
+        var inputSchema = new PropertyBasedToolInputSchema([]);
+        var metadata = new Dictionary<string, object?>();
+        var listener = new McpToolListener(executor, "func", "tool", null, inputSchema, metadata);
+
+        Assert.NotNull(listener.Metadata);
+        Assert.Empty(listener.Metadata);
     }
 }
