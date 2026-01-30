@@ -5,6 +5,8 @@ using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Extensions.Mcp;
 using Microsoft.Extensions.Logging;
 using System.ComponentModel;
+using System.Net.Http.Json;
+using System.Text.Json;
 
 namespace ChatGptSampleApp;
 
@@ -29,26 +31,12 @@ public class WorkoutFunctions
     public string GetStartWorkoutWidget(
     [McpResourceTrigger(
         "ui://workout/start-workout.html",
-        "Start Workout",
+        "Workout Tracker",
         MimeType = "text/html;profile=mcp-app",
-        Description = "Select a workout template and start your training session")]
+        Description = "Select a workout template, track your sets, and log your progress")]
     ResourceInvocationContext context)
     {
         var file = Path.Combine(AppContext.BaseDirectory,"app", "dist", "start-workout.html");
-        return File.ReadAllText(file);
-    }
-
-    [Function(nameof(GetActiveWorkoutWidget))]
-    public string GetActiveWorkoutWidget(
-        [McpResourceTrigger(
-        "ui://workout/active-workout.html",
-        "Active Workout",
-        MimeType = "text/html;profile=mcp-app",
-        Description = "Track your workout in real-time with rest timers and set logging")]
-    [McpResourceMetadata("ui.prefersBorder", true)]
-    ResourceInvocationContext context)
-    {
-        var file = Path.Combine(AppContext.BaseDirectory, "app", "dist", "active-workout.html");
         return File.ReadAllText(file);
     }
 
@@ -62,7 +50,7 @@ public class WorkoutFunctions
     [McpResourceMetadata("ui.prefersBorder", true)]
     ResourceInvocationContext context)
     {
-        var file = Path.Combine(AppContext.BaseDirectory, "workout-app", "dist", "workout-summary.html");
+        var file = Path.Combine(AppContext.BaseDirectory, "app", "dist", "workout-summary.html");
         return File.ReadAllText(file);
     }
 
@@ -434,220 +422,240 @@ public class WorkoutFunctions
             };
         }
 
-        _workoutRepo.ClearActiveWorkoutSession();
+            _workoutRepo.ClearActiveWorkoutSession();
 
-        return new CancelWorkoutResponse
-        {
-            Success = true,
-            Message = "Workout session cancelled"
-        };
-    }
-
-    #endregion
-
-    #region Tools - Legacy Workout Management (Keeping for backwards compatibility)
-
-    [Function(nameof(LogWorkout))]
-    public LogWorkoutResponse LogWorkout(
-        [McpToolTrigger(nameof(LogWorkout),
-            "Log a completed workout session. Use this after the user describes a workout they just completed.")]
-        LogWorkoutRequest request,
-        ToolInvocationContext context)
-    {
-        var workout = new WorkoutSession
-        {
-            Id = Guid.NewGuid().ToString(),
-            Date = request.Date?.ToUniversalTime() ?? DateTime.UtcNow,
-            Type = request.Type.ToString(),
-            DurationMinutes = request.DurationMinutes,
-            PerceivedEffort = Math.Clamp(request.PerceivedEffort, 1, 10),
-            EnergyLevel = Math.Clamp(request.EnergyLevel, 1, 10),
-            Notes = request.Notes,
-            Exercises = new List<Exercise>()
-        };
-
-        if (request.Exercises != null && request.Exercises.Any())
-        {
-            foreach (var exerciseStr in request.Exercises)
+            return new CancelWorkoutResponse
             {
-                var exercise = ParseExerciseString(exerciseStr);
-                if (exercise != null)
-                {
-                    workout.Exercises.Add(exercise);
-                }
-            }
+                Success = true,
+                Message = "Workout session cancelled"
+            };
         }
 
-        _workoutRepo.SaveWorkout(workout);
-        _logger.LogInformation("Logged workout {WorkoutId} on {Date} with {ExerciseCount} exercises",
-            workout.Id, workout.Date, workout.Exercises.Count);
-
-        var totalVolume = workout.Exercises.Sum(e => e.Sets.Sum(s => s.Reps * s.Weight));
-        var totalSets = workout.Exercises.Sum(e => e.Sets.Count);
-
-        return new LogWorkoutResponse
+        [Function(nameof(GetWorkoutHistory))]
+        public GetWorkoutHistoryResponse GetWorkoutHistory(
+            [McpToolTrigger(nameof(GetWorkoutHistory),
+                "Get the user's workout history for a specified number of days. Returns completed workouts with exercises, sets, and statistics.")]
+            GetWorkoutHistoryRequest request,
+            ToolInvocationContext context)
         {
-            Success = true,
-            Message = "Workout logged successfully!",
-            WorkoutId = workout.Id,
-            Date = workout.Date,
-            Type = workout.Type,
-            DurationMinutes = workout.DurationMinutes,
-            PerceivedEffort = workout.PerceivedEffort,
-            EnergyLevel = workout.EnergyLevel,
-            Notes = workout.Notes,
-            Exercises = workout.Exercises.Select(e => new ExerciseOutput
+            var days = request.Days > 0 ? request.Days : 30;
+            var typeFilter = request.WorkoutType?.ToString();
+            var workouts = _workoutRepo.GetWorkouts(days, typeFilter);
+
+            _logger.LogInformation("Retrieved {Count} workouts from last {Days} days", workouts.Count, days);
+
+            var totalVolume = workouts.Sum(w => w.Exercises.Sum(e => e.Sets.Sum(s => s.Reps * s.Weight)));
+            var totalSets = workouts.Sum(w => w.Exercises.Sum(e => e.Sets.Count));
+
+            return new GetWorkoutHistoryResponse
             {
-                Name = e.Name,
-                MuscleGroup = e.MuscleGroup,
-                Notes = e.Notes,
-                Sets = e.Sets.Select(s => new SetOutput
+                Period = $"Last {days} days",
+                TotalWorkouts = workouts.Count,
+                Workouts = workouts.Select(w => new WorkoutHistoryItem
                 {
-                    Reps = s.Reps,
-                    Weight = s.Weight,
-                    Rpe = s.Rpe,
-                    IsPR = s.IsPR
-                }).ToList()
-            }).ToList(),
-            Summary = new WorkoutSummaryOutput
-            {
-                ExerciseCount = workout.Exercises.Count,
-                TotalSets = totalSets,
-                TotalVolume = totalVolume,
-                MuscleGroups = string.Join(", ", workout.Exercises.Select(e => e.MuscleGroup).Distinct())
-            }
-        };
-    }
-
-    private Exercise? ParseExerciseString(string exerciseStr)
-    {
-        try
-        {
-            var parts = exerciseStr.Split('|');
-            if (parts.Length < 3) return null;
-
-            var name = parts[0].Trim();
-            var muscleGroup = parts[1].Trim();
-            var setsInfo = parts[2].Trim();
-
-            var setsParts = setsInfo.Split('x');
-            if (setsParts.Length < 2) return null;
-
-            var numSets = int.Parse(setsParts[0].Trim());
-            var repsAndWeight = setsParts[1].Split('@');
-            var reps = int.Parse(repsAndWeight[0].Trim());
-
-            double weight = 0;
-            if (repsAndWeight.Length > 1)
-            {
-                var weightStr = repsAndWeight[1].Trim()
-                    .Replace("lbs", "", StringComparison.OrdinalIgnoreCase)
-                    .Replace("lb", "", StringComparison.OrdinalIgnoreCase)
-                    .Replace("kg", "", StringComparison.OrdinalIgnoreCase)
-                    .Replace("kgs", "", StringComparison.OrdinalIgnoreCase)
-                    .Trim();
-
-                if (!string.IsNullOrEmpty(weightStr))
+                    Id = w.Id,
+                    Date = w.Date,
+                    Type = w.Type,
+                    DurationMinutes = w.DurationMinutes,
+                    PerceivedEffort = w.PerceivedEffort,
+                    EnergyLevel = w.EnergyLevel,
+                    Notes = w.Notes,
+                    Exercises = w.Exercises.Select(e => new ExerciseOutput
+                    {
+                        Name = e.Name,
+                        MuscleGroup = e.MuscleGroup,
+                        Notes = e.Notes,
+                        Sets = e.Sets.Select(s => new SetOutput
+                        {
+                            Reps = s.Reps,
+                            Weight = s.Weight,
+                            Rpe = s.Rpe,
+                            IsPR = s.IsPR
+                        }).ToList()
+                    }).ToList()
+                }).ToList(),
+                Summary = new WorkoutPeriodSummary
                 {
-                    weight = double.Parse(weightStr);
+                    TotalSessions = workouts.Count,
+                    TotalVolume = totalVolume,
+                    AverageSessionDuration = workouts.Count > 0 ? (int)workouts.Average(w => w.DurationMinutes) : 0,
+                    AveragePerceivedEffort = workouts.Count > 0 ? workouts.Average(w => w.PerceivedEffort) : 0,
+                    MostTrainedMuscleGroups = workouts
+                        .SelectMany(w => w.Exercises)
+                        .GroupBy(e => e.MuscleGroup)
+                        .OrderByDescending(g => g.Count())
+                        .Take(3)
+                        .Select(g => g.Key)
+                        .ToList(),
+                    WorkoutTypes = workouts.GroupBy(w => w.Type)
+                        .ToDictionary(g => g.Key, g => g.Count())
                 }
+            };
+        }
+
+        [Function(nameof(ShareWorkoutToTeams))]
+        public async Task<ShareWorkoutToTeamsResponse> ShareWorkoutToTeams(
+            [McpToolTrigger(nameof(ShareWorkoutToTeams),
+                "Share a workout summary to Microsoft Teams. Posts an Adaptive Card with workout details to a configured Teams channel.")]
+            ShareWorkoutToTeamsRequest request,
+            ToolInvocationContext context)
+        {
+            var webhookUrl = Environment.GetEnvironmentVariable("TEAMS_WEBHOOK_URL");
+            if (string.IsNullOrEmpty(webhookUrl))
+            {
+                return new ShareWorkoutToTeamsResponse
+                {
+                    Success = false,
+                    Message = "Teams webhook URL not configured. Set TEAMS_WEBHOOK_URL environment variable."
+                };
             }
 
-            var exercise = new Exercise
+            // Get the workout to share
+            WorkoutSession? workout = null;
+            if (!string.IsNullOrEmpty(request.WorkoutId))
             {
-                Name = name,
-                MuscleGroup = muscleGroup,
-                Sets = new List<ExerciseSet>()
+                var workouts = _workoutRepo.GetWorkouts(30, null);
+                workout = workouts.FirstOrDefault(w => w.Id == request.WorkoutId);
+            }
+            else
+            {
+                // Get most recent workout
+                var workouts = _workoutRepo.GetWorkouts(7, null);
+                workout = workouts.FirstOrDefault();
+            }
+
+            if (workout == null)
+            {
+                return new ShareWorkoutToTeamsResponse
+                {
+                    Success = false,
+                    Message = "No workout found to share"
+                };
+            }
+
+            var totalVolume = workout.Exercises.Sum(e => e.Sets.Sum(s => s.Reps * s.Weight));
+            var totalSets = workout.Exercises.Sum(e => e.Sets.Count);
+            var prs = workout.Exercises.SelectMany(e => e.Sets.Where(s => s.IsPR)).Count();
+
+            // Build Teams Adaptive Card
+            var card = new
+            {
+                type = "message",
+                attachments = new[]
+                {
+                    new
+                    {
+                        contentType = "application/vnd.microsoft.card.adaptive",
+                        content = new
+                        {
+                            type = "AdaptiveCard",
+                            version = "1.4",
+                            body = new object[]
+                            {
+                                new
+                                {
+                                    type = "TextBlock",
+                                    size = "Large",
+                                    weight = "Bolder",
+                                    text = $"💪 {workout.Type} Workout Complete!",
+                                    wrap = true
+                                },
+                                new
+                                {
+                                    type = "TextBlock",
+                                    text = $"📅 {workout.Date:MMMM dd, yyyy}",
+                                    spacing = "None"
+                                },
+                                new
+                                {
+                                    type = "FactSet",
+                                    facts = new[]
+                                    {
+                                        new { title = "Duration", value = $"{workout.DurationMinutes} minutes" },
+                                        new { title = "Exercises", value = $"{workout.Exercises.Count}" },
+                                        new { title = "Total Sets", value = $"{totalSets}" },
+                                        new { title = "Volume", value = $"{totalVolume:N0} lbs" },
+                                        new { title = "Effort (RPE)", value = $"{workout.PerceivedEffort}/10" },
+                                        new { title = "Energy", value = $"{workout.EnergyLevel}/10" }
+                                    }
+                                },
+                                new
+                                {
+                                    type = "TextBlock",
+                                    text = "**Exercises:**",
+                                    wrap = true,
+                                    spacing = "Medium"
+                                },
+                                new
+                                {
+                                    type = "TextBlock",
+                                    text = string.Join("\n", workout.Exercises.Select(e =>
+                                        $"• {e.Name}: {e.Sets.Count} sets")),
+                                    wrap = true
+                                },
+                                prs > 0 ? new
+                                {
+                                    type = "TextBlock",
+                                    text = $"🏆 **{prs} Personal Record(s)!**",
+                                    color = "Good",
+                                    spacing = "Medium"
+                                } : null!,
+                                !string.IsNullOrEmpty(request.CustomMessage) ? new
+                                {
+                                    type = "TextBlock",
+                                    text = $"💬 \"{request.CustomMessage}\"",
+                                    wrap = true,
+                                    spacing = "Medium",
+                                    isSubtle = true
+                                } : null!
+                            }.Where(x => x != null).ToArray()
+                        }
+                    }
+                }
             };
 
-            for (int i = 0; i < numSets; i++)
+            try
             {
-                exercise.Sets.Add(new ExerciseSet
+                using var httpClient = new HttpClient();
+                var response = await httpClient.PostAsJsonAsync(webhookUrl, card);
+
+                if (response.IsSuccessStatusCode)
                 {
-                    Reps = reps,
-                    Weight = weight,
-                    Rpe = null,
-                    IsPR = false
-                });
-            }
-
-            return exercise;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogWarning(ex, "Failed to parse exercise string: {ExerciseStr}", exerciseStr);
-            return null;
-        }
-    }
-
-    [Function(nameof(GetWorkoutHistory))]
-    public GetWorkoutHistoryResponse GetWorkoutHistory(
-        [McpToolTrigger(nameof(GetWorkoutHistory),
-            "Retrieve workout history for a specified time period.")]
-        GetWorkoutHistoryRequest request,
-        ToolInvocationContext context)
-    {
-        var typeFilter = request.WorkoutType?.ToString();
-        var workouts = _workoutRepo.GetWorkouts(request.Days, typeFilter);
-
-        _logger.LogInformation("Retrieved {Count} workouts from last {Days} days", workouts.Count, request.Days);
-
-        var summary = GenerateWorkoutSummary(workouts);
-
-        return new GetWorkoutHistoryResponse
-        {
-            Period = $"Last {request.Days} days",
-            TotalWorkouts = workouts.Count,
-            Workouts = workouts.Select(w => new WorkoutHistoryItem
-            {
-                Id = w.Id,
-                Date = w.Date,
-                Type = w.Type,
-                DurationMinutes = w.DurationMinutes,
-                PerceivedEffort = w.PerceivedEffort,
-                EnergyLevel = w.EnergyLevel,
-                Notes = w.Notes,
-                Exercises = w.Exercises.Select(e => new ExerciseOutput
-                {
-                    Name = e.Name,
-                    MuscleGroup = e.MuscleGroup,
-                    Notes = e.Notes,
-                    Sets = e.Sets.Select(s => new SetOutput
+                    _logger.LogInformation("Posted workout {WorkoutId} to Teams", workout.Id);
+                    return new ShareWorkoutToTeamsResponse
                     {
-                        Reps = s.Reps,
-                        Weight = s.Weight,
-                        Rpe = s.Rpe,
-                        IsPR = s.IsPR
-                    }).ToList()
-                }).ToList()
-            }).ToList(),
-            Summary = new WorkoutPeriodSummary
-            {
-                TotalSessions = summary.TotalSessions,
-                TotalVolume = summary.TotalVolume,
-                AverageSessionDuration = summary.AverageSessionDuration,
-                MostTrainedMuscleGroups = summary.MostTrainedMuscleGroups,
-                AveragePerceivedEffort = summary.AveragePerceivedEffort,
-                WorkoutTypes = summary.WorkoutTypes
+                        Success = true,
+                        Message = "Workout shared to Teams successfully! 🎉",
+                        WorkoutId = workout.Id,
+                        WorkoutType = workout.Type,
+                        WorkoutDate = workout.Date
+                    };
+                }
+                else
+                {
+                    var error = await response.Content.ReadAsStringAsync();
+                    _logger.LogError("Failed to post to Teams: {Error}", error);
+                    return new ShareWorkoutToTeamsResponse
+                    {
+                        Success = false,
+                        Message = $"Failed to post to Teams: {response.StatusCode}"
+                    };
+                }
             }
-        };
-    }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error posting to Teams");
+                return new ShareWorkoutToTeamsResponse
+                {
+                    Success = false,
+                    Message = $"Error posting to Teams: {ex.Message}"
+                };
+            }
+        }
 
-    [Function(nameof(GetWorkoutStats))]
-    public WorkoutStatistics GetWorkoutStats(
-        [McpToolTrigger(nameof(GetWorkoutStats),
-            "Get comprehensive workout statistics including frequency, volume trends, and consistency metrics.")]
-        GetWorkoutStatsRequest request,
-        ToolInvocationContext context)
-    {
-        var workouts = _workoutRepo.GetWorkouts(request.Days, null);
-        var stats = CalculateStats(workouts, request.Days);
-        return stats;
-    }
+        #endregion
 
-    #endregion
-
-    #region Request/Response POCOs
+        #region Request/Response POCOs
 
     // New Interactive Workout POCOs
     public class StartWorkoutSessionRequest
@@ -659,6 +667,9 @@ public class WorkoutFunctions
     [McpResult]
     public class GetWorkoutTemplatesResponse
     {
+        [Description("Instructions for the assistant - follow these")]
+        public string Instructions { get; set; } = "Do NOT ask the user which workout to start. The Start Workout widget is displayed and the user will select a template there. Just acknowledge the templates are available and wait for the user to make their selection in the widget.";
+
         [Description("List of available workout templates")]
         public List<WorkoutTemplateOutput> Templates { get; set; } = new();
 
@@ -961,6 +972,34 @@ public class WorkoutFunctions
 
         [Description("Status message")]
         public string Message { get; set; } = string.Empty;
+    }
+
+    public class ShareWorkoutToTeamsRequest
+    {
+        [Description("Optional workout ID to share. If not provided, shares the most recent workout.")]
+        public string? WorkoutId { get; set; }
+
+        [Description("Optional custom message to include with the post")]
+        public string? CustomMessage { get; set; }
+    }
+
+    [McpResult]
+    public class ShareWorkoutToTeamsResponse
+    {
+        [Description("Whether the post was successful")]
+        public bool Success { get; set; }
+
+        [Description("Status message")]
+        public string Message { get; set; } = string.Empty;
+
+        [Description("ID of the shared workout")]
+        public string WorkoutId { get; set; } = string.Empty;
+
+        [Description("Type of workout shared")]
+        public string WorkoutType { get; set; } = string.Empty;
+
+        [Description("Date of the shared workout")]
+        public DateTime WorkoutDate { get; set; }
     }
 
     // Legacy POCOs (keeping for backwards compatibility)

@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Workout Summary</title>
+  <link rel="stylesheet" href="./styles/workout-summary.css">
+</head>
+<body>
+  <div class="container">
+    <!-- Loading State -->
+    <div id="loading" class="loading">
+      <div class="spinner"></div>
+      <p>Loading workout summary...</p>
+    </div>
+
+    <!-- Summary View -->
+    <div id="summary-view" class="hidden">
+      <div class="summary-header">
+        <div class="completion-badge">🎉</div>
+        <h1 id="workout-title">Workout Complete!</h1>
+        <p id="workout-date" class="workout-date"></p>
+      </div>
+
+      <div id="summary-container"></div>
+
+      <div class="actions">
+        <button class="btn btn-primary" id="newWorkoutBtn">
+          🏋️ Start New Workout
+        </button>
+      </div>
+    </div>
+
+    <!-- No Workout State -->
+    <div id="no-workout" class="hidden">
+      <div class="empty-state">
+        <div class="empty-icon">📊</div>
+        <h2>No Completed Workout</h2>
+        <p>Complete a workout to see your summary and stats here.</p>
+        <button class="btn btn-primary" id="startWorkoutBtn">
+          🏋️ Start a Workout
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="./workout-summary.ts"></script>
+</body>
+</html>

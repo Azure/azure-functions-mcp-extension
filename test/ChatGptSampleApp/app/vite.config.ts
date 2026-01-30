@@ -6,20 +6,18 @@ import { fileURLToPath } from "node:url";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-// Build configuration for single-file output
-// Note: vite-plugin-singlefile requires building one entry at a time
-// Use BUILD_ENTRY env var to select which page to build
-const entry = process.env["BUILD_ENTRY"] || "start-workout";
+// Get the target from command line args or default to start-workout
+const target = process.env.BUILD_TARGET || "start-workout";
 
 export default defineConfig({
     plugins: [viteSingleFile()],
     root: "src",
     build: {
         outDir: "../dist",
-        emptyOutDir: entry === "start-workout", // Only empty on first build
+        emptyOutDir: false, // Don't clear so we can build multiple files
         target: "esnext",
         rollupOptions: {
-            input: resolve(__dirname, `src/${entry}.html`),
+            input: resolve(__dirname, `src/${target}.html`),
         },
     },
 });

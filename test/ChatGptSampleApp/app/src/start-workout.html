@@ -3,42 +3,37 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Start Workout</title>
+    <title>Workout Tracker</title>
     <link rel="stylesheet" href="./styles/start-workout.css">
 </head>
 <body>
     <div class="container">
-        <div class="header">
-            <h1>💪 Start Your Workout</h1>
-            <p>Select a template to begin training</p>
-        </div>
-
-        <!-- Templates list (hidden by default) -->
-        <div id="templates-view" class="state-screen hidden">
+        <!-- Templates Selection View -->
+        <div id="templates-view" class="hidden">
+            <div class="header">
+                <h1>💪 Start Your Workout</h1>
+                <p>Select a template to begin training</p>
+            </div>
             <div id="templates-container"></div>
             <div class="action-area">
                 <button id="start-btn" class="start-button" disabled>Select a template to start</button>
-                <p class="action-hint-text">Click a template above, then press the button to begin</p>
             </div>
         </div>
 
-        <!-- Active Workout View (hidden by default) -->
-        <div id="active-workout-view" class="state-screen hidden">
-            <div id="workout-content"></div>
+        <!-- Active Workout View -->
+        <div id="workout-view" class="hidden">
+            <div id="workout-container"></div>
         </div>
 
-        <!-- Success/Completion screen (hidden by default) -->
-        <div id="success-view" class="state-screen hidden">
-            <div class="icon success-icon">✅</div>
-            <h2>Workout Complete!</h2>
-            <p id="success-message"></p>
-            <button id="back-btn" class="start-button">Start Another Workout</button>
+        <!-- Completion View -->
+        <div id="complete-view" class="hidden">
+            <div id="complete-container"></div>
         </div>
 
-        <!-- Loading spinner (visible by default) -->
+        <!-- Loading Spinner -->
         <div id="loading" class="loading">
             <div class="spinner"></div>
-            <p>Loading templates...</p>
+            <p>Loading...</p>
         </div>
     </div>
 

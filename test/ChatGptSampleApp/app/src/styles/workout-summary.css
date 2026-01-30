@@ -1,0 +1,290 @@
+/* ============= THEME VARIABLES ============= */
+:root {
+  --bg-primary: #f0f2f5;
+  --bg-secondary: #ffffff;
+  --bg-card: #ffffff;
+  --text-primary: #1a1a2e;
+  --text-secondary: #666680;
+  --accent: #667eea;
+  --accent-hover: #5a6fd6;
+  --success: #4caf50;
+  --warning: #ff9800;
+  --danger: #f44336;
+  --border: #e0e0e0;
+  --gradient-start: #667eea;
+  --gradient-end: #5a6fd6;
+}
+
+[data-theme="dark"] {
+  --bg-primary: #1a1a2e;
+  --bg-secondary: #252542;
+  --bg-card: #2d2d4a;
+  --text-primary: #ffffff;
+  --text-secondary: #a0a0b8;
+  --border: #3d3d5c;
+}
+
+/* ============= BASE STYLES ============= */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  min-height: 100vh;
+}
+
+.container {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 16px;
+}
+
+.hidden {
+  display: none !important;
+}
+
+/* ============= LOADING STATE ============= */
+.loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  color: var(--text-secondary);
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 16px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ============= SUMMARY HEADER ============= */
+.summary-header {
+  text-align: center;
+  padding: 32px 20px;
+  background: linear-gradient(135deg, var(--gradient-start) 0%, var(--gradient-end) 100%);
+  color: white;
+  border-radius: 20px;
+  margin-bottom: 24px;
+  box-shadow: 0 8px 24px rgba(102, 126, 234, 0.3);
+}
+
+.completion-badge {
+  font-size: 3rem;
+  margin-bottom: 12px;
+  animation: bounce 1s ease-in-out;
+}
+
+@keyframes bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+.summary-header h1 {
+  font-size: 1.8rem;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.workout-date {
+  font-size: 1rem;
+  opacity: 0.9;
+}
+
+/* ============= STATS GRID ============= */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.stat-card {
+  background: var(--bg-card);
+  border-radius: 16px;
+  padding: 20px;
+  text-align: center;
+  border: 1px solid var(--border);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.stat-card.highlight {
+  background: linear-gradient(135deg, var(--gradient-start) 0%, var(--gradient-end) 100%);
+  color: white;
+  border: none;
+}
+
+.stat-icon {
+  font-size: 1.5rem;
+  margin-bottom: 8px;
+}
+
+.stat-value {
+  font-size: 1.6rem;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.stat-label {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.stat-card.highlight .stat-label {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+/* ============= MUSCLE GROUPS ============= */
+.muscle-groups {
+  background: var(--bg-card);
+  border-radius: 16px;
+  padding: 20px;
+  margin-bottom: 16px;
+  border: 1px solid var(--border);
+}
+
+.muscle-groups h3 {
+  font-size: 1rem;
+  margin-bottom: 12px;
+  color: var(--text-primary);
+}
+
+.muscle-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.muscle-tag {
+  background: var(--bg-secondary);
+  color: var(--accent);
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  border: 1px solid var(--accent);
+}
+
+/* ============= PRs SECTION ============= */
+.prs-section {
+  background: linear-gradient(135deg, #ffd700 0%, #ffb800 100%);
+  border-radius: 16px;
+  padding: 20px;
+  margin-bottom: 16px;
+  color: #1a1a2e;
+}
+
+.prs-section h3 {
+  font-size: 1rem;
+  margin-bottom: 12px;
+}
+
+.pr-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.pr-item {
+  background: rgba(255, 255, 255, 0.3);
+  padding: 10px 14px;
+  border-radius: 10px;
+  font-weight: 500;
+}
+
+/* ============= MOTIVATIONAL MESSAGE ============= */
+.motivational-message {
+  background: var(--bg-card);
+  border-radius: 16px;
+  padding: 20px;
+  text-align: center;
+  margin-bottom: 24px;
+  border: 1px solid var(--border);
+}
+
+.motivational-message p {
+  font-size: 1.1rem;
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+/* ============= ACTIONS ============= */
+.actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.btn {
+  padding: 14px 24px;
+  border-radius: 12px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: all 0.2s;
+  text-align: center;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--gradient-start) 0%, var(--gradient-end) 100%);
+  color: white;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4);
+}
+
+.btn-secondary {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+}
+
+.btn-secondary:hover {
+  background: var(--bg-card);
+}
+
+/* ============= EMPTY STATE ============= */
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+}
+
+.empty-icon {
+  font-size: 4rem;
+  margin-bottom: 20px;
+  opacity: 0.8;
+}
+
+.empty-state h2 {
+  font-size: 1.4rem;
+  margin-bottom: 12px;
+  color: var(--text-primary);
+}
+
+.empty-state p {
+  color: var(--text-secondary);
+  margin-bottom: 24px;
+}

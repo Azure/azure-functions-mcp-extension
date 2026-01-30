@@ -4,9 +4,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "npm run build:start-workout && npm run build:active-workout",
-    "build:start-workout": "cross-env BUILD_ENTRY=start-workout vite build",
-    "build:active-workout": "cross-env BUILD_ENTRY=active-workout vite build",
+    "build": "npm run build:start-workout && npm run build:summary",
+    "build:start-workout": "cross-env BUILD_TARGET=start-workout vite build",
+    "build:summary": "cross-env BUILD_TARGET=workout-summary vite build",
     "preview": "vite preview"
   },
   "dependencies": {

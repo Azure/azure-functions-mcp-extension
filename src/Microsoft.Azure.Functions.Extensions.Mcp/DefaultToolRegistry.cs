@@ -80,7 +80,7 @@ internal sealed class DefaultToolRegistry : IToolRegistry
                     {
                         ["ui"] = new JsonObject
                         {
-                            ["resourceUri"] = "ui://workout/active-workout.html"
+                            ["resourceUri"] = "ui://workout/start-workout.html"
                         }
                     };
                 }
@@ -91,7 +91,7 @@ internal sealed class DefaultToolRegistry : IToolRegistry
                     {
                         ["ui"] = new JsonObject
                         {
-                            ["resourceUri"] = "ui://workout/active-workout.html"
+                            ["resourceUri"] = "ui://workout/start-workout.html"
                         }
                     };
                 }
@@ -102,7 +102,7 @@ internal sealed class DefaultToolRegistry : IToolRegistry
                     {
                         ["ui"] = new JsonObject
                         {
-                            ["resourceUri"] = "ui://workout/active-workout.html"
+                            ["resourceUri"] = "ui://workout/start-workout.html"
                         }
                     };
                 }
@@ -113,7 +113,7 @@ internal sealed class DefaultToolRegistry : IToolRegistry
                     {
                         ["ui"] = new JsonObject
                         {
-                            ["resourceUri"] = "ui://workout/active-workout.html"
+                            ["resourceUri"] = "ui://workout/start-workout.html"
                         }
                     };
                 }

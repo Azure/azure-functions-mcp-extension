@@ -147,6 +147,9 @@ public class AzureTableWorkoutRepository : IWorkoutRepository
 
     public void SaveWorkout(WorkoutSession workout)
     {
+        // Ensure table exists before trying to save
+        _workoutsTable.CreateIfNotExists();
+
         // Use reverse timestamp for RowKey to get most recent first
         var reverseTimestamp = DateTime.MaxValue.Ticks - workout.Date.Ticks;
         var rowKey = $"{reverseTimestamp:D19}_{workout.Id}";
@@ -163,19 +166,29 @@ public class AzureTableWorkoutRepository : IWorkoutRepository
 
         var filter = $"PartitionKey eq '{_userId}' and RowKey lt '{cutoffTicks:D19}'";
 
-        var query = _workoutsTable.Query<TableEntity>(filter: filter);
-
         var workouts = new List<WorkoutSession>();
-        foreach (var entity in query)
+
+        try
         {
-            var workout = DeserializeFromEntity<WorkoutSession>(entity);
-            if (workout != null)
+            _workoutsTable.CreateIfNotExists();
+            var query = _workoutsTable.Query<TableEntity>(filter: filter);
+
+            foreach (var entity in query)
             {
-                if (typeFilter == null || workout.Type.Equals(typeFilter, StringComparison.OrdinalIgnoreCase))
+                var workout = DeserializeFromEntity<WorkoutSession>(entity);
+                if (workout != null)
                 {
-                    workouts.Add(workout);
+                    if (typeFilter == null || workout.Type.Equals(typeFilter, StringComparison.OrdinalIgnoreCase))
+                    {
+                        workouts.Add(workout);
+                    }
                 }
             }
+        }
+        catch (RequestFailedException ex) when (ex.Status == 404)
+        {
+            // Table doesn't exist yet or no data, return empty list
+            return workouts;
         }
 
         return workouts.OrderByDescending(w => w.Date).ToList();
@@ -291,7 +304,7 @@ public class AzureTableWorkoutRepository : IWorkoutRepository
     private void SerializeToEntity<T>(T obj, TableEntity entity)
     {
         var json = JsonSerializer.Serialize(obj);
-        entity.Add("Data", json);
+        entity["Data"] = json;
     }
 
     private T? DeserializeFromEntity<T>(TableEntity entity)
