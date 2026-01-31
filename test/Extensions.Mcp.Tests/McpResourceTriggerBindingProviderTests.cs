@@ -3,6 +3,7 @@
 
 using System.Reflection;
 using Microsoft.Azure.Functions.Extensions.Mcp.Abstractions;
+using Microsoft.Azure.Functions.Extensions.Mcp.Diagnostics;
 using Microsoft.Azure.WebJobs.Host.Triggers;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
@@ -24,7 +25,8 @@ public class McpResourceTriggerBindingProviderTests
     public async Task TryCreateAsync_WithAttribute_ReturnsBinding()
     {
         var resourceRegistry = new Mock<IResourceRegistry>().Object;
-        var provider = new McpResourceTriggerBindingProvider(resourceRegistry, NullLoggerFactory.Instance);
+        var metrics = new McpMetrics();
+        var provider = new McpResourceTriggerBindingProvider(resourceRegistry, metrics, NullLoggerFactory.Instance);
 
         var method = typeof(McpResourceTriggerBindingProviderTests).GetMethod(nameof(DummyMethod), BindingFlags.NonPublic | BindingFlags.Static)!;
         var parameter = method.GetParameters()[0];
@@ -40,7 +42,8 @@ public class McpResourceTriggerBindingProviderTests
     public async Task TryCreateAsync_WithoutAttribute_ReturnsNull()
     {
         var resourceRegistry = new Mock<IResourceRegistry>().Object;
-        var provider = new McpResourceTriggerBindingProvider(resourceRegistry, NullLoggerFactory.Instance);
+        var metrics = new McpMetrics();
+        var provider = new McpResourceTriggerBindingProvider(resourceRegistry, metrics, NullLoggerFactory.Instance);
 
         var method = typeof(McpResourceTriggerBindingProviderTests).GetMethod(nameof(DummyMethodWithoutAttribute), BindingFlags.NonPublic | BindingFlags.Static)!;
         var parameter = method.GetParameters()[0];
@@ -55,7 +58,8 @@ public class McpResourceTriggerBindingProviderTests
     public async Task TryCreateAsync_WithNullContext_ThrowsArgumentNullException()
     {
         var resourceRegistry = new Mock<IResourceRegistry>().Object;
-        var provider = new McpResourceTriggerBindingProvider(resourceRegistry, NullLoggerFactory.Instance);
+        var metrics = new McpMetrics();
+        var provider = new McpResourceTriggerBindingProvider(resourceRegistry, metrics, NullLoggerFactory.Instance);
 
         await Assert.ThrowsAsync<ArgumentNullException>(() => provider.TryCreateAsync(null!));
     }
@@ -64,7 +68,8 @@ public class McpResourceTriggerBindingProviderTests
     public async Task TryCreateAsync_CreatesBindingWithCorrectRegistry()
     {
         var resourceRegistryMock = new Mock<IResourceRegistry>();
-        var provider = new McpResourceTriggerBindingProvider(resourceRegistryMock.Object, NullLoggerFactory.Instance);
+        var metrics = new McpMetrics();
+        var provider = new McpResourceTriggerBindingProvider(resourceRegistryMock.Object, metrics, NullLoggerFactory.Instance);
 
         var method = typeof(McpResourceTriggerBindingProviderTests).GetMethod(nameof(DummyMethod), BindingFlags.NonPublic | BindingFlags.Static)!;
         var parameter = method.GetParameters()[0];

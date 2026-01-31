@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Mvc.WebApiCompatShim;
 using Microsoft.Azure.Functions.Extensions.Mcp.Abstractions;
 using Microsoft.Azure.Functions.Extensions.Mcp.Backplane;
+using Microsoft.Azure.Functions.Extensions.Mcp.Diagnostics;
 using Microsoft.Azure.WebJobs;
 using Microsoft.Azure.WebJobs.Description;
 using Microsoft.Azure.WebJobs.Host.Config;
@@ -15,7 +16,7 @@ using Microsoft.Extensions.Logging;
 namespace Microsoft.Azure.Functions.Extensions.Mcp;
 
 [Extension("Mcp", "mcp")]
-internal sealed class McpExtensionConfigProvider(IToolRegistry toolRegistry, IResourceRegistry resourceRegistry, IMcpRequestHandler requestHandler, IWebHookProvider webHookProvider, IMcpBackplaneService backplaneService, ILoggerFactory loggerFactory)
+internal sealed class McpExtensionConfigProvider(IToolRegistry toolRegistry, IResourceRegistry resourceRegistry, IMcpRequestHandler requestHandler, IWebHookProvider webHookProvider, IMcpBackplaneService backplaneService, McpMetrics mcpMetrics, ILoggerFactory loggerFactory)
     : IExtensionConfigProvider, IAsyncConverter<HttpRequestMessage, HttpResponseMessage>, IDisposable
 {
     private Func<Uri>? _webhookDelegate;
@@ -32,10 +33,10 @@ internal sealed class McpExtensionConfigProvider(IToolRegistry toolRegistry, IRe
         _webhookDelegate = () => webHookProvider.GetUrl(this);
 
         context.AddBindingRule<McpToolTriggerAttribute>()
-            .BindToTrigger(new McpToolTriggerBindingProvider(toolRegistry, loggerFactory));
+            .BindToTrigger(new McpToolTriggerBindingProvider(toolRegistry, mcpMetrics, loggerFactory));
 
         context.AddBindingRule<McpResourceTriggerAttribute>()
-            .BindToTrigger(new McpResourceTriggerBindingProvider(resourceRegistry, loggerFactory));
+            .BindToTrigger(new McpResourceTriggerBindingProvider(resourceRegistry, mcpMetrics, loggerFactory));
 
         context.AddBindingRule<McpToolPropertyAttribute>()
             .Bind(new McpToolPropertyBindingProvider());

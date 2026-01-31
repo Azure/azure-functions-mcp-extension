@@ -3,12 +3,13 @@
 
 using System.Reflection;
 using Microsoft.Azure.Functions.Extensions.Mcp.Abstractions;
+using Microsoft.Azure.Functions.Extensions.Mcp.Diagnostics;
 using Microsoft.Azure.WebJobs.Host.Triggers;
 using Microsoft.Extensions.Logging;
 
 namespace Microsoft.Azure.Functions.Extensions.Mcp;
 
-internal sealed class McpResourceTriggerBindingProvider(IResourceRegistry resourceRegistry, ILoggerFactory loggerFactory) : ITriggerBindingProvider
+internal sealed class McpResourceTriggerBindingProvider(IResourceRegistry resourceRegistry, McpMetrics mcpMetrics, ILoggerFactory loggerFactory) : ITriggerBindingProvider
 {
     public Task<ITriggerBinding?> TryCreateAsync(TriggerBindingProviderContext context)
     {
@@ -22,6 +23,6 @@ internal sealed class McpResourceTriggerBindingProvider(IResourceRegistry resour
             return Task.FromResult<ITriggerBinding?>(null);
         }
 
-        return Task.FromResult<ITriggerBinding?>(new McpResourceTriggerBinding(parameter, resourceRegistry, attribute, loggerFactory));
+        return Task.FromResult<ITriggerBinding?>(new McpResourceTriggerBinding(parameter, resourceRegistry, attribute, mcpMetrics, loggerFactory));
     }
 }

@@ -4,6 +4,7 @@
 using System.Reflection;
 using System.Text.Json;
 using Microsoft.Azure.Functions.Extensions.Mcp.Abstractions;
+using Microsoft.Azure.Functions.Extensions.Mcp.Diagnostics;
 using Microsoft.Azure.Functions.Extensions.Mcp.Serialization;
 using Microsoft.Azure.WebJobs.Host.Bindings;
 using Microsoft.Azure.WebJobs.Host.Listeners;
@@ -18,6 +19,7 @@ internal sealed class McpResourceTriggerBinding : ITriggerBinding
     private readonly IResourceRegistry _resourceRegistry;
     private readonly McpResourceTriggerAttribute _resourceAttribute;
     private readonly ParameterInfo _triggerParameter;
+    private readonly McpMetrics _mcpMetrics;
     private readonly ILoggerFactory _loggerFactory;
     private readonly IReadOnlyDictionary<string, object?> _resourceMetadata;
 
@@ -25,6 +27,7 @@ internal sealed class McpResourceTriggerBinding : ITriggerBinding
         ParameterInfo triggerParameter,
         IResourceRegistry resourceRegistry,
         McpResourceTriggerAttribute resourceAttribute,
+        McpMetrics mcpMetrics,
         ILoggerFactory loggerFactory)
     {
         ArgumentNullException.ThrowIfNull(triggerParameter);
@@ -32,6 +35,7 @@ internal sealed class McpResourceTriggerBinding : ITriggerBinding
         _resourceRegistry = resourceRegistry;
         _resourceAttribute = resourceAttribute;
         _triggerParameter = triggerParameter;
+        _mcpMetrics = mcpMetrics;
         _loggerFactory = loggerFactory;
         var logger = _loggerFactory.CreateLogger<McpResourceTriggerBinding>();
         _resourceMetadata = MetadataParser.ParseMetadata(resourceAttribute.Metadata, logger);
@@ -122,7 +126,8 @@ internal sealed class McpResourceTriggerBinding : ITriggerBinding
             _resourceAttribute.Description,
             _resourceAttribute.MimeType,
             _resourceAttribute.Size,
-            _resourceMetadata);
+            _resourceMetadata,
+            _mcpMetrics);
         _resourceRegistry.Register(listener);
 
         return Task.FromResult<IListener>(listener);
