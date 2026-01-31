@@ -4,18 +4,27 @@
 - My change description (#PR/#issue)
 -->
 
-### Microsoft.Azure.Functions.Extensions 1.2.0
+### Microsoft.Azure.Functions.Extensions <version>
 
-- Added feature for the extension to consume worker generated input schema if `UseWorkerInputSchema` is enabled. (#136)
-- Added support for MCP Resources via `McpResourceTrigger` binding (#168)
-- Added support for Resource metadata via `McpMetadata` attribute (#170)
-- Added support for Tool metadata via `McpMetadata` attribute (#183)
+- <entry>
 
-### Microsoft.Azure.Functions.Worker.Extensions.Mcp 1.2.0-preview.1
+### Microsoft.Azure.Functions.Worker.Extensions.Mcp 1.2.0-preview.2
 
-- Added support for MCP Resources via `McpResourceTrigger` binding (#169)
-- Added support for Resource metadata via `McpMetadata` attribute  (#170)
-- Added support for Tool metadata via `McpMetadata` attribute  (#183)
+- Added fluent configuration APIs (`ConfigureMcpResource` and `WithMeta`) to configure MCP tool and resource metadata at startup (#195)
+
+    ```csharp
+    // Configure MCP resource metadata using the fluent API
+    builder
+        .ConfigureMcpResource("hellopage")
+        .WithMeta("ui", new { prefersBorder = true });
+
+
+    // Configure MCP tool metadata using the fluent API
+    builder
+        .ConfigureMcpTool("sayhello")
+        .WithProperty("name", McpToolPropertyType.String, "Name of the user", required: true)
+        .WithMeta("ui", new { resourceUri = "ui://index.html" });
+    ```
 
 ### Microsoft.Azure.Functions.Worker.Extensions.Mcp.Sdk 1.0.0-preview.3
 
