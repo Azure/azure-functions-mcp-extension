@@ -490,7 +490,8 @@ public class ResourceReturnValueBinderTests
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
             binder.SetValueAsync(fileContents, CancellationToken.None));
 
-        Assert.Contains("Path cannot be null or empty", exception.Message);
+        Assert.Contains("Path property", exception.Message);
+        Assert.Contains("cannot be null or empty", exception.Message);
     }
 
     [Fact]

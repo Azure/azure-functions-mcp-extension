@@ -191,7 +191,7 @@ internal sealed class ResourceReturnValueBinder(
     {
         if (string.IsNullOrEmpty(fileContents.Path))
         {
-            throw new InvalidOperationException("FileResourceContents.Path cannot be null or empty.");
+            throw new InvalidOperationException("Path property of FileResourceContents cannot be null or empty.");
         }
 
         if (!File.Exists(fileContents.Path))
