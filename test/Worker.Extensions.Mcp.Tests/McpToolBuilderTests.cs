@@ -135,4 +135,76 @@ public class McpToolBuilderTests
 
         Assert.Same(builder, result);
     }
+
+    [Fact]
+    public void WithMeta_AddsMetadataEntry()
+    {
+        var toolName = "myTool";
+        var builder = CreateBuilder(toolName, out var services);
+
+        builder.WithMeta("openai/strict", true);
+
+        using var sp = services.BuildServiceProvider();
+        var options = sp.GetRequiredService<IOptionsMonitor<ToolOptions>>().Get(toolName);
+
+        Assert.Single(options.Metadata);
+        Assert.True((bool)options.Metadata["openai/strict"]!);
+    }
+
+    [Fact]
+    public void WithMeta_MultipleEntries_AddsAllMetadata()
+    {
+        var toolName = "myTool";
+        var builder = CreateBuilder(toolName, out var services);
+
+        builder
+            .WithMeta("key1", "value1")
+            .WithMeta("key2", 42)
+            .WithMeta("key3", false);
+
+        using var sp = services.BuildServiceProvider();
+        var options = sp.GetRequiredService<IOptionsMonitor<ToolOptions>>().Get(toolName);
+
+        Assert.Equal(3, options.Metadata.Count);
+        Assert.Equal("value1", options.Metadata["key1"]);
+        Assert.Equal(42, options.Metadata["key2"]);
+        Assert.False((bool)options.Metadata["key3"]!);
+    }
+
+    [Fact]
+    public void WithMeta_EmptyKey_Throws()
+    {
+        var builder = CreateBuilder("tool", out _);
+
+        var ex = Assert.Throws<ArgumentException>(() => builder.WithMeta(string.Empty, "value"));
+        Assert.Equal("key", ex.ParamName);
+    }
+
+    [Fact]
+    public void WithMeta_ReturnsSameBuilderInstance()
+    {
+        var builder = CreateBuilder("tool", out _);
+        var result = builder.WithMeta("key", "value");
+
+        Assert.Same(builder, result);
+    }
+
+    [Fact]
+    public void Chaining_WithPropertyAndWithMeta_ConfiguresAll()
+    {
+        var toolName = "myTool";
+        var builder = CreateBuilder(toolName, out var services);
+
+        builder
+            .WithProperty("name", McpToolPropertyType.String, "The name", required: true)
+            .WithMeta("openai/strict", true)
+            .WithProperty("count", McpToolPropertyType.Integer, "The count");
+
+        using var sp = services.BuildServiceProvider();
+        var options = sp.GetRequiredService<IOptionsMonitor<ToolOptions>>().Get(toolName);
+
+        Assert.Equal(2, options.Properties.Count);
+        Assert.Single(options.Metadata);
+        Assert.True((bool)options.Metadata["openai/strict"]!);
+    }
 }
