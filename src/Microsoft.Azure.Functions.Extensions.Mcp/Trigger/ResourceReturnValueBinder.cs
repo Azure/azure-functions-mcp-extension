@@ -66,7 +66,19 @@ internal sealed class ResourceReturnValueBinder(
             return Task.CompletedTask;
         }
 
-        throw new InvalidOperationException($"Unsupported return type for resource read: {value.GetType().Name}. Expected string or byte[].");
+        if (value is FileResourceContents fileContents)
+        {
+            var convertedContents = ConvertFileResourceContents(fileContents);
+            var fileResult = new ReadResourceResult
+            {
+                Contents = [convertedContents]
+            };
+
+            executionContext.SetResult(fileResult);
+            return Task.CompletedTask;
+        }
+
+        throw new InvalidOperationException($"Unsupported return type for resource read: {value.GetType().Name}. Expected string, byte[], or FileResourceContents.");
     }
 
     public Task<object> GetValueAsync()
@@ -126,5 +138,77 @@ internal sealed class ResourceReturnValueBinder(
         }
 
         return resourceContents;
+    }
+
+    private ResourceContents ConvertFileResourceContents(FileResourceContents fileContents)
+    {
+        if (string.IsNullOrEmpty(fileContents.Path))
+        {
+            throw new InvalidOperationException("FileResourceContents.Path cannot be null or empty.");
+        }
+
+        if (!File.Exists(fileContents.Path))
+        {
+            throw new FileNotFoundException($"File not found: {fileContents.Path}", fileContents.Path);
+        }
+
+        // Use attribute values as fallback for Uri and MimeType
+        var uri = string.IsNullOrEmpty(fileContents.Uri) ? resourceAttribute.Uri : fileContents.Uri;
+        var mimeType = string.IsNullOrEmpty(fileContents.MimeType) ? resourceAttribute.MimeType : fileContents.MimeType;
+
+        bool isTextType = IsTextMimeType(mimeType ?? string.Empty);
+
+        if (isTextType)
+        {
+            var text = File.ReadAllText(fileContents.Path);
+            return new TextResourceContents
+            {
+                Uri = uri,
+                MimeType = mimeType,
+                Text = text,
+                Meta = fileContents.Meta
+            };
+        }
+        else
+        {
+            var bytes = File.ReadAllBytes(fileContents.Path);
+            return new BlobResourceContents
+            {
+                Uri = uri,
+                MimeType = mimeType,
+                Blob = Convert.ToBase64String(bytes),
+                Meta = fileContents.Meta
+            };
+        }
+    }
+
+    private static bool IsTextMimeType(string mimeType)
+    {
+        if (string.IsNullOrEmpty(mimeType))
+        {
+            return false;
+        }
+
+        var lowerMimeType = mimeType.ToLowerInvariant();
+        
+        // Check for text/* types
+        if (lowerMimeType.StartsWith("text/"))
+        {
+            return true;
+        }
+
+        // Check for common text-based types that don't start with text/
+        return lowerMimeType switch
+        {
+            "application/json" => true,
+            "application/xml" => true,
+            "application/javascript" => true,
+            "application/ecmascript" => true,
+            "application/x-javascript" => true,
+            "application/x-sh" => true,
+            _ when lowerMimeType.EndsWith("+xml") => true,
+            _ when lowerMimeType.EndsWith("+json") => true,
+            _ => false
+        };
     }
 }
