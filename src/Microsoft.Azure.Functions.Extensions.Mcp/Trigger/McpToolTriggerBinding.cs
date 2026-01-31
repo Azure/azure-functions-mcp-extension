@@ -4,6 +4,7 @@
 using System.Reflection;
 using System.Text.Json;
 using Microsoft.Azure.Functions.Extensions.Mcp.Abstractions;
+using Microsoft.Azure.Functions.Extensions.Mcp.Diagnostics;
 using Microsoft.Azure.Functions.Extensions.Mcp.Serialization;
 using Microsoft.Azure.Functions.Extensions.Mcp.Validation;
 using Microsoft.Azure.WebJobs.Host.Bindings;
@@ -19,16 +20,18 @@ internal sealed class McpToolTriggerBinding : ITriggerBinding
     private readonly IToolRegistry _toolRegistry;
     private readonly McpToolTriggerAttribute _toolAttribute;
     private readonly ParameterInfo _triggerParameter;
+    private readonly McpMetrics _mcpMetrics;
     private readonly ILoggerFactory _loggerFactory;
     private readonly IReadOnlyDictionary<string, object?> _toolMetadata;
 
-    public McpToolTriggerBinding(ParameterInfo triggerParameter, IToolRegistry toolRegistry, McpToolTriggerAttribute toolAttribute, ILoggerFactory loggerFactory)
+    public McpToolTriggerBinding(ParameterInfo triggerParameter, IToolRegistry toolRegistry, McpToolTriggerAttribute toolAttribute, McpMetrics mcpMetrics, ILoggerFactory loggerFactory)
     {
         ArgumentNullException.ThrowIfNull(triggerParameter);
 
         _toolRegistry = toolRegistry;
         _toolAttribute = toolAttribute;
         _triggerParameter = triggerParameter;
+        _mcpMetrics = mcpMetrics;
         _loggerFactory = loggerFactory;
 
         var logger = _loggerFactory.CreateLogger<McpToolTriggerBinding>();
@@ -121,7 +124,8 @@ internal sealed class McpToolTriggerBinding : ITriggerBinding
             _toolAttribute.ToolName,
             _toolAttribute.Description,
             inputSchema,
-            _toolMetadata);
+            _toolMetadata,
+            _mcpMetrics);
 
         _toolRegistry.Register(listener);
 

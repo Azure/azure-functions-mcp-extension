@@ -49,8 +49,11 @@ public static class McpWebJobsBuilderExtensions
         builder.Services.AddSingleton<IMcpBackplaneService, BackplaneService>();
         builder.Services.AddSingleton<IMcpBackplane, AzureStorageBackplane>();
         builder.Services.AddSingleton<QueueServiceClientProvider>();
-        builder.Services.AddSingleton<RequestActivityFactory>();
         builder.Services.AddAzureClientsCore();
+
+        // Diagnostics (OTel MCP semantic conventions)
+        builder.Services.AddSingleton<RequestActivityFactory>();
+        builder.Services.AddSingleton<McpMetrics>();
 
         // MCP server
         builder.Services.ConfigureOptions<FunctionsMcpServerOptionsSetup>();

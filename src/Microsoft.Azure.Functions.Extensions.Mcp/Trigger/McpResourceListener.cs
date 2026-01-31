@@ -1,6 +1,8 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
+using System.Diagnostics;
+using Microsoft.Azure.Functions.Extensions.Mcp.Diagnostics;
 using Microsoft.Azure.WebJobs.Host.Executors;
 using Microsoft.Azure.WebJobs.Host.Listeners;
 using ModelContextProtocol.Protocol;
@@ -15,7 +17,8 @@ internal sealed class McpResourceListener(ITriggeredFunctionExecutor executor,
                                           string? resourceDescription,
                                           string? resourceMimeType,
                                           long? resourceSize,
-                                          IReadOnlyDictionary<string, object?> metadata) : IListener, IMcpResource
+                                          IReadOnlyDictionary<string, object?> metadata,
+                                          McpMetrics? metrics = null) : IListener, IMcpResource
 {
     public ITriggeredFunctionExecutor Executor { get; } = executor;
 
@@ -43,27 +46,55 @@ internal sealed class McpResourceListener(ITriggeredFunctionExecutor executor,
 
     public async Task<ReadResourceResult> ReadAsync(RequestContext<ReadResourceRequestParams> readResourceRequest, CancellationToken cancellationToken)
     {
-        var execution = new ReadResourceExecutionContext(readResourceRequest);
+        var stopwatch = Stopwatch.StartNew();
+        string? errorType = null;
 
-        var input = new TriggeredFunctionData
+        // Add mime type to current trace activity if available
+        if (!string.IsNullOrEmpty(MimeType))
         {
-            TriggerValue = execution
-        };
-
-        var result = await Executor.TryExecuteAsync(input, cancellationToken);
-
-         if (!result.Succeeded)
-        {
-            throw result.Exception;
+            Activity.Current?.SetTag(TraceConstants.McpAttributes.ResourceMimeType, MimeType);
         }
 
-        var resourceResult = await execution.ResultTask;
-
-        if (resourceResult is ReadResourceResult readResourceResult)
+        try
         {
-            return readResourceResult;
-        }
+            var execution = new ReadResourceExecutionContext(readResourceRequest);
 
-        return new ReadResourceResult { Contents = [] };
+            var input = new TriggeredFunctionData
+            {
+                TriggerValue = execution
+            };
+
+            var result = await Executor.TryExecuteAsync(input, cancellationToken);
+
+            if (!result.Succeeded)
+            {
+                errorType = result.Exception?.GetType().FullName;
+                throw result.Exception!;
+            }
+
+            var resourceResult = await execution.ResultTask;
+
+            if (resourceResult is ReadResourceResult readResourceResult)
+            {
+                return readResourceResult;
+            }
+
+            return new ReadResourceResult { Contents = [] };
+        }
+        catch (Exception ex)
+        {
+            errorType ??= ex.GetType().FullName;
+            throw;
+        }
+        finally
+        {
+            stopwatch.Stop();
+            metrics?.RecordResourceReadDuration(
+                durationSeconds: stopwatch.Elapsed.TotalSeconds,
+                resourceUri: Uri,
+                mimeType: MimeType,
+                sessionId: readResourceRequest.Server.SessionId,
+                errorType: errorType);
+        }
     }
 }

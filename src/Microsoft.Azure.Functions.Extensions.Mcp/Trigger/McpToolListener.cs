@@ -1,6 +1,8 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
+using System.Diagnostics;
+using Microsoft.Azure.Functions.Extensions.Mcp.Diagnostics;
 using Microsoft.Azure.Functions.Extensions.Mcp.Validation;
 using Microsoft.Azure.WebJobs.Host.Executors;
 using Microsoft.Azure.WebJobs.Host.Listeners;
@@ -8,6 +10,7 @@ using ModelContextProtocol;
 using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 using System.Text.Json;
+using static Microsoft.Azure.Functions.Extensions.Mcp.Diagnostics.TraceConstants;
 
 namespace Microsoft.Azure.Functions.Extensions.Mcp;
 
@@ -16,7 +19,8 @@ internal sealed class McpToolListener(ITriggeredFunctionExecutor executor,
                                       string toolName,
                                       string? toolDescription,
                                       ToolInputSchema requestHandler,
-                                      IReadOnlyDictionary<string, object?> metadata) : IListener, IMcpTool
+                                      IReadOnlyDictionary<string, object?> metadata,
+                                      McpMetrics? metrics = null) : IListener, IMcpTool
 {
     public ITriggeredFunctionExecutor Executor { get; } = executor;
 
@@ -47,32 +51,53 @@ internal sealed class McpToolListener(ITriggeredFunctionExecutor executor,
 
     public async Task<CallToolResult> RunAsync(RequestContext<CallToolRequestParams> callToolRequest, CancellationToken cancellationToken)
     {
-        // Validate required properties are present in the incoming request.
-        ToolInputSchema.Validate(callToolRequest.Params);
+        var stopwatch = Stopwatch.StartNew();
+        string? errorType = null;
 
-        var execution = new CallToolExecutionContext(callToolRequest);
-
-        var input = new TriggeredFunctionData
+        try
         {
-            TriggerValue = execution
-        };
+            // Validate required properties are present in the incoming request.
+            ToolInputSchema.Validate(callToolRequest.Params);
 
-        var result = await Executor.TryExecuteAsync(input, cancellationToken);
+            var execution = new CallToolExecutionContext(callToolRequest);
 
-        if (!result.Succeeded)
-        {
-            throw result.Exception;
+            var input = new TriggeredFunctionData
+            {
+                TriggerValue = execution
+            };
+
+            var result = await Executor.TryExecuteAsync(input, cancellationToken);
+
+            if (!result.Succeeded)
+            {
+                errorType = result.Exception?.GetType().FullName;
+                throw result.Exception!;
+            }
+
+            var toolResult = await execution.ResultTask;
+
+            if (toolResult is CallToolResult callToolResult)
+            {
+                return callToolResult;
+            }
+
+            // We did not receive a CallToolResult from the function execution,
+            // return an empty result.
+            return new CallToolResult { Content = [] };
         }
-
-        var toolResult = await execution.ResultTask;
-
-        if (toolResult is CallToolResult callToolResult)
+        catch (Exception ex)
         {
-            return callToolResult;
+            errorType ??= ex.GetType().FullName;
+            throw;
         }
-
-        // We did not receive a CallToolResult from the function execution,
-        // return an empty result.
-        return new CallToolResult { Content = [] };
+        finally
+        {
+            stopwatch.Stop();
+            metrics?.RecordToolCallDuration(
+                durationSeconds: stopwatch.Elapsed.TotalSeconds,
+                toolName: Name,
+                sessionId: callToolRequest.Server.SessionId,
+                errorType: errorType);
+        }
     }
 }

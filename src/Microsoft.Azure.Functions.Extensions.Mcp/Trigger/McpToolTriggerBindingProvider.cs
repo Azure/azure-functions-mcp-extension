@@ -2,13 +2,14 @@
 // Licensed under the MIT License.
 
 using Microsoft.Azure.Functions.Extensions.Mcp.Abstractions;
+using Microsoft.Azure.Functions.Extensions.Mcp.Diagnostics;
 using Microsoft.Azure.WebJobs.Host.Triggers;
 using Microsoft.Extensions.Logging;
 using System.Reflection;
 
 namespace Microsoft.Azure.Functions.Extensions.Mcp;
 
-internal sealed class McpToolTriggerBindingProvider(IToolRegistry toolRegistry, ILoggerFactory loggerFactory) : ITriggerBindingProvider
+internal sealed class McpToolTriggerBindingProvider(IToolRegistry toolRegistry, McpMetrics mcpMetrics, ILoggerFactory loggerFactory) : ITriggerBindingProvider
 {
     public Task<ITriggerBinding?> TryCreateAsync(TriggerBindingProviderContext context)
     {
@@ -21,7 +22,7 @@ internal sealed class McpToolTriggerBindingProvider(IToolRegistry toolRegistry, 
             return Task.FromResult<ITriggerBinding?>(null);
         }
 
-        var binding = new McpToolTriggerBinding(context.Parameter, toolRegistry, attribute, loggerFactory);
+        var binding = new McpToolTriggerBinding(context.Parameter, toolRegistry, attribute, mcpMetrics, loggerFactory);
 
         return Task.FromResult<ITriggerBinding?>(binding);
     }
