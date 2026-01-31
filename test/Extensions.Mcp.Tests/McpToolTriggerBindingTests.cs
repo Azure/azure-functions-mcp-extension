@@ -5,6 +5,7 @@ using System.Reflection;
 using System.Text.Json;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Azure.Functions.Extensions.Mcp.Abstractions;
+using Microsoft.Azure.Functions.Extensions.Mcp.Diagnostics;
 using Microsoft.Azure.Functions.Extensions.Mcp.Serialization;
 using Microsoft.Azure.WebJobs.Host.Bindings;
 using Microsoft.Azure.WebJobs.Host.Triggers;
@@ -28,8 +29,9 @@ public class McpToolTriggerBindingTests
         var attribute = new McpToolTriggerAttribute("MyTool", "desc");
         var loggerFactory = new Mock<ILoggerFactory>();
         loggerFactory.Setup(x => x.CreateLogger(It.IsAny<string>())).Returns(new Mock<ILogger>().Object);
+        var metrics = new McpMetrics();
 
-        var binding = new McpToolTriggerBinding(parameter, toolRegistry.Object, attribute, loggerFactory.Object);
+        var binding = new McpToolTriggerBinding(parameter, toolRegistry.Object, attribute, metrics, loggerFactory.Object);
 
         return (binding, parameter);
     }
@@ -173,7 +175,7 @@ public class McpToolTriggerBindingTests
                 "required": ["name"]
             }
             """;
-        
+
         var attribute = new McpToolTriggerAttribute("TestTool", "Test Description")
         {
             InputSchema = validSchema
@@ -188,7 +190,7 @@ public class McpToolTriggerBindingTests
         Assert.True(result.RootElement.TryGetProperty("properties", out var propertiesElement));
         Assert.True(propertiesElement.TryGetProperty("name", out var nameProperty));
         Assert.Equal("string", nameProperty.GetProperty("type").GetString());
-        
+
         // Clean up
         result.Dispose();
     }
@@ -203,7 +205,7 @@ public class McpToolTriggerBindingTests
                 "properties": {
                     "name": "string" // Missing closing brace and invalid structure
             """;
-        
+
         var attribute = new McpToolTriggerAttribute("TestTool", "Test Description")
         {
             InputSchema = invalidJson
@@ -228,7 +230,7 @@ public class McpToolTriggerBindingTests
                 }
             }
             """;
-        
+
         var attribute = new McpToolTriggerAttribute("TestTool", "Test Description")
         {
             InputSchema = malformedJson
@@ -296,7 +298,7 @@ public class McpToolTriggerBindingTests
                 }
             ]
             """;
-        
+
         var attribute = new McpToolTriggerAttribute("TestTool", "Test Description")
         {
             InputSchema = arraySchema
@@ -312,7 +314,7 @@ public class McpToolTriggerBindingTests
     {
         // Arrange - String schema is valid JSON but not a valid MCP tool schema
         var stringSchema = "\"simple string\"";
-        
+
         var attribute = new McpToolTriggerAttribute("TestTool", "Test Description")
         {
             InputSchema = stringSchema
@@ -370,7 +372,7 @@ public class McpToolTriggerBindingTests
                 "required": ["user", "action"]
             }
             """;
-        
+
         var attribute = new McpToolTriggerAttribute("TestTool", "Test Description")
         {
             InputSchema = complexSchema
@@ -382,18 +384,18 @@ public class McpToolTriggerBindingTests
         // Assert
         Assert.NotNull(result);
         Assert.Equal("object", result.RootElement.GetProperty("type").GetString());
-        
+
         // Verify nested structure
         var propertiesElement = result.RootElement.GetProperty("properties");
         Assert.True(propertiesElement.TryGetProperty("user", out var userProperty));
         Assert.Equal("object", userProperty.GetProperty("type").GetString());
-        
+
         var userPropertiesElement = userProperty.GetProperty("properties");
         Assert.True(userPropertiesElement.TryGetProperty("name", out var nameProperty));
         Assert.Equal("string", nameProperty.GetProperty("type").GetString());
         Assert.Equal(1, nameProperty.GetProperty("minLength").GetInt32());
         Assert.Equal(100, nameProperty.GetProperty("maxLength").GetInt32());
-        
+
         // Verify array enum
         Assert.True(propertiesElement.TryGetProperty("action", out var actionProperty));
         Assert.Equal("string", actionProperty.GetProperty("type").GetString());
@@ -402,7 +404,7 @@ public class McpToolTriggerBindingTests
         Assert.Contains(enumValues, e => e.GetString() == "create");
         Assert.Contains(enumValues, e => e.GetString() == "update");
         Assert.Contains(enumValues, e => e.GetString() == "delete");
-        
+
         // Clean up
         result.Dispose();
     }
@@ -421,7 +423,7 @@ public class McpToolTriggerBindingTests
                 },
             }
             """;
-        
+
         var attribute = new McpToolTriggerAttribute("TestTool", "Test Description")
         {
             InputSchema = invalidJson
@@ -448,7 +450,7 @@ public class McpToolTriggerBindingTests
                 }
             }
             """;
-        
+
         var attribute = new McpToolTriggerAttribute("TestTool", "Test Description")
         {
             InputSchema = jsonWithComments
@@ -472,7 +474,7 @@ public class McpToolTriggerBindingTests
                     }
                 }
             """; // Missing closing brace
-        
+
         var attribute = new McpToolTriggerAttribute("TestTool", "Test Description")
         {
             InputSchema = unbalancedJson
@@ -498,7 +500,7 @@ public class McpToolTriggerBindingTests
                 }
             }
             """;
-        
+
         var attribute = new McpToolTriggerAttribute("TestTool", "Test Description")
         {
             InputSchema = schemaWithEscapedChars
@@ -516,7 +518,7 @@ public class McpToolTriggerBindingTests
         Assert.Contains("\\", description);
         Assert.Contains("\n", description);
         Assert.Contains("\t", description);
-        
+
         // Clean up
         result.Dispose();
     }
@@ -535,7 +537,7 @@ public class McpToolTriggerBindingTests
                 }
             }
             """;
-        
+
         var attribute = new McpToolTriggerAttribute("TestTool", "Test Description")
         {
             InputSchema = invalidTypeSchema
@@ -560,7 +562,7 @@ public class McpToolTriggerBindingTests
                 "required": ["name"]
             }
             """;
-        
+
         var attribute = new McpToolTriggerAttribute("TestTool", "Test Description")
         {
             InputSchema = missingTypeSchema
@@ -584,7 +586,7 @@ public class McpToolTriggerBindingTests
                 "required": ["name"]
             }
             """;
-        
+
         var attribute = new McpToolTriggerAttribute("TestTool", "Test Description")
         {
             InputSchema = invalidPropertiesSchema
@@ -610,7 +612,7 @@ public class McpToolTriggerBindingTests
                 "required": {"name": true}
             }
             """;
-        
+
         var attribute = new McpToolTriggerAttribute("TestTool", "Test Description")
         {
             InputSchema = invalidRequiredSchema
@@ -630,7 +632,7 @@ public class McpToolTriggerBindingTests
                 "type": "object"
             }
             """;
-        
+
         var attribute = new McpToolTriggerAttribute("TestTool", "Test Description")
         {
             InputSchema = minimalSchema
@@ -644,7 +646,7 @@ public class McpToolTriggerBindingTests
         Assert.Equal("object", result.RootElement.GetProperty("type").GetString());
         Assert.False(result.RootElement.TryGetProperty("properties", out _));
         Assert.False(result.RootElement.TryGetProperty("required", out _));
-        
+
         // Clean up
         result.Dispose();
     }
@@ -660,7 +662,7 @@ public class McpToolTriggerBindingTests
                 "required": []
             }
             """;
-        
+
         var attribute = new McpToolTriggerAttribute("TestTool", "Test Description")
         {
             InputSchema = emptyPropertiesSchema
@@ -678,7 +680,7 @@ public class McpToolTriggerBindingTests
         Assert.True(result.RootElement.TryGetProperty("required", out var required));
         Assert.Equal(JsonValueKind.Array, required.ValueKind);
         Assert.Empty(required.EnumerateArray());
-        
+
         // Clean up
         result.Dispose();
     }

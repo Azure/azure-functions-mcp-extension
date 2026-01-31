@@ -5,6 +5,7 @@ using System.Reflection;
 using System.Text.Json;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Azure.Functions.Extensions.Mcp.Abstractions;
+using Microsoft.Azure.Functions.Extensions.Mcp.Diagnostics;
 using Microsoft.Azure.Functions.Extensions.Mcp.Serialization;
 using Microsoft.Azure.WebJobs.Host.Bindings;
 using Microsoft.Azure.WebJobs.Host.Executors;
@@ -35,8 +36,9 @@ public class McpResourceTriggerBindingTests
             Description = "Test resource",
             MimeType = "text/plain"
         };
+        var metrics = new McpMetrics();
 
-        var binding = new McpResourceTriggerBinding(parameter, resourceRegistry.Object, attribute, NullLoggerFactory.Instance);
+        var binding = new McpResourceTriggerBinding(parameter, resourceRegistry.Object, attribute, metrics, NullLoggerFactory.Instance);
 
         return (binding, parameter);
     }
@@ -210,7 +212,8 @@ public class McpResourceTriggerBindingTests
         var method = typeof(McpResourceTriggerBindingTests).GetMethod(nameof(DummyMethod), BindingFlags.NonPublic | BindingFlags.Static)!;
         var parameter = method.GetParameters()[0];
 
-        var binding = new McpResourceTriggerBinding(parameter, resourceRegistry.Object, attribute, NullLoggerFactory.Instance);
+        var metrics = new McpMetrics();
+        var binding = new McpResourceTriggerBinding(parameter, resourceRegistry.Object, attribute, metrics, NullLoggerFactory.Instance);
 
         var listener = await binding.CreateListenerAsync(listenerFactoryContext);
 
@@ -266,7 +269,8 @@ public class McpResourceTriggerBindingTests
         var method = typeof(McpResourceTriggerBindingTests).GetMethod(nameof(DummyMethodWithMetadata), BindingFlags.NonPublic | BindingFlags.Static)!;
         var parameter = method.GetParameters()[0];
 
-        var binding = new McpResourceTriggerBinding(parameter, resourceRegistry.Object, attribute, NullLoggerFactory.Instance);
+        var metrics = new McpMetrics();
+        var binding = new McpResourceTriggerBinding(parameter, resourceRegistry.Object, attribute, metrics, NullLoggerFactory.Instance);
 
         var listener = await binding.CreateListenerAsync(listenerFactoryContext);
 
@@ -296,7 +300,8 @@ public class McpResourceTriggerBindingTests
         var method = typeof(McpResourceTriggerBindingTests).GetMethod(nameof(DummyMethodWithoutMetadata), BindingFlags.NonPublic | BindingFlags.Static)!;
         var parameter = method.GetParameters()[0];
 
-        var binding = new McpResourceTriggerBinding(parameter, resourceRegistry.Object, attribute, NullLoggerFactory.Instance);
+        var metrics = new McpMetrics();
+        var binding = new McpResourceTriggerBinding(parameter, resourceRegistry.Object, attribute, metrics, NullLoggerFactory.Instance);
 
         var listener = await binding.CreateListenerAsync(listenerFactoryContext);
 
@@ -325,7 +330,8 @@ public class McpResourceTriggerBindingTests
         var method = typeof(McpResourceTriggerBindingTests).GetMethod(nameof(DummyMethodWithoutMetadata), BindingFlags.NonPublic | BindingFlags.Static)!;
         var parameter = method.GetParameters()[0];
 
-        var binding = new McpResourceTriggerBinding(parameter, resourceRegistry.Object, attribute, NullLoggerFactory.Instance);
+        var metrics = new McpMetrics();
+        var binding = new McpResourceTriggerBinding(parameter, resourceRegistry.Object, attribute, metrics, NullLoggerFactory.Instance);
 
         var listener = await binding.CreateListenerAsync(listenerFactoryContext);
 
