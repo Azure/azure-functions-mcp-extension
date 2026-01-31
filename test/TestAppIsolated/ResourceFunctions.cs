@@ -53,4 +53,61 @@ public class ResourceFunctions
         var filePath = Path.Combine(AppContext.BaseDirectory, "assets", "logo.png");
         return File.ReadAllBytes(filePath);
     }
+
+    [Function(nameof(GetResourceUsingFileAbstraction))]
+    public FileResourceContents GetResourceUsingFileAbstraction(
+        [McpResourceTrigger(
+            "file://welcome.html",
+            "welcome",
+            Description = "Welcome page using FileResourceContents abstraction",
+            MimeType = "text/html")] ResourceInvocationContext context)
+    {
+        _logger.LogInformation("Reading resource using FileResourceContents abstraction");
+        var filePath = Path.Combine(AppContext.BaseDirectory, "assets", "welcome.html");
+        
+        return new FileResourceContents
+        {
+            Path = filePath
+        };
+    }
+
+    [Function(nameof(GetBinaryResourceUsingFileAbstraction))]
+    public FileResourceContents GetBinaryResourceUsingFileAbstraction(
+        [McpResourceTrigger(
+            "file://banner.png",
+            "banner",
+            Description = "Banner image using FileResourceContents abstraction",
+            MimeType = "image/png")] ResourceInvocationContext context)
+    {
+        _logger.LogInformation("Reading binary resource using FileResourceContents abstraction");
+        var filePath = Path.Combine(AppContext.BaseDirectory, "assets", "banner.png");
+        
+        return new FileResourceContents
+        {
+            Path = filePath
+        };
+    }
+
+    [Function(nameof(GetResourceWithMetadata))]
+    public FileResourceContents GetResourceWithMetadata(
+        [McpResourceTrigger(
+            "file://config.json",
+            "config",
+            Description = "Configuration file with metadata",
+            MimeType = "application/json")] ResourceInvocationContext context)
+    {
+        _logger.LogInformation("Reading resource with custom metadata");
+        var filePath = Path.Combine(AppContext.BaseDirectory, "assets", "config.json");
+        
+        return new FileResourceContents
+        {
+            Path = filePath,
+            Meta = new System.Text.Json.Nodes.JsonObject
+            {
+                ["version"] = "1.0",
+                ["lastModified"] = DateTime.UtcNow.ToString("O"),
+                ["environment"] = "development"
+            }
+        };
+    }
 }

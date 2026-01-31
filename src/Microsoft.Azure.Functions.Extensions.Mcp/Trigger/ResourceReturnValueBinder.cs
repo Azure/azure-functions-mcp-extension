@@ -123,6 +123,53 @@ internal sealed class ResourceReturnValueBinder(
 
     private ResourceContents DeserializeToResourceContents(McpResourceResult result)
     {
+        // First, check if this might be a FileResourceContents by checking for the Path property
+        try
+        {
+            using var jsonDoc = JsonDocument.Parse(result.Content);
+            var root = jsonDoc.RootElement;
+            
+            // Only try to extract properties if this is an object
+            if (root.ValueKind == JsonValueKind.Object)
+            {
+                if (root.TryGetProperty("path", out var pathProperty) || 
+                    root.TryGetProperty("Path", out pathProperty))
+                {
+                    // This is likely a FileResourceContents, extract properties and convert
+                    var path = pathProperty.GetString();
+                    if (!string.IsNullOrEmpty(path))
+                    {
+                        var fileContents = new FileResourceContents
+                        {
+                            Path = path
+                        };
+
+                        // Extract optional properties
+                        if (root.TryGetProperty("uri", out var uriProp) || root.TryGetProperty("Uri", out uriProp))
+                        {
+                            fileContents.Uri = uriProp.GetString();
+                        }
+
+                        if (root.TryGetProperty("mimeType", out var mimeProp) || root.TryGetProperty("MimeType", out mimeProp))
+                        {
+                            fileContents.MimeType = mimeProp.GetString();
+                        }
+
+                        if (root.TryGetProperty("meta", out var metaProp) || root.TryGetProperty("Meta", out metaProp))
+                        {
+                            fileContents.Meta = JsonSerializer.Deserialize<System.Text.Json.Nodes.JsonObject>(metaProp.GetRawText());
+                        }
+
+                        return ConvertFileResourceContents(fileContents);
+                    }
+                }
+            }
+        }
+        catch (JsonException)
+        {
+            // Not a FileResourceContents, continue to try as ResourceContents
+        }
+
         ResourceContents resourceContents = JsonSerializer.Deserialize<ResourceContents>(result.Content, McpJsonUtilities.DefaultOptions)
             ?? throw new InvalidOperationException($"Failed to deserialize resource content.");
 

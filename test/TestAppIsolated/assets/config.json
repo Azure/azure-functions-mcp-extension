@@ -1,0 +1,8 @@
+{
+  "appName": "Azure Functions MCP Test",
+  "version": "1.0.0",
+  "features": {
+    "fileResourceContents": true,
+    "binarySupport": true
+  }
+}
