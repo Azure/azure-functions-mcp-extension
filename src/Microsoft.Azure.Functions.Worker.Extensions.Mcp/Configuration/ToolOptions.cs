@@ -36,7 +36,23 @@ public class ToolOptions
     }
 
     /// <summary>
+    /// Adds a metadata entry with the specified key and value.
+    /// </summary>
+    /// <param name="key">The key for the metadata entry. Cannot be null or empty.</param>
+    /// <param name="value">The value for the metadata entry.</param>
+    public void AddMetadata(string key, object? value)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(key, nameof(key));
+        Metadata[key] = value;
+    }
+
+    /// <summary>
     /// Gets or sets the collection of properties that define the characteristics or configuration of the tool.
     /// </summary>
     public required List<ToolProperty> Properties { get; set; } = [];
+
+    /// <summary>
+    /// Gets or sets the metadata associated with the tool.
+    /// </summary>
+    public Dictionary<string, object?> Metadata { get; set; } = [];
 }

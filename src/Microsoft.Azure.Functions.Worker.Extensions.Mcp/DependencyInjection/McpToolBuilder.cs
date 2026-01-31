@@ -41,4 +41,19 @@ public sealed class McpToolBuilder(IFunctionsWorkerApplicationBuilder builder, s
 
         return this;
     }
+
+    /// <summary>
+    /// Adds a metadata entry to the tool configuration.
+    /// </summary>
+    /// <param name="key">The key for the metadata entry. Cannot be null or empty.</param>
+    /// <param name="value">The value for the metadata entry.</param>
+    /// <returns>The current <see cref="McpToolBuilder"/> instance, enabling fluent configuration.</returns>
+    public McpToolBuilder WithMeta(string key, object? value)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(key, nameof(key));
+
+        builder.Services.Configure<ToolOptions>(toolName, o => o.AddMetadata(key, value));
+
+        return this;
+    }
 }

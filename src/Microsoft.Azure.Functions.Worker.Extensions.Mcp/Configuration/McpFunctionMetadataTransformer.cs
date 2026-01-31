@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 using System.Diagnostics.CodeAnalysis;
+using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.Azure.Functions.Worker.Core.FunctionMetadata;
 using Microsoft.Extensions.Options;
@@ -9,7 +10,9 @@ using static Microsoft.Azure.Functions.Worker.Extensions.Mcp.Constants;
 
 namespace Microsoft.Azure.Functions.Worker.Extensions.Mcp.Configuration;
 
-public sealed class McpFunctionMetadataTransformer(IOptionsMonitor<ToolOptions> toolOptionsMonitor)
+public sealed class McpFunctionMetadataTransformer(
+    IOptionsMonitor<ToolOptions> toolOptionsMonitor,
+    IOptionsMonitor<ResourceOptions> resourceOptionsMonitor)
     : IFunctionMetadataTransformer
 {
     public string Name => nameof(McpFunctionMetadataTransformer);
@@ -42,10 +45,16 @@ public sealed class McpFunctionMetadataTransformer(IOptionsMonitor<ToolOptions> 
                 switch (bindingType)
                 {
                     case McpToolTriggerBindingType:
-                        if (jsonObject.TryGetPropertyValue("toolName", out var toolNameNode)
-                            && GetToolProperties(toolNameNode?.ToString(), function, out toolProperties))
+                        if (jsonObject.TryGetPropertyValue("toolName", out var toolNameNode))
                         {
-                            jsonObject["toolProperties"] = ToolPropertyParser.GetPropertiesJson(toolProperties);
+                            var toolName = toolNameNode?.ToString();
+
+                            if (GetToolProperties(toolName, function, out toolProperties))
+                            {
+                                jsonObject["toolProperties"] = ToolPropertyParser.GetPropertiesJson(toolProperties);
+                            }
+
+                            ApplyMetadata(toolName, jsonObject, toolOptionsMonitor, o => o.Metadata);
                         }
 
                         if (MetadataParser.TryGetToolMetadata(function, out var toolMetadataJson))
@@ -57,11 +66,17 @@ public sealed class McpFunctionMetadataTransformer(IOptionsMonitor<ToolOptions> 
                         break;
 
                     case McpResourceTriggerBindingType:
+                        if (jsonObject.TryGetPropertyValue("resourceName", out var resourceNameNode))
+                        {
+                            ApplyMetadata(resourceNameNode?.ToString(), jsonObject, resourceOptionsMonitor, o => o.Metadata);
+                        }
+
                         if (MetadataParser.TryGetResourceMetadata(function, out var resourceMetadataJson))
                         {
                             jsonObject["metadata"] = resourceMetadataJson;
-                            function.RawBindings[i] = jsonObject.ToJsonString();
                         }
+
+                        function.RawBindings[i] = jsonObject.ToJsonString();
                         break;
 
                     case McpToolPropertyBindingType:
@@ -118,6 +133,23 @@ public sealed class McpFunctionMetadataTransformer(IOptionsMonitor<ToolOptions> 
         }
 
         return ToolPropertyParser.TryGetPropertiesFromAttributes(functionMetadata, out toolProperties);
+    }
+
+    private void ApplyMetadata<TOptions>(string? name, JsonObject jsonObject, IOptionsMonitor<TOptions> optionsMonitor, Func<TOptions, Dictionary<string, object?>> metadataSelector)
+        where TOptions : class
+    {
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            return;
+        }
+
+        var options = optionsMonitor.Get(name);
+        var metadata = metadataSelector(options);
+
+        if (metadata.Count > 0)
+        {
+            jsonObject["metadata"] = JsonSerializer.Serialize(metadata);
+        }
     }
 
     private record ToolPropertyBinding(int Index, JsonObject Binding);
