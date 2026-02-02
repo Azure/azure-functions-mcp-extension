@@ -1057,7 +1057,7 @@ public class FunctionsMcpToolResultMiddlewareTests
     // ========================
 
     [Fact]
-    public async Task ShouldCreateStructuredContent_InheritedAttribution_DerivedClass_ReturnsTrue()
+    public async Task ShouldCreateStructuredContent_InheritedAttribution_DerivedClass_ReturnsFalse()
     {
         var context = CreateMcpFunctionContext();
         var derived = new DerivedPocoInheritingAttribute { BaseProperty = "Base", DerivedProperty = "Derived" };
@@ -1072,8 +1072,7 @@ public class FunctionsMcpToolResultMiddlewareTests
         Assert.NotNull(result);
         var mcpToolResult = JsonSerializer.Deserialize(result, McpJsonContext.Default.McpToolResult);
         Assert.NotNull(mcpToolResult);
-        Assert.NotNull(mcpToolResult.StructuredContent);
-        Assert.Contains("derivedProperty", mcpToolResult.StructuredContent);
+        Assert.Null(mcpToolResult.StructuredContent);
     }
 
     // ========================
@@ -1149,7 +1148,7 @@ public class FunctionsMcpToolResultMiddlewareTests
     }
 
     [Fact]
-    public async Task ShouldCreateStructuredContent_Dictionary_ValueTypeWithAttribute_ReturnsTrue()
+    public async Task ShouldCreateStructuredContent_Dictionary_ValueTypeWithAttribute_ReturnsFalse()
     {
         var context = CreateMcpFunctionContext();
         var dictionary = new Dictionary<string, TestPocoWithAttribute>
@@ -1168,7 +1167,7 @@ public class FunctionsMcpToolResultMiddlewareTests
         Assert.NotNull(result);
         var mcpToolResult = JsonSerializer.Deserialize(result, McpJsonContext.Default.McpToolResult);
         Assert.NotNull(mcpToolResult);
-        Assert.NotNull(mcpToolResult.StructuredContent);
+        Assert.Null(mcpToolResult.StructuredContent);
     }
 
     // ========================
@@ -1427,22 +1426,156 @@ public class FunctionsMcpToolResultMiddlewareTests
         Assert.Null(mcpToolResult.StructuredContent);
     }
 
-    [Fact]
-    public async Task ShouldCreateStructuredContent_DictionaryOfPrimitives_ReturnsFalse()
-    {
-        var context = CreateMcpFunctionContext();
-        var dict = new Dictionary<string, int> { ["one"] = 1, ["two"] = 2 };
-
-        await _middleware.Invoke(context, ctx =>
+        [Fact]
+        public async Task ShouldCreateStructuredContent_DictionaryOfPrimitives_ReturnsFalse()
         {
-            SetInvocationResult(ctx, dict);
-            return Task.CompletedTask;
-        });
+            var context = CreateMcpFunctionContext();
+            var dict = new Dictionary<string, int> { ["one"] = 1, ["two"] = 2 };
 
-        var result = _currentResult as string;
-        Assert.NotNull(result);
-        var mcpToolResult = JsonSerializer.Deserialize(result, McpJsonContext.Default.McpToolResult);
-        Assert.NotNull(mcpToolResult);
-        Assert.Null(mcpToolResult.StructuredContent);
+            await _middleware.Invoke(context, ctx =>
+            {
+                SetInvocationResult(ctx, dict);
+                return Task.CompletedTask;
+            });
+
+            var result = _currentResult as string;
+            Assert.NotNull(result);
+            var mcpToolResult = JsonSerializer.Deserialize(result, McpJsonContext.Default.McpToolResult);
+            Assert.NotNull(mcpToolResult);
+            Assert.Null(mcpToolResult.StructuredContent);
+        }
+
+        [Fact]
+        public async Task Invoke_WithCallToolResultWithStructuredContentButNoTextContent_ThrowsInvalidOperationException()
+        {
+            // Arrange
+            var context = CreateMcpFunctionContext();
+            var structuredData = new { result = "success", count = 42 };
+
+            // Create a CallToolResult with StructuredContent but NO TextContentBlock
+            var callToolResult = new CallToolResult
+            {
+                Content = new List<ContentBlock>
+                {
+                    new ImageContentBlock { Data = "base64data", MimeType = "image/png" } // No text content
+                },
+                StructuredContent = System.Text.Json.Nodes.JsonNode.Parse(JsonSerializer.Serialize(structuredData))
+            };
+
+            // Act & Assert
+            var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            {
+                await _middleware.Invoke(context, ctx =>
+                {
+                    SetInvocationResult(ctx, callToolResult);
+                    return Task.CompletedTask;
+                });
+            });
+
+            Assert.Contains("TextContent", exception.Message);
+            Assert.Contains("backwards compatibility", exception.Message);
+        }
+
+        [Fact]
+        public async Task Invoke_WithCallToolResultWithStructuredContentAndTextContent_Succeeds()
+        {
+            // Arrange
+            var context = CreateMcpFunctionContext();
+            var structuredData = new { result = "success", count = 42 };
+            var structuredJson = JsonSerializer.Serialize(structuredData);
+
+            // Create a CallToolResult with BOTH StructuredContent AND TextContentBlock
+            var callToolResult = new CallToolResult
+            {
+                Content = new List<ContentBlock>
+                {
+                    new TextContentBlock { Text = structuredJson }, // Text content for backwards compatibility
+                    new ImageContentBlock { Data = "base64data", MimeType = "image/png" }
+                },
+                StructuredContent = System.Text.Json.Nodes.JsonNode.Parse(structuredJson)
+            };
+
+            // Act - should not throw
+            await _middleware.Invoke(context, ctx =>
+            {
+                SetInvocationResult(ctx, callToolResult);
+                return Task.CompletedTask;
+            });
+
+            // Assert
+            var result = _currentResult as string;
+            Assert.NotNull(result);
+
+            McpToolResult? mcpToolResult = JsonSerializer.Deserialize(result, McpJsonContext.Default.McpToolResult);
+            Assert.NotNull(mcpToolResult);
+            Assert.Equal(Constants.CallToolResultType, mcpToolResult.Type);
+
+            // Verify the CallToolResult is serialized correctly
+            var deserializedCallToolResult = JsonSerializer.Deserialize<CallToolResult>(mcpToolResult.Content!, McpJsonUtilities.DefaultOptions);
+            Assert.NotNull(deserializedCallToolResult);
+            Assert.Equal(2, deserializedCallToolResult.Content.Count);
+            Assert.NotNull(deserializedCallToolResult.StructuredContent);
+        }
+
+        [Fact]
+        public async Task Invoke_WithCallToolResultWithStructuredContentAndOnlyTextContent_Succeeds()
+        {
+            // Arrange
+            var context = CreateMcpFunctionContext();
+            var structuredData = new { message = "Hello World" };
+            var structuredJson = JsonSerializer.Serialize(structuredData);
+
+            // Create a CallToolResult with StructuredContent and only a TextContentBlock
+            var callToolResult = new CallToolResult
+            {
+                Content = new List<ContentBlock>
+                {
+                    new TextContentBlock { Text = structuredJson }
+                },
+                StructuredContent = System.Text.Json.Nodes.JsonNode.Parse(structuredJson)
+            };
+
+            // Act - should not throw
+            await _middleware.Invoke(context, ctx =>
+            {
+                SetInvocationResult(ctx, callToolResult);
+                return Task.CompletedTask;
+            });
+
+            // Assert
+            var result = _currentResult as string;
+            Assert.NotNull(result);
+
+            McpToolResult? mcpToolResult = JsonSerializer.Deserialize(result, McpJsonContext.Default.McpToolResult);
+            Assert.NotNull(mcpToolResult);
+            Assert.Equal(Constants.CallToolResultType, mcpToolResult.Type);
+        }
+
+        [Fact]
+        public async Task Invoke_WithCallToolResultWithEmptyContentAndStructuredContent_ThrowsInvalidOperationException()
+        {
+            // Arrange
+            var context = CreateMcpFunctionContext();
+            var structuredData = new { result = "empty content test" };
+
+            // Create a CallToolResult with StructuredContent but empty Content list
+            var callToolResult = new CallToolResult
+            {
+                Content = new List<ContentBlock>(), // Empty - no TextContentBlock
+                StructuredContent = System.Text.Json.Nodes.JsonNode.Parse(JsonSerializer.Serialize(structuredData))
+            };
+
+            // Act & Assert
+            var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            {
+                await _middleware.Invoke(context, ctx =>
+                {
+                    SetInvocationResult(ctx, callToolResult);
+                    return Task.CompletedTask;
+                });
+            });
+
+            Assert.Contains("TextContent", exception.Message);
+            Assert.Contains("backwards compatibility", exception.Message);
+        }
     }
-}

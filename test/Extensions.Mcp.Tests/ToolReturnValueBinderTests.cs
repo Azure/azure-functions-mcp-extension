@@ -410,37 +410,6 @@ public class ToolReturnValueBinderTests
     }
 
     [Fact]
-    public async Task SetValueAsync_WithCallToolResultAndStructuredContentButNoTextContent_ThrowsInvalidOperationException()
-    {
-        // Arrange
-        var context = CallToolExecutionContextHelper.CreateExecutionContext();
-        var binder = new ToolReturnValueBinder(context);
-
-        var structuredData = new { result = "success" };
-        var originalCallToolResult = new CallToolResult
-        {
-            Content = new List<ContentBlock>
-            {
-                new ImageContentBlock { Data = "base64", MimeType = "image/png" } // No text content
-            },
-            StructuredContent = System.Text.Json.Nodes.JsonNode.Parse(JsonSerializer.Serialize(structuredData))
-        };
-
-        var mcpToolResult = new McpToolResult
-        {
-            Type = "call_tool_result",
-            Content = JsonSerializer.Serialize(originalCallToolResult)
-        };
-        var json = JsonSerializer.Serialize(mcpToolResult);
-
-        // Act & Assert
-        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => 
-            binder.SetValueAsync(json, CancellationToken.None));
-        Assert.Contains("TextContent", exception.Message);
-        Assert.Contains("backwards compatibility", exception.Message);
-    }
-
-    [Fact]
     public async Task SetValueAsync_ThrowsInvalidOperationException_WhenTypeIsUnsupported()
     {
         var context = CallToolExecutionContextHelper.CreateExecutionContext();
