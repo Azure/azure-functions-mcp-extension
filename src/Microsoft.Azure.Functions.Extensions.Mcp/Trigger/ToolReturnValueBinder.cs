@@ -38,17 +38,6 @@ internal sealed class ToolReturnValueBinder(CallToolExecutionContext executionCo
                 var callToolResult = JsonSerializer.Deserialize<CallToolResult>(result.Content!, McpJsonUtilities.DefaultOptions)
                     ?? throw new InvalidOperationException("Failed to deserialize CallToolResult.");
 
-                // Validate if structured content exists, ensure text content exists for backwards compatibility
-                if (callToolResult.StructuredContent != null)
-                {
-                    var hasTextContent = callToolResult.Content?.Any(c => c is TextContentBlock) ?? false;
-                    if (!hasTextContent)
-                    {
-                        throw new InvalidOperationException(
-                            "CallToolResult contains StructuredContent but no TextContent block for backwards compatibility.");
-                    }
-                }
-
                 executionContext.SetResult(callToolResult);
                 return Task.CompletedTask;
             }

@@ -54,6 +54,17 @@ internal class FunctionsMcpToolResultMiddleware : IFunctionsWorkerMiddleware
         switch (functionResult)
         {
             case CallToolResult callToolResult:
+                // Validate if structured content exists, ensure text content exists for backwards compatibility
+                if (callToolResult.StructuredContent != null)
+                {
+                    var hasTextContent = callToolResult.Content?.Any(c => c is TextContentBlock) ?? false;
+                    if (!hasTextContent)
+                    {
+                        throw new InvalidOperationException(
+                            "CallToolResult contains StructuredContent but no TextContent block for backwards compatibility.");
+                    }
+                }
+
                 // Don't process CallToolResult - just serialize as-is
                 type = Constants.CallToolResultType;
                 content = JsonSerializer.Serialize(callToolResult, McpJsonUtilities.DefaultOptions);
@@ -134,12 +145,8 @@ internal class FunctionsMcpToolResultMiddleware : IFunctionsWorkerMiddleware
     ///     <description>If the type is decorated with <see cref="McpResultAttribute"/>, returns true.</description>
     ///   </item>
     ///   <item>
-    ///     <term>Inherited Attribution</term>
-    ///     <description>If the type inherits from a type with <see cref="McpResultAttribute"/>, returns true.</description>
-    ///   </item>
-    ///   <item>
     ///     <term>Collection Element Attribution</term>
-    ///     <description>If the type is a collection and any element type has <see cref="McpResultAttribute"/>, returns true.
+    ///     <description>If the type is a collection and the element type has <see cref="McpResultAttribute"/>, returns true.
     ///     Nested collections are recursively checked.</description>
     ///   </item>
     ///   <item>
@@ -158,8 +165,14 @@ internal class FunctionsMcpToolResultMiddleware : IFunctionsWorkerMiddleware
     /// <list type="bullet">
     ///   <item>Arrays: Element type is checked recursively</item>
     ///   <item>Generic collections (List, IEnumerable, etc.): First type argument is checked recursively</item>
-    ///   <item>Dictionaries: Only value type is checked (key types must be primitives/strings for JSON serialization)</item>
+    ///   <item>Dictionaries: Not supported</item>
     ///   <item>Nested collections: Recursively unwrapped until a non-collection element type is found</item>
+    /// </list>
+    /// 
+    /// <para><b>Not Supported:</b></para>
+    /// <list type="bullet">
+    ///   <item>Inherited attribution: Only direct decoration with <see cref="McpResultAttribute"/> is recognized</item>
+    ///   <item>Dictionary types: Any type implementing <c>IEnumerable&lt;KeyValuePair&lt;,&gt;&gt;</c></item>
     /// </list>
     /// </remarks>
     /// <param name="obj">The object to evaluate.</param>
@@ -172,21 +185,26 @@ internal class FunctionsMcpToolResultMiddleware : IFunctionsWorkerMiddleware
 
     private static bool HasMcpResultAttributeRecursive(Type type)
     {
-        // Check if the type itself is decorated with McpResultAttribute
+        // Check if the type itself is decorated with McpResultAttribute (no inheritance)
         if (HasMcpResultAttribute(type))
         {
             return true;
         }
 
+        // Skip dictionary types entirely
+        if (IsDictionaryType(type))
+        {
+            return false;
+        }
+
         // Check if it's a collection type
         if (typeof(IEnumerable).IsAssignableFrom(type) && type != typeof(string))
         {
-            // Get all element types (for dictionaries, this includes both key and value)
-            var elementTypes = GetElementTypes(type);
+            var elementType = GetElementType(type);
 
-            foreach (var elementType in elementTypes)
+            if (elementType != null)
             {
-                // Recursively check element types (handles nested collections)
+                // Recursively check element type (handles nested collections)
                 if (HasMcpResultAttributeRecursive(elementType))
                 {
                     return true;
@@ -199,59 +217,37 @@ internal class FunctionsMcpToolResultMiddleware : IFunctionsWorkerMiddleware
 
     private static bool HasMcpResultAttribute(Type type)
     {
-        return type.GetCustomAttributes(typeof(McpResultAttribute), inherit: true).Length > 0;
+        // Only check for direct attribution, not inherited
+        return type.GetCustomAttributes(typeof(McpResultAttribute), inherit: false).Length > 0;
     }
 
-    private static IEnumerable<Type> GetElementTypes(Type type)
+    private static bool IsDictionaryType(Type type)
+    {
+        // Check if the type implements IEnumerable<KeyValuePair<,>>
+        // All dictionary types (Dictionary<,>, IDictionary<,>, IReadOnlyDictionary<,>, etc.) implement this
+        return type.GetInterfaces()
+            .Any(i => i.IsGenericType &&
+                      i.GetGenericTypeDefinition() == typeof(IEnumerable<>) &&
+                      i.GetGenericArguments()[0].IsGenericType &&
+                      i.GetGenericArguments()[0].GetGenericTypeDefinition() == typeof(KeyValuePair<,>));
+    }
+
+    private static Type? GetElementType(Type type)
     {
         if (type.IsArray)
         {
-            var elementType = type.GetElementType();
-            if (elementType != null)
-            {
-                yield return elementType;
-            }
-            yield break;
+            return type.GetElementType();
         }
 
         if (!type.IsGenericType)
         {
-            yield break;
+            return null;
         }
 
-        var genericDefinition = type.GetGenericTypeDefinition();
         var genericArgs = type.GetGenericArguments();
 
-        // Handle Dictionary<TKey, TValue> - only check value type (keys must be serializable as property names)
-        if (genericDefinition == typeof(Dictionary<,>) ||
-            genericDefinition == typeof(IDictionary<,>) ||
-            genericDefinition == typeof(IReadOnlyDictionary<,>))
-        {
-            // Only check value type (genericArgs[1]) - key types must be primitives/strings
-            // for JSON serialization to work, so checking them for [McpResult] isn't useful
-            if (genericArgs.Length > 1)
-            {
-                yield return genericArgs[1]; // Value type only
-            }
-            yield break;
-        }
-
-        // Handle KeyValuePair<TKey, TValue> - only check value type
-        if (genericDefinition == typeof(KeyValuePair<,>))
-        {
-            // Only check value type (genericArgs[1])
-            if (genericArgs.Length > 1)
-            {
-                yield return genericArgs[1]; // Value type only
-            }
-            yield break;
-        }
-
-        // Handle other generic collections - check the first type argument
-        if (genericArgs.Length > 0)
-        {
-            yield return genericArgs[0];
-        }
+        // Handle generic collections - check the first type argument
+        return genericArgs.Length > 0 ? genericArgs[0] : null;
     }
 
     private static bool IsMcpToolInvocation(FunctionContext context)
