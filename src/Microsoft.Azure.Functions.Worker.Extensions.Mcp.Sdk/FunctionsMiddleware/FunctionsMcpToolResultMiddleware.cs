@@ -1,7 +1,6 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-using System.Collections;
 using System.Text.Json;
 using Microsoft.Azure.Functions.Worker.Extensions.Mcp.Sdk;
 using Microsoft.Azure.Functions.Worker.Middleware;
@@ -61,7 +60,8 @@ internal class FunctionsMcpToolResultMiddleware : IFunctionsWorkerMiddleware
                     if (!hasTextContent)
                     {
                         throw new InvalidOperationException(
-                            "CallToolResult contains StructuredContent but no TextContent block for backwards compatibility.");
+                            "CallToolResult contains StructuredContent but no TextContent block for backwards compatibility." +
+                            "Please ensure that the CallToolResult includes a TextContent block.");
                     }
                 }
 
@@ -112,7 +112,7 @@ internal class FunctionsMcpToolResultMiddleware : IFunctionsWorkerMiddleware
         string? structuredContent = null;
         string text;
 
-        if (ShouldCreateStructuredContent(functionResult))
+        if (functionResult.ShouldCreateStructuredContent())
         {
             // If there is a McpResultAttribute, create structured content
             text = JsonSerializer.Serialize(functionResult, McpJsonUtilities.DefaultOptions);
@@ -132,122 +132,6 @@ internal class FunctionsMcpToolResultMiddleware : IFunctionsWorkerMiddleware
             }, McpJsonUtilities.DefaultOptions);
 
         return (type, content, structuredContent);
-    }
-
-    /// <summary>
-    /// Determines whether structured content should be created for the given object.
-    /// </summary>
-    /// <remarks>
-    /// <para><b>Type Resolution Rules (evaluated in order):</b></para>
-    /// <list type="number">
-    ///   <item>
-    ///     <term>Direct Attribution</term>
-    ///     <description>If the type is decorated with <see cref="McpResultAttribute"/>, returns true.</description>
-    ///   </item>
-    ///   <item>
-    ///     <term>Collection Element Attribution</term>
-    ///     <description>If the type is a collection and the element type has <see cref="McpResultAttribute"/>, returns true.
-    ///     Nested collections are recursively checked.</description>
-    ///   </item>
-    ///   <item>
-    ///     <term>No Attribution</term>
-    ///     <description>Otherwise, returns false (text content only).</description>
-    ///   </item>
-    /// </list>
-    /// 
-    /// <para><b>Supported Types:</b></para>
-    /// <list type="bullet">
-    ///   <item><c>class</c>, <c>record class</c>, <c>struct</c>, <c>record struct</c> - Fully supported</item>
-    ///   <item><c>interface</c>, <c>enum</c> - Not supported (cannot be decorated with attributes in a meaningful way)</item>
-    /// </list>
-    /// 
-    /// <para><b>Collection Handling:</b></para>
-    /// <list type="bullet">
-    ///   <item>Arrays: Element type is checked recursively</item>
-    ///   <item>Generic collections (List, IEnumerable, etc.): First type argument is checked recursively</item>
-    ///   <item>Dictionaries: Not supported</item>
-    ///   <item>Nested collections: Recursively unwrapped until a non-collection element type is found</item>
-    /// </list>
-    /// 
-    /// <para><b>Not Supported:</b></para>
-    /// <list type="bullet">
-    ///   <item>Inherited attribution: Only direct decoration with <see cref="McpResultAttribute"/> is recognized</item>
-    ///   <item>Dictionary types: Any type implementing <c>IEnumerable&lt;KeyValuePair&lt;,&gt;&gt;</c></item>
-    /// </list>
-    /// </remarks>
-    /// <param name="obj">The object to evaluate.</param>
-    /// <returns>True if structured content should be created; otherwise, false.</returns>
-    private static bool ShouldCreateStructuredContent(object obj)
-    {
-        var type = obj.GetType();
-        return HasMcpResultAttributeRecursive(type);
-    }
-
-    private static bool HasMcpResultAttributeRecursive(Type type)
-    {
-        // Check if the type itself is decorated with McpResultAttribute (no inheritance)
-        if (HasMcpResultAttribute(type))
-        {
-            return true;
-        }
-
-        // Skip dictionary types entirely
-        if (IsDictionaryType(type))
-        {
-            return false;
-        }
-
-        // Check if it's a collection type
-        if (typeof(IEnumerable).IsAssignableFrom(type) && type != typeof(string))
-        {
-            var elementType = GetElementType(type);
-
-            if (elementType != null)
-            {
-                // Recursively check element type (handles nested collections)
-                if (HasMcpResultAttributeRecursive(elementType))
-                {
-                    return true;
-                }
-            }
-        }
-
-        return false;
-    }
-
-    private static bool HasMcpResultAttribute(Type type)
-    {
-        // Only check for direct attribution, not inherited
-        return type.GetCustomAttributes(typeof(McpResultAttribute), inherit: false).Length > 0;
-    }
-
-    private static bool IsDictionaryType(Type type)
-    {
-        // Check if the type implements IEnumerable<KeyValuePair<,>>
-        // All dictionary types (Dictionary<,>, IDictionary<,>, IReadOnlyDictionary<,>, etc.) implement this
-        return type.GetInterfaces()
-            .Any(i => i.IsGenericType &&
-                      i.GetGenericTypeDefinition() == typeof(IEnumerable<>) &&
-                      i.GetGenericArguments()[0].IsGenericType &&
-                      i.GetGenericArguments()[0].GetGenericTypeDefinition() == typeof(KeyValuePair<,>));
-    }
-
-    private static Type? GetElementType(Type type)
-    {
-        if (type.IsArray)
-        {
-            return type.GetElementType();
-        }
-
-        if (!type.IsGenericType)
-        {
-            return null;
-        }
-
-        var genericArgs = type.GetGenericArguments();
-
-        // Handle generic collections - check the first type argument
-        return genericArgs.Length > 0 ? genericArgs[0] : null;
     }
 
     private static bool IsMcpToolInvocation(FunctionContext context)

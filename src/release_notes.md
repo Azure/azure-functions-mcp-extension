@@ -6,7 +6,7 @@
 
 ### Microsoft.Azure.Functions.Extensions <version>
 
-- Added structured content support (#172)
+- Added structured content support for tools (#172)
 
 ### Microsoft.Azure.Functions.Worker.Extensions.Mcp <version>
 

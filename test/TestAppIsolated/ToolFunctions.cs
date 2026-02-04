@@ -104,13 +104,13 @@ public class TestFunction
     }
 
     [Function(nameof(GetSnippet))]
-    public object GetSnippet(
+    public Snippet? GetSnippet(
         [McpToolTrigger(GetSnippetToolName, GetSnippetToolDescription)] ToolInvocationContext context,
         [McpToolProperty(SnippetNamePropertyName, SnippetNamePropertyDescription, true)] string name)
     {
-        return SnippetsCache.Snippets.TryGetValue(name, out var snippet)
-            ? snippet
-            : string.Empty;
+        return SnippetsCache.Snippets.TryGetValue(name, out var content)
+            ? new Snippet { Name = name, Content = content }
+            : null;
     }
 
     [Function(nameof(SaveSnippet))]
@@ -162,32 +162,12 @@ public class TestFunction
         };
     }
 
-    [Function(nameof(GetUserInfo))]
-    public UserInfo GetUserInfo(
-        [McpToolTrigger("GetUserInfo", "Returns user information as POCO")] ToolInvocationContext context,
-        [McpToolProperty(nameof(userId), "The unique identifier of the user")] string userId,
-        [McpToolProperty(nameof(includeName), "Whether to include the user's name", false)] bool includeName = true,
-        [McpToolProperty(nameof(includeHobbies), "Whether to include the user's hobbies", false)] bool includeHobbies = true)
-    {
-        // Simulate fetching user data based on userId
-        return new UserInfo
-        {
-            UserId = userId,
-            Name = includeName ? "Alice" : null,
-            Age = 30,
-            Hobbies = includeHobbies ? new List<string> { "reading", "coding", "gaming" } : null
-        };
-    }
-
+    /// <summary>
+    /// Snippet class decorated with McpResult to enable structured content output.
+    /// When returned from a tool function, this will be serialized as both text content
+    /// (for backwards compatibility) and structured content (for clients that support it).
+    /// </summary>
     [McpResult]
-    public class UserInfo
-    {
-        public required string UserId { get; set; }
-        public string? Name { get; set; }
-        public int Age { get; set; }
-        public List<string>? Hobbies { get; set; }
-    }
-
     public class Snippet
     {
         [Description("The name of the snippet")]
