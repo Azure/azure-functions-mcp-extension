@@ -20,7 +20,7 @@ public class ListToolTests(DefaultProjectFixture fixture, ITestOutputHelper test
         var client = await Fixture.CreateClientAsync(mode);
         var tools = await client.ListToolsAsync(cancellationToken: TestContext.Current.CancellationToken);
 
-        Assert.Equal(12, tools.Count);
+        Assert.Equal(11, tools.Count);
     }
 
     [Theory]
@@ -57,7 +57,6 @@ public class ListToolTests(DefaultProjectFixture fixture, ITestOutputHelper test
         Assert.Contains(tools, tool => tool.Name == "getsnippets");
         Assert.Contains(tools, tool => tool.Name == "savesnippet");
         Assert.Contains(tools, tool => tool.Name == "searchsnippets");
-        Assert.Contains(tools, tool => tool.Name == "GetUserInfo");
         Assert.Contains(tools, tool => tool.Name == "GetImageWithMetadata");
     }
 
