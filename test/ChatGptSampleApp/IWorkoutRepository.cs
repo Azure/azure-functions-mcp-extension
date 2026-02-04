@@ -24,7 +24,7 @@ public interface IWorkoutRepository
     ExercisePerformance? GetLastPerformance(string exerciseName);
 
     // Completed Workouts
-    void SaveWorkout(WorkoutSession workout);
+    Task SaveWorkoutAsync(WorkoutSession workout);
     List<WorkoutSession> GetWorkouts(int days, string? typeFilter = null);
     List<WorkoutSession> SearchWorkouts(string query);
 

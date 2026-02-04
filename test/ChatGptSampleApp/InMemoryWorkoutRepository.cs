@@ -280,9 +280,10 @@ public class InMemoryWorkoutRepository : IWorkoutRepository
     }
 
     // Completed Workouts
-    public void SaveWorkout(WorkoutSession workout)
+    public Task SaveWorkoutAsync(WorkoutSession workout)
     {
         _workouts.Add(workout);
+        return Task.CompletedTask;
     }
 
     public List<WorkoutSession> GetWorkouts(int days, string? typeFilter = null)

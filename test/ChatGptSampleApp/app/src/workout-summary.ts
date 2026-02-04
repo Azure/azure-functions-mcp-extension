@@ -163,64 +163,28 @@ function renderSummary(data: CompleteWorkoutResponse): void {
   const container = el("summary-container");
   if (!container) return;
 
-  const date = get<string>(data, "Date", "date");
   const duration = get<number>(data, "DurationMinutes", "durationMinutes") || 0;
-  const totalExercises = get<number>(data, "TotalExercises", "totalExercises") || 0;
   const totalSets = get<number>(data, "TotalSets", "totalSets") || 0;
-  const totalVolume = get<number>(data, "TotalVolume", "totalVolume") || 0;
-  const newPRs = get<string[]>(data, "NewPRs", "newPRs") || [];
-  const summary = get<WorkoutSummaryData>(data, "Summary", "summary");
-  const muscleGroups = summary ? (get<string>(summary, "MuscleGroups", "muscleGroups") || "") : "";
-
-  // Update header
-  const dateEl = el("workout-date");
-  if (dateEl) dateEl.textContent = formatDate(date);
 
   container.innerHTML = `
-    <!-- Main Stats Grid -->
-    <div class="stats-grid">
-      <div class="stat-card">
-        <div class="stat-icon">⏱️</div>
-        <div class="stat-value">${formatDuration(duration)}</div>
-        <div class="stat-label">Duration</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-icon">🏋️</div>
-        <div class="stat-value">${totalExercises}</div>
-        <div class="stat-label">Exercises</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-icon">📊</div>
-        <div class="stat-value">${totalSets}</div>
-        <div class="stat-label">Total Sets</div>
-      </div>
-      <div class="stat-card highlight">
-        <div class="stat-icon">💪</div>
-        <div class="stat-value">${formatVolume(totalVolume)}</div>
-        <div class="stat-label">Volume Lifted</div>
-      </div>
-    </div>
-
-    ${muscleGroups ? `
-      <div class="muscle-groups">
-        <h3>💪 Muscle Groups Trained</h3>
-        <div class="muscle-tags">
-          ${muscleGroups.split(", ").map(mg => `<span class="muscle-tag">${mg}</span>`).join("")}
+    <div class="completion-screen">
+      <div class="completion-header">
+        <div class="completion-icon">🎉</div>
+        <div class="completion-info">
+          <h2>Workout Complete!</h2>
+          <p class="completion-subtitle">Great job!</p>
         </div>
       </div>
-    ` : ""}
-
-    ${newPRs.length > 0 ? `
-      <div class="prs-section">
-        <h3>🏆 New Personal Records!</h3>
-        <div class="pr-list">
-          ${newPRs.map(pr => `<div class="pr-item">🎯 ${pr}</div>`).join("")}
+      <div class="completion-stats">
+        <div class="stat-box">
+          <div class="value">${totalSets}</div>
+          <div class="label">Sets</div>
+        </div>
+        <div class="stat-box">
+          <div class="value">${duration}</div>
+          <div class="label">Minutes</div>
         </div>
       </div>
-    ` : ""}
-
-    <div class="motivational-message">
-      <p>${getMotivationalMessage(totalSets, totalVolume)}</p>
     </div>
   `;
 

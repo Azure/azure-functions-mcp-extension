@@ -27,19 +27,33 @@ public class AzureTableWorkoutRepository : IWorkoutRepository
 
         // Create tables if they don't exist
         _workoutsTable = serviceClient.GetTableClient("workouts");
-        _workoutsTable.CreateIfNotExists();
-
         _templatesTable = serviceClient.GetTableClient("templates");
-        _templatesTable.CreateIfNotExists();
-
         _activeSessionTable = serviceClient.GetTableClient("activesessions");
-        _activeSessionTable.CreateIfNotExists();
-
         _profileTable = serviceClient.GetTableClient("profiles");
-        _profileTable.CreateIfNotExists();
+
+        _workoutsTable.CreateIfNotExists(); // Create once during initialization
+
+        // Ensure all tables are created before any operations
+        EnsureTablesCreated();
 
         // Initialize default templates
         InitializeDefaultTemplates();
+    }
+
+    private void EnsureTablesCreated()
+    {
+        try
+        {
+            _workoutsTable.CreateIfNotExists();
+            _templatesTable.CreateIfNotExists();
+            _activeSessionTable.CreateIfNotExists();
+            _profileTable.CreateIfNotExists();
+        }
+        catch (RequestFailedException ex)
+        {
+            Console.WriteLine($"Failed to create tables: {ex.Message}");
+            throw;
+        }
     }
 
     #region Template Management
@@ -145,18 +159,27 @@ public class AzureTableWorkoutRepository : IWorkoutRepository
 
     #region Workout History
 
-    public void SaveWorkout(WorkoutSession workout)
+    public async Task SaveWorkoutAsync(WorkoutSession workout)
     {
-        // Ensure table exists before trying to save
-        _workoutsTable.CreateIfNotExists();
+        try
+        {
+            await _workoutsTable.CreateIfNotExistsAsync();
+            // Use reverse timestamp for RowKey to get most recent first
+            var reverseTimestamp = DateTime.MaxValue.Ticks - workout.Date.Ticks;
+            var rowKey = $"{reverseTimestamp:D19}_{workout.Id}";
 
-        // Use reverse timestamp for RowKey to get most recent first
-        var reverseTimestamp = DateTime.MaxValue.Ticks - workout.Date.Ticks;
-        var rowKey = $"{reverseTimestamp:D19}_{workout.Id}";
+            var entity = new TableEntity(_userId, rowKey);
+            SerializeToEntity(workout, entity);
 
-        var entity = new TableEntity(_userId, rowKey);
-        SerializeToEntity(workout, entity);
-        _workoutsTable.UpsertEntity(entity);
+            Console.WriteLine($"Saving workout: PartitionKey={_userId}, RowKey={rowKey}");
+            await _workoutsTable.UpsertEntityAsync(entity);
+            Console.WriteLine("Workout saved successfully");
+        }
+        catch (RequestFailedException ex)
+        {
+            Console.WriteLine($"Failed to save workout: Status={ex.Status}, ErrorCode={ex.ErrorCode}, Message={ex.Message}");
+            throw;
+        }
     }
 
     public List<WorkoutSession> GetWorkouts(int days, string? typeFilter = null)
@@ -170,7 +193,6 @@ public class AzureTableWorkoutRepository : IWorkoutRepository
 
         try
         {
-            _workoutsTable.CreateIfNotExists();
             var query = _workoutsTable.Query<TableEntity>(filter: filter);
 
             foreach (var entity in query)

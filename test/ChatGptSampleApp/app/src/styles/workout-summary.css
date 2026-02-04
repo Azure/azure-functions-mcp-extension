@@ -11,17 +11,15 @@
   --warning: #ff9800;
   --danger: #f44336;
   --border: #e0e0e0;
-  --gradient-start: #667eea;
-  --gradient-end: #5a6fd6;
 }
 
 [data-theme="dark"] {
-  --bg-primary: #1a1a2e;
-  --bg-secondary: #252542;
-  --bg-card: #2d2d4a;
-  --text-primary: #ffffff;
-  --text-secondary: #a0a0b8;
-  --border: #3d3d5c;
+  --bg-primary: #f0f2f5;
+  --bg-secondary: #ffffff;
+  --bg-card: #ffffff;
+  --text-primary: #1a1a2e;
+  --text-secondary: #666680;
+  --border: #e0e0e0;
 }
 
 /* ============= BASE STYLES ============= */
@@ -31,17 +29,43 @@
   box-sizing: border-box;
 }
 
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   background: var(--bg-primary);
   color: var(--text-primary);
-  min-height: 100vh;
 }
 
 .container {
-  max-width: 600px;
-  margin: 0 auto;
+  width: 100%;
+  height: 100%;
+  max-width: 100%;
+  margin: 0;
   padding: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#summary-view,
+#no-workout {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#summary-container {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .hidden {
@@ -72,59 +96,88 @@ body {
   to { transform: rotate(360deg); }
 }
 
-/* ============= SUMMARY HEADER ============= */
-.summary-header {
+/* ============= COMPLETION SCREEN ============= */
+.completion-screen {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 20px 24px;
+  background: var(--bg-card);
+  border-radius: 16px;
+  width: 100%;
+  max-width: 500px;
+}
+
+.completion-icon {
+  font-size: 2.5rem;
+  flex-shrink: 0;
+}
+
+.completion-info {
+  flex-shrink: 0;
+}
+
+.completion-info h2 {
+  font-size: 1.1rem;
+  margin: 0 0 4px 0;
+}
+
+.completion-subtitle {
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  margin: 0;
+}
+
+.completion-stats {
+  display: flex;
+  gap: 12px;
+  margin-left: auto;
+}
+
+.stat-box {
+  background: var(--bg-primary);
+  padding: 12px 18px;
+  border-radius: 10px;
   text-align: center;
-  padding: 32px 20px;
-  background: linear-gradient(135deg, var(--gradient-start) 0%, var(--gradient-end) 100%);
-  color: white;
-  border-radius: 20px;
-  margin-bottom: 24px;
-  box-shadow: 0 8px 24px rgba(102, 126, 234, 0.3);
+  min-width: 70px;
 }
 
-.completion-badge {
-  font-size: 3rem;
-  margin-bottom: 12px;
-  animation: bounce 1s ease-in-out;
-}
-
-@keyframes bounce {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-10px); }
-}
-
-.summary-header h1 {
-  font-size: 1.8rem;
+.stat-box .value {
+  font-size: 1.3rem;
   font-weight: 700;
-  margin-bottom: 8px;
+  color: var(--accent);
+}
+
+.stat-box .label {
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+  margin-top: 2px;
+}
+
+/* ============= EMPTY STATE ============= */
+  margin: 0;
 }
 
 .workout-date {
-  font-size: 1rem;
+  font-size: 0.75rem;
   opacity: 0.9;
 }
 
 /* ============= STATS GRID ============= */
 .stats-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
-  margin-bottom: 24px;
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+  flex-shrink: 0;
 }
 
 .stat-card {
+  flex: 1;
   background: var(--bg-card);
-  border-radius: 16px;
-  padding: 20px;
+  border-radius: 8px;
+  padding: 8px 6px;
   text-align: center;
   border: 1px solid var(--border);
-  transition: transform 0.2s, box-shadow 0.2s;
-}
-
-.stat-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 .stat-card.highlight {
@@ -134,18 +187,18 @@ body {
 }
 
 .stat-icon {
-  font-size: 1.5rem;
-  margin-bottom: 8px;
+  font-size: 0.9rem;
+  margin-bottom: 2px;
 }
 
 .stat-value {
-  font-size: 1.6rem;
+  font-size: 0.95rem;
   font-weight: 700;
-  margin-bottom: 4px;
+  margin-bottom: 1px;
 }
 
 .stat-label {
-  font-size: 0.85rem;
+  font-size: 0.6rem;
   color: var(--text-secondary);
 }
 
@@ -156,30 +209,35 @@ body {
 /* ============= MUSCLE GROUPS ============= */
 .muscle-groups {
   background: var(--bg-card);
-  border-radius: 16px;
-  padding: 20px;
-  margin-bottom: 16px;
+  border-radius: 8px;
+  padding: 8px 10px;
+  margin-bottom: 8px;
   border: 1px solid var(--border);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 .muscle-groups h3 {
-  font-size: 1rem;
-  margin-bottom: 12px;
+  font-size: 0.75rem;
   color: var(--text-primary);
+  white-space: nowrap;
+  margin: 0;
 }
 
 .muscle-tags {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 4px;
 }
 
 .muscle-tag {
   background: var(--bg-secondary);
   color: var(--accent);
-  padding: 6px 14px;
-  border-radius: 20px;
-  font-size: 0.85rem;
+  padding: 3px 8px;
+  border-radius: 10px;
+  font-size: 0.7rem;
   font-weight: 500;
   border: 1px solid var(--accent);
 }
@@ -187,57 +245,51 @@ body {
 /* ============= PRs SECTION ============= */
 .prs-section {
   background: linear-gradient(135deg, #ffd700 0%, #ffb800 100%);
-  border-radius: 16px;
-  padding: 20px;
-  margin-bottom: 16px;
+  border-radius: 8px;
+  padding: 8px 10px;
+  margin-bottom: 8px;
   color: #1a1a2e;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 .prs-section h3 {
-  font-size: 1rem;
-  margin-bottom: 12px;
+  font-size: 0.75rem;
+  white-space: nowrap;
+  margin: 0;
 }
 
 .pr-list {
   display: flex;
-  flex-direction: column;
-  gap: 8px;
+  flex-wrap: wrap;
+  gap: 4px;
 }
 
 .pr-item {
   background: rgba(255, 255, 255, 0.3);
-  padding: 10px 14px;
-  border-radius: 10px;
+  padding: 4px 8px;
+  border-radius: 6px;
   font-weight: 500;
+  font-size: 0.7rem;
 }
 
 /* ============= MOTIVATIONAL MESSAGE ============= */
 .motivational-message {
-  background: var(--bg-card);
-  border-radius: 16px;
-  padding: 20px;
-  text-align: center;
-  margin-bottom: 24px;
-  border: 1px solid var(--border);
-}
-
-.motivational-message p {
-  font-size: 1.1rem;
-  color: var(--text-primary);
-  font-weight: 500;
+  display: none;
 }
 
 /* ============= ACTIONS ============= */
 .actions {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
+  display: none;
 }
 
 .btn {
-  padding: 14px 24px;
-  border-radius: 12px;
-  font-size: 1rem;
+  flex: 1;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 0.8rem;
   font-weight: 600;
   cursor: pointer;
   border: none;
@@ -269,22 +321,28 @@ body {
 /* ============= EMPTY STATE ============= */
 .empty-state {
   text-align: center;
-  padding: 60px 20px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
 }
 
 .empty-icon {
-  font-size: 4rem;
-  margin-bottom: 20px;
+  font-size: 2.5rem;
+  margin-bottom: 12px;
   opacity: 0.8;
 }
 
 .empty-state h2 {
-  font-size: 1.4rem;
-  margin-bottom: 12px;
+  font-size: 1.1rem;
+  margin-bottom: 8px;
   color: var(--text-primary);
 }
 
 .empty-state p {
   color: var(--text-secondary);
-  margin-bottom: 24px;
+  margin-bottom: 16px;
+  font-size: 0.85rem;
 }

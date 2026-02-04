@@ -14,17 +14,8 @@ var host = new HostBuilder()
         services.AddApplicationInsightsTelemetryWorkerService();
         services.ConfigureFunctionsApplicationInsights();
 
-        // Register workout repository with Azure Table Storage
-        services.AddSingleton<IWorkoutRepository>(sp =>
-        {
-            var connectionString = Environment.GetEnvironmentVariable("AzureWebJobsStorage")
-                ?? "UseDevelopmentStorage=true";
-
-            // Placeholder user ID for demo purposes
-            var userId = "default-user";
-
-            return new AzureTableWorkoutRepository(connectionString, userId);
-        });
+        // Register in-memory workout repository (no Azurite needed)
+        services.AddSingleton<IWorkoutRepository, InMemoryWorkoutRepository>();
     })
     .Build();
 

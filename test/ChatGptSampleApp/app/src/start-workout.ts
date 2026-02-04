@@ -175,52 +175,57 @@ function get<T>(obj: any, upper: string, lower: string): T | undefined {
 
 // ============= TEMPLATE SELECTION VIEW =============
 
-function createTemplateCard(template: WorkoutTemplate, onSelect: (template: WorkoutTemplate, card: HTMLElement) => void): HTMLElement {
+// Workout type emoji mapping
+function getWorkoutEmoji(type: string): string {
+  const typeMap: Record<string, string> = {
+    'Push': '💪',
+    'Pull': '🏋️',
+    'Legs': '🦵',
+    'Upper': '💪',
+    'Lower': '🦵',
+    'Full Body': '🔥',
+    'Cardio': '🏃',
+    'HIIT': '⚡',
+    'Core': '🎯',
+  };
+  return typeMap[type] || '💪';
+}
+
+function createTemplateCard(template: WorkoutTemplate, onStart: (template: WorkoutTemplate) => void): HTMLElement {
   const card = document.createElement("div");
   card.className = "template-card";
   
   const templateId = template.Id || template.id || "";
   const templateName = template.Name || template.name || "Unknown";
   const templateType = template.Type || template.type || "";
-  const templateDesc = template.Description || template.description || "";
   const templateDuration = template.EstimatedDurationMinutes || template.estimatedDurationMinutes || 0;
   const templateExercises = template.Exercises || template.exercises || [];
   
   card.dataset.templateId = templateId;
-  card.addEventListener("click", () => onSelect(template, card));
   
   card.innerHTML = `
-    <div class="template-header">
-      <div class="template-name">${templateName}</div>
-      <div class="template-badge">${templateType}</div>
-    </div>
-    <div class="template-description">${templateDesc}</div>
-    <div class="template-stats">
-      <div class="stat"><span class="stat-icon">⏱️</span><span>${templateDuration} min</span></div>
-      <div class="stat"><span class="stat-icon">🏋️</span><span>${templateExercises.length} exercises</span></div>
-    </div>
-    <div class="exercises-preview">
-      <h4>Exercises</h4>
-      <div class="exercise-list">
-        ${templateExercises.slice(0, 6).map(ex => `<div class="exercise-tag">${ex.Name || ex.name || "Exercise"}</div>`).join('')}
+    <div class="template-image">${getWorkoutEmoji(templateType)}</div>
+    <div class="template-content">
+      <div class="template-header">
+        <div class="template-name">${templateName}</div>
       </div>
+      <div class="template-meta">${templateDuration} min · ${templateExercises.length} exercises</div>
+      <button class="card-start-button">Start Workout</button>
     </div>
   `;
+  
+  const startBtn = card.querySelector('.card-start-button');
+  startBtn?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    onStart(template);
+  });
   
   return card;
 }
 
-function handleTemplateSelect(template: WorkoutTemplate, card: HTMLElement): void {
-  document.querySelectorAll(".template-card").forEach(c => c.classList.remove("selected"));
-  card.classList.add("selected");
+async function handleTemplateStart(template: WorkoutTemplate): Promise<void> {
   selectedTemplate = template;
-  
-  const templateName = template.Name || template.name || "Workout";
-  const startBtn = el("start-btn") as HTMLButtonElement | null;
-  if (startBtn) {
-    startBtn.disabled = false;
-    startBtn.textContent = `Start ${templateName}`;
-  }
+  await startSelectedWorkout();
 }
 
 function showTemplatesView(templates: WorkoutTemplate[]): void {
@@ -232,16 +237,11 @@ function showTemplatesView(templates: WorkoutTemplate[]): void {
   
   container.innerHTML = "";
   templates.forEach(template => {
-    const card = createTemplateCard(template, handleTemplateSelect);
+    const card = createTemplateCard(template, handleTemplateStart);
     container.appendChild(card);
   });
   
   selectedTemplate = null;
-  const startBtn = el("start-btn") as HTMLButtonElement | null;
-  if (startBtn) {
-    startBtn.disabled = true;
-    startBtn.textContent = "Select a template to start";
-  }
   
   hide("loading");
   hide("workout-view");
@@ -374,32 +374,24 @@ function renderWorkoutView(): void {
     return;
   }
 
-  const templateName = get<string>(workoutData, "TemplateName", "templateName") || "Workout";
   const currentIndex = get<number>(workoutData, "CurrentExerciseIndex", "currentExerciseIndex") || 0;
   const totalExercises = get<number>(workoutData, "TotalExercises", "totalExercises") || 0;
   const totalSetsCompleted = get<number>(workoutData, "TotalSetsCompleted", "totalSetsCompleted") || 0;
   const totalSetsTarget = get<number>(workoutData, "TotalSetsTarget", "totalSetsTarget") || 1;
-  const elapsedMinutes = get<number>(workoutData, "ElapsedMinutes", "elapsedMinutes") || 0;
   const currentExercise = get<ExerciseTemplate>(workoutData, "CurrentExercise", "currentExercise");
   const previousPerformance = get<PreviousPerformance>(workoutData, "PreviousPerformance", "previousPerformance");
 
   const progress = Math.round((totalSetsCompleted / totalSetsTarget) * 100);
   const ex = currentExercise ? getExerciseData(currentExercise) : null;
 
-  container.innerHTML = `
-    <div class="workout-header">
-      <div class="workout-title">${templateName}</div>
-      <div class="workout-meta">
-        <span>Exercise ${currentIndex + 1} of ${totalExercises}</span>
-        <span>${elapsedMinutes} min</span>
-      </div>
-      <div class="progress-bar">
-        <div class="progress-fill" style="width: ${progress}%"></div>
-      </div>
-      <div class="progress-text">${totalSetsCompleted}/${totalSetsTarget} sets completed (${progress}%)</div>
-    </div>
+  // Get default weight from previous performance
+  const prevSets = previousPerformance ? (get<SetData[]>(previousPerformance, "Sets", "sets") || []) : [];
+  const defaultWeight = prevSets.length > 0 ? (get<number>(prevSets[0], "Weight", "weight") || 0) : 0;
 
-    ${ex ? renderExercisePanel(ex, previousPerformance, currentIndex, totalExercises) : ''}
+  container.innerHTML = `
+    <div class="workout-widget">
+      ${ex ? renderSimpleExercisePanel(ex, defaultWeight, currentIndex, totalExercises, progress) : ''}
+    </div>
   `;
 
   hide("loading");
@@ -410,92 +402,58 @@ function renderWorkoutView(): void {
   attachWorkoutEventListeners();
 }
 
-function renderExercisePanel(ex: ReturnType<typeof getExerciseData>, prevPerf: PreviousPerformance | undefined, currentIndex: number, totalExercises: number): string {
-  const prevSets = prevPerf ? (get<SetData[]>(prevPerf, "Sets", "sets") || []) : [];
-  const prevDate = prevPerf ? get<string>(prevPerf, "Date", "date") : null;
-  const defaultWeight = prevSets.length > 0 ? (get<number>(prevSets[0], "Weight", "weight") || 0) : 0;
-  
+function renderSimpleExercisePanel(ex: ReturnType<typeof getExerciseData>, defaultWeight: number, currentIndex: number, totalExercises: number, progress: number): string {
   const isComplete = ex.completedSets >= ex.targetSets;
   const isLastExercise = currentIndex >= totalExercises - 1;
+  // Show current set being worked on, capped at target sets
+  const displaySet = isComplete ? ex.targetSets : ex.completedSets + 1;
 
   return `
-    <div class="set-panel">
-      <div class="set-panel-header">
-        <div>
-          <div class="set-panel-title">${ex.name}</div>
-          <div class="set-panel-subtitle">${ex.muscleGroup}</div>
+    <div class="exercise-card">
+      <div class="exercise-header">
+        <div class="exercise-name">${ex.name}</div>
+        <div class="exercise-meta">${ex.muscleGroup} · Set ${displaySet}/${ex.targetSets}</div>
+        <div class="mini-progress">
+          <div class="mini-progress-fill" style="width: ${progress}%"></div>
         </div>
-        <div class="exercise-badge">Set ${ex.completedSets + 1}/${ex.targetSets}</div>
       </div>
-
-      ${ex.notes ? `<div class="exercise-notes">💡 <strong>Tip:</strong> ${ex.notes}</div>` : ''}
-
-      <div id="restTimer" class="rest-timer">
-        <div class="timer-label">⏱️ REST TIME</div>
-        <div class="timer-display" id="timerDisplay">0:00</div>
-        <button class="skip-rest-btn" id="skipRestBtn">Skip Rest →</button>
-      </div>
-
-      ${prevSets.length > 0 ? `
-        <div class="previous-performance">
-          <h4>📊 Last time${prevDate ? ` (${new Date(prevDate).toLocaleDateString()})` : ''}</h4>
-          <div class="sets">
-            ${prevSets.map((s, i) => `<span class="set">${i + 1}: ${get<number>(s, "Reps", "reps") || 0}×${get<number>(s, "Weight", "weight") || 0}lbs</span>`).join(' • ')}
-          </div>
-        </div>
-      ` : ''}
-
-      ${ex.sets.length > 0 ? `
-        <div class="completed-sets">
-          <h4>✅ Completed Sets</h4>
-          <div class="set-chips">
-            ${ex.sets.map((s, i) => {
-              const reps = get<number>(s, "Reps", "reps") || 0;
-              const weight = get<number>(s, "Weight", "weight") || 0;
-              return `<div class="set-chip">${i + 1}: ${reps}×${weight}lbs</div>`;
-            }).join('')}
-          </div>
-        </div>
-      ` : ''}
 
       ${!isComplete ? `
-        <div class="input-row">
-          <div class="input-group">
+        <div class="input-row-compact">
+          <div class="input-compact">
             <label>Reps</label>
             <input type="number" id="repsInput" value="${ex.targetReps}" min="1" max="100">
           </div>
-          <div class="input-group">
-            <label>Weight (lbs)</label>
+          <div class="input-compact">
+            <label>Weight</label>
             <input type="number" id="weightInput" value="${defaultWeight}" min="0" step="5">
           </div>
         </div>
 
-        <div class="quick-weight">
-          <button class="weight-adj" data-adj="-10">-10</button>
+        <div class="quick-btns">
           <button class="weight-adj" data-adj="-5">-5</button>
           <button class="weight-adj" data-adj="+5">+5</button>
-          <button class="weight-adj" data-adj="+10">+10</button>
         </div>
 
-        <button class="btn btn-primary" id="logSetBtn">
-          ✅ Log Set ${ex.completedSets + 1}
-        </button>
+        <button class="log-btn" id="logSetBtn">✅ Log Set</button>
       ` : `
-        <p style="text-align: center; color: var(--success); margin: 20px 0; font-weight: 600;">
-          ✅ All sets completed for this exercise!
-        </p>
+        <div class="complete-msg">✅ Done!</div>
       `}
+    </div>
 
-      <div class="action-row">
-        ${!isLastExercise ? `
-          <button class="btn btn-secondary" id="nextExerciseBtn" ${!isComplete ? 'style="opacity: 0.7"' : ''}>
-            ➡️ Next Exercise
-          </button>
-        ` : ''}
-        <button class="btn btn-danger" id="completeWorkoutBtn">
-          🏁 ${isLastExercise && isComplete ? 'Complete Workout' : 'End Workout'}
-        </button>
+    <div class="control-panel">
+      <div class="timer-panel" id="restTimer">
+        <div class="timer-label">REST</div>
+        <div class="timer-display" id="timerDisplay">0:00</div>
+        <button class="skip-btn" id="skipRestBtn">Skip</button>
       </div>
+
+      ${!isLastExercise ? `
+        <button class="control-btn next-btn" id="nextExerciseBtn">Next ➡️</button>
+      ` : ''}
+      <button class="control-btn end-btn" id="completeWorkoutBtn">
+        ${isLastExercise && isComplete ? '🏁 Finish' : '🛑 End'}
+      </button>
     </div>
   `;
 }
@@ -732,8 +690,7 @@ function startRestTimer(seconds: number): void {
   }
   
   app.sendLog({ level: "info", data: "Timer element found, showing timer" });
-  timerEl.classList.add("active");
-  timerEl.style.display = "block"; // Force display as backup
+  timerEl.classList.add("counting"); // Red state - counting down
 
   if (timerInterval) clearInterval(timerInterval);
 
@@ -744,8 +701,7 @@ function startRestTimer(seconds: number): void {
 
     if (remainingSeconds <= 0) {
       if (timerInterval) clearInterval(timerInterval);
-      timerEl.classList.remove("active");
-      timerEl.style.display = "none";
+      timerEl.classList.remove("counting"); // Green state - ready to go
       playBeep();
     }
   }, 1000);
@@ -755,10 +711,10 @@ function skipRestTimer(): void {
   if (timerInterval) clearInterval(timerInterval);
   const timerEl = el("restTimer");
   if (timerEl) {
-    timerEl.classList.remove("active");
-    timerEl.style.display = "none";
+    timerEl.classList.remove("counting"); // Green state
   }
   remainingSeconds = 0;
+  updateTimerDisplay();
 }
 
 function updateTimerDisplay(): void {
@@ -804,24 +760,24 @@ function showCompletionView(data?: any): void {
 
   container.innerHTML = `
     <div class="completion-screen">
-      <div class="completion-icon">🎉</div>
-      <h2>Workout Complete!</h2>
-      <p style="color: var(--text-secondary);">Great job finishing your workout!</p>
-      
+      <div class="completion-header">
+        <div class="completion-icon">🎉</div>
+        <div class="completion-info">
+          <h2>Workout Complete!</h2>
+          <p style="color: var(--text-secondary); font-size: 0.85rem; margin: 0;">Great job!</p>
+        </div>
+      </div>
       <div class="completion-stats">
         <div class="stat-box">
           <div class="value">${totalSets}</div>
-          <div class="label">Sets Completed</div>
+          <div class="label">Sets</div>
         </div>
         <div class="stat-box">
           <div class="value">${duration}</div>
           <div class="label">Minutes</div>
         </div>
       </div>
-      
-      <button class="btn btn-primary" id="newWorkoutBtn" style="margin-top: 24px;">
-        🏋️ Start New Workout
-      </button>
+      <button class="btn-new-workout" id="newWorkoutBtn">🏋️ New Workout</button>
     </div>
   `;
 
@@ -858,9 +814,6 @@ app.ontoolresult = (_params) => {
 app.onhostcontextchanged = (ctx) => {
   if (ctx.theme) applyTheme(ctx.theme);
 };
-
-// Set up start button
-el("start-btn")?.addEventListener("click", startSelectedWorkout);
 
 // Connect and initialize
 await app.connect();

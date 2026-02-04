@@ -334,7 +334,7 @@ public class WorkoutFunctions
     }
 
     [Function(nameof(CompleteWorkout))]
-    public CompleteWorkoutResponse CompleteWorkout(
+    public async Task<CompleteWorkoutResponse> CompleteWorkout(
         [McpToolTrigger(nameof(CompleteWorkout),
             "Complete the active workout session and save it to history. Calculates final statistics and PRs.")]
         CompleteWorkoutRequest request,
@@ -372,7 +372,7 @@ public class WorkoutFunctions
             }).ToList()
         };
 
-        _workoutRepo.SaveWorkout(workout);
+        await _workoutRepo.SaveWorkoutAsync(workout);
         _workoutRepo.ClearActiveWorkoutSession();
 
         var totalVolume = workout.Exercises.Sum(e => e.Sets.Sum(s => s.Reps * s.Weight));
