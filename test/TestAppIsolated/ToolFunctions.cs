@@ -163,7 +163,7 @@ public class TestFunction
     }
 
     /// <summary>
-    /// Snippet class decorated with McpResult to enable structured content output.
+    /// Snippet class decorated with McpContent to enable structured content output.
     /// When returned from a tool function, this will be serialized as both text content
     /// (for backwards compatibility) and structured content (for clients that support it).
     /// </summary>

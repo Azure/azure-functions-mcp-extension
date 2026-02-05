@@ -473,7 +473,7 @@ public class FunctionsMcpToolResultMiddlewareTests
     }
 
     [Fact]
-    public async Task Invoke_WithPocoWithMcpResultAttribute_CreatesStructuredContent()
+    public async Task Invoke_WithPocoWithMcpContentAttribute_CreatesStructuredContent()
     {
         // Arrange
         var context = CreateMcpFunctionContext();
@@ -958,7 +958,7 @@ public class FunctionsMcpToolResultMiddlewareTests
         public string BaseProperty { get; set; } = string.Empty;
     }
 
-    // Derived class inherits from [McpResult] base
+    // Derived class inherits from [McpContent] base
     private class DerivedPocoInheritingAttribute : BasePocoWithAttribute
     {
         public string DerivedProperty { get; set; } = string.Empty;

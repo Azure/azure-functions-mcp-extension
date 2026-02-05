@@ -61,7 +61,7 @@ internal class FunctionsMcpToolResultMiddleware : IFunctionsWorkerMiddleware
                     {
                         throw new InvalidOperationException(
                             "CallToolResult contains StructuredContent but no TextContent block for backwards compatibility." +
-                            "Please ensure that the CallToolResult includes a TextContent block.");
+                            " Please ensure that the CallToolResult includes a TextContent block.");
                     }
                 }
 
@@ -112,7 +112,7 @@ internal class FunctionsMcpToolResultMiddleware : IFunctionsWorkerMiddleware
         string? structuredContent = null;
         string text;
 
-        if (functionResult.ShouldCreateStructuredContent())
+        if (ShouldCreateStructuredContent(functionResult))
         {
             // If there is a McpContentAttribute, create structured content
             text = JsonSerializer.Serialize(functionResult, McpJsonUtilities.DefaultOptions);
@@ -139,8 +139,57 @@ internal class FunctionsMcpToolResultMiddleware : IFunctionsWorkerMiddleware
         return context.Items.ContainsKey(Constants.ToolInvocationContextKey);
     }
 
-    private static bool HasOutputBindings(FunctionContext context)
-    {
-        return context.FunctionDefinition.OutputBindings.Any();
+        private static bool HasOutputBindings(FunctionContext context)
+        {
+            return context.FunctionDefinition.OutputBindings.Any();
+        }
+
+        /// <summary>
+        /// Determines whether structured content should be created for the given object.
+        /// </summary>
+        /// <remarks>
+        /// <para><b>Type Resolution Rules (evaluated in order):</b></para>
+        /// <list type="number">
+        ///   <item>
+        ///     <term>Direct Attribution</term>
+        ///     <description>If the type is decorated with <see cref="McpContentAttribute"/>, returns true.</description>
+        ///   </item>
+        ///   <item>
+        ///     <term>Collection Element Attribution</term>
+        ///     <description>If the type is a collection and the element type has <see cref="McpContentAttribute"/>, returns true.
+        ///     Nested collections are recursively checked.</description>
+        ///   </item>
+        ///   <item>
+        ///     <term>No Attribution</term>
+        ///     <description>Otherwise, returns false (text content only).</description>
+        ///   </item>
+        /// </list>
+        /// 
+        /// <para><b>Supported Types:</b></para>
+        /// <list type="bullet">
+        ///   <item><c>class</c>, <c>record class</c>, <c>struct</c>, <c>record struct</c> - Fully supported</item>
+        ///   <item><c>interface</c>, <c>enum</c> - Not supported (cannot be decorated with attributes in a meaningful way)</item>
+        /// </list>
+        /// 
+        /// <para><b>Collection Handling:</b></para>
+        /// <list type="bullet">
+        ///   <item>Arrays: Element type is checked recursively</item>
+        ///   <item>Generic collections (List, IEnumerable, etc.): First type argument is checked recursively</item>
+        ///   <item>Dictionaries: Not supported</item>
+        ///   <item>Nested collections: Recursively unwrapped until a non-collection element type is found</item>
+        /// </list>
+        /// 
+        /// <para><b>Not Supported:</b></para>
+        /// <list type="bullet">
+        ///   <item>Inherited attribution: Only direct decoration with <see cref="McpContentAttribute"/> is recognized</item>
+        ///   <item>Dictionary types: Any type implementing <c>IEnumerable&lt;KeyValuePair&lt;,&gt;&gt;</c></item>
+        /// </list>
+        /// </remarks>
+        /// <param name="obj">The object to evaluate.</param>
+        /// <returns>True if structured content should be created; otherwise, false.</returns>
+        private static bool ShouldCreateStructuredContent(object obj)
+        {
+            var type = obj.GetType();
+            return type.HasMcpContentAttributeRecursive();
+        }
     }
-}

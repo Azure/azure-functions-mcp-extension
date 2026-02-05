@@ -21,18 +21,36 @@ public class CallToolTests(DefaultProjectFixture fixture, ITestOutputHelper test
     public async Task DefaultServer_GetSnippets_Success()
     {
         // First save a snippet
-        var saveRequest = CallToolHelper.CreateToolCallRequest(1, "savesnippet", CallToolHelper.CreateSaveSnippetArguments("default-retrieval-test", "test"));
+        var snippetName = "default-retrieval-test";
+        var snippetContent = "test content for snippet";
+        var saveRequest = CallToolHelper.CreateToolCallRequest(1, "savesnippet", CallToolHelper.CreateSaveSnippetArguments(snippetName, snippetContent));
         var saveResponse = await CallToolHelper.MakeToolCallRequest(AppRootEndpoint, saveRequest, TestOutputHelper);
         TestOutputHelper.WriteLine($"SaveSnippet response: {saveResponse}");
 
         // Then retrieve it
-        var getRequest = CallToolHelper.CreateToolCallRequest(2, "getsnippets", CallToolHelper.CreateGetSnippetArguments("default-retrieval-test"));
+        var getRequest = CallToolHelper.CreateToolCallRequest(2, "getsnippets", CallToolHelper.CreateGetSnippetArguments(snippetName));
         var response = await CallToolHelper.MakeToolCallRequest(AppRootEndpoint, getRequest, TestOutputHelper);
 
         TestOutputHelper.WriteLine($"GetSnippets response: {response}");
 
         Assert.NotNull(response);
-        Assert.Contains("test", response);
+
+        var result = CallToolResultHelper.ParseSseToCallToolResult(response, McpJsonUtilities.DefaultOptions);
+        Assert.NotNull(result);
+
+        // Verify text content is present (for backwards compatibility)
+        Assert.Single(result.Content);
+        var textBlock = Assert.IsType<TextContentBlock>(result.Content[0]);
+        Assert.Contains(snippetName, textBlock.Text);
+        Assert.Contains(snippetContent, textBlock.Text);
+
+        // Verify structured content is present (Snippet class is decorated with [McpContent])
+        Assert.NotNull(result.StructuredContent);
+        var structuredContent = result.StructuredContent.ToString();
+        Assert.Contains("name", structuredContent, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(snippetName, structuredContent);
+        Assert.Contains("content", structuredContent, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(snippetContent, structuredContent);
     }
 
     [Fact]
@@ -223,6 +241,36 @@ public class CallToolTests(DefaultProjectFixture fixture, ITestOutputHelper test
         Assert.Contains(result.Content, block => block is TextContentBlock textBlock && textBlock.Text == "Here is an image for you!");
         Assert.Contains(result.Content, block => block is ResourceLinkBlock linkBlock && linkBlock.Uri == "https://www.google.com/");
         Assert.Contains(result.Content, block => block is ImageContentBlock imageBlock && imageBlock.MimeType == "image/jpeg" && imageBlock.Data.StartsWith(data.Substring(0, 20)));
+    }
+
+    [Fact]
+    public async Task DefaultServer_GetImageWithMetadata_ReturnsStructuredContent()
+    {
+        // Test calling GetImageWithMetadata on Default server (TestAppIsolated)
+        var request = CallToolHelper.CreateToolCallRequest(11, "GetImageWithMetadata", new { });
+
+        var response = await CallToolHelper.MakeToolCallRequest(AppRootEndpoint, request, TestOutputHelper);
+
+        Assert.NotNull(response);
+        TestOutputHelper.WriteLine($"Default GetImageWithMetadata response: {response}");
+
+        var result = CallToolResultHelper.ParseSseToCallToolResult(response, McpJsonUtilities.DefaultOptions);
+        Assert.NotNull(result);
+
+        // Verify content blocks are present
+        Assert.Equal(2, result.Content.Count);
+        Assert.Contains(result.Content, block => block is TextContentBlock);
+        Assert.Contains(result.Content, block => block is ImageContentBlock imageBlock && imageBlock.MimeType == "image/png");
+
+        // Verify structured content is present and contains expected metadata
+        Assert.NotNull(result.StructuredContent);
+        var structuredContent = result.StructuredContent.ToString();
+        Assert.Contains("ImageId", structuredContent);
+        Assert.Contains("icon", structuredContent);
+        Assert.Contains("Format", structuredContent);
+        Assert.Contains("png", structuredContent);
+        Assert.Contains("Tags", structuredContent);
+        Assert.Contains("functions", structuredContent);
     }
 
     private static string GetTestDataFilePath(string fileName)
