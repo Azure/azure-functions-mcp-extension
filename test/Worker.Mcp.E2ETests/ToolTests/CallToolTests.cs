@@ -266,7 +266,7 @@ public class CallToolTests(DefaultProjectFixture fixture, ITestOutputHelper test
         Assert.NotNull(result.StructuredContent);
         var structuredContent = result.StructuredContent.ToString();
         Assert.Contains("ImageId", structuredContent);
-        Assert.Contains("icon", structuredContent);
+        Assert.Contains("logo", structuredContent);
         Assert.Contains("Format", structuredContent);
         Assert.Contains("png", structuredContent);
         Assert.Contains("Tags", structuredContent);

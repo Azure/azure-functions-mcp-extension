@@ -140,14 +140,15 @@ public class TestFunction
         // Manually construct CallToolResult with explicit content blocks and structured content
         var metadata = new
         {
-            ImageId = "icon",
+            ImageId = "logo",
             Format = "png",
             CreatedAt = DateTime.UtcNow,
             Tags = new[] { "functions" }
         };
 
         var metadataJson = JsonSerializer.Serialize(metadata);
-        byte[] imageBytes = File.ReadAllBytes("icon.png");
+        var imagePath = Path.Combine(AppContext.BaseDirectory, "assets", "logo.png");
+        byte[] imageBytes = File.ReadAllBytes(imagePath);
 
         return new CallToolResult
         {
