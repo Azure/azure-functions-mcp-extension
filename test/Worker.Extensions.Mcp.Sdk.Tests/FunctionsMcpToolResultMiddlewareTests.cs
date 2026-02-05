@@ -941,7 +941,7 @@ public class FunctionsMcpToolResultMiddlewareTests
         public string Email { get; set; } = string.Empty;
     }
 
-    [McpResult]
+    [McpContent]
     private class TestPocoWithAttribute
     {
         public string Name { get; set; } = string.Empty;
@@ -951,8 +951,8 @@ public class FunctionsMcpToolResultMiddlewareTests
 
     #region ShouldCreateStructuredContent Test Types
 
-    // Base class with [McpResult] attribute for inheritance tests
-    [McpResult]
+    // Base class with [McpContent] attribute for inheritance tests
+    [McpContent]
     private class BasePocoWithAttribute
     {
         public string BaseProperty { get; set; } = string.Empty;
@@ -964,20 +964,16 @@ public class FunctionsMcpToolResultMiddlewareTests
         public string DerivedProperty { get; set; } = string.Empty;
     }
 
-    // Record class with [McpResult] attribute
-    [McpResult]
+    // Record class with [McpContent] attribute
+    [McpContent]
     private record RecordWithAttribute(string Name, int Value);
 
     // Record class without attribute
     private record RecordWithoutAttribute(string Name, int Value);
 
-    // Record with [McpResult] attribute for use as dictionary key
-    // Note: System.Text.Json doesn't support complex types as dictionary keys by default
-    [McpResult]
-    private record RecordKeyWithAttribute(string Id);
 
-    // Struct with [McpResult] attribute (though structs are less common)
-    [McpResult]
+    // Struct with [McpContent] attribute (though structs are less common)
+    [McpContent]
     private struct StructWithAttribute
     {
         public string Data { get; set; }

@@ -167,7 +167,7 @@ public class TestFunction
     /// When returned from a tool function, this will be serialized as both text content
     /// (for backwards compatibility) and structured content (for clients that support it).
     /// </summary>
-    [McpResult]
+    [McpContent]
     public class Snippet
     {
         [Description("The name of the snippet")]

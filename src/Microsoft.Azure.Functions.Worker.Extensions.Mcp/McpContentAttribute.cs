@@ -13,6 +13,6 @@ namespace Microsoft.Azure.Functions.Worker.Extensions.Mcp;
 /// This attribute can be applied to classes, structs, and record types.
 /// </remarks>
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct, AllowMultiple = false)]
-public sealed class McpResultAttribute : Attribute
+public sealed class McpContentAttribute : Attribute
 {
 }

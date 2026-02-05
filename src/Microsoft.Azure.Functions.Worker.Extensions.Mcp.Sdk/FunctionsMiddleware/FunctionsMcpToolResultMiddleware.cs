@@ -114,7 +114,7 @@ internal class FunctionsMcpToolResultMiddleware : IFunctionsWorkerMiddleware
 
         if (functionResult.ShouldCreateStructuredContent())
         {
-            // If there is a McpResultAttribute, create structured content
+            // If there is a McpContentAttribute, create structured content
             text = JsonSerializer.Serialize(functionResult, McpJsonUtilities.DefaultOptions);
             structuredContent = text;
         }

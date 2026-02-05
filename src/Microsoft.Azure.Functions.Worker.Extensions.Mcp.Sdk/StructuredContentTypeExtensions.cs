@@ -18,11 +18,11 @@ internal static class StructuredContentTypeExtensions
     /// <list type="number">
     ///   <item>
     ///     <term>Direct Attribution</term>
-    ///     <description>If the type is decorated with <see cref="McpResultAttribute"/>, returns true.</description>
+    ///     <description>If the type is decorated with <see cref="McpContentAttribute"/>, returns true.</description>
     ///   </item>
     ///   <item>
     ///     <term>Collection Element Attribution</term>
-    ///     <description>If the type is a collection and the element type has <see cref="McpResultAttribute"/>, returns true.
+    ///     <description>If the type is a collection and the element type has <see cref="McpContentAttribute"/>, returns true.
     ///     Nested collections are recursively checked.</description>
     ///   </item>
     ///   <item>
@@ -47,7 +47,7 @@ internal static class StructuredContentTypeExtensions
     /// 
     /// <para><b>Not Supported:</b></para>
     /// <list type="bullet">
-    ///   <item>Inherited attribution: Only direct decoration with <see cref="McpResultAttribute"/> is recognized</item>
+    ///   <item>Inherited attribution: Only direct decoration with <see cref="McpContentAttribute"/> is recognized</item>
     ///   <item>Dictionary types: Any type implementing <c>IEnumerable&lt;KeyValuePair&lt;,&gt;&gt;</c></item>
     /// </list>
     /// </remarks>
@@ -60,13 +60,13 @@ internal static class StructuredContentTypeExtensions
     }
 
     /// <summary>
-    /// Recursively checks if the type or its collection element types have the <see cref="McpResultAttribute"/>.
+    /// Recursively checks if the type or its collection element types have the <see cref="McpContentAttribute"/>.
     /// </summary>
     /// <param name="type">The type to check.</param>
     /// <returns>True if the type or its element types have the attribute; otherwise, false.</returns>
     public static bool HasMcpResultAttributeRecursive(this Type type)
     {
-        // Check if the type itself is decorated with McpResultAttribute (no inheritance)
+        // Check if the type itself is decorated with McpContentAttribute (no inheritance)
         if (type.HasMcpResultAttribute())
         {
             return true;
@@ -97,14 +97,14 @@ internal static class StructuredContentTypeExtensions
     }
 
     /// <summary>
-    /// Checks if the type is directly decorated with <see cref="McpResultAttribute"/>.
+    /// Checks if the type is directly decorated with <see cref="McpContentAttribute"/>.
     /// </summary>
     /// <param name="type">The type to check.</param>
     /// <returns>True if the type has the attribute; otherwise, false.</returns>
     public static bool HasMcpResultAttribute(this Type type)
     {
         // Only check for direct attribution, not inherited
-        return type.GetCustomAttributes(typeof(McpResultAttribute), inherit: false).Length > 0;
+        return type.GetCustomAttributes(typeof(McpContentAttribute), inherit: false).Length > 0;
     }
 
     /// <summary>
