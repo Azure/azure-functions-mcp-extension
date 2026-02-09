@@ -16,7 +16,7 @@ public class InputSchemaBindingPatcherTests
     {
         // Arrange
         var inputSchema = CreateValidSchema();
-        var emptyBindings = Array.Empty<ToolPropertyBinding>();
+        var emptyBindings = Array.Empty<KeyValuePair<string, ToolPropertyBinding>>();
 
         // Act & Assert - Should not throw
         InputSchemaBindingPatcher.PatchBindingMetadata(inputSchema, emptyBindings);
@@ -55,7 +55,7 @@ public class InputSchemaBindingPatcherTests
         InputSchemaBindingPatcher.PatchBindingMetadata(inputSchema, new[] { binding });
 
         // Assert
-        Assert.Equal("string", binding.Binding[Constants.McpToolPropertyType]?.GetValue<string>());
+        Assert.Equal("string", binding.Value.Binding[Constants.McpToolPropertyType]?.GetValue<string>());
     }
 
     [Fact]
@@ -65,12 +65,12 @@ public class InputSchemaBindingPatcherTests
         var inputSchema = CreateSchemaWithIntegerProperty("age");
         var binding = CreateToolPropertyBinding("age");
 
-        // Act
-        InputSchemaBindingPatcher.PatchBindingMetadata(inputSchema, new[] { binding });
+            // Act
+            InputSchemaBindingPatcher.PatchBindingMetadata(inputSchema, new[] { binding });
 
-        // Assert
-        Assert.Equal("integer", binding.Binding[Constants.McpToolPropertyType]?.GetValue<string>());
-    }
+            // Assert
+            Assert.Equal("integer", binding.Value.Binding[Constants.McpToolPropertyType]?.GetValue<string>());
+        }
 
     [Fact]
     public void PatchBindingMetadata_ValidArrayProperty_ExtractsItemType()
@@ -79,29 +79,29 @@ public class InputSchemaBindingPatcherTests
         var inputSchema = CreateSchemaWithArrayProperty("tags", "string");
         var binding = CreateToolPropertyBinding("tags");
 
-        // Act
-        InputSchemaBindingPatcher.PatchBindingMetadata(inputSchema, new[] { binding });
+            // Act
+            InputSchemaBindingPatcher.PatchBindingMetadata(inputSchema, new[] { binding });
 
-        // Assert
-        Assert.Equal("string", binding.Binding[Constants.McpToolPropertyType]?.GetValue<string>());
-    }
+            // Assert
+            Assert.Equal("string", binding.Value.Binding[Constants.McpToolPropertyType]?.GetValue<string>());
+        }
 
-    [Fact]
-    public void PatchBindingMetadata_PropertyNotInSchema_DoesNotPatch()
+        [Fact]
+        public void PatchBindingMetadata_PropertyNotInSchema_DoesNotPatch()
     {
         // Arrange
         var inputSchema = CreateSchemaWithStringProperty("name");
         var binding = CreateToolPropertyBinding("nonexistent");
 
-        // Act
-        InputSchemaBindingPatcher.PatchBindingMetadata(inputSchema, new[] { binding });
+            // Act
+            InputSchemaBindingPatcher.PatchBindingMetadata(inputSchema, new[] { binding });
 
-        // Assert - Property should not be patched
-        Assert.False(binding.Binding.ContainsKey(Constants.McpToolPropertyType));
-    }
+            // Assert - Property should not be patched
+            Assert.False(binding.Value.Binding.ContainsKey(Constants.McpToolPropertyType));
+        }
 
-    [Fact]
-    public void PatchBindingMetadata_SchemaWithoutProperties_ThrowsInvalidOperationException()
+        [Fact]
+        public void PatchBindingMetadata_SchemaWithoutProperties_ThrowsInvalidOperationException()
     {
         // Arrange
         var inputSchema = JsonNode.Parse("""{"type": "object"}""")!;
@@ -140,15 +140,15 @@ public class InputSchemaBindingPatcherTests
             """)!;
         var binding = CreateToolPropertyBinding("name");
 
-        // Act
-        InputSchemaBindingPatcher.PatchBindingMetadata(inputSchema, new[] { binding });
+            // Act
+            InputSchemaBindingPatcher.PatchBindingMetadata(inputSchema, new[] { binding });
 
-        // Assert - Property should not be patched
-        Assert.False(binding.Binding.ContainsKey(Constants.McpToolPropertyType));
-    }
+            // Assert - Property should not be patched
+            Assert.False(binding.Value.Binding.ContainsKey(Constants.McpToolPropertyType));
+        }
 
-    [Fact]
-    public void PatchBindingMetadata_ArrayWithoutItems_DoesNotPatch()
+        [Fact]
+        public void PatchBindingMetadata_ArrayWithoutItems_DoesNotPatch()
     {
         // Arrange
         var inputSchema = JsonNode.Parse("""
@@ -163,15 +163,15 @@ public class InputSchemaBindingPatcherTests
             """)!;
         var binding = CreateToolPropertyBinding("tags");
 
-        // Act
-        InputSchemaBindingPatcher.PatchBindingMetadata(inputSchema, new[] { binding });
+            // Act
+            InputSchemaBindingPatcher.PatchBindingMetadata(inputSchema, new[] { binding });
 
-        // Assert - Property should not be patched
-        Assert.False(binding.Binding.ContainsKey(Constants.McpToolPropertyType));
-    }
+            // Assert - Property should not be patched
+            Assert.False(binding.Value.Binding.ContainsKey(Constants.McpToolPropertyType));
+        }
 
-    [Fact]
-    public void PatchBindingMetadata_ArrayItemsWithoutType_DoesNotPatch()
+        [Fact]
+        public void PatchBindingMetadata_ArrayItemsWithoutType_DoesNotPatch()
     {
         // Arrange
         var inputSchema = JsonNode.Parse("""
@@ -189,15 +189,15 @@ public class InputSchemaBindingPatcherTests
             """)!;
         var binding = CreateToolPropertyBinding("tags");
 
-        // Act
-        InputSchemaBindingPatcher.PatchBindingMetadata(inputSchema, new[] { binding });
+            // Act
+            InputSchemaBindingPatcher.PatchBindingMetadata(inputSchema, new[] { binding });
 
-        // Assert - Property should not be patched
-        Assert.False(binding.Binding.ContainsKey(Constants.McpToolPropertyType));
-    }
+            // Assert - Property should not be patched
+            Assert.False(binding.Value.Binding.ContainsKey(Constants.McpToolPropertyType));
+        }
 
-    [Fact]
-    public void PatchBindingMetadata_MixedSuccessAndFailure_PatchesOnlyValidProperties()
+        [Fact]
+        public void PatchBindingMetadata_MixedSuccessAndFailure_PatchesOnlyValidProperties()
     {
         // Arrange
         var inputSchema = JsonNode.Parse("""
@@ -224,14 +224,14 @@ public class InputSchemaBindingPatcherTests
         // Act
         InputSchemaBindingPatcher.PatchBindingMetadata(inputSchema, bindings);
 
-        // Assert
-        // Verify the successful one was patched
-        Assert.Equal("string", bindings[0].Binding[Constants.McpToolPropertyType]?.GetValue<string>());
-        
-        // Verify the failed ones were not patched
-        Assert.False(bindings[1].Binding.ContainsKey(Constants.McpToolPropertyType));
-        Assert.False(bindings[2].Binding.ContainsKey(Constants.McpToolPropertyType));
-    }
+            // Assert
+            // Verify the successful one was patched
+            Assert.Equal("string", bindings[0].Value.Binding[Constants.McpToolPropertyType]?.GetValue<string>());
+
+            // Verify the failed ones were not patched
+            Assert.False(bindings[1].Value.Binding.ContainsKey(Constants.McpToolPropertyType));
+            Assert.False(bindings[2].Value.Binding.ContainsKey(Constants.McpToolPropertyType));
+        }
 
     [Fact]
     public void PatchBindingMetadata_ComplexNestedSchema_PatchesCorrectly()
@@ -275,11 +275,11 @@ public class InputSchemaBindingPatcherTests
         // Act
         InputSchemaBindingPatcher.PatchBindingMetadata(inputSchema, bindings);
 
-        // Assert
-        Assert.Equal("object", bindings[0].Binding[Constants.McpToolPropertyType]?.GetValue<string>());
-        Assert.Equal("string", bindings[1].Binding[Constants.McpToolPropertyType]?.GetValue<string>()); // Array item type
-        Assert.Equal("boolean", bindings[2].Binding[Constants.McpToolPropertyType]?.GetValue<string>());
-    }
+            // Assert
+            Assert.Equal("object", bindings[0].Value.Binding[Constants.McpToolPropertyType]?.GetValue<string>());
+            Assert.Equal("string", bindings[1].Value.Binding[Constants.McpToolPropertyType]?.GetValue<string>()); // Array item type
+            Assert.Equal("boolean", bindings[2].Value.Binding[Constants.McpToolPropertyType]?.GetValue<string>());
+        }
 
     private static JsonNode CreateValidSchema()
     {
@@ -334,14 +334,14 @@ public class InputSchemaBindingPatcherTests
             }}")!;
     }
 
-    private static ToolPropertyBinding CreateToolPropertyBinding(string propertyName)
-    {
-        var jsonObject = new JsonObject
-        {
-            ["type"] = Constants.McpToolPropertyBindingType,
-            [Constants.McpToolPropertyName] = propertyName
-        };
-        
-        return new ToolPropertyBinding(propertyName, jsonObject);
-    }
-}
+            private static KeyValuePair<string, ToolPropertyBinding> CreateToolPropertyBinding(string propertyName, int index = 0)
+            {
+                var jsonObject = new JsonObject
+                {
+                    ["type"] = Constants.McpToolPropertyBindingType,
+                    [Constants.McpToolPropertyName] = propertyName
+                };
+
+                return new KeyValuePair<string, ToolPropertyBinding>(propertyName, new ToolPropertyBinding(index, jsonObject));
+            }
+        }

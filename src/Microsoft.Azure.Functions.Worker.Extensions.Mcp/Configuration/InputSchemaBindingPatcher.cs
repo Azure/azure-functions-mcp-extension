@@ -15,10 +15,10 @@ internal static class InputSchemaBindingPatcher
     /// Patches input binding metadata with property types extracted from the input schema.
     /// </summary>
     /// <param name="inputSchema">The input schema containing property definitions.</param>
-    /// <param name="inputBindingProperties">The collection of input binding properties to patch.</param>
+    /// <param name="inputBindingProperties">The collection of input binding properties to patch, keyed by property name.</param>
     public static void PatchBindingMetadata(
         JsonNode inputSchema,
-        IEnumerable<ToolPropertyBinding> inputBindingProperties)
+        IEnumerable<KeyValuePair<string, ToolPropertyBinding>> inputBindingProperties)
     {
         ArgumentNullException.ThrowIfNull(inputSchema);
         ArgumentNullException.ThrowIfNull(inputBindingProperties);
@@ -31,9 +31,9 @@ internal static class InputSchemaBindingPatcher
 
         var propertiesElement = GetPropertiesObject(inputSchema);
 
-        foreach (var binding in bindingList)
+        foreach (var (propertyName, binding) in bindingList)
         {
-            if (TryGetPropertyType(propertiesElement, binding.PropertyName, out var propertyType))
+            if (TryGetPropertyType(propertiesElement, propertyName, out var propertyType))
             {
                 binding.Binding[Constants.McpToolPropertyType] = propertyType;
             }
@@ -133,10 +133,3 @@ internal static class InputSchemaBindingPatcher
         return !string.IsNullOrWhiteSpace(itemType);
     }
 }
-
-    /// <summary>
-    /// Represents a tool property binding that can be patched with type information.
-    /// </summary>
-    /// <param name="PropertyName">The name of the property.</param>
-    /// <param name="Binding">The JSON object representing the binding configuration.</param>
-    public record ToolPropertyBinding(string PropertyName, JsonObject Binding);

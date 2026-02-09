@@ -1,20 +1,16 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-using System.Diagnostics.CodeAnalysis;
-using System.Reflection;
-using System.Runtime.Loader;
-using System.Text.Json;
-using System.Text.Json.Nodes;
 using Microsoft.Azure.Functions.Worker.Core.FunctionMetadata;
 using Microsoft.Extensions.Options;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using static Microsoft.Azure.Functions.Worker.Extensions.Mcp.Configuration.InputSchemaBindingPatcher;
+using static Microsoft.Azure.Functions.Worker.Extensions.Mcp.Constants;
 
 namespace Microsoft.Azure.Functions.Worker.Extensions.Mcp.Configuration;
 
-public sealed class McpFunctionMetadataTransformer(IOptionsMonitor<ToolOptions> toolOptionsMonitor)
+public sealed partial class McpFunctionMetadataTransformer(IOptionsMonitor<ToolOptions> toolOptionsMonitor)
     : IFunctionMetadataTransformer
 {
     public string Name => nameof(McpFunctionMetadataTransformer);
@@ -48,10 +44,26 @@ public sealed class McpFunctionMetadataTransformer(IOptionsMonitor<ToolOptions> 
                 switch (bindingType)
                 {
                     case McpToolTriggerBindingType:
-                        if (jsonObject.TryGetPropertyValue("toolName", out var toolNameNode)
-                            && GetToolProperties(toolNameNode?.ToString(), function, out toolProperties))
+                        if (jsonObject.TryGetPropertyValue("toolName", out var toolNameNode))
                         {
-                            jsonObject["toolProperties"] = ToolPropertyParser.GetPropertiesJson(toolProperties);
+                            var toolName = toolNameNode?.ToString();
+
+                            if (TryGetConfiguredToolProperties(toolName, out toolProperties))
+                            {
+                                // Use configured tool properties from IOptionsMonitor
+                                jsonObject["toolProperties"] = JsonSerializer.SerializeToNode(toolProperties);
+                            }
+                            else
+                            {
+                                // If not set in options monitor, use worker input schema approach
+                                jsonObject["useWorkerInputSchema"] = true;
+
+                                if (!TryGenerateInputSchema(jsonObject, function, out inputSchema))
+                                {
+                                    throw new InvalidOperationException(
+                                        $"Failed to generate input schema for MCP tool trigger function '{function.Name}'.");
+                                }
+                            }
                         }
 
                         if (MetadataParser.TryGetToolMetadata(function, out var toolMetadataJson))
@@ -59,8 +71,6 @@ public sealed class McpFunctionMetadataTransformer(IOptionsMonitor<ToolOptions> 
                             jsonObject["metadata"] = toolMetadataJson;
                         }
 
-                    if (TryGenerateInputSchema(jsonObject, function, out inputSchema))
-                    {
                         function.RawBindings[i] = jsonObject.ToJsonString();
                         break;
 
@@ -135,11 +145,12 @@ public sealed class McpFunctionMetadataTransformer(IOptionsMonitor<ToolOptions> 
         if (toolProperties is not null && toolProperties.Count > 0)
         {
             PatchFromToolProperties(function, inputBindingProperties, toolProperties);
+            UpdateRawBindings(function, inputBindingProperties);
         }
         // Otherwise, use the generated input schema
         else if (inputSchema is not null)
         {
-            InputSchemaBindingPatcher.PatchBindingMetadata(inputSchema, inputBindingProperties.Values);
+            PatchBindingMetadata(inputSchema, inputBindingProperties);
             UpdateRawBindings(function, inputBindingProperties);
         }
     }
@@ -156,55 +167,15 @@ public sealed class McpFunctionMetadataTransformer(IOptionsMonitor<ToolOptions> 
                 binding.Binding[Constants.McpToolPropertyType] = property.Type;
             }
         }
-
-        UpdateRawBindings(function, inputBindingProperties);
     }
 
     private static void UpdateRawBindings(
         IFunctionMetadata function,
         Dictionary<string, ToolPropertyBinding> inputBindingProperties)
     {
-        foreach (var (propertyName, binding) in inputBindingProperties)
+        foreach (var (_, binding) in inputBindingProperties)
         {
-            for (int i = 0; i < function.RawBindings!.Count; i++)
-            {
-                var rawBinding = function.RawBindings[i];
-                var node = JsonNode.Parse(rawBinding);
-
-                if (node is JsonObject jsonObj
-                    && jsonObj.TryGetPropertyValue("type", out var typeNode)
-                    && typeNode?.ToString() == Constants.McpToolPropertyBindingType
-                    && jsonObj.TryGetPropertyValue(Constants.McpToolPropertyName, out var nameNode)
-                    && nameNode?.ToString() == propertyName)
-                {
-                    function.RawBindings[i] = binding.Binding.ToJsonString();
-                    break;
-                }
-            }
+            function.RawBindings![binding.Index] = binding.Binding.ToJsonString();
         }
-    }
-
-    private bool GetToolProperties(string? toolName, IFunctionMetadata functionMetadata, [NotNullWhen(true)] out List<ToolProperty>? toolProperties)
-    {
-        toolProperties = null;
-
-        if (string.IsNullOrWhiteSpace(toolName))
-        {
-            return false;
-        }
-
-        // Get from configured options first:
-        var toolOptions = toolOptionsMonitor.Get(toolName);
-
-                continue;
-            }
-
-            McpToolPropertyType propertyType = property.PropertyType.MapToToolPropertyType();
-
-            toolProperties.Add(new(property.Name, propertyType.TypeName, property.GetDescription(),
-                                   property.IsRequired(), propertyType.IsArray, propertyType.EnumValues));
-        }
-
-        return toolProperties.Count > 0;
     }
 }
