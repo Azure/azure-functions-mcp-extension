@@ -40,7 +40,7 @@ public class McpFunctionMetadataTransformerTests
         fn.SetupGet(f => f.RawBindings).Returns(new List<string>());
         fn.SetupGet(f => f.Name).Returns((string?)null);
 
-        transformer.Transform(new List<IFunctionMetadata> { fn.Object });
+        transformer.Transform([fn.Object]);
         fn.VerifyGet(f => f.Name, Times.Once);
     }
 
@@ -48,8 +48,8 @@ public class McpFunctionMetadataTransformerTests
     public void Transform_NonMatchingBinding_Ignored()
     {
         var transformer = CreateTransformer();
-        var fn = CreateFunctionMetadata(entryPoint: null, scriptFile: null, name: "Func", bindings: new List<string> { "{\"type\":\"httpTrigger\"}" });
-        transformer.Transform(new List<IFunctionMetadata> { fn.Object });
+        var fn = CreateFunctionMetadata(entryPoint: null, scriptFile: null, name: "Func", bindings: ["{\"type\":\"httpTrigger\"}"]);
+        transformer.Transform([fn.Object]);
         fn.VerifySet(f => f.RawBindings![It.IsAny<int>()] = It.IsAny<string>(), Times.Never);
     }
 
@@ -107,7 +107,9 @@ public class McpFunctionMetadataTransformerTests
         var json = JsonNode.Parse(fn.Object.RawBindings![0])!.AsObject();
 
         // When configured options are available, toolProperties should be set
-        Assert.True(json.ContainsKey("toolProperties"));
+        var tp = json["toolProperties"]!.GetValue<string>();
+
+        Assert.Contains("\"propertyName\":\"x\"", tp);
         Assert.False(json.ContainsKey("useWorkerInputSchema"));
         Assert.False(json.ContainsKey("inputSchema"));
     }

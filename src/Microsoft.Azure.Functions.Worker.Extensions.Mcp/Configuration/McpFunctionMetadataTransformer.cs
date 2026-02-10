@@ -3,6 +3,7 @@
 
 using Microsoft.Azure.Functions.Worker.Core.FunctionMetadata;
 using Microsoft.Extensions.Options;
+using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using static Microsoft.Azure.Functions.Worker.Extensions.Mcp.Configuration.InputSchemaBindingPatcher;
@@ -10,7 +11,7 @@ using static Microsoft.Azure.Functions.Worker.Extensions.Mcp.Constants;
 
 namespace Microsoft.Azure.Functions.Worker.Extensions.Mcp.Configuration;
 
-public sealed partial class McpFunctionMetadataTransformer(IOptionsMonitor<ToolOptions> toolOptionsMonitor)
+public sealed class McpFunctionMetadataTransformer(IOptionsMonitor<ToolOptions> toolOptionsMonitor)
     : IFunctionMetadataTransformer
 {
     public string Name => nameof(McpFunctionMetadataTransformer);
@@ -51,7 +52,7 @@ public sealed partial class McpFunctionMetadataTransformer(IOptionsMonitor<ToolO
                             if (TryGetConfiguredToolProperties(toolName, out toolProperties))
                             {
                                 // Use configured tool properties from IOptionsMonitor
-                                jsonObject["toolProperties"] = JsonSerializer.SerializeToNode(toolProperties);
+                                jsonObject["toolProperties"] = ToolPropertyParser.GetPropertiesJson(toolProperties!);
                             }
                             else
                             {
@@ -98,7 +99,7 @@ public sealed partial class McpFunctionMetadataTransformer(IOptionsMonitor<ToolO
         }
     }
 
-    private bool TryGetConfiguredToolProperties(string? toolName, out List<ToolProperty>? toolProperties)
+    private bool TryGetConfiguredToolProperties(string? toolName, [NotNullWhen(true)] out List<ToolProperty>? toolProperties)
     {
         toolProperties = null;
 
