@@ -139,31 +139,23 @@ internal class FunctionsMcpToolResultMiddleware : IFunctionsWorkerMiddleware
         return context.Items.ContainsKey(Constants.ToolInvocationContextKey);
     }
 
-        private static bool HasOutputBindings(FunctionContext context)
-        {
-            return context.FunctionDefinition.OutputBindings.Any();
-        }
+    private static bool HasOutputBindings(FunctionContext context)
+    {
+        return context.FunctionDefinition.OutputBindings.Any();
+    }
 
         /// <summary>
         /// Determines whether structured content should be created for the given object.
         /// </summary>
         /// <remarks>
-        /// <para><b>Type Resolution Rules (evaluated in order):</b></para>
-        /// <list type="number">
-        ///   <item>
-        ///     <term>Direct Attribution</term>
-        ///     <description>If the type is decorated with <see cref="McpContentAttribute"/>, returns true.</description>
-        ///   </item>
-        ///   <item>
-        ///     <term>Collection Element Attribution</term>
-        ///     <description>If the type is a collection and the element type has <see cref="McpContentAttribute"/>, returns true.
-        ///     Nested collections are recursively checked.</description>
-        ///   </item>
-        ///   <item>
-        ///     <term>No Attribution</term>
-        ///     <description>Otherwise, returns false (text content only).</description>
-        ///   </item>
-        /// </list>
+        /// <para>
+        /// Returns true if the type is directly decorated with <see cref="McpContentAttribute"/>.
+        /// For collections, users should create a wrapper type with the attribute, e.g.:
+        /// <code>
+        /// [McpContent]
+        /// public class ImageList : List&lt;MyImage&gt; { }
+        /// </code>
+        /// </para>
         /// 
         /// <para><b>Supported Types:</b></para>
         /// <list type="bullet">
@@ -171,18 +163,10 @@ internal class FunctionsMcpToolResultMiddleware : IFunctionsWorkerMiddleware
         ///   <item><c>interface</c>, <c>enum</c> - Not supported (cannot be decorated with attributes in a meaningful way)</item>
         /// </list>
         /// 
-        /// <para><b>Collection Handling:</b></para>
-        /// <list type="bullet">
-        ///   <item>Arrays: Element type is checked recursively</item>
-        ///   <item>Generic collections (List, IEnumerable, etc.): First type argument is checked recursively</item>
-        ///   <item>Dictionaries: Not supported</item>
-        ///   <item>Nested collections: Recursively unwrapped until a non-collection element type is found</item>
-        /// </list>
-        /// 
         /// <para><b>Not Supported:</b></para>
         /// <list type="bullet">
         ///   <item>Inherited attribution: Only direct decoration with <see cref="McpContentAttribute"/> is recognized</item>
-        ///   <item>Dictionary types: Any type implementing <c>IEnumerable&lt;KeyValuePair&lt;,&gt;&gt;</c></item>
+        ///   <item>Automatic collection element detection: Users must explicitly mark collection wrapper types</item>
         /// </list>
         /// </remarks>
         /// <param name="obj">The object to evaluate.</param>
@@ -190,6 +174,6 @@ internal class FunctionsMcpToolResultMiddleware : IFunctionsWorkerMiddleware
         private static bool ShouldCreateStructuredContent(object obj)
         {
             var type = obj.GetType();
-            return type.HasMcpContentAttributeRecursive();
+            return type.HasMcpContentAttribute();
         }
     }

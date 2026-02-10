@@ -540,7 +540,7 @@ public class FunctionsMcpToolResultMiddlewareTests
     }
 
     [Fact]
-    public async Task Invoke_WithArrayOfPocosWithMcpResultAttribute_CreatesStructuredContent()
+    public async Task Invoke_WithArrayOfPocosWithMcpResultAttribute_DoesNotCreateStructuredContent()
     {
         // Arrange
         var context = CreateMcpFunctionContext();
@@ -565,14 +565,10 @@ public class FunctionsMcpToolResultMiddlewareTests
         Assert.NotNull(mcpToolResult);
         Assert.Equal(Constants.TextContextResult, mcpToolResult.Type);
 
-        // Verify structured content is created for array of POCOs with attribute
-        Assert.NotNull(mcpToolResult.StructuredContent);
-        Assert.Contains("\"name\":\"Alice\"", mcpToolResult.StructuredContent);
-        Assert.Contains("\"name\":\"Bob\"", mcpToolResult.StructuredContent);
-        Assert.Contains("\"age\":30", mcpToolResult.StructuredContent);
-        Assert.Contains("\"age\":25", mcpToolResult.StructuredContent);
+        // Arrays don't automatically get structured content - users must wrap with [McpContent]
+        Assert.Null(mcpToolResult.StructuredContent);
 
-        // Verify text content also contains the serialized JSON
+        // Verify text content contains the serialized JSON
         var textBlock = JsonSerializer.Deserialize<TextContentBlock>(mcpToolResult.Content!, McpJsonUtilities.DefaultOptions);
         Assert.NotNull(textBlock);
         Assert.Contains("Alice", textBlock.Text);
@@ -616,7 +612,7 @@ public class FunctionsMcpToolResultMiddlewareTests
     }
 
     [Fact]
-    public async Task Invoke_WithListOfPocosWithMcpResultAttribute_CreatesStructuredContent()
+    public async Task Invoke_WithListOfPocosWithMcpResultAttribute_DoesNotCreateStructuredContent()
     {
         // Arrange
         var context = CreateMcpFunctionContext();
@@ -641,12 +637,10 @@ public class FunctionsMcpToolResultMiddlewareTests
         Assert.NotNull(mcpToolResult);
         Assert.Equal(Constants.TextContextResult, mcpToolResult.Type);
 
-        // Verify structured content is created for list of POCOs with attribute
-        Assert.NotNull(mcpToolResult.StructuredContent);
-        Assert.Contains("\"name\":\"Eve\"", mcpToolResult.StructuredContent);
-        Assert.Contains("\"name\":\"Frank\"", mcpToolResult.StructuredContent);
+        // Lists don't automatically get structured content - users must wrap with [McpContent]
+        Assert.Null(mcpToolResult.StructuredContent);
 
-        // Verify text content also contains the serialized JSON
+        // Verify text content contains the serialized JSON
         var textBlock = JsonSerializer.Deserialize<TextContentBlock>(mcpToolResult.Content!, McpJsonUtilities.DefaultOptions);
         Assert.NotNull(textBlock);
         Assert.Contains("Eve", textBlock.Text);
@@ -1072,11 +1066,11 @@ public class FunctionsMcpToolResultMiddlewareTests
     }
 
     // ========================
-    // Collection Element Attribution Tests
+    // Collection Tests (no automatic element detection)
     // ========================
 
     [Fact]
-    public async Task ShouldCreateStructuredContent_Array_ElementsWithAttribute_ReturnsTrue()
+    public async Task ShouldCreateStructuredContent_Array_ElementsWithAttribute_ReturnsFalse()
     {
         var context = CreateMcpFunctionContext();
         var array = new TestPocoWithAttribute[]
@@ -1095,11 +1089,12 @@ public class FunctionsMcpToolResultMiddlewareTests
         Assert.NotNull(result);
         var mcpToolResult = JsonSerializer.Deserialize(result, McpJsonContext.Default.McpToolResult);
         Assert.NotNull(mcpToolResult);
-        Assert.NotNull(mcpToolResult.StructuredContent);
+        // Arrays don't automatically get structured content - users must create a wrapper type with [McpContent]
+        Assert.Null(mcpToolResult.StructuredContent);
     }
 
     [Fact]
-    public async Task ShouldCreateStructuredContent_List_ElementsWithAttribute_ReturnsTrue()
+    public async Task ShouldCreateStructuredContent_List_ElementsWithAttribute_ReturnsFalse()
     {
         var context = CreateMcpFunctionContext();
         var list = new List<TestPocoWithAttribute>
@@ -1118,11 +1113,12 @@ public class FunctionsMcpToolResultMiddlewareTests
         Assert.NotNull(result);
         var mcpToolResult = JsonSerializer.Deserialize(result, McpJsonContext.Default.McpToolResult);
         Assert.NotNull(mcpToolResult);
-        Assert.NotNull(mcpToolResult.StructuredContent);
+        // Lists don't automatically get structured content - users must create a wrapper type with [McpContent]
+        Assert.Null(mcpToolResult.StructuredContent);
     }
 
     [Fact]
-    public async Task ShouldCreateStructuredContent_IEnumerable_ElementsWithAttribute_ReturnsTrue()
+    public async Task ShouldCreateStructuredContent_IEnumerable_ElementsWithAttribute_ReturnsFalse()
     {
         var context = CreateMcpFunctionContext();
         IEnumerable<TestPocoWithAttribute> enumerable = new[]
@@ -1140,7 +1136,8 @@ public class FunctionsMcpToolResultMiddlewareTests
         Assert.NotNull(result);
         var mcpToolResult = JsonSerializer.Deserialize(result, McpJsonContext.Default.McpToolResult);
         Assert.NotNull(mcpToolResult);
-        Assert.NotNull(mcpToolResult.StructuredContent);
+        // IEnumerable doesn't automatically get structured content - users must create a wrapper type with [McpContent]
+        Assert.Null(mcpToolResult.StructuredContent);
     }
 
     [Fact]
@@ -1167,11 +1164,11 @@ public class FunctionsMcpToolResultMiddlewareTests
     }
 
     // ========================
-    // Nested Collection Tests
+    // Nested Collection Tests (no automatic element detection)
     // ========================
 
     [Fact]
-    public async Task ShouldCreateStructuredContent_NestedList_InnerElementsWithAttribute_ReturnsTrue()
+    public async Task ShouldCreateStructuredContent_NestedList_InnerElementsWithAttribute_ReturnsFalse()
     {
         var context = CreateMcpFunctionContext();
         var nestedList = new List<List<TestPocoWithAttribute>>
@@ -1196,11 +1193,12 @@ public class FunctionsMcpToolResultMiddlewareTests
         Assert.NotNull(result);
         var mcpToolResult = JsonSerializer.Deserialize(result, McpJsonContext.Default.McpToolResult);
         Assert.NotNull(mcpToolResult);
-        Assert.NotNull(mcpToolResult.StructuredContent);
+        // Nested collections don't automatically get structured content
+        Assert.Null(mcpToolResult.StructuredContent);
     }
 
     [Fact]
-    public async Task ShouldCreateStructuredContent_ArrayOfArrays_InnerElementsWithAttribute_ReturnsTrue()
+    public async Task ShouldCreateStructuredContent_ArrayOfArrays_InnerElementsWithAttribute_ReturnsFalse()
     {
         var context = CreateMcpFunctionContext();
         var jaggedArray = new TestPocoWithAttribute[][]
@@ -1219,7 +1217,8 @@ public class FunctionsMcpToolResultMiddlewareTests
         Assert.NotNull(result);
         var mcpToolResult = JsonSerializer.Deserialize(result, McpJsonContext.Default.McpToolResult);
         Assert.NotNull(mcpToolResult);
-        Assert.NotNull(mcpToolResult.StructuredContent);
+        // Jagged arrays don't automatically get structured content
+        Assert.Null(mcpToolResult.StructuredContent);
     }
 
     // ========================
