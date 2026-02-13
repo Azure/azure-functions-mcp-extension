@@ -776,7 +776,7 @@ public class FunctionsMcpToolResultMiddlewareTests
         McpToolResult? mcpToolResult = JsonSerializer.Deserialize(result, McpJsonContext.Default.McpToolResult);
         Assert.NotNull(mcpToolResult);
         Assert.Equal(Constants.CallToolResultType, mcpToolResult.Type);
-        Assert.Null(mcpToolResult.StructuredContent); // Not preserved in McpToolResult wrapper
+        Assert.NotNull(mcpToolResult.StructuredContent); // StructuredContent is propagated to wrapper
 
         // Verify the CallToolResult is serialized in content
         var deserializedCallToolResult = JsonSerializer.Deserialize<CallToolResult>(mcpToolResult.Content!, McpJsonUtilities.DefaultOptions);
@@ -817,6 +817,7 @@ public class FunctionsMcpToolResultMiddlewareTests
         McpToolResult? mcpToolResult = JsonSerializer.Deserialize(result, McpJsonContext.Default.McpToolResult);
         Assert.NotNull(mcpToolResult);
         Assert.Equal(Constants.CallToolResultType, mcpToolResult.Type);
+        Assert.NotNull(mcpToolResult.StructuredContent); // StructuredContent is propagated to wrapper
 
         // Deserialize the CallToolResult from content
         var deserializedCallToolResult = JsonSerializer.Deserialize<CallToolResult>(mcpToolResult.Content!, McpJsonUtilities.DefaultOptions);
@@ -861,6 +862,49 @@ public class FunctionsMcpToolResultMiddlewareTests
         Assert.NotNull(deserializedCallToolResult);
         Assert.Equal(2, deserializedCallToolResult.Content.Count);
         Assert.Null(deserializedCallToolResult.StructuredContent);
+    }
+
+    [Fact]
+    public async Task Invoke_WithCallToolResultStructuredContent_PropagatesStructuredContentToWrapper()
+    {
+        // Arrange
+        var context = CreateMcpFunctionContext();
+        var structuredData = new { Name = "Test", Value = 123 };
+        var structuredJson = JsonSerializer.Serialize(structuredData);
+
+        var callToolResult = new CallToolResult
+        {
+            Content = new List<ContentBlock>
+            {
+                new TextContentBlock { Text = structuredJson }
+            },
+            StructuredContent = System.Text.Json.Nodes.JsonNode.Parse(structuredJson)
+        };
+
+        // Act
+        await _middleware.Invoke(context, ctx =>
+        {
+            SetInvocationResult(ctx, callToolResult);
+            return Task.CompletedTask;
+        });
+
+        // Assert
+        var result = _currentResult as string;
+        Assert.NotNull(result);
+
+        McpToolResult? mcpToolResult = JsonSerializer.Deserialize(result, McpJsonContext.Default.McpToolResult);
+        Assert.NotNull(mcpToolResult);
+        Assert.Equal(Constants.CallToolResultType, mcpToolResult.Type);
+
+        // Verify the wrapper's StructuredContent is populated from CallToolResult
+        Assert.NotNull(mcpToolResult.StructuredContent);
+        Assert.Contains("Test", mcpToolResult.StructuredContent);
+        Assert.Contains("123", mcpToolResult.StructuredContent);
+
+        // Also verify the inner CallToolResult still has StructuredContent
+        var deserializedCallToolResult = JsonSerializer.Deserialize<CallToolResult>(mcpToolResult.Content!, McpJsonUtilities.DefaultOptions);
+        Assert.NotNull(deserializedCallToolResult);
+        Assert.NotNull(deserializedCallToolResult.StructuredContent);
     }
 
     [Fact]
@@ -1504,6 +1548,7 @@ public class FunctionsMcpToolResultMiddlewareTests
             McpToolResult? mcpToolResult = JsonSerializer.Deserialize(result, McpJsonContext.Default.McpToolResult);
             Assert.NotNull(mcpToolResult);
             Assert.Equal(Constants.CallToolResultType, mcpToolResult.Type);
+            Assert.NotNull(mcpToolResult.StructuredContent); // StructuredContent is propagated to wrapper
 
             // Verify the CallToolResult is serialized correctly
             var deserializedCallToolResult = JsonSerializer.Deserialize<CallToolResult>(mcpToolResult.Content!, McpJsonUtilities.DefaultOptions);
