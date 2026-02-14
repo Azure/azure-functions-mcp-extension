@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using Microsoft.Azure.Functions.Extensions.Mcp.Serialization;
 using Microsoft.Azure.WebJobs.Host.Bindings;
 using ModelContextProtocol;
@@ -31,7 +32,18 @@ internal sealed class ToolReturnValueBinder(CallToolExecutionContext executionCo
 
         try
         {
+            // If the result type is CallToolResult, deserialize it directly
+            if (string.Equals(result.Type, McpConstants.ToolResultContentTypes.CallToolResult, StringComparison.OrdinalIgnoreCase))
+            {
+                var callToolResult = JsonSerializer.Deserialize<CallToolResult>(result.Content!, McpJsonUtilities.DefaultOptions)
+                    ?? throw new InvalidOperationException("Failed to deserialize CallToolResult.");
+
+                executionContext.SetResult(callToolResult);
+                return Task.CompletedTask;
+            }
+
             IList<ContentBlock> contentBlocks = DeserializeToContentBlockCollection(result);
+            JsonNode? structuredContent = DeserializeToStructuredContent(result);
 
             if (contentBlocks.Count == 0)
             {
@@ -40,7 +52,8 @@ internal sealed class ToolReturnValueBinder(CallToolExecutionContext executionCo
 
             executionContext.SetResult(new CallToolResult
             {
-                Content = contentBlocks
+                Content = contentBlocks,
+                StructuredContent = structuredContent
             });
         }
         catch (JsonException ex)
@@ -71,5 +84,16 @@ internal sealed class ToolReturnValueBinder(CallToolExecutionContext executionCo
             ?? throw new InvalidOperationException($"Failed to deserialize content block type '{result.Type}'.");
 
         return [contentBlock];
+    }
+
+    private static JsonNode? DeserializeToStructuredContent(McpToolResult result)
+    {
+        if (!string.IsNullOrEmpty(result.StructuredContent))
+        {
+            return JsonSerializer.Deserialize<JsonNode>(result.StructuredContent!, McpJsonUtilities.DefaultOptions)
+                ?? throw new InvalidOperationException($"Failed to deserialize structured content.");
+        }
+
+        return null;
     }
 }

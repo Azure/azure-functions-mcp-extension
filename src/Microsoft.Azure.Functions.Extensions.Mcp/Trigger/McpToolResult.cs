@@ -18,4 +18,9 @@ public sealed class McpToolResult
     /// The type of content being returned.
     /// </summary>
     public required string Type { get; init; }
+
+    /// <summary>
+    /// Structured content returned by the tool.
+    /// </summary>
+    public string? StructuredContent { get; set; }
 }

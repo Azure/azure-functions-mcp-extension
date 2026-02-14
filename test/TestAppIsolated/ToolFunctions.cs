@@ -1,6 +1,8 @@
 using System.Collections;
 using System.ComponentModel;
 using System.Globalization;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Extensions.Mcp;
 using Microsoft.Extensions.Logging;
@@ -102,13 +104,13 @@ public class TestFunction
     }
 
     [Function(nameof(GetSnippet))]
-    public object GetSnippet(
+    public Snippet? GetSnippet(
         [McpToolTrigger(GetSnippetToolName, GetSnippetToolDescription)] ToolInvocationContext context,
         [McpToolProperty(SnippetNamePropertyName, SnippetNamePropertyDescription, true)] string name)
     {
-        return SnippetsCache.Snippets.TryGetValue(name, out var snippet)
-            ? snippet
-            : string.Empty;
+        return SnippetsCache.Snippets.TryGetValue(name, out var content)
+            ? new Snippet { Name = name, Content = content }
+            : null;
     }
 
     [Function(nameof(SaveSnippet))]
@@ -131,6 +133,42 @@ public class TestFunction
             .ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
     }
 
+    [Function(nameof(GetImageWithMetadata))]
+    public CallToolResult GetImageWithMetadata(
+        [McpToolTrigger("GetImageWithMetadata", "Returns an image with metadata as structured content")] ToolInvocationContext context)
+    {
+        // Manually construct CallToolResult with explicit content blocks and structured content
+        var metadata = new
+        {
+            ImageId = "logo",
+            Format = "png",
+            CreatedAt = DateTime.UtcNow,
+            Tags = new[] { "functions" }
+        };
+
+        var metadataJson = JsonSerializer.Serialize(metadata);
+        var imagePath = Path.Combine(AppContext.BaseDirectory, "assets", "logo.png");
+        byte[] imageBytes = File.ReadAllBytes(imagePath);
+
+        return new CallToolResult
+        {
+            Content = new List<ContentBlock> 
+            { 
+                // REQUIRED: TextContent block with serialized structured content (for backwards compatibility)
+                new TextContentBlock { Text = metadataJson },
+                new ImageContentBlock { Data = Convert.ToBase64String(imageBytes), MimeType = "image/png" }
+            },
+            // Structured content for clients that support it
+            StructuredContent = JsonNode.Parse(metadataJson)
+        };
+    }
+
+    /// <summary>
+    /// Snippet class decorated with McpContent to enable structured content output.
+    /// When returned from a tool function, this will be serialized as both text content
+    /// (for backwards compatibility) and structured content (for clients that support it).
+    /// </summary>
+    [McpContent]
     public class Snippet
     {
         [Description("The name of the snippet")]
