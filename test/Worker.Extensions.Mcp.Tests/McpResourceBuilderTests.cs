@@ -12,7 +12,7 @@ namespace Worker.Extensions.Mcp.Tests;
 
 public class McpResourceBuilderTests
 {
-    private static McpResourceBuilder CreateBuilder(string resourceName, out ServiceCollection services)
+    private static McpResourceBuilder CreateBuilder(string resourceUri, out ServiceCollection services)
     {
         services = new ServiceCollection();
         services.AddOptions();
@@ -20,19 +20,19 @@ public class McpResourceBuilderTests
         var appBuilder = new Mock<IFunctionsWorkerApplicationBuilder>();
         appBuilder.SetupGet(b => b.Services).Returns(services);
 
-        return new McpResourceBuilder(appBuilder.Object, resourceName);
+        return new McpResourceBuilder(appBuilder.Object, resourceUri);
     }
 
     [Fact]
     public void WithMeta_AddsMetadataEntry()
     {
-        var resourceName = "myResource";
-        var builder = CreateBuilder(resourceName, out var services);
+        var resourceUri = "ui://my/resource.html";
+        var builder = CreateBuilder(resourceUri, out var services);
 
         builder.WithMeta("openai/widgetPrefersBorder", true);
 
         using var sp = services.BuildServiceProvider();
-        var options = sp.GetRequiredService<IOptionsMonitor<ResourceOptions>>().Get(resourceName);
+        var options = sp.GetRequiredService<IOptionsMonitor<ResourceOptions>>().Get(resourceUri);
 
         Assert.Single(options.Metadata);
         Assert.True((bool)options.Metadata["openai/widgetPrefersBorder"]!);
@@ -41,8 +41,8 @@ public class McpResourceBuilderTests
     [Fact]
     public void WithMeta_MultipleEntries_AddsAllMetadata()
     {
-        var resourceName = "myResource";
-        var builder = CreateBuilder(resourceName, out var services);
+        var resourceUri = "ui://my/resource.html";
+        var builder = CreateBuilder(resourceUri, out var services);
 
         builder
             .WithMeta("key1", "value1")
@@ -50,7 +50,7 @@ public class McpResourceBuilderTests
             .WithMeta("key3", false);
 
         using var sp = services.BuildServiceProvider();
-        var options = sp.GetRequiredService<IOptionsMonitor<ResourceOptions>>().Get(resourceName);
+        var options = sp.GetRequiredService<IOptionsMonitor<ResourceOptions>>().Get(resourceUri);
 
         Assert.Equal(3, options.Metadata.Count);
         Assert.Equal("value1", options.Metadata["key1"]);
@@ -61,7 +61,7 @@ public class McpResourceBuilderTests
     [Fact]
     public void WithMeta_EmptyKey_Throws()
     {
-        var builder = CreateBuilder("resource", out _);
+        var builder = CreateBuilder("ui://my/resource.html", out _);
 
         var ex = Assert.Throws<ArgumentException>(() => builder.WithMeta(string.Empty, "value"));
         Assert.Equal("key", ex.ParamName);
@@ -70,7 +70,7 @@ public class McpResourceBuilderTests
     [Fact]
     public void WithMeta_ReturnsSameBuilderInstance()
     {
-        var builder = CreateBuilder("resource", out _);
+        var builder = CreateBuilder("ui://my/resource.html", out _);
         var result = builder.WithMeta("key", "value");
 
         Assert.Same(builder, result);
@@ -79,8 +79,8 @@ public class McpResourceBuilderTests
     [Fact]
     public void Chaining_MultipleWithMeta_ConfiguresAllMetadata()
     {
-        var resourceName = "myResource";
-        var builder = CreateBuilder(resourceName, out var services);
+        var resourceUri = "ui://my/resource.html";
+        var builder = CreateBuilder(resourceUri, out var services);
 
         builder
             .WithMeta("openai/widgetPrefersBorder", true)
@@ -88,7 +88,7 @@ public class McpResourceBuilderTests
             .WithMeta("version", 2);
 
         using var sp = services.BuildServiceProvider();
-        var options = sp.GetRequiredService<IOptionsMonitor<ResourceOptions>>().Get(resourceName);
+        var options = sp.GetRequiredService<IOptionsMonitor<ResourceOptions>>().Get(resourceUri);
 
         Assert.Equal(3, options.Metadata.Count);
         Assert.True((bool)options.Metadata["openai/widgetPrefersBorder"]!);

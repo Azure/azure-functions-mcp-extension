@@ -66,9 +66,9 @@ public sealed class McpFunctionMetadataTransformer(
                         break;
 
                     case McpResourceTriggerBindingType:
-                        if (jsonObject.TryGetPropertyValue("resourceName", out var resourceNameNode))
+                        if (jsonObject.TryGetPropertyValue("uri", out var resourceUriNode))
                         {
-                            ApplyMetadata(resourceNameNode?.ToString(), jsonObject, resourceOptionsMonitor, o => o.Metadata);
+                            ApplyMetadata(resourceUriNode?.ToString(), jsonObject, resourceOptionsMonitor, o => o.Metadata);
                         }
 
                         if (MetadataParser.TryGetResourceMetadata(function, out var resourceMetadataJson))

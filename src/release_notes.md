@@ -16,7 +16,7 @@
     ```csharp
     // Configure MCP resource metadata using the fluent API
     builder
-        .ConfigureMcpResource("hellopage")
+        .ConfigureMcpResource("ui://my/welcomepage.html")
         .WithMeta("ui", new { prefersBorder = true });
 
 

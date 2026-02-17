@@ -26,14 +26,14 @@ public static class McpHostBuilderExtensions
     }
 
     /// <summary>
-    /// Configures an MCP resource with the specified name and returns a builder for fluent configuration.
+    /// Configures an MCP resource with the specified URI and returns a builder for fluent configuration.
     /// </summary>
     /// <param name="builder">The Functions Worker application builder.</param>
-    /// <param name="resourceName">The unique name of the resource to configure.</param>
+    /// <param name="resourceUri">The unique URI of the resource to configure.</param>
     /// <returns>An <see cref="McpResourceBuilder"/> instance for configuring the resource.</returns>
-    public static McpResourceBuilder ConfigureMcpResource(this IFunctionsWorkerApplicationBuilder builder, string resourceName)
+    public static McpResourceBuilder ConfigureMcpResource(this IFunctionsWorkerApplicationBuilder builder, string resourceUri)
     {
-        return new McpResourceBuilder(builder, resourceName);
+        return new McpResourceBuilder(builder, resourceUri);
     }
 
     [EditorBrowsable(EditorBrowsableState.Never)]

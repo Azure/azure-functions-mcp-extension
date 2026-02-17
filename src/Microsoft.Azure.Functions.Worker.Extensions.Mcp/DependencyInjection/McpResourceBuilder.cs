@@ -9,8 +9,8 @@ namespace Microsoft.Azure.Functions.Worker.Builder;
 /// Provides a fluent builder for configuring metadata of an MCP resource within a Functions Worker application.
 /// </summary>
 /// <param name="builder">The application builder used to configure services and resource options.</param>
-/// <param name="resourceName">The unique name of the resource to configure.</param>
-public sealed class McpResourceBuilder(IFunctionsWorkerApplicationBuilder builder, string resourceName)
-    : McpBuilderBase<ResourceOptions, McpResourceBuilder>(builder, resourceName)
+/// <param name="resourceUri">The unique URI of the resource to configure.</param>
+public sealed class McpResourceBuilder(IFunctionsWorkerApplicationBuilder builder, string resourceUri)
+    : McpBuilderBase<ResourceOptions, McpResourceBuilder>(builder, resourceUri)
 {
 }
