@@ -22,6 +22,11 @@ internal interface IMcpResource
     string Name { get; }
 
     /// <summary>
+    /// Gets or sets the title of the resource.
+    /// </summary>
+    string? Title { get; }
+
+    /// <summary>
     /// Gets or sets the MIME type of the resource.
     /// </summary>
     string? MimeType { get; }
@@ -30,7 +35,7 @@ internal interface IMcpResource
     /// Gets or sets the description of the resource.
     /// </summary>
     string? Description { get; }
-    
+
     /// <summary>
     /// Gets or sets the size of the resource in bytes.
     /// </summary>
