@@ -77,4 +77,22 @@ public class ListToolTests(DefaultProjectFixture fixture, ITestOutputHelper test
         Assert.True(logoTool.ProtocolTool.Meta.ContainsKey("author"), "Tool should contain 'author' metadata");
         Assert.Equal("Jane Doe", ((JsonNode)logoTool.ProtocolTool.Meta["author"]!).GetValue<string>());
     }
+
+    [Theory]
+    [InlineData(HttpTransportMode.Sse)]
+    [InlineData(HttpTransportMode.AutoDetect)]
+    [InlineData(HttpTransportMode.StreamableHttp)]
+    public async Task DefaultListTools_ContainsFluentApiMetadata(HttpTransportMode mode)
+    {
+        var client = await Fixture.CreateClientAsync(mode);
+        var tools = await client.ListToolsAsync(cancellationToken: TestContext.Current.CancellationToken);
+
+        var renderImageTool = tools.FirstOrDefault(t => t.Name == "RenderImage");
+        Assert.NotNull(renderImageTool);
+        Assert.NotNull(renderImageTool.ProtocolTool.Meta);
+        Assert.True(renderImageTool.ProtocolTool.Meta.ContainsKey("imageVersion"), "Tool should contain 'imageVersion' metadata");
+        Assert.Equal("1.0", ((JsonNode)renderImageTool.ProtocolTool.Meta["imageVersion"]!).GetValue<string>());
+        Assert.True(renderImageTool.ProtocolTool.Meta.ContainsKey("source"), "Tool should contain 'source' metadata");
+        Assert.Equal("google", ((JsonNode)renderImageTool.ProtocolTool.Meta["source"]!).GetValue<string>());
+    }
 }

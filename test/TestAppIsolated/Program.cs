@@ -10,4 +10,11 @@ builder.ConfigureFunctionsWebApplication();
 //     .AddApplicationInsightsTelemetryWorkerService()
 //     .ConfigureFunctionsApplicationInsights();
 
+builder.ConfigureMcpResource("file://logo.png")
+        .WithMeta("ui", new { prefersBorder = true });
+
+builder.ConfigureMcpTool("RenderImage")
+        .WithMeta("imageVersion", "1.0")
+        .WithMeta("source", "google");
+
 builder.Build().Run();

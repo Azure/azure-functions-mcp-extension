@@ -52,7 +52,7 @@ public class ListResourceTests(DefaultProjectFixture fixture, ITestOutputHelper 
 
         Assert.NotNull(resources);
         var readmeResource = resources.FirstOrDefault(r => r.Uri == "file://readme.md");
-        
+
         Assert.NotNull(readmeResource);
         Assert.Equal("readme", readmeResource.Name);
         Assert.Equal("Application readme file", readmeResource.Description);
@@ -61,10 +61,10 @@ public class ListResourceTests(DefaultProjectFixture fixture, ITestOutputHelper 
         // Verify custom McpMetadata attributes are included in _meta
         var meta = readmeResource.ProtocolResource.Meta;
         Assert.NotNull(meta);
-        
+
         Assert.True(meta.ContainsKey("author"));
         Assert.Equal("John Doe", meta["author"]!.ToString());
-        
+
         Assert.True(meta.ContainsKey("file"));
         var fileNode = meta["file"]!.AsObject();
         Assert.Equal(1.0, fileNode["version"]!.GetValue<double>());
@@ -86,22 +86,28 @@ public class ListResourceTests(DefaultProjectFixture fixture, ITestOutputHelper 
     [InlineData(HttpTransportMode.Sse)]
     [InlineData(HttpTransportMode.AutoDetect)]
     [InlineData(HttpTransportMode.StreamableHttp)]
-    public async Task DefaultListResources_BinaryResourceHasCorrectProperties(HttpTransportMode mode)
+    public async Task DefaultListResources_BinaryResourceHasFluentApiMetadata(HttpTransportMode mode)
     {
         var client = await Fixture.CreateClientAsync(mode);
         var resources = await client.ListResourcesAsync(cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.NotNull(resources);
         var logoResource = resources.FirstOrDefault(r => r.Uri == "file://logo.png");
-        
+
         Assert.NotNull(logoResource);
         Assert.Equal("logo", logoResource.Name);
         Assert.Equal("Azure Functions logo", logoResource.Description);
         Assert.Equal("image/png", logoResource.MimeType);
 
-        // This resource has no McpMetadata attributes, so Meta should be null
-        Assert.Null(logoResource.ProtocolResource.Meta);
+        // Verify fluent API metadata is included in _meta
+        var meta = logoResource.ProtocolResource.Meta;
+        Assert.NotNull(meta);
+
+        Assert.True(meta.ContainsKey("ui"));
+        var uiNode = meta["ui"]!.AsObject();
+        Assert.True(uiNode["prefersBorder"]!.GetValue<bool>());
 
         TestOutputHelper.WriteLine($"Resource: Name={logoResource.Name}, Description={logoResource.Description}, MimeType={logoResource.MimeType}");
+        TestOutputHelper.WriteLine($"Metadata: ui.prefersBorder={uiNode["prefersBorder"]}");
     }
 }
