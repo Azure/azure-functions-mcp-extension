@@ -1,6 +1,9 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
+using System.Diagnostics;
+using Microsoft.AspNetCore.Http;
+using Microsoft.Azure.Functions.Extensions.Mcp.Diagnostics;
 using Microsoft.Azure.WebJobs.Host.Executors;
 using Microsoft.Azure.WebJobs.Host.Listeners;
 using ModelContextProtocol.Protocol;
@@ -17,6 +20,10 @@ internal sealed class McpResourceListener(ITriggeredFunctionExecutor executor,
                                           long? resourceSize,
                                           IReadOnlyDictionary<string, object?> metadata) : IListener, IMcpResource
 {
+    private readonly McpActivityFactory _activityFactory = new();
+    private IHttpContextAccessor? _httpContextAccessor;
+    private bool _httpContextAccessorResolved;
+
     public ITriggeredFunctionExecutor Executor { get; } = executor;
 
     public string FunctionName { get; } = functionName;
@@ -43,27 +50,74 @@ internal sealed class McpResourceListener(ITriggeredFunctionExecutor executor,
 
     public async Task<ReadResourceResult> ReadAsync(RequestContext<ReadResourceRequestParams> readResourceRequest, CancellationToken cancellationToken)
     {
-        var execution = new ReadResourceExecutionContext(readResourceRequest);
+        // Capture transport context before creating activity
+        var transportContext = ActivityHelper.CaptureCurrentContext();
 
-        var input = new TriggeredFunctionData
+        // Extract session ID and build request context with client info
+        var sessionId = readResourceRequest.Server?.SessionId;
+        var requestContext = McpRequestTraceContext.FromHttpContextAccessor(
+            GetHttpContextAccessor(readResourceRequest.Services),
+            sessionId);
+
+        // Create activity for this resource read
+        using var activity = _activityFactory.CreateResourceActivity(
+            Uri,
+            readResourceRequest.Params,
+            transportContext,
+            requestContext);
+
+        // Start timing for metrics
+        var startTimestamp = Stopwatch.GetTimestamp();
+        string? errorType = null;
+
+        try
         {
-            TriggerValue = execution
-        };
+            var execution = new ReadResourceExecutionContext(readResourceRequest);
 
-        var result = await Executor.TryExecuteAsync(input, cancellationToken);
+            var input = new TriggeredFunctionData
+            {
+                TriggerValue = execution
+            };
 
-         if (!result.Succeeded)
+            var result = await Executor.TryExecuteAsync(input, cancellationToken);
+
+            if (!result.Succeeded)
+            {
+                errorType = result.Exception?.GetType().FullName;
+                activity?.SetExceptionStatus(result.Exception);
+
+                throw result.Exception;
+            }
+
+            var resourceResult = await execution.ResultTask;
+
+            if (resourceResult is ReadResourceResult readResourceResult)
+            {
+                return readResourceResult;
+            }
+
+            return new ReadResourceResult { Contents = [] };
+        }
+        catch (Exception ex)
         {
-            throw result.Exception;
+            errorType = ex.GetType().FullName;
+            activity?.SetExceptionStatus(ex);
+            throw;
+        }
+        finally
+        {
+            McpServerMetrics.RecordResourceDuration(Stopwatch.GetElapsedTime(startTimestamp), Uri, requestContext.SessionId, errorType);
+        }
+    }
+
+    private IHttpContextAccessor? GetHttpContextAccessor(IServiceProvider? services)
+    {
+        if (!_httpContextAccessorResolved)
+        {
+            _httpContextAccessor = services?.GetService(typeof(IHttpContextAccessor)) as IHttpContextAccessor;
+            _httpContextAccessorResolved = true;
         }
 
-        var resourceResult = await execution.ResultTask;
-
-        if (resourceResult is ReadResourceResult readResourceResult)
-        {
-            return readResourceResult;
-        }
-
-        return new ReadResourceResult { Contents = [] };
+        return _httpContextAccessor;
     }
 }

@@ -7,11 +7,14 @@
 ### Microsoft.Azure.Functions.Extensions <version>
 
 - Added structured content support for tools (#172)
+- Update MCP Trigger Instrumentation to 1.39.0 Semantic Conventions (#201)
 
 ### Microsoft.Azure.Functions.Worker.Extensions.Mcp <version>
 
 - Added structured content support for tools (#172)
+- Update MCP Trigger Instrumentation to 1.39.0 Semantic Conventions (#201)
 
 ### Microsoft.Azure.Functions.Worker.Extensions.Mcp.Sdk <version>
 
 - Added structured content support for tools (#172)
+- Update MCP Trigger Instrumentation to 1.39.0 Semantic Conventions (#201)
