@@ -119,6 +119,7 @@ internal sealed class McpResourceTriggerBinding : ITriggerBinding
             context.Descriptor.ShortName,
             _resourceAttribute.Uri,
             _resourceAttribute.ResourceName,
+            _resourceAttribute.Title,
             _resourceAttribute.Description,
             _resourceAttribute.MimeType,
             _resourceAttribute.Size,

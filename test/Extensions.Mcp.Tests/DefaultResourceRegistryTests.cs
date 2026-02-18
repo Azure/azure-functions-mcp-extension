@@ -278,6 +278,32 @@ public class DefaultResourceRegistryTests
     }
 
     [Fact]
+    public async Task ListResourcesAsync_WithTitle_IncludesTitle()
+    {
+        var registry = new DefaultResourceRegistry();
+        var resource = CreateTestResource("test://resource/1", title: "My Resource Title");
+        registry.Register(resource);
+
+        var result = await registry.ListResourcesAsync();
+
+        var listedResource = result.Resources[0];
+        Assert.Equal("My Resource Title", listedResource.Title);
+    }
+
+    [Fact]
+    public async Task ListResourcesAsync_WithNullTitle_HasNullTitle()
+    {
+        var registry = new DefaultResourceRegistry();
+        var resource = CreateTestResource("test://resource/1");
+        registry.Register(resource);
+
+        var result = await registry.ListResourcesAsync();
+
+        var listedResource = result.Resources[0];
+        Assert.Null(listedResource.Title);
+    }
+
+    [Fact]
     public async Task ListResourcesAsync_WithMultipleResources_ReturnsAllInOrder()
     {
         var registry = new DefaultResourceRegistry();
@@ -314,6 +340,7 @@ public class DefaultResourceRegistryTests
     private static TestResource CreateTestResource(
         string uri,
         string? name = null,
+        string? title = null,
         string? mimeType = null,
         string? description = null,
         long? size = null,
@@ -323,6 +350,7 @@ public class DefaultResourceRegistryTests
         {
             Uri = uri,
             Name = name ?? "TestResource",
+            Title = title,
             MimeType = mimeType,
             Description = description,
             Size = size,
@@ -334,6 +362,7 @@ public class DefaultResourceRegistryTests
     {
         public required string Uri { get; init; }
         public required string Name { get; set; }
+        public string? Title { get; set; }
         public string? MimeType { get; set; }
         public string? Description { get; set; }
         public long? Size { get; set; }

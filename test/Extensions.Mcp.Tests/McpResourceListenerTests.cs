@@ -32,6 +32,7 @@ public class McpResourceListenerTests
             "MyFunction",
             "test://resource/1",
             "TestResource",
+            "Test Title",
             "A test resource",
             "text/plain",
             1024,
@@ -40,6 +41,7 @@ public class McpResourceListenerTests
         Assert.Equal("MyFunction", listener.FunctionName);
         Assert.Equal("test://resource/1", listener.Uri);
         Assert.Equal("TestResource", listener.Name);
+        Assert.Equal("Test Title", listener.Title);
         Assert.Equal("A test resource", listener.Description);
         Assert.Equal("text/plain", listener.MimeType);
         Assert.Equal(1024, listener.Size);
@@ -55,6 +57,7 @@ public class McpResourceListenerTests
             "MyFunction",
             "test://resource/1",
             "TestResource",
+            null,
             null,
             null,
             null,
@@ -76,6 +79,7 @@ public class McpResourceListenerTests
             null,
             null,
             null,
+            null,
             new Dictionary<string, object?>());
 
         await listener.StopAsync(CancellationToken.None);
@@ -94,6 +98,7 @@ public class McpResourceListenerTests
             null,
             null,
             null,
+            null,
             new Dictionary<string, object?>());
 
         listener.Dispose();
@@ -109,6 +114,7 @@ public class McpResourceListenerTests
             "MyFunction",
             "test://resource/1",
             "TestResource",
+            null,
             null,
             null,
             null,

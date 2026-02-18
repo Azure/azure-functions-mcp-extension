@@ -12,6 +12,7 @@ internal sealed class McpResourceListener(ITriggeredFunctionExecutor executor,
                                           string functionName,
                                           string resourceUri,
                                           string resourceName,
+                                          string? resourceTitle,
                                           string? resourceDescription,
                                           string? resourceMimeType,
                                           long? resourceSize,
@@ -24,6 +25,8 @@ internal sealed class McpResourceListener(ITriggeredFunctionExecutor executor,
     public string Uri { get; } = resourceUri;
 
     public string Name { get; set; } = resourceName;
+
+    public string? Title { get; set; } = resourceTitle;
 
     public string? Description { get; set; } = resourceDescription;
 
