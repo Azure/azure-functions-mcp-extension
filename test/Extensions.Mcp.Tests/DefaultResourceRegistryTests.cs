@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
+using System.Text.RegularExpressions;
 using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 
@@ -265,6 +266,48 @@ public class DefaultResourceRegistryTests
     }
 
     [Fact]
+    public async Task ListResourcesAsync_ExcludesResourceTemplates()
+    {
+        var registry = new DefaultResourceRegistry();
+        registry.Register(CreateTestResource("test://resource/1"));
+        registry.Register(CreateTestResourceTemplate("file://{filename}", name: "TemplateResource"));
+
+        var result = await registry.ListResourcesAsync();
+
+        Assert.Single(result.Resources);
+        Assert.DoesNotContain(result.Resources, r => r.Uri == "file://{filename}");
+    }
+
+    [Fact]
+    public async Task ListResourceTemplatesAsync_ReturnsTemplatesOnly()
+    {
+        var registry = new DefaultResourceRegistry();
+        registry.Register(CreateTestResource("test://resource/1", name: "Static"));
+        registry.Register(CreateTestResourceTemplate("file://{filename}", name: "TemplateResource", description: "Reads files"));
+
+        var result = await registry.ListResourceTemplatesAsync();
+
+        Assert.Single(result.ResourceTemplates);
+        var template = result.ResourceTemplates[0];
+        Assert.Equal("file://{filename}", template.UriTemplate);
+        Assert.Equal("TemplateResource", template.Name);
+        Assert.Equal("Reads files", template.Description);
+    }
+
+    [Fact]
+    public void TryGetResource_MatchesUriTemplate()
+    {
+        var registry = new DefaultResourceRegistry();
+        var template = CreateTestResourceTemplate("file://{filename}", name: "TemplateResource");
+        registry.Register(template);
+
+        var found = registry.TryGetResource("file://welcome.html", out var resource);
+
+        Assert.True(found);
+        Assert.Same(template, resource);
+    }
+
+    [Fact]
     public async Task ListResourcesAsync_WithName_IncludesName()
     {
         var registry = new DefaultResourceRegistry();
@@ -358,6 +401,26 @@ public class DefaultResourceRegistryTests
         };
     }
 
+    private static TestResourceTemplate CreateTestResourceTemplate(
+        string uriTemplate,
+        string? name = null,
+        string? mimeType = null,
+        string? description = null,
+        long? size = null,
+        IReadOnlyDictionary<string, object?>? metadata = null)
+    {
+        return new TestResourceTemplate
+        {
+            Uri = uriTemplate,
+            Name = name ?? "TestResourceTemplate",
+            MimeType = mimeType,
+            Description = description,
+            Size = size,
+            Metadata = metadata ?? new Dictionary<string, object?>(),
+            TemplateRegex = ResourceUriHelper.BuildTemplateRegex(uriTemplate)
+        };
+    }
+
     private class TestResource : IMcpResource
     {
         public required string Uri { get; init; }
@@ -367,6 +430,22 @@ public class DefaultResourceRegistryTests
         public string? Description { get; set; }
         public long? Size { get; set; }
         public IReadOnlyDictionary<string, object?> Metadata { get; set; } = new Dictionary<string, object?>();
+
+        public Task<ReadResourceResult> ReadAsync(RequestContext<ReadResourceRequestParams> readResourceRequest, CancellationToken cancellationToken)
+        {
+            throw new NotImplementedException();
+        }
+    }
+
+    private class TestResourceTemplate : IMcpResourceTemplate
+    {
+        public required string Uri { get; init; }
+        public required string Name { get; set; }
+        public string? MimeType { get; set; }
+        public string? Description { get; set; }
+        public long? Size { get; set; }
+        public IReadOnlyDictionary<string, object?> Metadata { get; set; } = new Dictionary<string, object?>();
+        public required Regex TemplateRegex { get; init; }
 
         public Task<ReadResourceResult> ReadAsync(RequestContext<ReadResourceRequestParams> readResourceRequest, CancellationToken cancellationToken)
         {

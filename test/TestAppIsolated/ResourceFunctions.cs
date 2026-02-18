@@ -54,4 +54,17 @@ public class ResourceFunctions
         var filePath = Path.Combine(AppContext.BaseDirectory, "assets", "logo.png");
         return File.ReadAllBytes(filePath);
     }
+
+    [Function(nameof(UserProfileResourceTemplate))]
+    public string UserProfileResourceTemplate(
+        [McpResourceTrigger(
+            "user://profile/{name}",
+            "userProfile",
+            Description = "User profile resource",
+            MimeType = "application/json")] ResourceInvocationContext context, string name)
+    {
+        _logger.LogInformation("Reading user profile template for {Name}", name);
+        var file = Path.Combine(AppContext.BaseDirectory, "assets", $"{name}.md");
+        return File.ReadAllText(file);
+    }
 }

@@ -36,7 +36,7 @@ internal sealed class McpResourceTriggerBinding : ITriggerBinding
         var logger = _loggerFactory.CreateLogger<McpResourceTriggerBinding>();
         _resourceMetadata = MetadataParser.ParseMetadata(resourceAttribute.Metadata, logger);
 
-        BindingDataContract = new Dictionary<string, Type>(StringComparer.OrdinalIgnoreCase)
+        var bindingContract = new Dictionary<string, Type>(StringComparer.OrdinalIgnoreCase)
         {
             { triggerParameter.Name!, triggerParameter.ParameterType },
             { "mcpresourceuri", typeof(string) },
@@ -44,6 +44,16 @@ internal sealed class McpResourceTriggerBinding : ITriggerBinding
             { "mcpsessionid", typeof(string) },
             { "$return", typeof(object).MakeByRefType() }
         };
+
+        foreach (var parameterName in ResourceUriHelper.GetTemplateParameterNames(resourceAttribute.Uri))
+        {
+            if (!bindingContract.ContainsKey(parameterName))
+            {
+                bindingContract[parameterName] = typeof(string);
+            }
+        }
+
+        BindingDataContract = bindingContract;
     }
 
     public Type TriggerValueType { get; } = typeof(object);
@@ -81,6 +91,15 @@ internal sealed class McpResourceTriggerBinding : ITriggerBinding
             bindingData["mcpresourceuri"] = executionContext.Request.Uri;
         }
 
+        if (executionContext.Request.Uri is not null &&
+            ResourceUriHelper.TryExtractParameters(_resourceAttribute.Uri, executionContext.Request.Uri, out var templateValues))
+        {
+            foreach (var kvp in templateValues)
+            {
+                bindingData[kvp.Key] = kvp.Value;
+            }
+        }
+
         IValueProvider valueProvider = new ObjectValueProvider(triggerValue, _triggerParameter.ParameterType);
         IValueBinder returnValueBinder = new ResourceReturnValueBinder(
             executionContext,
@@ -114,19 +133,40 @@ internal sealed class McpResourceTriggerBinding : ITriggerBinding
 
     public Task<IListener> CreateListenerAsync(ListenerFactoryContext context)
     {
-        var listener = new McpResourceListener(
-            context.Executor,
-            context.Descriptor.ShortName,
-            _resourceAttribute.Uri,
-            _resourceAttribute.ResourceName,
-            _resourceAttribute.Title,
-            _resourceAttribute.Description,
-            _resourceAttribute.MimeType,
-            _resourceAttribute.Size,
-            _resourceMetadata);
-        _resourceRegistry.Register(listener);
+        IListener listener;
 
-        return Task.FromResult<IListener>(listener);
+        if (ResourceUriHelper.IsTemplate(_resourceAttribute.Uri))
+        {
+            var templateRegex = ResourceUriHelper.BuildTemplateRegex(_resourceAttribute.Uri);
+            listener = new McpResourceTemplateListener(
+                context.Executor,
+                context.Descriptor.ShortName,
+                _resourceAttribute.Uri,
+                _resourceAttribute.ResourceName,
+                _resourceAttribute.Title,
+                _resourceAttribute.Description,
+                _resourceAttribute.MimeType,
+                _resourceAttribute.Size,
+                _resourceMetadata,
+                templateRegex);
+        }
+        else
+        {
+            listener = new McpResourceListener(
+                context.Executor,
+                context.Descriptor.ShortName,
+                _resourceAttribute.Uri,
+                _resourceAttribute.ResourceName,
+                _resourceAttribute.Title,
+                _resourceAttribute.Description,
+                _resourceAttribute.MimeType,
+                _resourceAttribute.Size,
+                _resourceMetadata);
+        }
+
+        _resourceRegistry.Register((IMcpResource)listener);
+
+        return Task.FromResult(listener);
     }
 
     public ParameterDescriptor ToParameterDescriptor()

@@ -12,18 +12,44 @@ namespace Microsoft.Azure.Functions.Extensions.Mcp;
 /// </summary>
 internal sealed class DefaultResourceRegistry : IResourceRegistry
 {
-    private readonly Dictionary<string, IMcpResource> _resources = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, IMcpResource> _staticResources = new(StringComparer.OrdinalIgnoreCase);
+    private readonly List<IMcpResourceTemplate> _templates = new();
+    private readonly object _lock = new();
+
+    // Cached results - resources don't change after startup
+    private ListResourcesResult? _cachedResourcesResult;
+    private ListResourceTemplatesResult? _cachedTemplatesResult;
 
     /// <inheritdoc/>
     public void Register(IMcpResource resource)
     {
         ArgumentNullException.ThrowIfNull(resource);
 
-        ValidateResourceUri(resource.Uri);
+        ResourceUriHelper.Validate(resource.Uri);
 
-        if (!_resources.TryAdd(resource.Uri, resource))
+        lock (_lock)
         {
-            throw new InvalidOperationException($"Resource with URI '{resource.Uri}' is already registered.");
+            if (resource is IMcpResourceTemplate template)
+            {
+                // Check for duplicate template URI
+                if (_templates.Any(t => string.Equals(t.Uri, resource.Uri, StringComparison.OrdinalIgnoreCase)))
+                {
+                    throw new InvalidOperationException($"Resource with URI '{resource.Uri}' is already registered.");
+                }
+
+                _templates.Add(template);
+            }
+            else
+            {
+                if (!_staticResources.TryAdd(resource.Uri, resource))
+                {
+                    throw new InvalidOperationException($"Resource with URI '{resource.Uri}' is already registered.");
+                }
+            }
+
+            // Invalidate caches
+            _cachedResourcesResult = null;
+            _cachedTemplatesResult = null;
         }
     }
 
@@ -32,57 +58,83 @@ internal sealed class DefaultResourceRegistry : IResourceRegistry
     {
         ArgumentNullException.ThrowIfNull(uri);
 
-        ValidateResourceUri(uri);
+        ResourceUriHelper.Validate(uri);
 
-        return _resources.TryGetValue(uri, out resource);
+        if (_staticResources.TryGetValue(uri, out resource))
+        {
+            return true;
+        }
+
+        foreach (var template in _templates)
+        {
+            if (template.TemplateRegex.IsMatch(uri))
+            {
+                resource = template;
+                return true;
+            }
+        }
+
+        resource = null;
+        return false;
     }
 
     /// <inheritdoc/>
     public IReadOnlyCollection<IMcpResource> GetResources()
     {
-        return _resources.Values;
+        return [.. _staticResources.Values, .. _templates];
     }
 
     /// <inheritdoc/>
     public ValueTask<ListResourcesResult> ListResourcesAsync(CancellationToken cancellationToken = default)
     {
-        var result = new ListResourcesResult
+        if (_cachedResourcesResult is not null)
         {
-            Resources = [.. _resources.Values.Select(static resource => new Resource
-            {
-                Uri = resource.Uri,
-                Name = resource.Name,
-                Title = resource.Title,
-                Description = resource.Description,
-                MimeType = resource.MimeType,
-                Size = resource.Size,
-                Meta = MetadataParser.SerializeMetadata(resource.Metadata)
-            })]
-        };
+            return new ValueTask<ListResourcesResult>(_cachedResourcesResult);
+        }
 
-        return new ValueTask<ListResourcesResult>(result);
+        lock (_lock)
+        {
+            _cachedResourcesResult ??= new ListResourcesResult
+            {
+                Resources = [.. _staticResources.Values.Select(static resource => new Resource
+                {
+                    Uri = resource.Uri,
+                    Name = resource.Name,
+                    Title = resource.Title,
+                    Description = resource.Description,
+                    MimeType = resource.MimeType,
+                    Size = resource.Size,
+                    Meta = MetadataParser.SerializeMetadata(resource.Metadata)
+                })]
+            };
+        }
+
+        return new ValueTask<ListResourcesResult>(_cachedResourcesResult);
     }
 
-    /// <summary>
-    /// Validates a resource URI according to MCP security requirements.
-    /// Servers MUST validate all resource URIs per the MCP specification.
-    /// </summary>
-    /// <param name="uri">The URI to validate.</param>
-    /// <exception cref="ArgumentException">Thrown when the URI is invalid.</exception>
-    private static void ValidateResourceUri(string uri)
+    /// <inheritdoc/>
+    public ValueTask<ListResourceTemplatesResult> ListResourceTemplatesAsync(CancellationToken cancellationToken = default)
     {
-        if (string.IsNullOrWhiteSpace(uri))
+        if (_cachedTemplatesResult is not null)
         {
-            throw new ArgumentException("Resource URI cannot be null or whitespace.", nameof(uri));
+            return new ValueTask<ListResourceTemplatesResult>(_cachedTemplatesResult);
         }
 
-        // Validate URI format - require absolute URIs with a scheme
-        if (!Uri.TryCreate(uri, UriKind.Absolute, out var parsedUri) || !parsedUri.IsAbsoluteUri)
+        lock (_lock)
         {
-            throw new ArgumentException($"Invalid resource URI format: '{uri}'", nameof(uri));
+            _cachedTemplatesResult ??= new ListResourceTemplatesResult
+            {
+                ResourceTemplates = [.. _templates.Select(static resource => new ResourceTemplate
+                {
+                    UriTemplate = resource.Uri,
+                    Name = resource.Name,
+                    Description = resource.Description,
+                    MimeType = resource.MimeType,
+                    Meta = MetadataParser.SerializeMetadata(resource.Metadata)
+                })]
+            };
         }
 
-        // TODO: Do we also want to validate the scheme here (e.g., only allow ui, file, etc.)?
-        // This might be too restrictive depending on use cases.
+        return new ValueTask<ListResourceTemplatesResult>(_cachedTemplatesResult);
     }
 }
