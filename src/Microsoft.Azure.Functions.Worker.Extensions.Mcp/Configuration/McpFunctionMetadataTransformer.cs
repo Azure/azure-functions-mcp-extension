@@ -45,20 +45,28 @@ public sealed class McpFunctionMetadataTransformer(
                 switch (bindingType)
                 {
                     case McpToolTriggerBindingType:
+                        bool hasFluentToolMetadata = false;
+                        string? toolName = null;
+
                         if (jsonObject.TryGetPropertyValue("toolName", out var toolNameNode))
                         {
-                            var toolName = toolNameNode?.ToString();
+                            toolName = toolNameNode?.ToString();
 
                             if (GetToolProperties(toolName, function, out toolProperties))
                             {
                                 jsonObject["toolProperties"] = ToolPropertyParser.GetPropertiesJson(toolProperties);
                             }
 
-                            ApplyMetadata(toolName, jsonObject, toolOptionsMonitor, o => o.Metadata);
+                            hasFluentToolMetadata = TryApplyMetadata(toolName, jsonObject, toolOptionsMonitor);
                         }
 
                         if (MetadataParser.TryGetToolMetadata(function, out var toolMetadataJson))
                         {
+                            if (hasFluentToolMetadata)
+                            {
+                                throw CreateDuplicateMetadataException("Tool", toolName);
+                            }
+
                             jsonObject["metadata"] = toolMetadataJson;
                         }
 
@@ -66,13 +74,22 @@ public sealed class McpFunctionMetadataTransformer(
                         break;
 
                     case McpResourceTriggerBindingType:
+                        bool hasFluentResourceMetadata = false;
+                        string? resourceUri = null;
+
                         if (jsonObject.TryGetPropertyValue("uri", out var resourceUriNode))
                         {
-                            ApplyMetadata(resourceUriNode?.ToString(), jsonObject, resourceOptionsMonitor, o => o.Metadata);
+                            resourceUri = resourceUriNode?.ToString();
+                            hasFluentResourceMetadata = TryApplyMetadata(resourceUri, jsonObject, resourceOptionsMonitor);
                         }
 
                         if (MetadataParser.TryGetResourceMetadata(function, out var resourceMetadataJson))
                         {
+                            if (hasFluentResourceMetadata)
+                            {
+                                throw CreateDuplicateMetadataException("Resource", resourceUri);
+                            }
+
                             jsonObject["metadata"] = resourceMetadataJson;
                         }
 
@@ -135,22 +152,28 @@ public sealed class McpFunctionMetadataTransformer(
         return ToolPropertyParser.TryGetPropertiesFromAttributes(functionMetadata, out toolProperties);
     }
 
-    private void ApplyMetadata<TOptions>(string? name, JsonObject jsonObject, IOptionsMonitor<TOptions> optionsMonitor, Func<TOptions, Dictionary<string, object?>> metadataSelector)
-        where TOptions : class
+    private static bool TryApplyMetadata<TOptions>(string? name, JsonObject jsonObject, IOptionsMonitor<TOptions> optionsMonitor)
+        where TOptions : class, IMcpBuilderOptions
     {
         if (string.IsNullOrWhiteSpace(name))
         {
-            return;
+            return false;
         }
 
         var options = optionsMonitor.Get(name);
-        var metadata = metadataSelector(options);
 
-        if (metadata.Count > 0)
+        if (options.Metadata.Count > 0)
         {
-            jsonObject["metadata"] = JsonSerializer.Serialize(metadata);
+            jsonObject["metadata"] = JsonSerializer.Serialize(options.Metadata);
+            return true;
         }
+
+        return false;
     }
+
+    private static InvalidOperationException CreateDuplicateMetadataException(string type, string? identifier)
+        => new($"{type} '{identifier}' has metadata defined using both the fluent API and [McpMetadata] attributes. " +
+               $"Use only one approach to define metadata.");
 
     private record ToolPropertyBinding(int Index, JsonObject Binding);
 }

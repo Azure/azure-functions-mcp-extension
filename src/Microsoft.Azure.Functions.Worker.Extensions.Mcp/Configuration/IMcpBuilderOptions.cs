@@ -9,6 +9,11 @@ namespace Microsoft.Azure.Functions.Worker.Extensions.Mcp.Configuration;
 public interface IMcpBuilderOptions
 {
     /// <summary>
+    /// Gets the metadata dictionary.
+    /// </summary>
+    Dictionary<string, object?> Metadata { get; }
+
+    /// <summary>
     /// Adds a metadata entry with the specified key and value.
     /// </summary>
     /// <param name="key">The key for the metadata entry.</param>

@@ -6,6 +6,6 @@ namespace Microsoft.Azure.Functions.Worker.Extensions.Mcp.Configuration;
 /// <summary>
 /// Represents resource configuration options for metadata.
 /// </summary>
-public class ResourceOptions : McpBuilderOptionsBase
+public class ResourceOptions : McpBuilderOptions
 {
 }

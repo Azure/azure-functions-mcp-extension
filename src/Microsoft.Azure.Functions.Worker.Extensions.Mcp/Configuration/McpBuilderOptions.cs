@@ -6,7 +6,7 @@ namespace Microsoft.Azure.Functions.Worker.Extensions.Mcp.Configuration;
 /// <summary>
 /// Provides a base implementation for MCP builder options classes that support metadata configuration.
 /// </summary>
-public abstract class McpBuilderOptionsBase : IMcpBuilderOptions
+public abstract class McpBuilderOptions : IMcpBuilderOptions
 {
     /// <summary>
     /// Gets or sets the metadata associated with the options.
