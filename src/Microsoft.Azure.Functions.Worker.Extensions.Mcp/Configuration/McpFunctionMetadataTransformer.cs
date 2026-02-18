@@ -48,21 +48,30 @@ public sealed class McpFunctionMetadataTransformer(IOptionsMonitor<ToolOptions> 
                         if (jsonObject.TryGetPropertyValue("toolName", out var toolNameNode))
                         {
                             var toolName = toolNameNode?.ToString();
+                            jsonObject["useWorkerInputSchema"] = true;
 
-                            if (TryGetConfiguredToolProperties(toolName, out toolProperties))
+                            if (TryGetConfiguredInputSchema(toolName, out var configuredInputSchema))
                             {
-                                // Use configured tool properties from IOptionsMonitor
-                                jsonObject["toolProperties"] = ToolPropertyParser.GetPropertiesJson(toolProperties!);
+                                // Use explicit input schema from WithInputSchema(string) or WithInputSchema(Type)
+                                jsonObject["inputSchema"] = configuredInputSchema;
+                                inputSchema = JsonNode.Parse(configuredInputSchema);
+                            }
+                            else if (TryGetConfiguredToolProperties(toolName, out toolProperties))
+                            {
+                                // Use configured tool properties from IOptionsMonitor and generate input schema from them
+                                var generatedSchema = InputSchemaGenerator.GenerateFromToolProperties(toolProperties!);
+                                jsonObject["inputSchema"] = generatedSchema.ToJsonString();
                             }
                             else
                             {
-                                // If not set in options monitor, use worker input schema approach
-                                jsonObject["useWorkerInputSchema"] = true;
-
                                 if (!TryGenerateInputSchema(jsonObject, function, out inputSchema))
                                 {
-                                    throw new InvalidOperationException(
-                                        $"Failed to generate input schema for MCP tool trigger function '{function.Name}'.");
+                                    throw new NotSupportedException(
+                                        $"Failed to generate input schema for MCP tool trigger function '{function.Name}'. " +
+                                        $"The input schema could not be inferred from the function's method signature. " +
+                                        $"To resolve this, configure the tool explicitly using either " +
+                                        $"'ConfigureMcpTool(\"{toolName}\").WithInputSchema<T>()' or " +
+                                        $"'ConfigureMcpTool(\"{toolName}\").WithProperty(...)' in your application setup.");
                                 }
                             }
                         }
@@ -97,6 +106,26 @@ public sealed class McpFunctionMetadataTransformer(IOptionsMonitor<ToolOptions> 
             // Patch input binding metadata with type information
             PatchInputBindingMetadata(function, inputBindingProperties, toolProperties, inputSchema);
         }
+    }
+
+    private bool TryGetConfiguredInputSchema(string? toolName, [NotNullWhen(true)] out string? inputSchema)
+    {
+        inputSchema = null;
+
+        if (string.IsNullOrWhiteSpace(toolName))
+        {
+            return false;
+        }
+
+        var toolOptions = toolOptionsMonitor.Get(toolName);
+
+        if (!string.IsNullOrWhiteSpace(toolOptions.InputSchema))
+        {
+            inputSchema = toolOptions.InputSchema;
+            return true;
+        }
+
+        return false;
     }
 
     private bool TryGetConfiguredToolProperties(string? toolName, [NotNullWhen(true)] out List<ToolProperty>? toolProperties)

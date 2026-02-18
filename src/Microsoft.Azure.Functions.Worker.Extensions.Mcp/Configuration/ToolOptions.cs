@@ -39,4 +39,10 @@ public class ToolOptions
     /// Gets or sets the collection of properties that define the characteristics or configuration of the tool.
     /// </summary>
     public required List<ToolProperty> Properties { get; set; } = [];
+
+    /// <summary>
+    /// Gets or sets an explicit JSON input schema for the tool.
+    /// When set, this takes priority over schema generated from <see cref="Properties"/>.
+    /// </summary>
+    public string? InputSchema { get; set; }
 }

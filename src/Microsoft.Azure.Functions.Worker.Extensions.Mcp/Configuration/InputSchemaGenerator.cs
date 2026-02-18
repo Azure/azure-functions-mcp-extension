@@ -209,6 +209,34 @@ internal static class InputSchemaGenerator
     }
 
     /// <summary>
+    /// Generates a JSON schema from a list of <see cref="ToolProperty"/> objects.
+    /// Used when tool properties are configured via the fluent API (IOptionsMonitor).
+    /// </summary>
+    /// <param name="toolProperties">The tool properties to generate the schema from.</param>
+    /// <returns>A JSON schema JsonNode representing the tool properties.</returns>
+    public static JsonNode GenerateFromToolProperties(List<ToolProperty> toolProperties)
+    {
+        var properties = new JsonObject();
+        var required = new JsonArray();
+
+        foreach (var toolProperty in toolProperties)
+        {
+            properties[toolProperty.Name] = CreatePropertySchema(
+                toolProperty.Type,
+                toolProperty.Description ?? string.Empty,
+                toolProperty.IsArray,
+                toolProperty.EnumValues);
+
+            if (toolProperty.IsRequired)
+            {
+                required.Add(toolProperty.Name);
+            }
+        }
+
+        return CreateSchemaNode(properties, required);
+    }
+
+    /// <summary>
     /// Creates the final JSON schema JsonNode from properties and required arrays.
     /// </summary>
     private static JsonNode CreateSchemaNode(JsonObject properties, JsonArray required)
