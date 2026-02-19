@@ -31,6 +31,7 @@ public class ResourceFunctions
         [McpResourceTrigger(
             "file://readme.md",
             "readme",
+            Title = "Application Readme",
             Description = "Application readme file",
             MimeType = "text/plain")]
         [McpMetadata(ReadmeMetadata)]

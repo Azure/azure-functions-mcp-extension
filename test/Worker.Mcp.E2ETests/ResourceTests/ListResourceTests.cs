@@ -52,19 +52,20 @@ public class ListResourceTests(DefaultProjectFixture fixture, ITestOutputHelper 
 
         Assert.NotNull(resources);
         var readmeResource = resources.FirstOrDefault(r => r.Uri == "file://readme.md");
-        
+
         Assert.NotNull(readmeResource);
         Assert.Equal("readme", readmeResource.Name);
+        Assert.Equal("Application Readme", readmeResource.Title);
         Assert.Equal("Application readme file", readmeResource.Description);
         Assert.Equal("text/plain", readmeResource.MimeType);
 
         // Verify custom McpMetadata attributes are included in _meta
         var meta = readmeResource.ProtocolResource.Meta;
         Assert.NotNull(meta);
-        
+
         Assert.True(meta.ContainsKey("author"));
         Assert.Equal("John Doe", meta["author"]!.ToString());
-        
+
         Assert.True(meta.ContainsKey("file"));
         var fileNode = meta["file"]!.AsObject();
         Assert.Equal(1.0, fileNode["version"]!.GetValue<double>());
@@ -78,7 +79,7 @@ public class ListResourceTests(DefaultProjectFixture fixture, ITestOutputHelper 
         Assert.Equal("of", exampleArray[1]!.ToString());
         Assert.Equal("values", exampleArray[2]!.ToString());
 
-        TestOutputHelper.WriteLine($"Resource: Name={readmeResource.Name}, Description={readmeResource.Description}, MimeType={readmeResource.MimeType}");
+        TestOutputHelper.WriteLine($"Resource: Name={readmeResource.Name}, Title={readmeResource.Title}, Description={readmeResource.Description}, MimeType={readmeResource.MimeType}");
         TestOutputHelper.WriteLine($"Metadata: author={meta["author"]}, file.version={fileNode["version"]}, file.releaseDate={fileNode["releaseDate"]}, test.example=[{string.Join(", ", exampleArray)}]");
     }
 
@@ -93,7 +94,7 @@ public class ListResourceTests(DefaultProjectFixture fixture, ITestOutputHelper 
 
         Assert.NotNull(resources);
         var logoResource = resources.FirstOrDefault(r => r.Uri == "file://logo.png");
-        
+
         Assert.NotNull(logoResource);
         Assert.Equal("logo", logoResource.Name);
         Assert.Equal("Azure Functions logo", logoResource.Description);
