@@ -5,6 +5,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.Azure.Functions.Worker.Core.FunctionMetadata;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using static Microsoft.Azure.Functions.Worker.Extensions.Mcp.Constants;
 
@@ -12,7 +13,8 @@ namespace Microsoft.Azure.Functions.Worker.Extensions.Mcp.Configuration;
 
 public sealed class McpFunctionMetadataTransformer(
     IOptionsMonitor<ToolOptions> toolOptionsMonitor,
-    IOptionsMonitor<ResourceOptions> resourceOptionsMonitor)
+    IOptionsMonitor<ResourceOptions> resourceOptionsMonitor,
+    ILogger<McpFunctionMetadataTransformer> logger)
     : IFunctionMetadataTransformer
 {
     public string Name => nameof(McpFunctionMetadataTransformer);
@@ -62,12 +64,7 @@ public sealed class McpFunctionMetadataTransformer(
 
                         if (MetadataParser.TryGetToolMetadata(function, out var toolMetadataJson))
                         {
-                            if (hasFluentToolMetadata)
-                            {
-                                throw CreateDuplicateMetadataException("Tool", toolName);
-                            }
-
-                            jsonObject["metadata"] = toolMetadataJson;
+                            ApplyOrMergeMetadata(jsonObject, toolMetadataJson, hasFluentToolMetadata, "Tool", toolName);
                         }
 
                         function.RawBindings[i] = jsonObject.ToJsonString();
@@ -85,12 +82,7 @@ public sealed class McpFunctionMetadataTransformer(
 
                         if (MetadataParser.TryGetResourceMetadata(function, out var resourceMetadataJson))
                         {
-                            if (hasFluentResourceMetadata)
-                            {
-                                throw CreateDuplicateMetadataException("Resource", resourceUri);
-                            }
-
-                            jsonObject["metadata"] = resourceMetadataJson;
+                            ApplyOrMergeMetadata(jsonObject, resourceMetadataJson, hasFluentResourceMetadata, "Resource", resourceUri);
                         }
 
                         function.RawBindings[i] = jsonObject.ToJsonString();
@@ -171,9 +163,56 @@ public sealed class McpFunctionMetadataTransformer(
         return false;
     }
 
-    private static InvalidOperationException CreateDuplicateMetadataException(string type, string? identifier)
-        => new($"{type} '{identifier}' has metadata defined using both the fluent API and [McpMetadata] attributes. " +
-               $"Use only one approach to define metadata.");
+    /// <summary>
+    /// Applies attributed metadata to the binding, merging with existing fluent API metadata if present.
+    /// </summary>
+    private void ApplyOrMergeMetadata(JsonObject jsonObject, string attributedMetadataJson, bool hasFluentMetadata, string type, string? identifier)
+    {
+        if (hasFluentMetadata)
+        {
+            jsonObject["metadata"] = MergeMetadata(jsonObject["metadata"]?.GetValue<string>(), attributedMetadataJson, out var overlappingKeys);
+            logger.LogDebug("{Type} '{Identifier}' has metadata defined using both the fluent API and [McpMetadata] attributes. Metadata from both sources has been merged.", type, identifier);
+
+            if (overlappingKeys.Count > 0)
+            {
+                logger.LogWarning("{Type} '{Identifier}' has overlapping metadata keys: {Keys}. Values from [McpMetadata] attributes will be used.", type, identifier, string.Join(", ", overlappingKeys));
+            }
+        }
+        else
+        {
+            jsonObject["metadata"] = attributedMetadataJson;
+        }
+    }
+
+    /// <summary>
+    /// Merges two JSON metadata strings. Properties from the attributed metadata take precedence
+    /// over fluent API metadata when keys overlap. Attributed metadata wins because attributes are
+    /// declared directly on the function and are more explicit, whereas fluent API metadata is
+    /// configured separately and is intended for defaults or shared configuration.
+    /// </summary>
+    internal static string MergeMetadata(string? fluentJson, string? attributedJson, out List<string> overlappingKeys)
+    {
+        var fluentNode = string.IsNullOrWhiteSpace(fluentJson)
+            ? new JsonObject()
+            : JsonNode.Parse(fluentJson)?.AsObject() ?? throw new InvalidOperationException($"Failed to parse fluent API metadata as JSON object: {fluentJson}");
+        var attributedNode = string.IsNullOrWhiteSpace(attributedJson)
+            ? new JsonObject()
+            : JsonNode.Parse(attributedJson)?.AsObject() ?? throw new InvalidOperationException($"Failed to parse attributed metadata as JSON object: {attributedJson}");
+
+        overlappingKeys = [];
+
+        foreach (var property in attributedNode)
+        {
+            if (fluentNode.ContainsKey(property.Key))
+            {
+                overlappingKeys.Add(property.Key);
+            }
+
+            fluentNode[property.Key] = property.Value?.DeepClone();
+        }
+
+        return fluentNode.ToJsonString();
+    }
 
     private record ToolPropertyBinding(int Index, JsonObject Binding);
 }
