@@ -94,7 +94,8 @@ public sealed class McpToolBuilder(IFunctionsWorkerApplicationBuilder builder, s
 
         ValidateInputSchema(schemaNode);
 
-        builder.Services.Configure<ToolOptions>(toolName, o => o.InputSchema = jsonSchema);
+        var normalizedSchema = schemaNode.ToJsonString();
+        builder.Services.Configure<ToolOptions>(toolName, o => o.InputSchema = normalizedSchema);
 
         return this;
     }
@@ -141,7 +142,7 @@ public sealed class McpToolBuilder(IFunctionsWorkerApplicationBuilder builder, s
 
         EnsureMode(ConfigurationMode.InputSchema);
 
-        if (type.IsPrimitive || type == typeof(string) || type.IsEnum || type.IsAbstract)
+        if (type.IsPrimitive || type == typeof(string) || type.IsEnum || type.IsAbstract || type.IsInterface)
         {
             throw new ArgumentException(
                 $"Type '{type.FullName}' is not a valid input schema type. " +

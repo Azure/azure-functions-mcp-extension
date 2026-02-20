@@ -7,6 +7,8 @@ using System.Text.Json.Nodes;
 using Microsoft.Azure.Functions.Worker.Core.FunctionMetadata;
 using Microsoft.Azure.Functions.Worker.Extensions.Mcp;
 using Microsoft.Azure.Functions.Worker.Extensions.Mcp.Configuration;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Moq;
 
@@ -61,7 +63,7 @@ public class McpFunctionMetadataTransformerTests
 
         var options = new Mock<IOptionsMonitor<ToolOptions>>();
         options.Setup(o => o.Get(It.IsAny<string>())).Returns(new ToolOptions { Properties = [] });
-        var transformer = new McpFunctionMetadataTransformer(options.Object);
+        var transformer = new McpFunctionMetadataTransformer(options.Object, NullLogger<McpFunctionMetadataTransformer>.Instance);
 
         var fn = CreateFunctionMetadata(entryPoint, scriptFile, "Func", ["{\"type\":\"mcpToolTrigger\",\"toolName\":\"NoAttributes\"}"]);
 
@@ -95,7 +97,7 @@ public class McpFunctionMetadataTransformerTests
         var options = new Mock<IOptionsMonitor<ToolOptions>>();
         options.Setup(o => o.Get("MyTool")).Returns(new ToolOptions { Properties = configuredProps });
 
-        var transformer = new McpFunctionMetadataTransformer(options.Object);
+        var transformer = new McpFunctionMetadataTransformer(options.Object, NullLogger<McpFunctionMetadataTransformer>.Instance);
 
         var fn = CreateFunctionMetadata(
             entryPoint: null,
@@ -132,7 +134,7 @@ public class McpFunctionMetadataTransformerTests
 
         var options = new Mock<IOptionsMonitor<ToolOptions>>();
         options.Setup(o => o.Get(It.IsAny<string>())).Returns(new ToolOptions { Properties = [] });
-        var transformer = new McpFunctionMetadataTransformer(options.Object);
+        var transformer = new McpFunctionMetadataTransformer(options.Object, NullLogger<McpFunctionMetadataTransformer>.Instance);
 
         var fn = CreateFunctionMetadata(entryPoint, scriptFile, "Func", ["{\"type\":\"mcpToolTrigger\",\"toolName\":\"WithToolProperty\"}"]);
 
@@ -168,7 +170,7 @@ public class McpFunctionMetadataTransformerTests
 
         var options = new Mock<IOptionsMonitor<ToolOptions>>();
         options.Setup(o => o.Get(It.IsAny<string>())).Returns(new ToolOptions { Properties = [] });
-        var transformer = new McpFunctionMetadataTransformer(options.Object);
+        var transformer = new McpFunctionMetadataTransformer(options.Object, NullLogger<McpFunctionMetadataTransformer>.Instance);
 
         var fn = CreateFunctionMetadata(entryPoint, scriptFile, "Func", ["{\"type\":\"mcpToolTrigger\",\"toolName\":\"WithTriggerPoco\"}"]);
 
@@ -192,41 +194,45 @@ public class McpFunctionMetadataTransformerTests
     }
 
     [Fact]
-    public void Transform_InvalidEntryPoint_Throws()
+    public void Transform_InvalidEntryPoint_FallsBackToHost()
     {
         var options = new Mock<IOptionsMonitor<ToolOptions>>();
         options.Setup(o => o.Get(It.IsAny<string>())).Returns(new ToolOptions { Properties = [] });
-        var transformer = new McpFunctionMetadataTransformer(options.Object);
+        var transformer = new McpFunctionMetadataTransformer(options.Object, NullLogger<McpFunctionMetadataTransformer>.Instance);
 
         var fn = CreateFunctionMetadata("BadEntryPoint", "Some.dll", "Func", ["{\"type\":\"mcpToolTrigger\",\"toolName\":\"Bad\"}"]);
         fn.SetupGet(f => f.RawBindings).Returns(["{\"type\":\"mcpToolTrigger\",\"toolName\":\"Bad\"}"]);
 
-        var exception = Assert.Throws<NotSupportedException>(() => transformer.Transform([fn.Object]));
-        Assert.Contains("Failed to generate input schema for MCP tool trigger function 'Func'", exception.Message);
-        Assert.Contains("WithInputSchema", exception.Message);
-        Assert.Contains("WithProperty", exception.Message);
+        // Should not throw - falls back to host input schema generation
+        transformer.Transform([fn.Object]);
+
+        var json = JsonNode.Parse(fn.Object.RawBindings![0])!.AsObject();
+        Assert.True(json["useWorkerInputSchema"]!.GetValue<bool>());
+        Assert.False(json.ContainsKey("inputSchema"));
     }
 
     [Fact]
-    public void Transform_MethodNotFound_Throws()
+    public void Transform_MethodNotFound_FallsBackToHost()
     {
         var (entryPoint, scriptFile, outputDir) = GetFunctionMetadataInfo<TestFunctions>("NonExistent");
         Environment.SetEnvironmentVariable(FunctionsApplicationDirectoryKey, outputDir);
 
         var options = new Mock<IOptionsMonitor<ToolOptions>>();
         options.Setup(o => o.Get(It.IsAny<string>())).Returns(new ToolOptions { Properties = [] });
-        var transformer = new McpFunctionMetadataTransformer(options.Object);
+        var transformer = new McpFunctionMetadataTransformer(options.Object, NullLogger<McpFunctionMetadataTransformer>.Instance);
 
         var fn = CreateFunctionMetadata(entryPoint, scriptFile, "Func", ["{\"type\":\"mcpToolTrigger\",\"toolName\":\"Whatever\"}"]);  
 
-        var exception = Assert.Throws<NotSupportedException>(() => transformer.Transform([fn.Object]));
-        Assert.Contains("Failed to generate input schema for MCP tool trigger function 'Func'", exception.Message);
-        Assert.Contains("WithInputSchema", exception.Message);
-        Assert.Contains("WithProperty", exception.Message);
+        // Should not throw - falls back to host input schema generation
+        transformer.Transform([fn.Object]);
+
+        var json = JsonNode.Parse(fn.Object.RawBindings![0])!.AsObject();
+        Assert.True(json["useWorkerInputSchema"]!.GetValue<bool>());
+        Assert.False(json.ContainsKey("inputSchema"));
     }
 
     [Fact]
-    public void Transform_TypeNotFound_Throws()
+    public void Transform_TypeNotFound_FallsBackToHost()
     {
         var (entryPoint, scriptFile, outputDir) = GetFunctionMetadataInfo<TestFunctions>(nameof(TestFunctions.WithToolProperty));
         // Corrupt the type portion
@@ -235,14 +241,16 @@ public class McpFunctionMetadataTransformerTests
 
         var options = new Mock<IOptionsMonitor<ToolOptions>>();
         options.Setup(o => o.Get(It.IsAny<string>())).Returns(new ToolOptions { Properties = [] });
-        var transformer = new McpFunctionMetadataTransformer(options.Object);
+        var transformer = new McpFunctionMetadataTransformer(options.Object, NullLogger<McpFunctionMetadataTransformer>.Instance);
 
         var fn = CreateFunctionMetadata(entryPoint, scriptFile, "Func", ["{\"type\":\"mcpToolTrigger\",\"toolName\":\"WithToolProperty\"}"]);  
 
-        var exception = Assert.Throws<NotSupportedException>(() => transformer.Transform([fn.Object]));
-        Assert.Contains("Failed to generate input schema for MCP tool trigger function 'Func'", exception.Message);
-        Assert.Contains("WithInputSchema", exception.Message);
-        Assert.Contains("WithProperty", exception.Message);
+        // Should not throw - falls back to host input schema generation
+        transformer.Transform([fn.Object]);
+
+        var json = JsonNode.Parse(fn.Object.RawBindings![0])!.AsObject();
+        Assert.True(json["useWorkerInputSchema"]!.GetValue<bool>());
+        Assert.False(json.ContainsKey("inputSchema"));
     }
 
     [Fact]
@@ -253,7 +261,7 @@ public class McpFunctionMetadataTransformerTests
 
         var options = new Mock<IOptionsMonitor<ToolOptions>>();
         options.Setup(o => o.Get(It.IsAny<string>())).Returns(new ToolOptions { Properties = [] });
-        var transformer = new McpFunctionMetadataTransformer(options.Object);
+        var transformer = new McpFunctionMetadataTransformer(options.Object, NullLogger<McpFunctionMetadataTransformer>.Instance);
 
         var fn = CreateFunctionMetadata(entryPoint, scriptFile, "Func", ["{\"type\":\"mcpToolTrigger\",\"toolName\":\"WithContextAndPoco\"}"]);
         transformer.Transform([fn.Object]);
@@ -518,7 +526,7 @@ public class McpFunctionMetadataTransformerTests
     }
 
     [Fact]
-    public void Transform_InputSchemaGeneration_ThrowsOnInvalidFunction()
+    public void Transform_InputSchemaGeneration_FallsBackOnInvalidFunction()
     {
         // Set environment variable to test method resolution failure rather than environment setup failure
         var (entryPoint, scriptFile, outputDir) = GetFunctionMetadataInfo<TestFunctions>(nameof(TestFunctions.WithToolProperty));
@@ -530,8 +538,12 @@ public class McpFunctionMetadataTransformerTests
         var fn = CreateFunctionMetadata(entryPoint, "NonExistent.dll", "Func",
             new List<string> { "{\"type\":\"mcpToolTrigger\",\"toolName\":\"Invalid\"}" });
 
-        // Should throw exception when input schema generation fails (no longer swallowing exceptions)
-        Assert.Throws<NotSupportedException>(() => transformer.Transform(new List<IFunctionMetadata> { fn.Object }));
+        // Should not throw - falls back to host input schema generation
+        transformer.Transform(new List<IFunctionMetadata> { fn.Object });
+
+        var json = JsonNode.Parse(fn.Object.RawBindings![0])!.AsObject();
+        Assert.True(json["useWorkerInputSchema"]!.GetValue<bool>());
+        Assert.False(json.ContainsKey("inputSchema"));
     }
 
     [Fact]
@@ -546,7 +558,7 @@ public class McpFunctionMetadataTransformerTests
         var options = new Mock<IOptionsMonitor<ToolOptions>>();
         options.Setup(o => o.Get("MyTool")).Returns(new ToolOptions { Properties = configuredProps });
 
-        var transformer = new McpFunctionMetadataTransformer(options.Object);
+        var transformer = new McpFunctionMetadataTransformer(options.Object, NullLogger<McpFunctionMetadataTransformer>.Instance);
 
         var bindings = new List<string>
         {
@@ -587,7 +599,7 @@ public class McpFunctionMetadataTransformerTests
         Environment.SetEnvironmentVariable(FunctionsApplicationDirectoryKey, outputDir);
 
         var options = new Mock<IOptionsMonitor<ToolOptions>>();
-        var transformer = new McpFunctionMetadataTransformer(options.Object);
+        var transformer = new McpFunctionMetadataTransformer(options.Object, NullLogger<McpFunctionMetadataTransformer>.Instance);
 
         var fn = CreateFunctionMetadata(
             entryPoint,
@@ -611,7 +623,7 @@ public class McpFunctionMetadataTransformerTests
         Environment.SetEnvironmentVariable(FunctionsApplicationDirectoryKey, outputDir);
 
         var options = new Mock<IOptionsMonitor<ToolOptions>>();
-        var transformer = new McpFunctionMetadataTransformer(options.Object);
+        var transformer = new McpFunctionMetadataTransformer(options.Object, NullLogger<McpFunctionMetadataTransformer>.Instance);
 
         var fn = CreateFunctionMetadata(
             entryPoint,
@@ -634,7 +646,7 @@ public class McpFunctionMetadataTransformerTests
 
         var options = new Mock<IOptionsMonitor<ToolOptions>>();
         options.Setup(o => o.Get(It.IsAny<string>())).Returns(new ToolOptions { Properties = [] });
-        var transformer = new McpFunctionMetadataTransformer(options.Object);
+        var transformer = new McpFunctionMetadataTransformer(options.Object, NullLogger<McpFunctionMetadataTransformer>.Instance);
 
         var fn = CreateFunctionMetadata(
             entryPoint,
@@ -659,7 +671,7 @@ public class McpFunctionMetadataTransformerTests
 
         var options = new Mock<IOptionsMonitor<ToolOptions>>();
         options.Setup(o => o.Get(It.IsAny<string>())).Returns(new ToolOptions { Properties = [] });
-        var transformer = new McpFunctionMetadataTransformer(options.Object);
+        var transformer = new McpFunctionMetadataTransformer(options.Object, NullLogger<McpFunctionMetadataTransformer>.Instance);
 
         var fn = CreateFunctionMetadata(
             entryPoint,
@@ -679,7 +691,7 @@ public class McpFunctionMetadataTransformerTests
         var options =  new Mock<IOptionsMonitor<ToolOptions>>();
         options.Setup(o => o.Get(It.IsAny<string>()))
             .Returns(new ToolOptions { Properties = configured ?? [] });
-        return new McpFunctionMetadataTransformer(options.Object);
+        return new McpFunctionMetadataTransformer(options.Object, NullLogger<McpFunctionMetadataTransformer>.Instance);
     }
 
     [Fact]
@@ -694,7 +706,7 @@ public class McpFunctionMetadataTransformerTests
             InputSchema = explicitSchema
         });
 
-        var transformer = new McpFunctionMetadataTransformer(options.Object);
+        var transformer = new McpFunctionMetadataTransformer(options.Object, NullLogger<McpFunctionMetadataTransformer>.Instance);
 
         var fn = CreateFunctionMetadata(
             entryPoint: null,
@@ -728,7 +740,7 @@ public class McpFunctionMetadataTransformerTests
             InputSchema = explicitSchema
         });
 
-        var transformer = new McpFunctionMetadataTransformer(options.Object);
+        var transformer = new McpFunctionMetadataTransformer(options.Object, NullLogger<McpFunctionMetadataTransformer>.Instance);
 
         var fn = CreateFunctionMetadata(
             entryPoint: null,
@@ -762,7 +774,7 @@ public class McpFunctionMetadataTransformerTests
             InputSchema = explicitSchema
         });
 
-        var transformer = new McpFunctionMetadataTransformer(options.Object);
+        var transformer = new McpFunctionMetadataTransformer(options.Object, NullLogger<McpFunctionMetadataTransformer>.Instance);
 
         var bindings = new List<string>
         {

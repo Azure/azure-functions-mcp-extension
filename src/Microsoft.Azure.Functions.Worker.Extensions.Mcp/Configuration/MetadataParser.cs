@@ -5,6 +5,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Text.Json;
 using Microsoft.Azure.Functions.Worker.Core.FunctionMetadata;
+using Microsoft.Extensions.Logging;
 
 namespace Microsoft.Azure.Functions.Worker.Extensions.Mcp.Configuration;
 
@@ -16,17 +17,17 @@ internal static class MetadataParser
     /// <summary>
     /// Gets resource metadata JSON from function metadata.
     /// </summary>
-    public static bool TryGetResourceMetadata(IFunctionMetadata functionMetadata, [NotNullWhen(true)] out string? metadataJson)
+    public static bool TryGetResourceMetadata(IFunctionMetadata functionMetadata, [NotNullWhen(true)] out string? metadataJson, ILogger? logger = null)
     {
-        return TryGetMetadata<McpResourceTriggerAttribute>(functionMetadata, out metadataJson);
+        return TryGetMetadata<McpResourceTriggerAttribute>(functionMetadata, out metadataJson, logger);
     }
 
     /// <summary>
     /// Gets tool metadata JSON from function metadata.
     /// </summary>
-    public static bool TryGetToolMetadata(IFunctionMetadata functionMetadata, [NotNullWhen(true)] out string? metadataJson)
+    public static bool TryGetToolMetadata(IFunctionMetadata functionMetadata, [NotNullWhen(true)] out string? metadataJson, ILogger? logger = null)
     {
-        return TryGetMetadata<McpToolTriggerAttribute>(functionMetadata, out metadataJson);
+        return TryGetMetadata<McpToolTriggerAttribute>(functionMetadata, out metadataJson, logger);
     }
 
     /// <summary>
@@ -34,12 +35,13 @@ internal static class MetadataParser
     /// </summary>
     public static bool TryGetMetadata<TTriggerAttribute>(
         IFunctionMetadata functionMetadata,
-        [NotNullWhen(true)] out string? metadataJson)
+        [NotNullWhen(true)] out string? metadataJson,
+        ILogger? logger = null)
         where TTriggerAttribute : Attribute
     {
         metadataJson = null;
 
-        if (!FunctionMethodResolver.TryResolveMethod(functionMetadata, out var method))
+        if (!FunctionMethodResolver.TryResolveMethod(functionMetadata, out var method, logger))
         {
             return false;
         }

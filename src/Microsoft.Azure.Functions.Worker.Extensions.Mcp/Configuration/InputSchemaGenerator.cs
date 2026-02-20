@@ -5,6 +5,7 @@ using System.Reflection;
 using System.Text.Json.Nodes;
 using Microsoft.Azure.Functions.Worker.Core.FunctionMetadata;
 using Microsoft.Azure.Functions.Worker.Extensions.Mcp.Reflection;
+using Microsoft.Extensions.Logging;
 
 namespace Microsoft.Azure.Functions.Worker.Extensions.Mcp.Configuration;
 
@@ -19,11 +20,11 @@ internal static class InputSchemaGenerator
     /// <param name="functionMetadata">The function metadata containing method information.</param>
     /// <param name="inputSchema">The generated JSON schema as a JsonNode if successful.</param>
     /// <returns>True if schema generation was successful, false otherwise.</returns>
-    public static bool TryGenerateFromFunction(IFunctionMetadata functionMetadata, out JsonNode? inputSchema)
+    public static bool TryGenerateFromFunction(IFunctionMetadata functionMetadata, out JsonNode? inputSchema, ILogger? logger = null)
     {
         inputSchema = null;
 
-        if (!FunctionReflectionHelper.TryResolveMethod(functionMetadata, out var method) || method is null)
+        if (!FunctionMethodResolver.TryResolveMethod(functionMetadata, out var method, logger) || method is null)
         {
             return false;
         }

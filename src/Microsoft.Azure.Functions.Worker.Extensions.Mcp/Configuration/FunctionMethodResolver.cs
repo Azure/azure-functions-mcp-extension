@@ -6,6 +6,7 @@ using System.Reflection;
 using System.Runtime.Loader;
 using System.Text.RegularExpressions;
 using Microsoft.Azure.Functions.Worker.Core.FunctionMetadata;
+using Microsoft.Extensions.Logging;
 
 namespace Microsoft.Azure.Functions.Worker.Extensions.Mcp.Configuration;
 
@@ -20,7 +21,7 @@ internal static partial class FunctionMethodResolver
     /// <summary>
     /// Attempts to resolve the method for a function from its metadata.
     /// </summary>
-    public static bool TryResolveMethod(IFunctionMetadata functionMetadata, [NotNullWhen(true)] out MethodInfo? method)
+    public static bool TryResolveMethod(IFunctionMetadata functionMetadata, [NotNullWhen(true)] out MethodInfo? method, ILogger? logger = null)
     {
         method = null;
 
@@ -38,18 +39,29 @@ internal static partial class FunctionMethodResolver
             return false;
         }
 
-        var scriptFile = Path.Combine(scriptRoot, functionMetadata.ScriptFile ?? string.Empty);
-        var assemblyPath = Path.GetFullPath(scriptFile);
-        var assembly = AssemblyLoadContext.Default.LoadFromAssemblyPath(assemblyPath);
-        var type = assembly.GetType(typeName);
-
-        if (type is null)
+        try
         {
+            var scriptFile = Path.Combine(scriptRoot, functionMetadata.ScriptFile ?? string.Empty);
+            var assemblyPath = Path.GetFullPath(scriptFile);
+            var assembly = AssemblyLoadContext.Default.LoadFromAssemblyPath(assemblyPath);
+            var type = assembly.GetType(typeName);
+
+            if (type is null)
+            {
+                return false;
+            }
+
+            method = type.GetMethod(methodName);
+            return method is not null;
+        }
+        catch (Exception ex) when (ex is FileNotFoundException or FileLoadException or BadImageFormatException or TypeLoadException)
+        {
+            logger?.LogWarning(ex,
+                "Failed to resolve method for function '{FunctionName}' (entryPoint: '{EntryPoint}')",
+                functionMetadata.Name,
+                functionMetadata.EntryPoint);
             return false;
         }
-
-        method = type.GetMethod(methodName);
-        return method is not null;
     }
 
     /// <summary>

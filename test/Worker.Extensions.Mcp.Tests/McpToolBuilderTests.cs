@@ -272,6 +272,15 @@ public class McpToolBuilderTests
     }
 
     [Fact]
+    public void WithInputSchema_InterfaceType_Throws()
+    {
+        var builder = CreateBuilder("tool", out _);
+
+        var ex = Assert.Throws<ArgumentException>(() => builder.WithInputSchema(typeof(IDisposable)));
+        Assert.Equal("type", ex.ParamName);
+    }
+
+    [Fact]
     public void WithInputSchema_NullType_Throws()
     {
         var builder = CreateBuilder("tool", out _);

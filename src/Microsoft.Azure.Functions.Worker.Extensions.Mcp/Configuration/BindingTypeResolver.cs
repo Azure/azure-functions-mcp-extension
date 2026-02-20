@@ -7,16 +7,16 @@ using System.Text.Json.Nodes;
 namespace Microsoft.Azure.Functions.Worker.Extensions.Mcp.Configuration;
 
 /// <summary>
-/// Simple helper methods for extracting property types from input schemas and patching binding metadata.
+/// Resolves and applies property types from input schemas to binding metadata.
 /// </summary>
-internal static class InputSchemaBindingPatcher
+internal static class BindingTypeResolver
 {
     /// <summary>
-    /// Patches input binding metadata with property types extracted from the input schema.
+    /// Resolves property types from the input schema and applies them to the corresponding input binding metadata.
     /// </summary>
     /// <param name="inputSchema">The input schema containing property definitions.</param>
     /// <param name="inputBindingProperties">The collection of input binding properties to patch, keyed by property name.</param>
-    public static void PatchBindingMetadata(
+    public static void ResolveAndApplyTypes(
         JsonNode inputSchema,
         IEnumerable<KeyValuePair<string, ToolPropertyBinding>> inputBindingProperties)
     {
