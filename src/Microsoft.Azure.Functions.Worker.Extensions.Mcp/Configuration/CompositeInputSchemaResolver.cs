@@ -12,11 +12,11 @@ namespace Microsoft.Azure.Functions.Worker.Extensions.Mcp.Configuration;
 /// </summary>
 internal class CompositeInputSchemaResolver(params IInputSchemaResolver[] resolvers) : IInputSchemaResolver
 {
-    public bool TryResolve(ToolOptions toolOptions, IFunctionMetadata functionMetadata, out JsonNode? inputSchema)
+    public bool TryResolve(string toolName, IFunctionMetadata functionMetadata, out JsonNode? inputSchema)
     {
         foreach (var resolver in resolvers)
         {
-            if (resolver.TryResolve(toolOptions, functionMetadata, out inputSchema))
+            if (resolver.TryResolve(toolName, functionMetadata, out inputSchema))
             {
                 return true;
             }

@@ -3,6 +3,7 @@
 
 using System.Text.Json.Nodes;
 using Microsoft.Azure.Functions.Worker.Core.FunctionMetadata;
+using Microsoft.Extensions.Options;
 
 namespace Microsoft.Azure.Functions.Worker.Extensions.Mcp.Configuration;
 
@@ -10,11 +11,13 @@ namespace Microsoft.Azure.Functions.Worker.Extensions.Mcp.Configuration;
 /// Resolves the input schema by generating it from configured tool properties
 /// set via <c>WithProperty(...)</c>.
 /// </summary>
-internal class PropertyBasedInputSchemaResolver : IInputSchemaResolver
+internal class PropertyBasedInputSchemaResolver(IOptionsMonitor<ToolOptions> toolOptionsMonitor) : IInputSchemaResolver
 {
-    public bool TryResolve(ToolOptions toolOptions, IFunctionMetadata functionMetadata, out JsonNode? inputSchema)
+    public bool TryResolve(string toolName, IFunctionMetadata functionMetadata, out JsonNode? inputSchema)
     {
         inputSchema = null;
+
+        var toolOptions = toolOptionsMonitor.Get(toolName);
 
         if (toolOptions.Properties.Count == 0)
         {

@@ -13,7 +13,7 @@ namespace Microsoft.Azure.Functions.Worker.Extensions.Mcp.Configuration;
 /// <summary>
 /// Resolves function methods from function metadata using reflection.
 /// </summary>
-internal static partial class FunctionMethodResolver
+internal sealed partial class FunctionMethodResolver(ILogger<FunctionMethodResolver> logger) : IFunctionMethodResolver
 {
     private const string FunctionsWorkerDirectoryKey = "FUNCTIONS_WORKER_DIRECTORY";
     private const string FunctionsApplicationDirectoryKey = "FUNCTIONS_APPLICATION_DIRECTORY";
@@ -21,7 +21,7 @@ internal static partial class FunctionMethodResolver
     /// <summary>
     /// Attempts to resolve the method for a function from its metadata.
     /// </summary>
-    public static bool TryResolveMethod(IFunctionMetadata functionMetadata, [NotNullWhen(true)] out MethodInfo? method, ILogger? logger = null)
+    public bool TryResolveMethod(IFunctionMetadata functionMetadata, [NotNullWhen(true)] out MethodInfo? method)
     {
         method = null;
 
@@ -56,7 +56,7 @@ internal static partial class FunctionMethodResolver
         }
         catch (Exception ex) when (ex is FileNotFoundException or FileLoadException or BadImageFormatException or TypeLoadException)
         {
-            logger?.LogWarning(ex,
+            logger.LogWarning(ex,
                 "Failed to resolve method for function '{FunctionName}' (entryPoint: '{EntryPoint}')",
                 functionMetadata.Name,
                 functionMetadata.EntryPoint);

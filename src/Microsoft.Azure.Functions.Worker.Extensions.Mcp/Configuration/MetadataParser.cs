@@ -5,7 +5,6 @@ using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Text.Json;
 using Microsoft.Azure.Functions.Worker.Core.FunctionMetadata;
-using Microsoft.Extensions.Logging;
 
 namespace Microsoft.Azure.Functions.Worker.Extensions.Mcp.Configuration;
 
@@ -17,17 +16,17 @@ internal static class MetadataParser
     /// <summary>
     /// Gets resource metadata JSON from function metadata.
     /// </summary>
-    public static bool TryGetResourceMetadata(IFunctionMetadata functionMetadata, [NotNullWhen(true)] out string? metadataJson, ILogger? logger = null)
+    public static bool TryGetResourceMetadata(IFunctionMetadata functionMetadata, IFunctionMethodResolver functionMethodResolver, [NotNullWhen(true)] out string? metadataJson)
     {
-        return TryGetMetadata<McpResourceTriggerAttribute>(functionMetadata, out metadataJson, logger);
+        return TryGetMetadata<McpResourceTriggerAttribute>(functionMetadata, functionMethodResolver, out metadataJson);
     }
 
     /// <summary>
     /// Gets tool metadata JSON from function metadata.
     /// </summary>
-    public static bool TryGetToolMetadata(IFunctionMetadata functionMetadata, [NotNullWhen(true)] out string? metadataJson, ILogger? logger = null)
+    public static bool TryGetToolMetadata(IFunctionMetadata functionMetadata, IFunctionMethodResolver functionMethodResolver, [NotNullWhen(true)] out string? metadataJson)
     {
-        return TryGetMetadata<McpToolTriggerAttribute>(functionMetadata, out metadataJson, logger);
+        return TryGetMetadata<McpToolTriggerAttribute>(functionMetadata, functionMethodResolver, out metadataJson);
     }
 
     /// <summary>
@@ -35,13 +34,13 @@ internal static class MetadataParser
     /// </summary>
     public static bool TryGetMetadata<TTriggerAttribute>(
         IFunctionMetadata functionMetadata,
-        [NotNullWhen(true)] out string? metadataJson,
-        ILogger? logger = null)
+        IFunctionMethodResolver functionMethodResolver,
+        [NotNullWhen(true)] out string? metadataJson)
         where TTriggerAttribute : Attribute
     {
         metadataJson = null;
 
-        if (!FunctionMethodResolver.TryResolveMethod(functionMetadata, out var method, logger))
+        if (!functionMethodResolver.TryResolveMethod(functionMetadata, out var method))
         {
             return false;
         }

@@ -12,11 +12,11 @@ namespace Microsoft.Azure.Functions.Worker.Extensions.Mcp.Configuration;
 internal interface IInputSchemaResolver
 {
     /// <summary>
-    /// Attempts to resolve an input schema for the given tool options and function metadata.
+    /// Attempts to resolve an input schema for the given tool name and function metadata.
     /// </summary>
-    /// <param name="toolOptions">The tool options containing explicit schema or property configuration.</param>
+    /// <param name="toolName">The name of the tool, used to look up tool options.</param>
     /// <param name="functionMetadata">The function metadata for reflection-based schema generation.</param>
     /// <param name="inputSchema">The resolved input schema, if successful.</param>
     /// <returns>True if the schema was resolved, false otherwise.</returns>
-    bool TryResolve(ToolOptions toolOptions, IFunctionMetadata functionMetadata, out JsonNode? inputSchema);
+    bool TryResolve(string toolName, IFunctionMetadata functionMetadata, out JsonNode? inputSchema);
 }

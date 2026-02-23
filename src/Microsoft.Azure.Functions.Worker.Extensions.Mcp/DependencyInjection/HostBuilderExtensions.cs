@@ -8,6 +8,8 @@ using Microsoft.Azure.Functions.Worker.Extensions.Mcp.Converters;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using System.ComponentModel;
 
 namespace Microsoft.Azure.Functions.Worker.Builder;
@@ -24,6 +26,17 @@ public static class McpHostBuilderExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
 
+        builder.Services.TryAddSingleton<IFunctionMethodResolver, FunctionMethodResolver>();
+
+        builder.Services.TryAddSingleton<IInputSchemaResolver>(sp =>
+            new CompositeInputSchemaResolver(
+                new ExplicitInputSchemaResolver(sp.GetRequiredService<IOptionsMonitor<ToolOptions>>()),
+                new PropertyBasedInputSchemaResolver(sp.GetRequiredService<IOptionsMonitor<ToolOptions>>()),
+                new ReflectionBasedInputSchemaResolver(
+                    sp.GetRequiredService<IFunctionMethodResolver>(),
+                    sp.GetRequiredService<ILogger<ReflectionBasedInputSchemaResolver>>())));
+
+        builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IFunctionMetadataTransformer, McpUseWorkerInputSchemaTransformer>());
         builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IFunctionMetadataTransformer, McpFunctionMetadataTransformer>());
 
         builder.UseMiddleware<FunctionsMcpContextMiddleware>();

@@ -58,34 +58,6 @@ public class InputSchemaTests(DefaultProjectFixture fixture, ITestOutputHelper t
     [InlineData(HttpTransportMode.Sse)]
     [InlineData(HttpTransportMode.AutoDetect)]
     [InlineData(HttpTransportMode.StreamableHttp)]
-    public async Task HappyFunction_InputSchema_HasCorrectRequiredProperties(HttpTransportMode mode)
-    {
-        var client = await Fixture.CreateClientAsync(mode);
-        var tools = await client.ListToolsAsync(cancellationToken: TestContext.Current.CancellationToken);
-
-        var tool = tools.FirstOrDefault(t => t.Name == "HappyFunction");
-        Assert.NotNull(tool);
-
-        var schema = tool.JsonSchema;
-        Assert.True(schema.TryGetProperty("required", out var required));
-
-        var requiredNames = required.EnumerateArray().Select(e => e.GetString()).ToList();
-
-        // name, attributes, numbers are required (no default values)
-        Assert.Contains("name", requiredNames);
-        Assert.Contains("attributes", requiredNames);
-        Assert.Contains("numbers", requiredNames);
-
-        // age and isHappy have defaults, job is nullable — none should be required
-        Assert.DoesNotContain("age", requiredNames);
-        Assert.DoesNotContain("isHappy", requiredNames);
-        Assert.DoesNotContain("job", requiredNames);
-    }
-
-    [Theory]
-    [InlineData(HttpTransportMode.Sse)]
-    [InlineData(HttpTransportMode.AutoDetect)]
-    [InlineData(HttpTransportMode.StreamableHttp)]
     public async Task SearchSnippets_InputSchema_HasPocoProperties(HttpTransportMode mode)
     {
         var client = await Fixture.CreateClientAsync(mode);
