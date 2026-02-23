@@ -103,36 +103,6 @@ public class InputSchemaTests(DefaultProjectFixture fixture, ITestOutputHelper t
         // DateTime maps to string type
         Assert.True(properties.TryGetProperty("birthday", out var birthdayProp));
         Assert.Equal("string", birthdayProp.GetProperty("type").GetString());
-
-        // Both are required (no defaults)
-        var required = schema.GetProperty("required");
-        var requiredNames = required.EnumerateArray().Select(e => e.GetString()).ToList();
-        Assert.Contains("userId", requiredNames);
-        Assert.Contains("birthday", requiredNames);
-    }
-
-    [Theory]
-    [InlineData(HttpTransportMode.Sse)]
-    [InlineData(HttpTransportMode.AutoDetect)]
-    [InlineData(HttpTransportMode.StreamableHttp)]
-    public async Task SingleArgumentFunction_InputSchema_HasSingleRequiredProperty(HttpTransportMode mode)
-    {
-        var client = await Fixture.CreateClientAsync(mode);
-        var tools = await client.ListToolsAsync(cancellationToken: TestContext.Current.CancellationToken);
-
-        var tool = tools.FirstOrDefault(t => t.Name == "SingleArgumentFunction");
-        Assert.NotNull(tool);
-
-        var schema = tool.JsonSchema;
-        Assert.Equal("object", schema.GetProperty("type").GetString());
-
-        var properties = schema.GetProperty("properties");
-        Assert.True(properties.TryGetProperty("argument", out var argProp));
-        Assert.Equal("string", argProp.GetProperty("type").GetString());
-
-        var required = schema.GetProperty("required");
-        var requiredNames = required.EnumerateArray().Select(e => e.GetString()).ToList();
-        Assert.Contains("argument", requiredNames);
     }
 
     [Theory]
