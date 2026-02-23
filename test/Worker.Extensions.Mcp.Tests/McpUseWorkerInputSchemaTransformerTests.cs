@@ -205,7 +205,7 @@ public class McpUseWorkerInputSchemaTransformerTests
     }
 
     [Fact]
-    public void Transform_InvalidEntryPoint_FallsBackToHost()
+    public void Transform_InvalidEntryPoint_ThrowsNotSupportedException()
     {
         var options = new Mock<IOptionsMonitor<ToolOptions>>();
         options.Setup(o => o.Get(It.IsAny<string>())).Returns(new ToolOptions { Properties = [] });
@@ -214,16 +214,13 @@ public class McpUseWorkerInputSchemaTransformerTests
         var fn = CreateFunctionMetadata("BadEntryPoint", "Some.dll", "Func", ["{\"type\":\"mcpToolTrigger\",\"toolName\":\"Bad\"}"]);
         fn.SetupGet(f => f.RawBindings).Returns(["{\"type\":\"mcpToolTrigger\",\"toolName\":\"Bad\"}"]);
 
-        // Should not throw - falls back to host input schema generation
-        transformer.Transform([fn.Object]);
-
-        var json = JsonNode.Parse(fn.Object.RawBindings![0])!.AsObject();
-        Assert.True(json["useWorkerInputSchema"]!.GetValue<bool>());
-        Assert.False(json.ContainsKey("inputSchema"));
+        var ex = Assert.Throws<NotSupportedException>(() => transformer.Transform([fn.Object]));
+        Assert.Contains("Bad", ex.Message);
+        Assert.Contains("WithInputSchema", ex.Message);
     }
 
     [Fact]
-    public void Transform_MethodNotFound_FallsBackToHost()
+    public void Transform_MethodNotFound_ThrowsNotSupportedException()
     {
         var (entryPoint, scriptFile, outputDir) = GetFunctionMetadataInfo<TestFunctions>("NonExistent");
         Environment.SetEnvironmentVariable(FunctionsApplicationDirectoryKey, outputDir);
@@ -234,16 +231,13 @@ public class McpUseWorkerInputSchemaTransformerTests
 
         var fn = CreateFunctionMetadata(entryPoint, scriptFile, "Func", ["{\"type\":\"mcpToolTrigger\",\"toolName\":\"Whatever\"}"]);
 
-        // Should not throw - falls back to host input schema generation
-        transformer.Transform([fn.Object]);
-
-        var json = JsonNode.Parse(fn.Object.RawBindings![0])!.AsObject();
-        Assert.True(json["useWorkerInputSchema"]!.GetValue<bool>());
-        Assert.False(json.ContainsKey("inputSchema"));
+        var ex = Assert.Throws<NotSupportedException>(() => transformer.Transform([fn.Object]));
+        Assert.Contains("Whatever", ex.Message);
+        Assert.Contains("WithInputSchema", ex.Message);
     }
 
     [Fact]
-    public void Transform_TypeNotFound_FallsBackToHost()
+    public void Transform_TypeNotFound_ThrowsNotSupportedException()
     {
         var (entryPoint, scriptFile, outputDir) = GetFunctionMetadataInfo<TestFunctions>(nameof(TestFunctions.WithToolProperty));
         // Corrupt the type portion
@@ -256,12 +250,9 @@ public class McpUseWorkerInputSchemaTransformerTests
 
         var fn = CreateFunctionMetadata(entryPoint, scriptFile, "Func", ["{\"type\":\"mcpToolTrigger\",\"toolName\":\"WithToolProperty\"}"]);
 
-        // Should not throw - falls back to host input schema generation
-        transformer.Transform([fn.Object]);
-
-        var json = JsonNode.Parse(fn.Object.RawBindings![0])!.AsObject();
-        Assert.True(json["useWorkerInputSchema"]!.GetValue<bool>());
-        Assert.False(json.ContainsKey("inputSchema"));
+        var ex = Assert.Throws<NotSupportedException>(() => transformer.Transform([fn.Object]));
+        Assert.Contains("WithToolProperty", ex.Message);
+        Assert.Contains("WithInputSchema", ex.Message);
     }
 
     [Fact]
@@ -537,7 +528,7 @@ public class McpUseWorkerInputSchemaTransformerTests
     }
 
     [Fact]
-    public void Transform_InputSchemaGeneration_FallsBackOnInvalidFunction()
+    public void Transform_InputSchemaGeneration_ThrowsOnInvalidFunction()
     {
         // Set environment variable to test method resolution failure rather than environment setup failure
         var (entryPoint, scriptFile, outputDir) = GetFunctionMetadataInfo<TestFunctions>(nameof(TestFunctions.WithToolProperty));
@@ -549,12 +540,10 @@ public class McpUseWorkerInputSchemaTransformerTests
         var fn = CreateFunctionMetadata(entryPoint, "NonExistent.dll", "Func",
             new List<string> { "{\"type\":\"mcpToolTrigger\",\"toolName\":\"Invalid\"}" });
 
-        // Should not throw - falls back to host input schema generation
-        transformer.Transform(new List<IFunctionMetadata> { fn.Object });
-
-        var json = JsonNode.Parse(fn.Object.RawBindings![0])!.AsObject();
-        Assert.True(json["useWorkerInputSchema"]!.GetValue<bool>());
-        Assert.False(json.ContainsKey("inputSchema"));
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            transformer.Transform(new List<IFunctionMetadata> { fn.Object }));
+        Assert.Contains("Invalid", ex.Message);
+        Assert.Contains("WithInputSchema", ex.Message);
     }
 
     [Fact]

@@ -75,7 +75,13 @@ internal sealed class McpUseWorkerInputSchemaTransformer(
         var toolName = toolNameNode?.ToString();
         jsonObject["useWorkerInputSchema"] = true;
 
-        TryResolveInputSchema(toolName, function, jsonObject, out inputSchema);
+        if (!TryResolveInputSchema(toolName, function, jsonObject, out inputSchema))
+        {
+            throw new NotSupportedException(
+                $"Failed to generate input schema for tool '{toolName}' in function '{function.Name}'. " +
+                $"Provide a custom input schema using the fluent API: " +
+                $"builder.ConfigureMcpTool(\"{toolName}\").WithInputSchema(...).");
+        }
     }
 
     private bool TryResolveInputSchema(
