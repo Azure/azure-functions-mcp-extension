@@ -92,7 +92,7 @@ public sealed class McpToolBuilder(IFunctionsWorkerApplicationBuilder builder, s
         var schemaNode = JsonNode.Parse(jsonSchema)
             ?? throw new ArgumentException("The provided JSON schema is not valid JSON.", nameof(jsonSchema));
 
-        ValidateInputSchema(schemaNode);
+        ValidateSchema(schemaNode, "Input");
 
         var normalizedSchema = schemaNode.ToJsonString();
         builder.Services.Configure<ToolOptions>(toolName, o => o.InputSchema = normalizedSchema);
@@ -116,7 +116,7 @@ public sealed class McpToolBuilder(IFunctionsWorkerApplicationBuilder builder, s
 
         EnsureMode(ConfigurationMode.InputSchema);
 
-        ValidateInputSchema(schemaNode);
+        ValidateSchema(schemaNode, "Input");
 
         var schemaJson = schemaNode.ToJsonString();
         builder.Services.Configure<ToolOptions>(toolName, o => o.InputSchema = schemaJson);
@@ -142,25 +142,7 @@ public sealed class McpToolBuilder(IFunctionsWorkerApplicationBuilder builder, s
 
         EnsureMode(ConfigurationMode.InputSchema);
 
-        if (type.IsPrimitive || type == typeof(string) || type.IsEnum || type.IsAbstract || type.IsInterface)
-        {
-            throw new ArgumentException(
-                $"Type '{type.FullName}' is not a valid input schema type. " +
-                $"The type must be a non-abstract class, record, or struct with public properties.",
-                nameof(type));
-        }
-
-        var options = serializerOptions ?? JsonSerializerOptions.Default;
-        var schemaNode = options.GetJsonSchemaAsNode(type, new JsonSchemaExporterOptions
-        {
-            TreatNullObliviousAsNonNullable = true,
-        });
-
-        // Validate the generated schema conforms to MCP tool input schema requirements.
-        // The host expects: root "type" = "object", optional "properties" (object), optional "required" (array).
-        ValidateInputSchema(schemaNode, type);
-
-        var schemaJson = schemaNode.ToJsonString();
+        var schemaJson = GenerateSchemaFromType(type, "input", serializerOptions);
         builder.Services.Configure<ToolOptions>(toolName, o => o.InputSchema = schemaJson);
 
         return this;
@@ -180,15 +162,118 @@ public sealed class McpToolBuilder(IFunctionsWorkerApplicationBuilder builder, s
     }
 
     /// <summary>
-    /// Validates that the schema node conforms to MCP tool input schema requirements.
-    /// The host expects: root "type" = "object", optional "properties" (object), optional "required" (array).
+    /// Sets an explicit JSON output schema for the tool.
+    /// When present, the tool's definition includes this schema during <c>list_tools</c>,
+    /// and the tool must return structured content conforming to the declared schema.
     /// </summary>
-    private static void ValidateInputSchema(JsonNode schemaNode, Type? sourceType = null)
+    /// <param name="jsonSchema">A valid JSON schema string defining the tool's output structure.</param>
+    /// <returns>The current <see cref="McpToolBuilder"/> instance, enabling fluent configuration.</returns>
+    /// <exception cref="ArgumentException">Thrown when the schema is invalid JSON or does not conform to requirements.</exception>
+    public McpToolBuilder WithOutputSchema(string jsonSchema)
     {
+        ArgumentException.ThrowIfNullOrEmpty(jsonSchema, nameof(jsonSchema));
+
+        var schemaNode = JsonNode.Parse(jsonSchema)
+            ?? throw new ArgumentException("The provided JSON schema is not valid JSON.", nameof(jsonSchema));
+
+        ValidateSchema(schemaNode, "Output");
+
+        var normalizedSchema = schemaNode.ToJsonString();
+        builder.Services.Configure<ToolOptions>(toolName, o => o.OutputSchema = normalizedSchema);
+
+        return this;
+    }
+
+    /// <summary>
+    /// Sets an explicit JSON output schema for the tool from a <see cref="JsonNode"/>.
+    /// When present, the tool's definition includes this schema during <c>list_tools</c>,
+    /// and the tool must return structured content conforming to the declared schema.
+    /// </summary>
+    /// <param name="schemaNode">A <see cref="JsonNode"/> representing a valid JSON schema defining the tool's output structure.</param>
+    /// <returns>The current <see cref="McpToolBuilder"/> instance, enabling fluent configuration.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="schemaNode"/> is null.</exception>
+    /// <exception cref="ArgumentException">Thrown when the schema does not conform to requirements.</exception>
+    public McpToolBuilder WithOutputSchema(JsonNode schemaNode)
+    {
+        ArgumentNullException.ThrowIfNull(schemaNode, nameof(schemaNode));
+
+        ValidateSchema(schemaNode, "Output");
+
+        var schemaJson = schemaNode.ToJsonString();
+        builder.Services.Configure<ToolOptions>(toolName, o => o.OutputSchema = schemaJson);
+
+        return this;
+    }
+
+    /// <summary>
+    /// Generates and sets a JSON output schema from the specified CLR type using <see cref="JsonSchemaExporter"/>.
+    /// When present, the tool's definition includes this schema during <c>list_tools</c>,
+    /// and the tool must return structured content conforming to the declared schema.
+    /// </summary>
+    /// <param name="type">The CLR type to generate the JSON schema from. Must be a class or record type.</param>
+    /// <param name="serializerOptions">Optional <see cref="JsonSerializerOptions"/> to control schema generation.
+    /// When null, <see cref="JsonSerializerOptions.Default"/> is used.</param>
+    /// <returns>The current <see cref="McpToolBuilder"/> instance, enabling fluent configuration.</returns>
+    /// <exception cref="ArgumentException">Thrown when the generated schema does not have root <c>"type": "object"</c>.</exception>
+    public McpToolBuilder WithOutputSchema(Type type, JsonSerializerOptions? serializerOptions = null)
+    {
+        ArgumentNullException.ThrowIfNull(type, nameof(type));
+
+        var schemaJson = GenerateSchemaFromType(type, "output", serializerOptions);
+        builder.Services.Configure<ToolOptions>(toolName, o => o.OutputSchema = schemaJson);
+
+        return this;
+    }
+
+    /// <summary>
+    /// Generates and sets a JSON output schema from the specified CLR type <typeparamref name="T"/>
+    /// using <see cref="JsonSchemaExporter"/>.
+    /// </summary>
+    /// <typeparam name="T">The CLR type to generate the JSON schema from.</typeparam>
+    /// <param name="serializerOptions">Optional <see cref="JsonSerializerOptions"/> to control schema generation.
+    /// When null, <see cref="JsonSerializerOptions.Default"/> is used.</param>
+    /// <returns>The current <see cref="McpToolBuilder"/> instance, enabling fluent configuration.</returns>
+    public McpToolBuilder WithOutputSchema<T>(JsonSerializerOptions? serializerOptions = null)
+    {
+        return WithOutputSchema(typeof(T), serializerOptions);
+    }
+
+    /// <summary>
+    /// Generates a JSON schema from the specified CLR type, validates it, and returns the serialized schema string.
+    /// </summary>
+    private static string GenerateSchemaFromType(Type type, string schemaKind, JsonSerializerOptions? serializerOptions)
+    {
+        if (type.IsPrimitive || type == typeof(string) || type.IsEnum || type.IsAbstract || type.IsInterface)
+        {
+            throw new ArgumentException(
+                $"Type '{type.FullName}' is not a valid {schemaKind} schema type. " +
+                $"The type must be a non-abstract class, record, or struct with public properties.",
+                nameof(type));
+        }
+
+        // Default to Web options which includes camelCase naming policy
+        // to match the property names produced when serializing structured content.
+        var options = serializerOptions ?? SchemaExporterOptionsFactory.DefaultSerializerOptions;
+        var schemaNode = options.GetJsonSchemaAsNode(type, SchemaExporterOptionsFactory.Create());
+
+        ValidateSchema(schemaNode, schemaKind, type);
+
+        return schemaNode.ToJsonString();
+    }
+
+    /// <summary>
+    /// Validates that a schema node conforms to MCP tool schema requirements.
+    /// The schema must be a JSON object with root <c>"type": "object"</c>,
+    /// optional <c>"properties"</c> (object), and optional <c>"required"</c> (array).
+    /// </summary>
+    private static void ValidateSchema(JsonNode schemaNode, string schemaKind, Type? sourceType = null)
+    {
+        var label = char.ToUpperInvariant(schemaKind[0]) + schemaKind[1..];
+
         if (schemaNode is not JsonObject schemaObject)
         {
             throw new ArgumentException(
-                FormatValidationError("Input schema must be a JSON object.", sourceType));
+                FormatValidationError($"{label} schema must be a JSON object.", sourceType));
         }
 
         // Must have "type": "object" at root
@@ -197,7 +282,7 @@ public sealed class McpToolBuilder(IFunctionsWorkerApplicationBuilder builder, s
         {
             throw new ArgumentException(
                 FormatValidationError(
-                    "Input schema must have root \"type\": \"object\". " +
+                    $"{label} schema must have root \"type\": \"object\". " +
                     "Ensure you are passing a class or record type with public properties, not a primitive type.",
                     sourceType));
         }
@@ -207,7 +292,7 @@ public sealed class McpToolBuilder(IFunctionsWorkerApplicationBuilder builder, s
             && propsNode is not null && propsNode is not JsonObject)
         {
             throw new ArgumentException(
-                FormatValidationError("Input schema \"properties\" must be a JSON object.", sourceType));
+                FormatValidationError($"{label} schema \"properties\" must be a JSON object.", sourceType));
         }
 
         // If "required" exists, it should be an array
@@ -215,7 +300,7 @@ public sealed class McpToolBuilder(IFunctionsWorkerApplicationBuilder builder, s
             && reqNode is not null && reqNode is not JsonArray)
         {
             throw new ArgumentException(
-                FormatValidationError("Input schema \"required\" must be a JSON array.", sourceType));
+                FormatValidationError($"{label} schema \"required\" must be a JSON array.", sourceType));
         }
     }
 

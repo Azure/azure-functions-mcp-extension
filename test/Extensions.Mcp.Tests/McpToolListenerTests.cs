@@ -490,4 +490,391 @@ public class McpToolListenerTests
         Assert.NotNull(listener.Metadata);
         Assert.Empty(listener.Metadata);
     }
+
+    [Fact]
+    public async Task RunAsync_WithOutputSchema_Throws_WhenStructuredContentMissing()
+    {
+        var callToolResult = new CallToolResult
+        {
+            Content = [new TextContentBlock { Text = "hello" }]
+        };
+
+        var executorMock = new Mock<ITriggeredFunctionExecutor>();
+        executorMock
+            .Setup(e => e.TryExecuteAsync(It.IsAny<TriggeredFunctionData>(), It.IsAny<CancellationToken>()))
+            .Returns<TriggeredFunctionData, CancellationToken>((data, _) =>
+            {
+                var ctx = (CallToolExecutionContext)data.TriggerValue;
+                ctx.SetResult(callToolResult);
+                return Task.FromResult(new FunctionResult(true));
+            });
+
+        var inputSchema = new PropertyBasedToolInputSchema([]);
+        var metadata = new Dictionary<string, object?>();
+        var outputSchema = JsonDocument.Parse("""{"type":"object","properties":{"name":{"type":"string"}}}""").RootElement;
+
+        var listener = new McpToolListener(executorMock.Object, "func", "tool", null, inputSchema, metadata, outputSchema);
+        var request = CreateRequest();
+
+        var ex = await Assert.ThrowsAsync<McpProtocolException>(() =>
+            listener.RunAsync(request, CancellationToken.None));
+        Assert.Contains("does not contain structured content", ex.Message);
+        Assert.Equal(McpErrorCode.InvalidParams, ex.ErrorCode);
+    }
+
+    [Fact]
+    public async Task RunAsync_WithOutputSchema_Throws_WhenRequiredPropertyMissing()
+    {
+        var callToolResult = new CallToolResult
+        {
+            Content = [new TextContentBlock { Text = "hello" }],
+            StructuredContent = new System.Text.Json.Nodes.JsonObject
+            {
+                ["other"] = "value"
+            }
+        };
+
+        var executorMock = new Mock<ITriggeredFunctionExecutor>();
+        executorMock
+            .Setup(e => e.TryExecuteAsync(It.IsAny<TriggeredFunctionData>(), It.IsAny<CancellationToken>()))
+            .Returns<TriggeredFunctionData, CancellationToken>((data, _) =>
+            {
+                var ctx = (CallToolExecutionContext)data.TriggerValue;
+                ctx.SetResult(callToolResult);
+                return Task.FromResult(new FunctionResult(true));
+            });
+
+        var inputSchema = new PropertyBasedToolInputSchema([]);
+        var metadata = new Dictionary<string, object?>();
+        var outputSchema = JsonDocument.Parse("""{"type":"object","required":["name"],"properties":{"name":{"type":"string"}}}""").RootElement;
+
+        var listener = new McpToolListener(executorMock.Object, "func", "tool", null, inputSchema, metadata, outputSchema);
+        var request = CreateRequest();
+
+        var ex = await Assert.ThrowsAsync<McpProtocolException>(() =>
+            listener.RunAsync(request, CancellationToken.None));
+        Assert.Contains("missing required properties", ex.Message);
+        Assert.Contains("name", ex.Message);
+        Assert.Equal(McpErrorCode.InvalidParams, ex.ErrorCode);
+    }
+
+    [Fact]
+    public async Task RunAsync_WithOutputSchema_Throws_WhenRequiredPropertyIsNull()
+    {
+        var callToolResult = new CallToolResult
+        {
+            Content = [new TextContentBlock { Text = "hello" }],
+            StructuredContent = new System.Text.Json.Nodes.JsonObject
+            {
+                ["name"] = (System.Text.Json.Nodes.JsonNode?)null
+            }
+        };
+
+        var executorMock = new Mock<ITriggeredFunctionExecutor>();
+        executorMock
+            .Setup(e => e.TryExecuteAsync(It.IsAny<TriggeredFunctionData>(), It.IsAny<CancellationToken>()))
+            .Returns<TriggeredFunctionData, CancellationToken>((data, _) =>
+            {
+                var ctx = (CallToolExecutionContext)data.TriggerValue;
+                ctx.SetResult(callToolResult);
+                return Task.FromResult(new FunctionResult(true));
+            });
+
+        var inputSchema = new PropertyBasedToolInputSchema([]);
+        var metadata = new Dictionary<string, object?>();
+        var outputSchema = JsonDocument.Parse("""{"type":"object","required":["name"],"properties":{"name":{"type":"string"}}}""").RootElement;
+
+        var listener = new McpToolListener(executorMock.Object, "func", "tool", null, inputSchema, metadata, outputSchema);
+        var request = CreateRequest();
+
+        var ex = await Assert.ThrowsAsync<McpProtocolException>(() =>
+            listener.RunAsync(request, CancellationToken.None));
+        Assert.Contains("missing required properties", ex.Message);
+        Assert.Contains("name", ex.Message);
+    }
+
+    [Fact]
+    public async Task RunAsync_WithOutputSchema_Succeeds_WhenStructuredContentValid()
+    {
+        var callToolResult = new CallToolResult
+        {
+            Content = [new TextContentBlock { Text = """{"name":"Alice","age":30}""" }],
+            StructuredContent = new System.Text.Json.Nodes.JsonObject
+            {
+                ["name"] = "Alice",
+                ["age"] = 30
+            }
+        };
+
+        var executorMock = new Mock<ITriggeredFunctionExecutor>();
+        executorMock
+            .Setup(e => e.TryExecuteAsync(It.IsAny<TriggeredFunctionData>(), It.IsAny<CancellationToken>()))
+            .Returns<TriggeredFunctionData, CancellationToken>((data, _) =>
+            {
+                var ctx = (CallToolExecutionContext)data.TriggerValue;
+                ctx.SetResult(callToolResult);
+                return Task.FromResult(new FunctionResult(true));
+            });
+
+        var inputSchema = new PropertyBasedToolInputSchema([]);
+        var metadata = new Dictionary<string, object?>();
+        var outputSchema = JsonDocument.Parse("""{"type":"object","required":["name"],"properties":{"name":{"type":"string"},"age":{"type":"integer"}}}""").RootElement;
+
+        var listener = new McpToolListener(executorMock.Object, "func", "tool", null, inputSchema, metadata, outputSchema);
+        var request = CreateRequest();
+
+        var result = await listener.RunAsync(request, CancellationToken.None);
+        Assert.Same(callToolResult, result);
+    }
+
+    [Fact]
+    public async Task RunAsync_WithOutputSchema_Succeeds_WhenNoRequiredProperties()
+    {
+        var callToolResult = new CallToolResult
+        {
+            Content = [new TextContentBlock { Text = "{}" }],
+            StructuredContent = new System.Text.Json.Nodes.JsonObject()
+        };
+
+        var executorMock = new Mock<ITriggeredFunctionExecutor>();
+        executorMock
+            .Setup(e => e.TryExecuteAsync(It.IsAny<TriggeredFunctionData>(), It.IsAny<CancellationToken>()))
+            .Returns<TriggeredFunctionData, CancellationToken>((data, _) =>
+            {
+                var ctx = (CallToolExecutionContext)data.TriggerValue;
+                ctx.SetResult(callToolResult);
+                return Task.FromResult(new FunctionResult(true));
+            });
+
+        var inputSchema = new PropertyBasedToolInputSchema([]);
+        var metadata = new Dictionary<string, object?>();
+        var outputSchema = JsonDocument.Parse("""{"type":"object","properties":{"name":{"type":"string"}}}""").RootElement;
+
+        var listener = new McpToolListener(executorMock.Object, "func", "tool", null, inputSchema, metadata, outputSchema);
+        var request = CreateRequest();
+
+        var result = await listener.RunAsync(request, CancellationToken.None);
+        Assert.Same(callToolResult, result);
+    }
+
+    [Fact]
+    public async Task RunAsync_WithoutOutputSchema_DoesNotValidateStructuredContent()
+    {
+        // No output schema — structured content is not validated, even if missing.
+        var callToolResult = new CallToolResult
+        {
+            Content = [new TextContentBlock { Text = "hello" }]
+        };
+
+        var executorMock = new Mock<ITriggeredFunctionExecutor>();
+        executorMock
+            .Setup(e => e.TryExecuteAsync(It.IsAny<TriggeredFunctionData>(), It.IsAny<CancellationToken>()))
+            .Returns<TriggeredFunctionData, CancellationToken>((data, _) =>
+            {
+                var ctx = (CallToolExecutionContext)data.TriggerValue;
+                ctx.SetResult(callToolResult);
+                return Task.FromResult(new FunctionResult(true));
+            });
+
+        var inputSchema = new PropertyBasedToolInputSchema([]);
+        var metadata = new Dictionary<string, object?>();
+
+        var listener = new McpToolListener(executorMock.Object, "func", "tool", null, inputSchema, metadata);
+        var request = CreateRequest();
+
+        var result = await listener.RunAsync(request, CancellationToken.None);
+        Assert.Same(callToolResult, result);
+    }
+
+    [Fact]
+    public async Task RunAsync_WithOutputSchema_Throws_WhenPropertyTypeMismatch()
+    {
+        var callToolResult = new CallToolResult
+        {
+            Content = [new TextContentBlock { Text = "test" }],
+            StructuredContent = new System.Text.Json.Nodes.JsonObject
+            {
+                ["name"] = 123 // should be string
+            }
+        };
+
+        var executorMock = new Mock<ITriggeredFunctionExecutor>();
+        executorMock
+            .Setup(e => e.TryExecuteAsync(It.IsAny<TriggeredFunctionData>(), It.IsAny<CancellationToken>()))
+            .Returns<TriggeredFunctionData, CancellationToken>((data, _) =>
+            {
+                var ctx = (CallToolExecutionContext)data.TriggerValue;
+                ctx.SetResult(callToolResult);
+                return Task.FromResult(new FunctionResult(true));
+            });
+
+        var inputSchema = new PropertyBasedToolInputSchema([]);
+        var metadata = new Dictionary<string, object?>();
+        var outputSchema = JsonDocument.Parse("""{"type":"object","properties":{"name":{"type":"string"}}}""").RootElement;
+
+        var listener = new McpToolListener(executorMock.Object, "func", "tool", null, inputSchema, metadata, outputSchema);
+        var request = CreateRequest();
+
+        var ex = await Assert.ThrowsAsync<McpProtocolException>(() =>
+            listener.RunAsync(request, CancellationToken.None));
+        Assert.Contains("type mismatches", ex.Message);
+        Assert.Contains("name", ex.Message);
+        Assert.Contains("expected string", ex.Message);
+        Assert.Contains("got number", ex.Message);
+        Assert.Equal(McpErrorCode.InvalidParams, ex.ErrorCode);
+    }
+
+    [Fact]
+    public async Task RunAsync_WithOutputSchema_Throws_WhenObjectExpectedButGotString()
+    {
+        var callToolResult = new CallToolResult
+        {
+            Content = [new TextContentBlock { Text = "test" }],
+            StructuredContent = new System.Text.Json.Nodes.JsonObject
+            {
+                ["address"] = "not an object"
+            }
+        };
+
+        var executorMock = new Mock<ITriggeredFunctionExecutor>();
+        executorMock
+            .Setup(e => e.TryExecuteAsync(It.IsAny<TriggeredFunctionData>(), It.IsAny<CancellationToken>()))
+            .Returns<TriggeredFunctionData, CancellationToken>((data, _) =>
+            {
+                var ctx = (CallToolExecutionContext)data.TriggerValue;
+                ctx.SetResult(callToolResult);
+                return Task.FromResult(new FunctionResult(true));
+            });
+
+        var inputSchema = new PropertyBasedToolInputSchema([]);
+        var metadata = new Dictionary<string, object?>();
+        var outputSchema = JsonDocument.Parse("""{"type":"object","properties":{"address":{"type":"object"}}}""").RootElement;
+
+        var listener = new McpToolListener(executorMock.Object, "func", "tool", null, inputSchema, metadata, outputSchema);
+        var request = CreateRequest();
+
+        var ex = await Assert.ThrowsAsync<McpProtocolException>(() =>
+            listener.RunAsync(request, CancellationToken.None));
+        Assert.Contains("address", ex.Message);
+        Assert.Contains("expected object", ex.Message);
+        Assert.Contains("got string", ex.Message);
+    }
+
+    [Fact]
+    public async Task RunAsync_WithOutputSchema_Throws_WhenArrayExpectedButGotString()
+    {
+        var callToolResult = new CallToolResult
+        {
+            Content = [new TextContentBlock { Text = "test" }],
+            StructuredContent = new System.Text.Json.Nodes.JsonObject
+            {
+                ["tags"] = "not-an-array"
+            }
+        };
+
+        var executorMock = new Mock<ITriggeredFunctionExecutor>();
+        executorMock
+            .Setup(e => e.TryExecuteAsync(It.IsAny<TriggeredFunctionData>(), It.IsAny<CancellationToken>()))
+            .Returns<TriggeredFunctionData, CancellationToken>((data, _) =>
+            {
+                var ctx = (CallToolExecutionContext)data.TriggerValue;
+                ctx.SetResult(callToolResult);
+                return Task.FromResult(new FunctionResult(true));
+            });
+
+        var inputSchema = new PropertyBasedToolInputSchema([]);
+        var metadata = new Dictionary<string, object?>();
+        var outputSchema = JsonDocument.Parse("""{"type":"object","properties":{"tags":{"type":"array"}}}""").RootElement;
+
+        var listener = new McpToolListener(executorMock.Object, "func", "tool", null, inputSchema, metadata, outputSchema);
+        var request = CreateRequest();
+
+        var ex = await Assert.ThrowsAsync<McpProtocolException>(() =>
+            listener.RunAsync(request, CancellationToken.None));
+        Assert.Contains("tags", ex.Message);
+        Assert.Contains("expected array", ex.Message);
+    }
+
+    [Fact]
+    public async Task RunAsync_WithOutputSchema_Succeeds_WhenAllTypesMatch()
+    {
+        var callToolResult = new CallToolResult
+        {
+            Content = [new TextContentBlock { Text = "test" }],
+            StructuredContent = new System.Text.Json.Nodes.JsonObject
+            {
+                ["name"] = "Alice",
+                ["age"] = 30,
+                ["active"] = true,
+                ["tags"] = new System.Text.Json.Nodes.JsonArray("a", "b"),
+                ["address"] = new System.Text.Json.Nodes.JsonObject { ["city"] = "Seattle" }
+            }
+        };
+
+        var executorMock = new Mock<ITriggeredFunctionExecutor>();
+        executorMock
+            .Setup(e => e.TryExecuteAsync(It.IsAny<TriggeredFunctionData>(), It.IsAny<CancellationToken>()))
+            .Returns<TriggeredFunctionData, CancellationToken>((data, _) =>
+            {
+                var ctx = (CallToolExecutionContext)data.TriggerValue;
+                ctx.SetResult(callToolResult);
+                return Task.FromResult(new FunctionResult(true));
+            });
+
+        var inputSchema = new PropertyBasedToolInputSchema([]);
+        var metadata = new Dictionary<string, object?>();
+        var outputSchema = JsonDocument.Parse("""
+            {
+                "type":"object",
+                "properties":{
+                    "name":{"type":"string"},
+                    "age":{"type":"integer"},
+                    "active":{"type":"boolean"},
+                    "tags":{"type":"array"},
+                    "address":{"type":"object"}
+                }
+            }
+            """).RootElement;
+
+        var listener = new McpToolListener(executorMock.Object, "func", "tool", null, inputSchema, metadata, outputSchema);
+        var request = CreateRequest();
+
+        var result = await listener.RunAsync(request, CancellationToken.None);
+        Assert.Same(callToolResult, result);
+    }
+
+    [Fact]
+    public async Task RunAsync_WithOutputSchema_Succeeds_WhenPropertyNotInSchema()
+    {
+        // Extra properties not declared in the schema should not cause validation errors.
+        var callToolResult = new CallToolResult
+        {
+            Content = [new TextContentBlock { Text = "test" }],
+            StructuredContent = new System.Text.Json.Nodes.JsonObject
+            {
+                ["name"] = "Alice",
+                ["extraProp"] = "should be fine"
+            }
+        };
+
+        var executorMock = new Mock<ITriggeredFunctionExecutor>();
+        executorMock
+            .Setup(e => e.TryExecuteAsync(It.IsAny<TriggeredFunctionData>(), It.IsAny<CancellationToken>()))
+            .Returns<TriggeredFunctionData, CancellationToken>((data, _) =>
+            {
+                var ctx = (CallToolExecutionContext)data.TriggerValue;
+                ctx.SetResult(callToolResult);
+                return Task.FromResult(new FunctionResult(true));
+            });
+
+        var inputSchema = new PropertyBasedToolInputSchema([]);
+        var metadata = new Dictionary<string, object?>();
+        var outputSchema = JsonDocument.Parse("""{"type":"object","properties":{"name":{"type":"string"}}}""").RootElement;
+
+        var listener = new McpToolListener(executorMock.Object, "func", "tool", null, inputSchema, metadata, outputSchema);
+        var request = CreateRequest();
+
+        var result = await listener.RunAsync(request, CancellationToken.None);
+        Assert.Same(callToolResult, result);
+    }
 }

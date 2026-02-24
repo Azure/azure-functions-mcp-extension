@@ -37,6 +37,7 @@ public static class McpHostBuilderExtensions
                     sp.GetRequiredService<ILogger<ReflectionBasedInputSchemaResolver>>())));
 
         builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IFunctionMetadataTransformer, McpUseWorkerInputSchemaTransformer>());
+        builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IFunctionMetadataTransformer, McpOutputSchemaTransformer>());
         builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IFunctionMetadataTransformer, McpFunctionMetadataTransformer>());
 
         builder.UseMiddleware<FunctionsMcpContextMiddleware>();

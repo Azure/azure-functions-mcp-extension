@@ -16,7 +16,8 @@ internal sealed class McpToolListener(ITriggeredFunctionExecutor executor,
                                       string toolName,
                                       string? toolDescription,
                                       ToolInputSchema requestHandler,
-                                      IReadOnlyDictionary<string, object?> metadata) : IListener, IMcpTool
+                                      IReadOnlyDictionary<string, object?> metadata,
+                                      JsonElement? outputSchema = null) : IListener, IMcpTool
 {
     public ITriggeredFunctionExecutor Executor { get; } = executor;
 
@@ -29,6 +30,8 @@ internal sealed class McpToolListener(ITriggeredFunctionExecutor executor,
     public IReadOnlyDictionary<string, object?> Metadata { get; } = metadata;
 
     public ToolInputSchema ToolInputSchema { get; } = requestHandler ?? throw new ArgumentNullException(nameof(requestHandler));
+
+    public JsonElement? OutputSchema { get; } = outputSchema;
 
     public void Dispose()
     {
@@ -68,6 +71,12 @@ internal sealed class McpToolListener(ITriggeredFunctionExecutor executor,
 
         if (toolResult is CallToolResult callToolResult)
         {
+            // Validate structured content against the output schema, if one was declared.
+            if (OutputSchema is JsonElement schema)
+            {
+                ToolOutputSchemaValidator.Validate(schema, callToolResult);
+            }
+
             return callToolResult;
         }
 
