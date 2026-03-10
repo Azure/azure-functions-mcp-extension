@@ -4,14 +4,14 @@
 - My change description (#PR/#issue)
 -->
 
-### Microsoft.Azure.Functions.Extensions <version>
+### Microsoft.Azure.Functions.Extensions 1.3.0
 
 - Added structured content support for tools (#172)
 
-### Microsoft.Azure.Functions.Worker.Extensions.Mcp <version>
+### Microsoft.Azure.Functions.Worker.Extensions.Mcp 1.3.0
 
 - Added structured content support for tools (#172)
 
-### Microsoft.Azure.Functions.Worker.Extensions.Mcp.Sdk <version>
+### Microsoft.Azure.Functions.Worker.Extensions.Mcp.Sdk 1.0.0-preview.4
 
 - Added structured content support for tools (#172)

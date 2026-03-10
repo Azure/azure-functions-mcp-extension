@@ -1,8 +1,7 @@
 <Project>
 
   <PropertyGroup>
-    <VersionPrefix>1.2.0</VersionPrefix>
-    <VersionSuffix>preview.1</VersionSuffix>
+    <VersionPrefix>1.3.0</VersionPrefix>
     <UpdateBuildNumber>true</UpdateBuildNumber>
   </PropertyGroup>
 
