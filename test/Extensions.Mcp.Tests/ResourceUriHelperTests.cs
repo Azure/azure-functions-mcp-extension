@@ -31,20 +31,6 @@ public class ResourceUriHelperTests
 
     #endregion
 
-    #region TemplateExpressionRegex Tests
-
-    [Fact]
-    public void TemplateExpressionRegex_ReturnsCompiledRegex()
-    {
-        var regex = ResourceUriHelper.TemplateExpressionRegex();
-
-        Assert.NotNull(regex);
-        Assert.Matches(regex, "{parameter}");
-        Assert.DoesNotMatch(regex, "no-template");
-    }
-
-    #endregion
-
     #region GetTemplateParameterNames Tests
 
     [Fact]
@@ -170,6 +156,8 @@ public class ResourceUriHelperTests
         var exception = Assert.Throws<ArgumentException>(
             () => ResourceUriHelper.BuildTemplateRegex("test://items/{user-id}/posts/{user.id}"));
         Assert.Contains("duplicate or colliding", exception.Message);
+        Assert.Contains("user-id", exception.Message);
+        Assert.Contains("user.id", exception.Message);
     }
 
     [Fact]
@@ -220,6 +208,17 @@ public class ResourceUriHelperTests
     {
         var exception = Assert.Throws<ArgumentException>(() => ResourceUriHelper.BuildTemplateRegex("test://items/{a}{b}"));
         Assert.Contains("must be separated", exception.Message);
+    }
+
+    [Fact]
+    public void BuildTemplateRegex_WithLiteralTextBetweenExpressions_Succeeds()
+    {
+        var regex = ResourceUriHelper.BuildTemplateRegex("test://items/{category}items{tag}");
+
+        var match = regex.Match("test://items/booksitemsfiction");
+        Assert.True(match.Success);
+        Assert.Equal("books", match.Groups["category"].Value);
+        Assert.Equal("fiction", match.Groups["tag"].Value);
     }
 
     #endregion
@@ -348,6 +347,20 @@ public class ResourceUriHelperTests
         Assert.Equal("en", values["lang"]);
     }
 
+    [Fact]
+    public void TryExtractParameters_WithHyphenatedParameter_ReturnsOriginalName()
+    {
+        var result = ResourceUriHelper.TryExtractParameters(
+            "test://items/{user-id}",
+            "test://items/123",
+            out var values);
+
+        Assert.True(result);
+        Assert.NotNull(values);
+        Assert.True(values.ContainsKey("user-id"));
+        Assert.Equal("123", values["user-id"]);
+    }
+
     #endregion
 
     #region Validate Tests
@@ -424,6 +437,8 @@ public class ResourceUriHelperTests
         var exception = Assert.Throws<ArgumentException>(
             () => ResourceUriHelper.Validate("test://items/{user-id}/posts/{user.id}"));
         Assert.Contains("duplicate or colliding", exception.Message);
+        Assert.Contains("user-id", exception.Message);
+        Assert.Contains("user.id", exception.Message);
     }
 
     [Fact]
@@ -451,6 +466,23 @@ public class ResourceUriHelperTests
     {
         var exception = Assert.Throws<ArgumentException>(() => ResourceUriHelper.Validate("test://items/{%7Bbad%7D}"));
         Assert.Contains("encoded braces", exception.Message);
+    }
+
+    [Fact]
+    public void Validate_WithLiteralTextBetweenExpressions_DoesNotThrow()
+    {
+        ResourceUriHelper.Validate("test://items/{category}items{tag}");
+    }
+
+    [Theory]
+    [InlineData("user://profile/{")]
+    [InlineData("user://profile/}")]
+    [InlineData("user://profile/{}")]
+    [InlineData("user://profile/{}/test")]
+    public void Validate_WithMalformedBraces_ThrowsArgumentException(string uri)
+    {
+        var exception = Assert.Throws<ArgumentException>(() => ResourceUriHelper.Validate(uri));
+        Assert.Contains("malformed template syntax", exception.Message);
     }
 
     #endregion

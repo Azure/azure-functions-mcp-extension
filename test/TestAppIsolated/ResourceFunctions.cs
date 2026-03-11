@@ -67,4 +67,16 @@ public class ResourceFunctions
         var file = Path.Combine(AppContext.BaseDirectory, "assets", $"{name}.md");
         return File.ReadAllText(file);
     }
+
+    [Function(nameof(CatalogItemResource))]
+    public string CatalogItemResource(
+        [McpResourceTrigger(
+            "store://catalog/{category}items{tag}",
+            "catalogItem",
+            Description = "Catalog item lookup by category and tag",
+            MimeType = "application/json")] ResourceInvocationContext context, string category, string tag)
+    {
+        _logger.LogInformation("Looking up catalog item: category={Category}, tag={Tag}", category, tag);
+        return $"{{\"category\":\"{category}\",\"tag\":\"{tag}\"}}";
+    }
 }

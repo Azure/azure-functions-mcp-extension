@@ -1,7 +1,6 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
 using System.Text.RegularExpressions;
 
@@ -10,32 +9,35 @@ namespace Microsoft.Azure.Functions.Extensions.Mcp;
 /// <summary>
 /// Helper methods for validating and inspecting MCP resource URIs, including templated URIs.
 /// </summary>
-internal static class ResourceUriHelper
+internal static partial class ResourceUriHelper
 {
-    // RFC 6570 level 1 style placeholder: {param}. We intentionally keep the pattern simple
-    // to allow single-level expressions while rejecting nested or empty braces.
-    private static readonly Regex TemplateExpressionPattern = new(
-        "\\{[^{}]+\\}",
-        RegexOptions.Compiled | RegexOptions.CultureInvariant);
+    [GeneratedRegex(@"\{[^{}]+\}", RegexOptions.CultureInvariant)]
+    private static partial Regex TemplateExpressionMatcher();
 
-    // Cache compiled templates to avoid repeated regex construction per request.
-    private static readonly ConcurrentDictionary<string, TemplateInfo> TemplateCache = new(StringComparer.Ordinal);
+    [GeneratedRegex("[^A-Za-z0-9_]", RegexOptions.CultureInvariant)]
+    private static partial Regex SanitizeCharPattern();
 
     /// <summary>
-    /// Determines whether the URI contains RFC6570-style template expressions.
+    /// Determines whether the URI contains template expressions.
     /// </summary>
-    public static bool IsTemplate(string uri) => TemplateExpressionPattern.IsMatch(uri);
+    public static bool IsTemplate(string uri) => TemplateExpressionMatcher().IsMatch(uri);
 
     /// <summary>
-    /// Exposes the compiled template expression regex for reuse (e.g., when building matchers).
+    /// Normalizes a template URI by replacing all template expressions with a common placeholder.
+    /// Used to detect structurally equivalent templates.
     /// </summary>
-    public static Regex TemplateExpressionRegex() => TemplateExpressionPattern;
+    internal static string NormalizeTemplateStructure(string uriTemplate) =>
+        TemplateExpressionMatcher().Replace(uriTemplate, "{_}");
 
     /// <summary>
     /// Returns the ordered list of parameter names declared in a URI template.
     /// </summary>
-    public static IReadOnlyList<string> GetTemplateParameterNames(string uriTemplate) =>
-        ParseTemplate(uriTemplate).Parameters;
+    public static IReadOnlyList<string> GetTemplateParameterNames(string uriTemplate)
+    {
+        ArgumentNullException.ThrowIfNull(uriTemplate);
+
+        return [.. TemplateExpressionMatcher().Matches(uriTemplate).Select(m => m.Value[1..^1])];
+    }
 
     /// <summary>
     /// Builds a regex that matches the supplied URI template and exposes named capture groups for each parameter.
@@ -43,20 +45,39 @@ internal static class ResourceUriHelper
     /// <exception cref="ArgumentException">Thrown when the template has duplicate or colliding parameter names.</exception>
     public static Regex BuildTemplateRegex(string uriTemplate)
     {
-        var info = ParseTemplate(uriTemplate);
-        if (!info.IsTemplate || info.Regex is null)
+        ArgumentNullException.ThrowIfNull(uriTemplate);
+
+        if (!IsTemplate(uriTemplate))
         {
             throw new ArgumentException("Resource URI must contain at least one template expression.", nameof(uriTemplate));
         }
 
-        return info.Regex;
+        ValidateTemplateSyntax(uriTemplate);
+        var parameters = GetTemplateParameterNames(uriTemplate);
+        ValidateParameters(parameters, uriTemplate);
+
+        return BuildRegexCore(uriTemplate);
     }
 
     /// <summary>
     /// Sanitizes a parameter name for use in a regex named capture group.
     /// </summary>
     private static string SanitizeParameterName(string parameter) =>
-        Regex.Replace(parameter, "[^A-Za-z0-9_]", "_", RegexOptions.CultureInvariant);
+        SanitizeCharPattern().Replace(parameter, "_");
+
+    /// <summary>
+    /// Builds a mapping from sanitized regex group names back to the original parameter names.
+    /// </summary>
+    private static Dictionary<string, string> BuildSanitizedToOriginalMap(IReadOnlyList<string> parameters)
+    {
+        var map = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var p in parameters)
+        {
+            map[SanitizeParameterName(p)] = p;
+        }
+
+        return map;
+    }
 
     /// <summary>
     /// Attempts to extract template parameter values from an actual URI using the provided template.
@@ -64,27 +85,35 @@ internal static class ResourceUriHelper
     public static bool TryExtractParameters(string uriTemplate, string actualUri, [NotNullWhen(true)] out IReadOnlyDictionary<string, string>? values)
     {
         values = null;
-        var templateInfo = ParseTemplate(uriTemplate);
-        if (!templateInfo.IsTemplate || templateInfo.Regex is null)
+
+        if (!IsTemplate(uriTemplate))
         {
             return false;
         }
 
-        var match = templateInfo.Regex.Match(actualUri);
+        var regex = BuildTemplateRegex(uriTemplate);
+        var match = regex.Match(actualUri);
         if (!match.Success)
         {
             return false;
         }
 
+        var parameters = GetTemplateParameterNames(uriTemplate);
+        var sanitizedMap = BuildSanitizedToOriginalMap(parameters);
+
         var dict = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        foreach (var groupName in templateInfo.Regex.GetGroupNames())
+        foreach (var groupName in regex.GetGroupNames())
         {
             if (int.TryParse(groupName, out _))
             {
                 continue; // skip numeric groups
             }
 
-            dict[groupName] = match.Groups[groupName].Value;
+            // Map sanitized regex group name back to original parameter name
+            var originalName = sanitizedMap.TryGetValue(groupName, out var orig)
+                ? orig
+                : groupName;
+            dict[originalName] = match.Groups[groupName].Value;
         }
 
         values = dict;
@@ -105,74 +134,83 @@ internal static class ResourceUriHelper
             throw new ArgumentException("Resource URI cannot be null or whitespace.", nameof(uri));
         }
 
-        var template = ParseTemplate(uri);
-        var isTemplate = template.IsTemplate;
+        var isTemplate = IsTemplate(uri);
 
-        // Basic brace balance check for templates.
-        if (isTemplate && uri.Count(c => c == '{') != uri.Count(c => c == '}'))
+        if (isTemplate)
         {
-            throw new ArgumentException("Resource URI template has unbalanced braces.", nameof(uri));
+            // Basic brace balance check for templates.
+            if (uri.Count(c => c == '{') != uri.Count(c => c == '}'))
+            {
+                throw new ArgumentException("Resource URI template has unbalanced braces.", nameof(uri));
+            }
+
+            // Validate template syntax and parameters (adjacent expressions, collisions, etc.)
+            ValidateTemplateSyntax(uri);
+            var parameters = GetTemplateParameterNames(uri);
+            ValidateParameters(parameters, uri);
+        }
+        else if (uri.Contains('{') || uri.Contains('}'))
+        {
+            // URIs like "user://profile/{" or "user://profile/{}" contain braces but aren't
+            // recognized as valid templates. Reject them rather than silently registering as static resources.
+            throw new ArgumentException("Resource URI contains malformed template syntax (unmatched or empty braces).", nameof(uri));
         }
 
         // Replace template expressions with a safe placeholder to validate overall URI shape (scheme, etc.).
-        var validationUri = template.ValidationUri ?? uri;
+        var validationUri = isTemplate
+            ? TemplateExpressionMatcher().Replace(uri, "template")
+            : uri;
 
         if (!Uri.TryCreate(validationUri, UriKind.Absolute, out var parsedUri) || !parsedUri.IsAbsoluteUri)
         {
             throw new ArgumentException($"Invalid resource URI format: '{uri}'", nameof(uri));
         }
-
-        // ParseTemplate already enforces parameter rules.
-    }
-
-    private static TemplateInfo ParseTemplate(string uri)
-    {
-        ArgumentNullException.ThrowIfNull(uri);
-
-        if (!IsTemplate(uri))
-        {
-            return new TemplateInfo(false, Array.Empty<string>(), null, null);
-        }
-
-        return TemplateCache.GetOrAdd(uri, static key =>
-        {
-            ValidateTemplateSyntax(key);
-            var parameters = TemplateExpressionPattern.Matches(key)
-                .Select(m => m.Value[1..^1])
-                .ToArray();
-
-            ValidateParameters(parameters, key);
-
-            var regex = BuildRegexCore(key);
-            var validationUri = TemplateExpressionPattern.Replace(key, "template");
-
-            return new TemplateInfo(true, parameters, regex, validationUri);
-        });
     }
 
     private static void ValidateTemplateSyntax(string uriTemplate)
     {
-        // Prevent adjacent expressions without delimiters: ...}{...
-        if (uriTemplate.Contains("}{", StringComparison.Ordinal))
+        // Reject directly adjacent template expressions (e.g. {a}{b}) where there is
+        // no text at all between them – the regex cannot split values without some
+        // literal separator. Literal text like "items" in {category}items{tag} is
+        // allowed; the regex engine will use it as a fixed anchor via backtracking.
+        var matches = TemplateExpressionMatcher().Matches(uriTemplate);
+        for (int i = 0; i < matches.Count - 1; i++)
         {
-            throw new ArgumentException("Resource URI template expressions must be separated by a delimiter.", nameof(uriTemplate));
+            var endOfCurrent = matches[i].Index + matches[i].Length;
+            var startOfNext = matches[i + 1].Index;
+
+            if (endOfCurrent == startOfNext)
+            {
+                throw new ArgumentException(
+                    "Resource URI template expressions must be separated by at least one literal character or delimiter.",
+                    nameof(uriTemplate));
+            }
         }
     }
 
-    private static void ValidateParameters(string[] parameters, string uriTemplate)
+    private static void ValidateParameters(IReadOnlyList<string> parameters, string uriTemplate)
     {
-        if (parameters.Length == 0)
+        if (parameters.Count == 0)
         {
             throw new ArgumentException("Resource URI template must contain at least one parameter expression.", nameof(uriTemplate));
         }
 
         var sanitized = parameters.Select(SanitizeParameterName).ToList();
-        if (sanitized.Distinct(StringComparer.OrdinalIgnoreCase).Count() != sanitized.Count)
+        var collisions = parameters.Zip(sanitized, (orig, san) => (Original: orig, Sanitized: san))
+            .GroupBy(x => x.Sanitized, StringComparer.OrdinalIgnoreCase)
+            .Where(g => g.Count() > 1)
+            .ToList();
+
+        if (collisions.Count > 0)
         {
-            throw new ArgumentException("Resource URI template has duplicate or colliding parameter names.", nameof(uriTemplate));
+            var first = collisions[0];
+            var names = string.Join("', '", first.Select(x => x.Original));
+            throw new ArgumentException(
+                $"Resource URI template has duplicate or colliding parameter names: '{names}' all resolve to '{first.Key}'.",
+                nameof(uriTemplate));
         }
 
-        for (var idx = 0; idx < parameters.Length; idx++)
+        for (var idx = 0; idx < parameters.Count; idx++)
         {
             var param = parameters[idx];
             if (string.IsNullOrWhiteSpace(param))
@@ -228,10 +266,4 @@ internal static class ResourceUriHelper
             pattern,
             RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.ExplicitCapture);
     }
-
-    private sealed record TemplateInfo(
-        bool IsTemplate,
-        IReadOnlyList<string> Parameters,
-        Regex? Regex,
-        string? ValidationUri);
 }

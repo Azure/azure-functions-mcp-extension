@@ -1,7 +1,6 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-using System.Text.RegularExpressions;
 using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 
@@ -380,6 +379,34 @@ public class DefaultResourceRegistryTests
         Assert.Single(result.Resources);
     }
 
+    [Fact]
+    public void Register_WithStructurallyEquivalentTemplates_ThrowsInvalidOperationException()
+    {
+        var registry = new DefaultResourceRegistry();
+        var template1 = CreateTestResourceTemplate("user://profile/{id}");
+        var template2 = CreateTestResourceTemplate("user://profile/{name}");
+
+        registry.Register(template1);
+
+        var exception = Assert.Throws<InvalidOperationException>(() => registry.Register(template2));
+        Assert.Contains("already registered", exception.Message);
+        Assert.Contains("user://profile/{id}", exception.Message);
+        Assert.Contains("user://profile/{name}", exception.Message);
+    }
+
+    [Fact]
+    public void Register_WithDuplicateTemplateUri_ThrowsInvalidOperationException()
+    {
+        var registry = new DefaultResourceRegistry();
+        var template1 = CreateTestResourceTemplate("file://{filename}");
+        var template2 = CreateTestResourceTemplate("file://{filename}");
+
+        registry.Register(template1);
+
+        var exception = Assert.Throws<InvalidOperationException>(() => registry.Register(template2));
+        Assert.Contains("already registered", exception.Message);
+    }
+
     private static TestResource CreateTestResource(
         string uri,
         string? name = null,
@@ -401,7 +428,7 @@ public class DefaultResourceRegistryTests
         };
     }
 
-    private static TestResourceTemplate CreateTestResourceTemplate(
+    private static TestResource CreateTestResourceTemplate(
         string uriTemplate,
         string? name = null,
         string? mimeType = null,
@@ -409,15 +436,14 @@ public class DefaultResourceRegistryTests
         long? size = null,
         IReadOnlyDictionary<string, object?>? metadata = null)
     {
-        return new TestResourceTemplate
+        return new TestResource
         {
             Uri = uriTemplate,
             Name = name ?? "TestResourceTemplate",
             MimeType = mimeType,
             Description = description,
             Size = size,
-            Metadata = metadata ?? new Dictionary<string, object?>(),
-            TemplateRegex = ResourceUriHelper.BuildTemplateRegex(uriTemplate)
+            Metadata = metadata ?? new Dictionary<string, object?>()
         };
     }
 
@@ -430,22 +456,6 @@ public class DefaultResourceRegistryTests
         public string? Description { get; set; }
         public long? Size { get; set; }
         public IReadOnlyDictionary<string, object?> Metadata { get; set; } = new Dictionary<string, object?>();
-
-        public Task<ReadResourceResult> ReadAsync(RequestContext<ReadResourceRequestParams> readResourceRequest, CancellationToken cancellationToken)
-        {
-            throw new NotImplementedException();
-        }
-    }
-
-    private class TestResourceTemplate : IMcpResourceTemplate
-    {
-        public required string Uri { get; init; }
-        public required string Name { get; set; }
-        public string? MimeType { get; set; }
-        public string? Description { get; set; }
-        public long? Size { get; set; }
-        public IReadOnlyDictionary<string, object?> Metadata { get; set; } = new Dictionary<string, object?>();
-        public required Regex TemplateRegex { get; init; }
 
         public Task<ReadResourceResult> ReadAsync(RequestContext<ReadResourceRequestParams> readResourceRequest, CancellationToken cancellationToken)
         {

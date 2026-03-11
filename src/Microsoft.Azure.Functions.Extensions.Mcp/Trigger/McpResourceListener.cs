@@ -8,7 +8,7 @@ using ModelContextProtocol.Server;
 
 namespace Microsoft.Azure.Functions.Extensions.Mcp;
 
-internal class McpResourceListener(ITriggeredFunctionExecutor executor,
+internal sealed class McpResourceListener(ITriggeredFunctionExecutor executor,
                                           string functionName,
                                           string resourceUri,
                                           string resourceName,

@@ -332,4 +332,45 @@ public class ResourceReturnValueBinderTests
         
         Assert.Contains("Failed to deserialize", exception.Message);
     }
+
+    [Fact]
+    public async Task SetValueAsync_WhenRequestUriIsNull_TextContent_UsesAttributeUri()
+    {
+        var context = ReadResourceExecutionContextHelper.CreateExecutionContext(uri: null);
+        var attribute = new McpResourceTriggerAttribute("test://fallback/uri", "TestResource")
+        {
+            MimeType = "text/plain"
+        };
+        var binder = new ResourceReturnValueBinder(context, attribute, NullLogger<ResourceReturnValueBinder>.Instance);
+
+        await binder.SetValueAsync("Hello, World!", CancellationToken.None);
+
+        var result = await context.ResultTask;
+        Assert.NotNull(result);
+        Assert.Single(result.Contents);
+
+        var textContent = Assert.IsType<TextResourceContents>(result.Contents[0]);
+        Assert.Equal("test://fallback/uri", textContent.Uri);
+    }
+
+    [Fact]
+    public async Task SetValueAsync_WhenRequestUriIsNull_BlobContent_UsesAttributeUri()
+    {
+        var context = ReadResourceExecutionContextHelper.CreateExecutionContext(uri: null);
+        var attribute = new McpResourceTriggerAttribute("test://fallback/uri", "TestResource")
+        {
+            MimeType = "application/octet-stream"
+        };
+        var binder = new ResourceReturnValueBinder(context, attribute, NullLogger<ResourceReturnValueBinder>.Instance);
+        var binaryData = new byte[] { 1, 2, 3 };
+
+        await binder.SetValueAsync(binaryData, CancellationToken.None);
+
+        var result = await context.ResultTask;
+        Assert.NotNull(result);
+        Assert.Single(result.Contents);
+
+        var blobContent = Assert.IsType<BlobResourceContents>(result.Contents[0]);
+        Assert.Equal("test://fallback/uri", blobContent.Uri);
+    }
 }

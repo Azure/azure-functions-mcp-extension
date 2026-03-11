@@ -4,6 +4,7 @@
 using Microsoft.Azure.Functions.Extensions.Mcp.Abstractions;
 using ModelContextProtocol.Protocol;
 using System.Diagnostics.CodeAnalysis;
+using System.Text.RegularExpressions;
 
 namespace Microsoft.Azure.Functions.Extensions.Mcp;
 
@@ -13,12 +14,7 @@ namespace Microsoft.Azure.Functions.Extensions.Mcp;
 internal sealed class DefaultResourceRegistry : IResourceRegistry
 {
     private readonly Dictionary<string, IMcpResource> _staticResources = new(StringComparer.OrdinalIgnoreCase);
-    private readonly List<IMcpResourceTemplate> _templates = new();
-    private readonly object _lock = new();
-
-    // Cached results - resources don't change after startup
-    private ListResourcesResult? _cachedResourcesResult;
-    private ListResourceTemplatesResult? _cachedTemplatesResult;
+    private readonly List<(IMcpResource Template, Regex Matcher)> _templates = [];
 
     /// <inheritdoc/>
     public void Register(IMcpResource resource)
@@ -27,29 +23,25 @@ internal sealed class DefaultResourceRegistry : IResourceRegistry
 
         ResourceUriHelper.Validate(resource.Uri);
 
-        lock (_lock)
+        if (ResourceUriHelper.IsTemplate(resource.Uri))
         {
-            if (resource is IMcpResourceTemplate template)
-            {
-                // Check for duplicate template URI
-                if (_templates.Any(t => string.Equals(t.Uri, resource.Uri, StringComparison.OrdinalIgnoreCase)))
-                {
-                    throw new InvalidOperationException($"Resource with URI '{resource.Uri}' is already registered.");
-                }
+            // Check for structurally equivalent template URIs (e.g., {id} and {name} in the same position)
+            var normalizedUri = ResourceUriHelper.NormalizeTemplateStructure(resource.Uri);
+            var existing = _templates.FirstOrDefault(t =>
+                string.Equals(ResourceUriHelper.NormalizeTemplateStructure(t.Template.Uri), normalizedUri, StringComparison.OrdinalIgnoreCase));
 
-                _templates.Add(template);
-            }
-            else
+            if (existing.Template is not null)
             {
-                if (!_staticResources.TryAdd(resource.Uri, resource))
-                {
-                    throw new InvalidOperationException($"Resource with URI '{resource.Uri}' is already registered.");
-                }
+                throw new InvalidOperationException(
+                    $"A resource template with an equivalent URI pattern is already registered. Existing: '{existing.Template.Uri}', New: '{resource.Uri}'.");
             }
 
-            // Invalidate caches
-            _cachedResourcesResult = null;
-            _cachedTemplatesResult = null;
+            var regex = ResourceUriHelper.BuildTemplateRegex(resource.Uri);
+            _templates.Add((resource, regex));
+        }
+        else if (!_staticResources.TryAdd(resource.Uri, resource))
+        {
+            throw new InvalidOperationException($"Resource with URI '{resource.Uri}' is already registered.");
         }
     }
 
@@ -65,9 +57,9 @@ internal sealed class DefaultResourceRegistry : IResourceRegistry
             return true;
         }
 
-        foreach (var template in _templates)
+        foreach (var (template, matcher) in _templates)
         {
-            if (template.TemplateRegex.IsMatch(uri))
+            if (matcher.IsMatch(uri))
             {
                 resource = template;
                 return true;
@@ -81,60 +73,45 @@ internal sealed class DefaultResourceRegistry : IResourceRegistry
     /// <inheritdoc/>
     public IReadOnlyCollection<IMcpResource> GetResources()
     {
-        return [.. _staticResources.Values, .. _templates];
+        return [.. _staticResources.Values, .. _templates.Select(t => t.Template)];
     }
 
     /// <inheritdoc/>
     public ValueTask<ListResourcesResult> ListResourcesAsync(CancellationToken cancellationToken = default)
     {
-        if (_cachedResourcesResult is not null)
+        var result = new ListResourcesResult
         {
-            return new ValueTask<ListResourcesResult>(_cachedResourcesResult);
-        }
-
-        lock (_lock)
-        {
-            _cachedResourcesResult ??= new ListResourcesResult
+            Resources = [.. _staticResources.Values.Select(static resource => new Resource
             {
-                Resources = [.. _staticResources.Values.Select(static resource => new Resource
-                {
-                    Uri = resource.Uri,
-                    Name = resource.Name,
-                    Title = resource.Title,
-                    Description = resource.Description,
-                    MimeType = resource.MimeType,
-                    Size = resource.Size,
-                    Meta = MetadataParser.SerializeMetadata(resource.Metadata)
-                })]
-            };
-        }
+                Uri = resource.Uri,
+                Name = resource.Name,
+                Title = resource.Title,
+                Description = resource.Description,
+                MimeType = resource.MimeType,
+                Size = resource.Size,
+                Meta = MetadataParser.SerializeMetadata(resource.Metadata)
+            })]
+        };
 
-        return new ValueTask<ListResourcesResult>(_cachedResourcesResult);
+        return new ValueTask<ListResourcesResult>(result);
     }
 
     /// <inheritdoc/>
     public ValueTask<ListResourceTemplatesResult> ListResourceTemplatesAsync(CancellationToken cancellationToken = default)
     {
-        if (_cachedTemplatesResult is not null)
+        var result = new ListResourceTemplatesResult
         {
-            return new ValueTask<ListResourceTemplatesResult>(_cachedTemplatesResult);
-        }
-
-        lock (_lock)
-        {
-            _cachedTemplatesResult ??= new ListResourceTemplatesResult
+            ResourceTemplates = [.. _templates.Select(static entry => new ResourceTemplate
             {
-                ResourceTemplates = [.. _templates.Select(static resource => new ResourceTemplate
-                {
-                    UriTemplate = resource.Uri,
-                    Name = resource.Name,
-                    Description = resource.Description,
-                    MimeType = resource.MimeType,
-                    Meta = MetadataParser.SerializeMetadata(resource.Metadata)
-                })]
-            };
-        }
+                UriTemplate = entry.Template.Uri,
+                Name = entry.Template.Name,
+                Title = entry.Template.Title,
+                Description = entry.Template.Description,
+                MimeType = entry.Template.MimeType,
+                Meta = MetadataParser.SerializeMetadata(entry.Template.Metadata)
+            })]
+        };
 
-        return new ValueTask<ListResourceTemplatesResult>(_cachedTemplatesResult);
+        return new ValueTask<ListResourceTemplatesResult>(result);
     }
 }

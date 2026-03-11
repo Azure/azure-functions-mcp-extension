@@ -19,6 +19,7 @@ internal sealed class McpResourceTriggerBinding : ITriggerBinding
     private readonly McpResourceTriggerAttribute _resourceAttribute;
     private readonly ParameterInfo _triggerParameter;
     private readonly ILoggerFactory _loggerFactory;
+    private readonly ILogger _logger;
     private readonly IReadOnlyDictionary<string, object?> _resourceMetadata;
 
     public McpResourceTriggerBinding(
@@ -33,8 +34,8 @@ internal sealed class McpResourceTriggerBinding : ITriggerBinding
         _resourceAttribute = resourceAttribute;
         _triggerParameter = triggerParameter;
         _loggerFactory = loggerFactory;
-        var logger = _loggerFactory.CreateLogger<McpResourceTriggerBinding>();
-        _resourceMetadata = MetadataParser.ParseMetadata(resourceAttribute.Metadata, logger);
+        _logger = _loggerFactory.CreateLogger<McpResourceTriggerBinding>();
+        _resourceMetadata = MetadataParser.ParseMetadata(resourceAttribute.Metadata, _logger);
 
         var bindingContract = new Dictionary<string, Type>(StringComparer.OrdinalIgnoreCase)
         {
@@ -96,6 +97,11 @@ internal sealed class McpResourceTriggerBinding : ITriggerBinding
         {
             foreach (var kvp in templateValues)
             {
+                if (bindingData.ContainsKey(kvp.Key))
+                {
+                    _logger.LogTrace("Overwriting existing binding data key '{Key}' with template parameter value.", kvp.Key);
+                }
+
                 bindingData[kvp.Key] = kvp.Value;
             }
         }
@@ -133,40 +139,20 @@ internal sealed class McpResourceTriggerBinding : ITriggerBinding
 
     public Task<IListener> CreateListenerAsync(ListenerFactoryContext context)
     {
-        IListener listener;
+        var listener = new McpResourceListener(
+            context.Executor,
+            context.Descriptor.ShortName,
+            _resourceAttribute.Uri,
+            _resourceAttribute.ResourceName,
+            _resourceAttribute.Title,
+            _resourceAttribute.Description,
+            _resourceAttribute.MimeType,
+            _resourceAttribute.Size,
+            _resourceMetadata);
 
-        if (ResourceUriHelper.IsTemplate(_resourceAttribute.Uri))
-        {
-            var templateRegex = ResourceUriHelper.BuildTemplateRegex(_resourceAttribute.Uri);
-            listener = new McpResourceTemplateListener(
-                context.Executor,
-                context.Descriptor.ShortName,
-                _resourceAttribute.Uri,
-                _resourceAttribute.ResourceName,
-                _resourceAttribute.Title,
-                _resourceAttribute.Description,
-                _resourceAttribute.MimeType,
-                _resourceAttribute.Size,
-                _resourceMetadata,
-                templateRegex);
-        }
-        else
-        {
-            listener = new McpResourceListener(
-                context.Executor,
-                context.Descriptor.ShortName,
-                _resourceAttribute.Uri,
-                _resourceAttribute.ResourceName,
-                _resourceAttribute.Title,
-                _resourceAttribute.Description,
-                _resourceAttribute.MimeType,
-                _resourceAttribute.Size,
-                _resourceMetadata);
-        }
+        _resourceRegistry.Register(listener);
 
-        _resourceRegistry.Register((IMcpResource)listener);
-
-        return Task.FromResult(listener);
+        return Task.FromResult<IListener>(listener);
     }
 
     public ParameterDescriptor ToParameterDescriptor()
