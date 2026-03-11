@@ -8,27 +8,11 @@ pr: none
 trigger: none
 
 resources:
-  repositories:
-  - repository: 1es
-    type: git
-    name: 1ESPipelineTemplates/1ESPipelineTemplates
-    ref: refs/tags/release
-  - repository: eng
-    type: git
-    name: engineering
-    ref: refs/tags/release
   pipelines:
   - pipeline: build
     source: mcp-extension.official
 
 extends:
-  template: v1/1ES.Official.PipelineTemplate.yml@1es
+  template: /eng/ci/templates/jobs/release-packages-sdk.yml@self
   parameters:
-    pool:
-      name: 1es-pool-azfunc
-      image: 1es-windows-2022
-      os: windows
-    stages:
-    - template: /eng/ci/templates/jobs/release-packages-sdk.yml@self
-      parameters:
-        publishToNugetOrg: ${{ parameters.publishToNugetOrg }}
+    publishToNugetOrg: ${{ parameters.publishToNugetOrg }}
