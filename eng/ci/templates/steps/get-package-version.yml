@@ -19,7 +19,7 @@ steps:
     $name = "${{ parameters.packageName }}"
     $excludePattern = "${{ parameters.excludePattern }}"
     Write-Host "Getting version for $name"
-    $packagePattern = "^{0}\.\d.*\.nupkg$" -f [regex]::Escape($name)
+    $packagePattern = "^{0}\.\d+\.\d+\.\d+(?:-[\w\.-]+)?\.nupkg$" -f [regex]::Escape($name)
     
     $allPackages = Get-ChildItem -Path "${{ parameters.dropPath }}" -Recurse -File -Filter "*.nupkg"
     $packages = $allPackages | Where-Object { $_.Name -match $packagePattern }
