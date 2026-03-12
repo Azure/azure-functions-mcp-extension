@@ -27,7 +27,7 @@ public class ResourceFunctions
     }
 
     [Function(nameof(GetTextResource))]
-    public string GetTextResource(
+    public FileResourceContents GetTextResource(
         [McpResourceTrigger(
             "file://readme.md",
             "readme",
@@ -38,12 +38,14 @@ public class ResourceFunctions
         ResourceInvocationContext context)
     {
         _logger.LogInformation("Reading text resource from local file storage");
-        var file = Path.Combine(AppContext.BaseDirectory, "assets", "readme.md");
-        return File.ReadAllText(file);
+        return new FileResourceContents
+        {
+            Path = Path.Combine(AppContext.BaseDirectory, "assets", "readme.md")
+        };
     }
 
     [Function(nameof(GetImageResource))]
-    public byte[] GetImageResource(
+    public FileResourceContents GetImageResource(
         [McpResourceTrigger(
             "file://logo.png",
             "logo",
@@ -51,7 +53,9 @@ public class ResourceFunctions
             MimeType = "image/png")] ResourceInvocationContext context)
     {
         _logger.LogInformation("Reading image from local file system");
-        var filePath = Path.Combine(AppContext.BaseDirectory, "assets", "logo.png");
-        return File.ReadAllBytes(filePath);
+        return new FileResourceContents
+        {
+            Path = Path.Combine(AppContext.BaseDirectory, "assets", "logo.png")
+        };
     }
 }

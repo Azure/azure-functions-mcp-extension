@@ -7,26 +7,30 @@ namespace TestApp;
 public class ResourceFunctions
 {
     [FunctionName("GetTextResource")]
-    public static string GetTextResource(
+    public static FileResourceContents GetTextResource(
         [McpResourceTrigger("file://resources/readme.txt", "ReadMe", Description = "Application readme file", MimeType = "text/plain")]
         string context,
         ILogger logger)
     {
         logger.LogInformation("Reading text resource from resources/readme.txt");
-        
-        var filePath = Path.Combine(Directory.GetCurrentDirectory(), "resources", "readme.txt");
-        return File.ReadAllText(filePath);
+
+        return new FileResourceContents
+        {
+            Path = Path.Combine(Directory.GetCurrentDirectory(), "resources", "readme.txt")
+        };
     }
 
     [FunctionName("GetBinaryResource")]
-    public static byte[] GetBinaryResource(
+    public static FileResourceContents GetBinaryResource(
         [McpResourceTrigger("file://resources/logo.png", "Logo", Description = "Application logo", MimeType = "image/png")] 
         string context,
         ILogger logger)
     {
         logger.LogInformation("Reading binary resource from resources/logo.png");
-        
-        var filePath = Path.Combine(Directory.GetCurrentDirectory(), "resources", "logo.png");
-        return File.ReadAllBytes(filePath);
+
+        return new FileResourceContents
+        {
+            Path = Path.Combine(Directory.GetCurrentDirectory(), "resources", "logo.png")
+        };
     }
 }

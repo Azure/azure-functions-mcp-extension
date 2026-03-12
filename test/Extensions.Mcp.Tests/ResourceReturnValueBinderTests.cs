@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using Microsoft.Azure.Functions.Extensions.Mcp.Serialization;
 using Microsoft.Extensions.Logging.Abstractions;
 using ModelContextProtocol.Protocol;
@@ -152,6 +153,20 @@ public class ResourceReturnValueBinderTests
         Assert.Equal("test://resource/1", resultContent.Uri);
         Assert.Equal("image/png", resultContent.MimeType);
         Assert.Equal(binaryData, resultContent.Blob);
+    }
+
+    [Fact]
+    public async Task SetValueAsync_WithDirectTextResourceContents_ThrowsUnsupportedType()
+    {
+        var (binder, _) = CreateBinder(uri: "test://resource/direct", mimeType: "text/plain");
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => binder.SetValueAsync(new TextResourceContents
+        {
+            Text = "Direct text"
+        }, CancellationToken.None));
+
+        Assert.Contains("Unsupported return type", exception.Message);
+        Assert.Contains("TextResourceContents", exception.Message);
     }
 
     [Fact]
@@ -331,5 +346,110 @@ public class ResourceReturnValueBinderTests
             binder.SetValueAsync(jsonString, CancellationToken.None));
         
         Assert.Contains("Failed to deserialize", exception.Message);
+    }
+
+    [Fact]
+    public async Task SetValueAsync_WithFileResourceContents_TextFile_CreatesTextResourceContents()
+    {
+        var (binder, context) = CreateBinder(uri: "ui://widget/welcome.html");
+        var filePath = Path.GetTempFileName();
+
+        try
+        {
+            await File.WriteAllTextAsync(filePath, "<html>Hello</html>");
+
+            var fileContent = new FileResourceContents
+            {
+                Uri = "ui://widget/welcome.html",
+                MimeType = "text/html+skybridge",
+                Path = filePath
+            };
+            fileContent.Meta["openai/widgetPrefersBorder"] = true;
+
+            await binder.SetValueAsync(fileContent, CancellationToken.None);
+
+            var result = await context.ResultTask;
+            Assert.NotNull(result);
+            Assert.Single(result.Contents);
+
+            var textContent = Assert.IsType<TextResourceContents>(result.Contents[0]);
+            Assert.Equal("ui://widget/welcome.html", textContent.Uri);
+            Assert.Equal("text/html+skybridge", textContent.MimeType);
+            Assert.Equal("<html>Hello</html>", textContent.Text);
+            Assert.True(textContent.Meta?["openai/widgetPrefersBorder"]?.GetValue<bool>());
+        }
+        finally
+        {
+            File.Delete(filePath);
+        }
+    }
+
+    [Fact]
+    public async Task SetValueAsync_WithMcpResourceResult_FileResourceContents_BinaryFile_CreatesBlobResourceContents()
+    {
+        var (binder, context) = CreateBinder(uri: "file://logo.png");
+        var filePath = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid():N}.png");
+        var bytes = new byte[] { 1, 2, 3, 4, 5 };
+
+        try
+        {
+            await File.WriteAllBytesAsync(filePath, bytes);
+
+            var fileContent = new FileResourceContents
+            {
+                Uri = "file://logo.png",
+                MimeType = "image/png",
+                Path = filePath
+            };
+            fileContent.Meta["category"] = "logo";
+
+            var mcpResult = new McpResourceResult
+            {
+                Content = JsonSerializer.Serialize(fileContent)
+            };
+
+            await binder.SetValueAsync(JsonSerializer.Serialize(mcpResult, McpJsonSerializerOptions.DefaultOptions), CancellationToken.None);
+
+            var result = await context.ResultTask;
+            Assert.NotNull(result);
+            Assert.Single(result.Contents);
+
+            var blobContent = Assert.IsType<BlobResourceContents>(result.Contents[0]);
+            Assert.Equal("file://logo.png", blobContent.Uri);
+            Assert.Equal("image/png", blobContent.MimeType);
+            Assert.Equal(Convert.ToBase64String(bytes), blobContent.Blob);
+            Assert.Equal("logo", blobContent.Meta?["category"]?.GetValue<string>());
+        }
+        finally
+        {
+            File.Delete(filePath);
+        }
+    }
+
+    [Fact]
+    public async Task SetValueAsync_WithFileResourceContents_MissingMimeType_FallsBackToDetectedContentType()
+    {
+        var (binder, context) = CreateBinder(uri: "file://readme.txt");
+        var filePath = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid():N}.txt");
+
+        try
+        {
+            await File.WriteAllTextAsync(filePath, "hello from txt");
+
+            await binder.SetValueAsync(new FileResourceContents
+            {
+                Path = filePath
+            }, CancellationToken.None);
+
+            var result = await context.ResultTask;
+            var textContent = Assert.IsType<TextResourceContents>(Assert.Single(result!.Contents));
+            Assert.Equal("file://readme.txt", textContent.Uri);
+            Assert.Equal("text/plain", textContent.MimeType);
+            Assert.Equal("hello from txt", textContent.Text);
+        }
+        finally
+        {
+            File.Delete(filePath);
+        }
     }
 }

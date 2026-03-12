@@ -10,7 +10,7 @@ public sealed class McpResourceResult
 {
     /// <summary>
     /// The content returned by the resource read operation.
-    /// This should be a JSON-serialized string representation of either TextResourceContents or BlobResourceContents.
+    /// This should be a JSON-serialized string representation of TextResourceContents, BlobResourceContents, or FileResourceContents.
     /// </summary>
     public required string Content { get; set; }
 }
