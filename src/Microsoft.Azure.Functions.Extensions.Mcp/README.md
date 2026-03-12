@@ -10,8 +10,6 @@ Resource handlers can return one of the following shapes:
 - `byte[]` for binary resources
 - `FileResourceContents` when you want the framework to read a file and materialize the correct MCP resource content automatically
 
-`TextResourceContents` and `BlobResourceContents` are internal MCP payload shapes produced by the framework and are not intended as direct function return types.
-
 ## FileResourceContents
 
 Use `FileResourceContents` when your resource maps directly to a file on disk and you do not want to perform file I/O in your function body.
@@ -35,7 +33,13 @@ public static FileResourceContents GetWidgetHtml(
 		Path = Path.Combine(Directory.GetCurrentDirectory(), "ui", "welcome.html"),
 		Meta =
 		{
-			["openai/widgetPrefersBorder"] = true
+			["openai/widgetPrefersBorder"] = true,
+			["displayName"] = "Welcome",
+			["render"] = new JsonObject
+			{
+				["mode"] = "markdown",
+				["lineNumbers"] = false
+			}
 		}
 	};
 }
@@ -48,5 +52,7 @@ When a function returns `FileResourceContents`, the framework:
 - converts text-like MIME types to `TextResourceContents`
 - converts binary MIME types to `BlobResourceContents` with base64-encoded payloads
 - preserves `Uri`, `MimeType`, and `Meta` on the final MCP response
+
+The `Meta` object is emitted on the resulting MCP resource content as `_meta`, including nested JSON objects.
 
 If `MimeType` is omitted on `FileResourceContents`, the extension falls back to the trigger attribute MIME type and then to file-extension-based content type detection.

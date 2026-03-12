@@ -1,3 +1,4 @@
+using System.Text.Json.Nodes;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Extensions.Mcp;
 using Microsoft.Extensions.Logging;
@@ -40,7 +41,17 @@ public class ResourceFunctions
         _logger.LogInformation("Reading text resource from local file storage");
         return new FileResourceContents
         {
-            Path = Path.Combine(AppContext.BaseDirectory, "assets", "readme.md")
+            Path = Path.Combine(AppContext.BaseDirectory, "assets", "readme.md"),
+            Meta = new JsonObject
+            {
+                ["contentKind"] = "documentation",
+                ["sampleApp"] = "TestAppIsolated",
+                ["render"] = new JsonObject
+                {
+                    ["mode"] = "markdown",
+                    ["lineNumbers"] = false
+                }
+            }
         };
     }
 
@@ -55,7 +66,17 @@ public class ResourceFunctions
         _logger.LogInformation("Reading image from local file system");
         return new FileResourceContents
         {
-            Path = Path.Combine(AppContext.BaseDirectory, "assets", "logo.png")
+            Path = Path.Combine(AppContext.BaseDirectory, "assets", "logo.png"),
+            Meta = new JsonObject
+            {
+                ["contentKind"] = "image",
+                ["sampleApp"] = "TestAppIsolated",
+                ["dimensions"] = new JsonObject
+                {
+                    ["width"] = 256,
+                    ["height"] = 256
+                }
+            }
         };
     }
 }

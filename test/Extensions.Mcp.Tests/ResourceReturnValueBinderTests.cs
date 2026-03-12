@@ -101,8 +101,11 @@ public class ResourceReturnValueBinderTests
         {
             Uri = "test://resource/1",
             Text = "Custom content",
-            MimeType = "text/html"
+            MimeType = "text/html",
+            Meta = []
         };
+        textContent.Meta["openai/widgetDescription"] = "Welcome view";
+        textContent.Meta["renderPriority"] = 5;
 
         var mcpResult = new McpResourceResult
         {
@@ -121,6 +124,8 @@ public class ResourceReturnValueBinderTests
         Assert.Equal("test://resource/1", resultContent.Uri);
         Assert.Equal("text/html", resultContent.MimeType);
         Assert.Equal("Custom content", resultContent.Text);
+        Assert.Equal("Welcome view", resultContent.Meta?["openai/widgetDescription"]?.GetValue<string>());
+        Assert.Equal(5, resultContent.Meta?["renderPriority"]?.GetValue<int>());
     }
 
     [Fact]
@@ -133,8 +138,11 @@ public class ResourceReturnValueBinderTests
         {
             Uri = "test://resource/1",
             Blob = binaryData,
-            MimeType = "image/png"
+            MimeType = "image/png",
+            Meta = []
         };
+        blobContent.Meta["category"] = "icon";
+        blobContent.Meta["cacheable"] = true;
 
         var mcpResult = new McpResourceResult
         {
@@ -153,6 +161,8 @@ public class ResourceReturnValueBinderTests
         Assert.Equal("test://resource/1", resultContent.Uri);
         Assert.Equal("image/png", resultContent.MimeType);
         Assert.Equal(binaryData, resultContent.Blob);
+        Assert.Equal("icon", resultContent.Meta?["category"]?.GetValue<string>());
+        Assert.True(resultContent.Meta?["cacheable"]?.GetValue<bool>());
     }
 
     [Fact]
@@ -167,6 +177,20 @@ public class ResourceReturnValueBinderTests
 
         Assert.Contains("Unsupported return type", exception.Message);
         Assert.Contains("TextResourceContents", exception.Message);
+    }
+
+    [Fact]
+    public async Task SetValueAsync_WithDirectBlobResourceContents_ThrowsUnsupportedType()
+    {
+        var (binder, _) = CreateBinder(uri: "test://resource/blob", mimeType: "image/png");
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => binder.SetValueAsync(new BlobResourceContents
+        {
+            Blob = "AQIDBA=="
+        }, CancellationToken.None));
+
+        Assert.Contains("Unsupported return type", exception.Message);
+        Assert.Contains("BlobResourceContents", exception.Message);
     }
 
     [Fact]

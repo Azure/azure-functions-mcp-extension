@@ -3,6 +3,7 @@
 
 using System.Collections.Immutable;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Extensions.Mcp;
 using Microsoft.Azure.Functions.Worker.Extensions.Mcp.Sdk;
@@ -11,14 +12,14 @@ using Moq;
 
 namespace Worker.Extensions.Mcp.Sdk.Tests;
 
-public class FunctionsMcpResourceResultMiddlewareTests
+public class FunctionsMcpToolResultMiddlewareResourceTests
 {
     private const string ResourceInvocationContextKey = "ResourceInvocationContext";
     private readonly Mock<IFunctionResultAccessor> _resultAccessorMock;
-    private readonly FunctionsMcpResourceResultMiddleware _middleware;
+    private readonly FunctionsMcpToolResultMiddleware _middleware;
     private object? _currentResult;
 
-    public FunctionsMcpResourceResultMiddlewareTests()
+    public FunctionsMcpToolResultMiddlewareResourceTests()
     {
         _resultAccessorMock = new Mock<IFunctionResultAccessor>();
         _resultAccessorMock
@@ -28,7 +29,7 @@ public class FunctionsMcpResourceResultMiddlewareTests
             .Setup(a => a.SetResult(It.IsAny<FunctionContext>(), It.IsAny<object?>()))
             .Callback<FunctionContext, object?>((_, value) => _currentResult = value);
 
-        _middleware = new FunctionsMcpResourceResultMiddleware(_resultAccessorMock.Object);
+        _middleware = new FunctionsMcpToolResultMiddleware(_resultAccessorMock.Object);
     }
 
     [Fact]
@@ -67,6 +68,27 @@ public class FunctionsMcpResourceResultMiddlewareTests
     }
 
     [Fact]
+    public async Task Invoke_WithBlobResourceContents_ThrowsUnsupportedType()
+    {
+        var context = CreateMcpResourceFunctionContext();
+        var resource = new BlobResourceContents
+        {
+            Uri = "file://logo.png",
+            MimeType = "image/png",
+            Blob = "AQIDBA=="
+        };
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => _middleware.Invoke(context, ctx =>
+        {
+            SetInvocationResult(ctx, resource);
+            return Task.CompletedTask;
+        }));
+
+        Assert.Contains("BlobResourceContents", exception.Message);
+        Assert.Contains("FileResourceContents", exception.Message);
+    }
+
+    [Fact]
     public async Task Invoke_WithFileResourceContents_WrapsAsResourceEnvelope()
     {
         var context = CreateMcpResourceFunctionContext();
@@ -77,6 +99,8 @@ public class FunctionsMcpResourceResultMiddlewareTests
             Path = "c:/app/assets/welcome.html"
         };
         resource.Meta["openai/widgetPrefersBorder"] = true;
+        resource.Meta["displayName"] = "Welcome";
+        resource.Meta["dimensions"] = JsonNode.Parse("{" + "\"width\":320,\"height\":200" + "}");
 
         await _middleware.Invoke(context, ctx =>
         {
@@ -94,6 +118,9 @@ public class FunctionsMcpResourceResultMiddlewareTests
         Assert.Equal("text/html+skybridge", serializedResource.RootElement.GetProperty("mimeType").GetString());
         Assert.Equal("c:/app/assets/welcome.html", serializedResource.RootElement.GetProperty("path").GetString());
         Assert.True(serializedResource.RootElement.GetProperty("meta").GetProperty("openai/widgetPrefersBorder").GetBoolean());
+        Assert.Equal("Welcome", serializedResource.RootElement.GetProperty("meta").GetProperty("displayName").GetString());
+        Assert.Equal(320, serializedResource.RootElement.GetProperty("meta").GetProperty("dimensions").GetProperty("width").GetInt32());
+        Assert.Equal(200, serializedResource.RootElement.GetProperty("meta").GetProperty("dimensions").GetProperty("height").GetInt32());
     }
 
     private static FunctionContext CreateMcpResourceFunctionContext()

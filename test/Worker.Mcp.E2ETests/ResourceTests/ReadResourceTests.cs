@@ -83,39 +83,53 @@ public class ReadResourceTests(DefaultProjectFixture fixture, ITestOutputHelper 
             Assert.True(resultElement.TryGetProperty("contents", out var contentsArray));
             
             var contents = contentsArray.EnumerateArray().FirstOrDefault();
+            Assert.True(contents.ValueKind != JsonValueKind.Undefined, "Expected a resource content item.");
             
-            // Metadata should be included (author and file)
-            if (contents.TryGetProperty("metadata", out var metadataElement))
-            {
-                var metadata = metadataElement.EnumerateObject().ToList();
-                
-                // Should have author or file metadata
-                var hasAuthor = metadata.Any(prop => prop.Name == "author");
-                var hasFile = metadata.Any(prop => prop.Name == "file");
-                
-                Assert.True(hasAuthor || hasFile, "Resource should contain metadata attributes");
-                
-                // Validate specific metadata values
-                var authorProp = metadata.FirstOrDefault(p => p.Name == "author");
-                if (authorProp.Value.ValueKind != JsonValueKind.Undefined)
-                {
-                    Assert.Equal("John Doe", authorProp.Value.GetString());
-                    TestOutputHelper.WriteLine($"Author metadata found: {authorProp.Value.GetString()}");
-                }
-                
-                var fileProp = metadata.FirstOrDefault(p => p.Name == "file");
-                if (fileProp.Value.ValueKind != JsonValueKind.Undefined)
-                {
-                    TestOutputHelper.WriteLine($"File metadata found: {fileProp.Value}");
-                }
-                
-                TestOutputHelper.WriteLine("Metadata attributes validated in resource read response");
-            }
+            Assert.True(contents.TryGetProperty("_meta", out var metadataElement), "Resource content should include _meta.");
+            Assert.Equal("documentation", metadataElement.GetProperty("contentKind").GetString());
+            Assert.Equal("TestAppIsolated", metadataElement.GetProperty("sampleApp").GetString());
+
+            var renderMetadata = metadataElement.GetProperty("render");
+            Assert.Equal("markdown", renderMetadata.GetProperty("mode").GetString());
+            Assert.False(renderMetadata.GetProperty("lineNumbers").GetBoolean());
+
+            TestOutputHelper.WriteLine($"Read resource metadata: {metadataElement}");
         }
         else
         {
             TestOutputHelper.WriteLine("Resource read returned error - metadata validation skipped");
         }
+    }
+
+    [Fact]
+    public async Task DefaultServer_ReadBinaryResource_WithMetadata_ContainsMetadata()
+    {
+        var request = ResourceHelper.CreateResourceReadRequest(5, "file://logo.png");
+        var response = await ResourceHelper.MakeResourceRequest(AppRootEndpoint, request, TestOutputHelper);
+
+        TestOutputHelper.WriteLine($"ReadResource response: {response}");
+
+        Assert.NotNull(response);
+        var jsonString = ResourceHelper.ExtractJsonFromSSE(response);
+        var jsonResponse = JsonDocument.Parse(jsonString);
+        var root = jsonResponse.RootElement;
+
+        Assert.True(root.TryGetProperty("jsonrpc", out _));
+        Assert.True(root.TryGetProperty("result", out var resultElement), "Expected a successful resource read result.");
+        Assert.True(resultElement.TryGetProperty("contents", out var contentsArray));
+
+        var contents = contentsArray.EnumerateArray().FirstOrDefault();
+        Assert.True(contents.ValueKind != JsonValueKind.Undefined, "Expected a resource content item.");
+        Assert.True(contents.TryGetProperty("_meta", out var metadataElement), "Binary resource content should include _meta.");
+
+        Assert.Equal("image", metadataElement.GetProperty("contentKind").GetString());
+        Assert.Equal("TestAppIsolated", metadataElement.GetProperty("sampleApp").GetString());
+
+        var dimensions = metadataElement.GetProperty("dimensions");
+        Assert.Equal(256, dimensions.GetProperty("width").GetInt32());
+        Assert.Equal(256, dimensions.GetProperty("height").GetInt32());
+
+        TestOutputHelper.WriteLine($"Binary resource metadata: {metadataElement}");
     }
 
     [Fact]
