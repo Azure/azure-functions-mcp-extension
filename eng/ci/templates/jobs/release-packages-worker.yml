@@ -34,18 +34,16 @@ extends:
         - job: Prepare
           templateContext:
             type: validationJob
-            inputs:
-            - input: pipelineArtifact
-              pipeline: build
-              artifactName: ${{ parameters.artifactName }}
-              targetPath: $(Pipeline.Workspace)/drop
 
           steps:
+          - download: build
+            artifact: ${{ parameters.artifactName }}
           - template: /eng/ci/templates/steps/get-package-version.yml@self
             parameters:
               packageName: Microsoft.Azure.Functions.Worker.Extensions.Mcp
               buildTag: worker-extension
               excludePattern: '*Sdk*'
+              dropPath: $(Pipeline.Workspace)/build/${{ parameters.artifactName }}
 
     - stage: Release
       dependsOn: Prepare
