@@ -16,23 +16,14 @@ steps:
 - pwsh: |
     $ErrorActionPreference = 'Stop'
 
-    Write-Host "Listing files under $(Pipeline.Workspace)"
-    Get-ChildItem -Path "$(Pipeline.Workspace)" -Recurse -Force -File |
-      Sort-Object FullName |
-      ForEach-Object { Write-Host $_.FullName }
-  displayName: List files in Pipeline.Workspace
-
-- pwsh: |
-    $ErrorActionPreference = 'Stop'
-
     $name = "${{ parameters.packageName }}"
     $excludePattern = "${{ parameters.excludePattern }}"
     Write-Host "Getting version for $name"
     $packagePattern = "^{0}\.\d+\.\d+\.\d+(?:-[\w\.-]+)?\.nupkg$" -f [regex]::Escape($name)
-    
+
     $allPackages = Get-ChildItem -Path "${{ parameters.dropPath }}" -Recurse -File -Filter "*.nupkg"
     $packages = $allPackages | Where-Object { $_.Name -match $packagePattern }
-    
+
     if ($excludePattern) {
       $packages = $packages | Where-Object { $_.Name -notlike $excludePattern }
     }
