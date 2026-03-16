@@ -38,6 +38,8 @@ extends:
           steps:
           - download: build
             artifact: ${{ parameters.artifactName }}
+            patterns: '**/Microsoft.Azure.Functions.Worker.Extensions.Mcp.Sdk.*.nupkg'
+            displayName: Download SDK package
           - template: /eng/ci/templates/steps/get-package-version.yml@self
             parameters:
               packageName: Microsoft.Azure.Functions.Worker.Extensions.Mcp.Sdk
