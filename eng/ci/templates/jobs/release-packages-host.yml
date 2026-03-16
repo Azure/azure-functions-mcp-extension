@@ -41,7 +41,7 @@ extends:
               targetPath: $(Pipeline.Workspace)/drop
 
           steps:
-          - template: /eng/ci/templates/steps/get-package-version.yml
+          - template: /eng/ci/templates/steps/get-package-version.yml@self
             parameters:
               packageName: Microsoft.Azure.Functions.Extensions.Mcp
               buildTag: host-extension
