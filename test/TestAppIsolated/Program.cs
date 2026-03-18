@@ -11,10 +11,10 @@ builder.ConfigureFunctionsWebApplication();
 //     .ConfigureFunctionsApplicationInsights();
 
 builder.ConfigureMcpResource("file://logo.png")
-        .WithMeta("ui", new { prefersBorder = true });
+        .WithMetadata("ui", new { prefersBorder = true });
 
 builder.ConfigureMcpTool("RenderImage")
-        .WithMeta("imageVersion", "1.0")
-        .WithMeta("source", "google");
+        .WithMetadata("imageVersion", "1.0")
+        .WithMetadata("source", "google");
 
 builder.Build().Run();

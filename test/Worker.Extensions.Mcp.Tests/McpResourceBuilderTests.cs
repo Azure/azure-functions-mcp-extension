@@ -29,7 +29,7 @@ public class McpResourceBuilderTests
         var resourceUri = "ui://my/resource.html";
         var builder = CreateBuilder(resourceUri, out var services);
 
-        builder.WithMeta("openai/widgetPrefersBorder", true);
+        builder.WithMetadata("openai/widgetPrefersBorder", true);
 
         using var sp = services.BuildServiceProvider();
         var options = sp.GetRequiredService<IOptionsMonitor<ResourceOptions>>().Get(resourceUri);
@@ -45,9 +45,9 @@ public class McpResourceBuilderTests
         var builder = CreateBuilder(resourceUri, out var services);
 
         builder
-            .WithMeta("key1", "value1")
-            .WithMeta("key2", 42)
-            .WithMeta("key3", false);
+            .WithMetadata("key1", "value1")
+            .WithMetadata("key2", 42)
+            .WithMetadata("key3", false);
 
         using var sp = services.BuildServiceProvider();
         var options = sp.GetRequiredService<IOptionsMonitor<ResourceOptions>>().Get(resourceUri);
@@ -63,7 +63,7 @@ public class McpResourceBuilderTests
     {
         var builder = CreateBuilder("ui://my/resource.html", out _);
 
-        var ex = Assert.Throws<ArgumentException>(() => builder.WithMeta(string.Empty, "value"));
+        var ex = Assert.Throws<ArgumentException>(() => builder.WithMetadata(string.Empty, "value"));
         Assert.Equal("key", ex.ParamName);
     }
 
@@ -71,7 +71,7 @@ public class McpResourceBuilderTests
     public void WithMeta_ReturnsSameBuilderInstance()
     {
         var builder = CreateBuilder("ui://my/resource.html", out _);
-        var result = builder.WithMeta("key", "value");
+        var result = builder.WithMetadata("key", "value");
 
         Assert.Same(builder, result);
     }
@@ -83,9 +83,9 @@ public class McpResourceBuilderTests
         var builder = CreateBuilder(resourceUri, out var services);
 
         builder
-            .WithMeta("openai/widgetPrefersBorder", true)
-            .WithMeta("custom/setting", "enabled")
-            .WithMeta("version", 2);
+            .WithMetadata("openai/widgetPrefersBorder", true)
+            .WithMetadata("custom/setting", "enabled")
+            .WithMetadata("version", 2);
 
         using var sp = services.BuildServiceProvider();
         var options = sp.GetRequiredService<IOptionsMonitor<ResourceOptions>>().Get(resourceUri);
@@ -94,5 +94,48 @@ public class McpResourceBuilderTests
         Assert.True((bool)options.Metadata["openai/widgetPrefersBorder"]!);
         Assert.Equal("enabled", options.Metadata["custom/setting"]);
         Assert.Equal(2, options.Metadata["version"]);
+    }
+
+    [Fact]
+    public void WithMeta_Batch_AddsAllMetadata()
+    {
+        var resourceUri = "ui://my/resource.html";
+        var builder = CreateBuilder(resourceUri, out var services);
+
+        builder.WithMetadata(
+            new KeyValuePair<string, object?>("key1", "value1"),
+            new KeyValuePair<string, object?>("key2", 42),
+            new KeyValuePair<string, object?>("key3", false));
+
+        using var sp = services.BuildServiceProvider();
+        var options = sp.GetRequiredService<IOptionsMonitor<ResourceOptions>>().Get(resourceUri);
+
+        Assert.Equal(3, options.Metadata.Count);
+        Assert.Equal("value1", options.Metadata["key1"]);
+        Assert.Equal(42, options.Metadata["key2"]);
+        Assert.False((bool)options.Metadata["key3"]!);
+    }
+
+    [Fact]
+    public void WithMeta_Batch_EmptyKey_Throws()
+    {
+        var builder = CreateBuilder("ui://my/resource.html", out _);
+
+        var ex = Assert.Throws<ArgumentException>(() => builder.WithMetadata(
+            new KeyValuePair<string, object?>("valid", "value"),
+            new KeyValuePair<string, object?>(string.Empty, "value")));
+        Assert.Equal("key", ex.ParamName);
+    }
+
+    [Fact]
+    public void WithMeta_Batch_ReturnsSameBuilderInstance()
+    {
+        var builder = CreateBuilder("ui://my/resource.html", out _);
+
+        var result = builder.WithMetadata(
+            new KeyValuePair<string, object?>("key1", "value1"),
+            new KeyValuePair<string, object?>("key2", "value2"));
+
+        Assert.Same(builder, result);
     }
 }

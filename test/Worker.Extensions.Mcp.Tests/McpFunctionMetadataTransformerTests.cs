@@ -333,8 +333,8 @@ public class McpFunctionMetadataTransformerTests
         Environment.SetEnvironmentVariable(FunctionsApplicationDirectoryKey, outputDir);
 
         var toolOptions = new ToolOptions { Properties = [] };
-        toolOptions.AddMetadata("version", "1.0");
-        toolOptions.AddMetadata("author", "Test Author");
+        toolOptions.Metadata["version"] = "1.0";
+        toolOptions.Metadata["author"] = "Test Author";
 
         var options = new Mock<IOptionsMonitor<ToolOptions>>();
         options.Setup(o => o.Get("NoAttributes")).Returns(toolOptions);
@@ -366,7 +366,7 @@ public class McpFunctionMetadataTransformerTests
         Environment.SetEnvironmentVariable(FunctionsApplicationDirectoryKey, outputDir);
 
         var resourceOpts = new ResourceOptions();
-        resourceOpts.AddMetadata("ui", new { prefersBorder = true });
+        resourceOpts.Metadata["ui"] = new { prefersBorder = true };
 
         var options = new Mock<IOptionsMonitor<ToolOptions>>();
         options.Setup(o => o.Get(It.IsAny<string>())).Returns(new ToolOptions { Properties = [] });
@@ -396,7 +396,7 @@ public class McpFunctionMetadataTransformerTests
         Environment.SetEnvironmentVariable(FunctionsApplicationDirectoryKey, outputDir);
 
         var toolOptions = new ToolOptions { Properties = [] };
-        toolOptions.AddMetadata("version", "1.0");
+        toolOptions.Metadata["version"] = "1.0";
 
         var options = new Mock<IOptionsMonitor<ToolOptions>>();
         options.Setup(o => o.Get("WithToolMetadata")).Returns(toolOptions);
@@ -430,7 +430,7 @@ public class McpFunctionMetadataTransformerTests
         Environment.SetEnvironmentVariable(FunctionsApplicationDirectoryKey, outputDir);
 
         var resourceOpts = new ResourceOptions();
-        resourceOpts.AddMetadata("version", "1.0");
+        resourceOpts.Metadata["version"] = "1.0";
 
         var options = new Mock<IOptionsMonitor<ToolOptions>>();
         options.Setup(o => o.Get(It.IsAny<string>())).Returns(new ToolOptions { Properties = [] });

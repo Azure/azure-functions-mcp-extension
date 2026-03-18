@@ -11,12 +11,34 @@ using static Microsoft.Azure.Functions.Worker.Extensions.Mcp.Constants;
 
 namespace Microsoft.Azure.Functions.Worker.Extensions.Mcp.Configuration;
 
-public sealed class McpFunctionMetadataTransformer(
-    IOptionsMonitor<ToolOptions> toolOptionsMonitor,
-    IOptionsMonitor<ResourceOptions> resourceOptionsMonitor,
-    ILogger<McpFunctionMetadataTransformer> logger)
-    : IFunctionMetadataTransformer
+public sealed class McpFunctionMetadataTransformer : IFunctionMetadataTransformer
 {
+    private readonly IOptionsMonitor<ToolOptions> toolOptionsMonitor;
+    private readonly IOptionsMonitor<ResourceOptions>? resourceOptionsMonitor;
+    private readonly ILogger<McpFunctionMetadataTransformer>? logger;
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="McpFunctionMetadataTransformer"/> class.
+    /// </summary>
+    [Obsolete("Use the constructor that accepts IOptionsMonitor<ResourceOptions> and ILogger<McpFunctionMetadataTransformer>.")]
+    public McpFunctionMetadataTransformer(IOptionsMonitor<ToolOptions> toolOptionsMonitor)
+        : this(toolOptionsMonitor, null, null)
+    {
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="McpFunctionMetadataTransformer"/> class.
+    /// </summary>
+    public McpFunctionMetadataTransformer(
+        IOptionsMonitor<ToolOptions> toolOptionsMonitor,
+        IOptionsMonitor<ResourceOptions>? resourceOptionsMonitor,
+        ILogger<McpFunctionMetadataTransformer>? logger)
+    {
+        this.toolOptionsMonitor = toolOptionsMonitor;
+        this.resourceOptionsMonitor = resourceOptionsMonitor;
+        this.logger = logger;
+    }
+
     public string Name => nameof(McpFunctionMetadataTransformer);
 
     public void Transform(IList<IFunctionMetadata> original)
@@ -47,7 +69,6 @@ public sealed class McpFunctionMetadataTransformer(
                 switch (bindingType)
                 {
                     case McpToolTriggerBindingType:
-                        bool hasFluentToolMetadata = false;
                         string? toolName = null;
 
                         if (jsonObject.TryGetPropertyValue("toolName", out var toolNameNode))
@@ -59,30 +80,33 @@ public sealed class McpFunctionMetadataTransformer(
                                 jsonObject["toolProperties"] = ToolPropertyParser.GetPropertiesJson(toolProperties);
                             }
 
-                            hasFluentToolMetadata = TryApplyMetadata(toolName, jsonObject, toolOptionsMonitor);
+                            TryApplyMetadata(toolName, jsonObject, toolOptionsMonitor);
                         }
 
                         if (MetadataParser.TryGetToolMetadata(function, out var toolMetadataJson))
                         {
-                            ApplyOrMergeMetadata(jsonObject, toolMetadataJson, hasFluentToolMetadata, "Tool", toolName);
+                            ApplyOrMergeMetadata(jsonObject, toolMetadataJson, "Tool", toolName);
                         }
 
                         function.RawBindings[i] = jsonObject.ToJsonString();
                         break;
 
                     case McpResourceTriggerBindingType:
-                        bool hasFluentResourceMetadata = false;
                         string? resourceUri = null;
 
                         if (jsonObject.TryGetPropertyValue("uri", out var resourceUriNode))
                         {
                             resourceUri = resourceUriNode?.ToString();
-                            hasFluentResourceMetadata = TryApplyMetadata(resourceUri, jsonObject, resourceOptionsMonitor);
+
+                            if (resourceOptionsMonitor is not null)
+                            {
+                                TryApplyMetadata(resourceUri, jsonObject, resourceOptionsMonitor);
+                            }
                         }
 
                         if (MetadataParser.TryGetResourceMetadata(function, out var resourceMetadataJson))
                         {
-                            ApplyOrMergeMetadata(jsonObject, resourceMetadataJson, hasFluentResourceMetadata, "Resource", resourceUri);
+                            ApplyOrMergeMetadata(jsonObject, resourceMetadataJson, "Resource", resourceUri);
                         }
 
                         function.RawBindings[i] = jsonObject.ToJsonString();
@@ -144,12 +168,12 @@ public sealed class McpFunctionMetadataTransformer(
         return ToolPropertyParser.TryGetPropertiesFromAttributes(functionMetadata, out toolProperties);
     }
 
-    private static bool TryApplyMetadata<TOptions>(string? name, JsonObject jsonObject, IOptionsMonitor<TOptions> optionsMonitor)
-        where TOptions : class, IMcpBuilderOptions
+    private static void TryApplyMetadata<TOptions>(string? name, JsonObject jsonObject, IOptionsMonitor<TOptions> optionsMonitor)
+        where TOptions : McpBuilderOptions
     {
         if (string.IsNullOrWhiteSpace(name))
         {
-            return false;
+            return;
         }
 
         var options = optionsMonitor.Get(name);
@@ -157,25 +181,22 @@ public sealed class McpFunctionMetadataTransformer(
         if (options.Metadata.Count > 0)
         {
             jsonObject["metadata"] = JsonSerializer.Serialize(options.Metadata);
-            return true;
         }
-
-        return false;
     }
 
     /// <summary>
     /// Applies attributed metadata to the binding, merging with existing fluent API metadata if present.
     /// </summary>
-    private void ApplyOrMergeMetadata(JsonObject jsonObject, string attributedMetadataJson, bool hasFluentMetadata, string type, string? identifier)
+    private void ApplyOrMergeMetadata(JsonObject jsonObject, string attributedMetadataJson, string type, string? identifier)
     {
-        if (hasFluentMetadata)
+        if (jsonObject.ContainsKey("metadata"))
         {
             jsonObject["metadata"] = MergeMetadata(jsonObject["metadata"]?.GetValue<string>(), attributedMetadataJson, out var overlappingKeys);
-            logger.LogDebug("{Type} '{Identifier}' has metadata defined using both the fluent API and [McpMetadata] attributes. Metadata from both sources has been merged.", type, identifier);
+            logger?.LogTrace("{Type} '{Identifier}' has metadata defined using both the fluent API and [McpMetadata] attributes. Metadata from both sources has been merged.", type, identifier);
 
             if (overlappingKeys.Count > 0)
             {
-                logger.LogWarning("{Type} '{Identifier}' has overlapping metadata keys: {Keys}. Values from [McpMetadata] attributes will be used.", type, identifier, string.Join(", ", overlappingKeys));
+                logger?.LogDebug("{Type} '{Identifier}' has overlapping metadata keys: {Keys}. Values from [McpMetadata] attributes will be used.", type, identifier, string.Join(", ", overlappingKeys));
             }
         }
         else
@@ -193,10 +214,10 @@ public sealed class McpFunctionMetadataTransformer(
     internal static string MergeMetadata(string? fluentJson, string? attributedJson, out List<string> overlappingKeys)
     {
         var fluentNode = string.IsNullOrWhiteSpace(fluentJson)
-            ? new JsonObject()
+            ? []
             : JsonNode.Parse(fluentJson)?.AsObject() ?? throw new InvalidOperationException($"Failed to parse fluent API metadata as JSON object: {fluentJson}");
         var attributedNode = string.IsNullOrWhiteSpace(attributedJson)
-            ? new JsonObject()
+            ? []
             : JsonNode.Parse(attributedJson)?.AsObject() ?? throw new InvalidOperationException($"Failed to parse attributed metadata as JSON object: {attributedJson}");
 
         overlappingKeys = [];

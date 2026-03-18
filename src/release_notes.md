@@ -11,20 +11,20 @@
 ### Microsoft.Azure.Functions.Worker.Extensions.Mcp <version>
 
 - Added structured content support for tools (#172)
-- Added fluent configuration APIs (`ConfigureMcpResource` and `WithMeta`) to configure MCP tool and resource metadata at startup (#195)
+- Added fluent configuration APIs (`ConfigureMcpResource` and `WithMetadata`) to configure MCP tool and resource metadata at startup (#195)
 
     ```csharp
     // Configure MCP resource metadata using the fluent API
     builder
         .ConfigureMcpResource("ui://my/welcomepage.html")
-        .WithMeta("ui", new { prefersBorder = true });
+        .WithMetadata("ui", new { prefersBorder = true });
 
 
     // Configure MCP tool metadata using the fluent API
     builder
         .ConfigureMcpTool("sayhello")
         .WithProperty("name", McpToolPropertyType.String, "Name of the user", required: true)
-        .WithMeta("ui", new { resourceUri = "ui://index.html" });
+        .WithMetadata("ui", new { resourceUri = "ui://index.html" });
     ```
 
 ### Microsoft.Azure.Functions.Worker.Extensions.Mcp.Sdk <version>
