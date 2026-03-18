@@ -10,6 +10,12 @@
 
 ### Microsoft.Azure.Functions.Worker.Extensions.Mcp <version>
 
+#### Breaking Changes
+
+- `McpFunctionMetadataTransformer` is now an internal class (#195)
+
+#### Changes
+
 - Added structured content support for tools (#172)
 - Added fluent configuration APIs (`ConfigureMcpResource` and `WithMetadata`) to configure MCP tool and resource metadata at startup (#195)
 
