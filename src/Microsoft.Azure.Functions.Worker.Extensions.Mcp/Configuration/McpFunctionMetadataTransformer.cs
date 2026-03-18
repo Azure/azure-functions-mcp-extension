@@ -24,6 +24,8 @@ internal sealed class McpFunctionMetadataTransformer(
 
     public void Transform(IList<IFunctionMetadata> original)
     {
+        List<DefaultFunctionMetadata>? syntheticFunctions = null;
+
         foreach (var function in original)
         {
             if (function.RawBindings is null || function.Name is null)
@@ -69,8 +71,8 @@ internal sealed class McpFunctionMetadataTransformer(
                             ApplyOrMergeMetadata(jsonObject, toolMetadataJson, "Tool", toolName);
                         }
 
-                        // Merge MCP App UI metadata from fluent API
-                        MergeAppUiMetadata(jsonObject, toolNameNode?.ToString());
+                        // Merge MCP App UI metadata and emit synthetic HTTP functions
+                        MergeAppUiMetadata(jsonObject, toolNameNode?.ToString(), ref syntheticFunctions);
 
                         function.RawBindings[i] = jsonObject.ToJsonString();
                         break;
@@ -105,6 +107,15 @@ internal sealed class McpFunctionMetadataTransformer(
 
             // This is required for attributed properties/input bindings:
             PatchInputBindingMetadata(function, inputBindingProperties, toolProperties);
+        }
+
+        // Add synthetic functions after iteration to avoid modifying collection during enumeration
+        if (syntheticFunctions is not null)
+        {
+            foreach (var synthetic in syntheticFunctions)
+            {
+                original.Add(synthetic);
+            }
         }
     }
 
@@ -217,7 +228,7 @@ internal sealed class McpFunctionMetadataTransformer(
 
     private record ToolPropertyBinding(int Index, JsonObject Binding);
 
-    private void MergeAppUiMetadata(JsonObject jsonObject, string? toolName)
+    private void MergeAppUiMetadata(JsonObject jsonObject, string? toolName, ref List<DefaultFunctionMetadata>? syntheticFunctions)
     {
         if (string.IsNullOrWhiteSpace(toolName))
         {
@@ -258,9 +269,20 @@ internal sealed class McpFunctionMetadataTransformer(
             }
         }
 
-        // Register the synthetic function name
-        var syntheticName = McpAppConstants.SyntheticFunctionName(toolName);
-        McpAppConstants.Register(syntheticName);
+        // Emit synthetic HTTP functions for view serving
+        syntheticFunctions ??= [];
+
+        var viewFunction = McpAppFunctionMetadataFactory.CreateViewFunction(toolName);
+        syntheticFunctions.Add(viewFunction);
+        McpAppUtilities.Register(viewFunction.Name!);
+
+        // Emit static assets function if configured
+        if (toolOptions.AppOptions.StaticAssetsDirectory is not null)
+        {
+            var assetsFunction = McpAppFunctionMetadataFactory.CreateStaticAssetsFunction(toolName);
+            syntheticFunctions.Add(assetsFunction);
+            McpAppUtilities.Register(assetsFunction.Name!);
+        }
 
         jsonObject["appUiMetadata"] = uiNode.ToJsonString();
     }

@@ -526,6 +526,124 @@ public class McpFunctionMetadataTransformerTests
         Assert.Contains("b", overlapping);
     }
 
+    [Fact]
+    public void Transform_ToolWithAppOptions_EmitsSyntheticViewFunction()
+    {
+        McpAppUtilities.ClearForTesting();
+        try
+        {
+            var appOptions = new AppOptions();
+            appOptions.Views[string.Empty] = new ViewOptions
+            {
+                Source = McpViewSource.FromFile("ui/app.html")
+            };
+
+            var toolOptions = new ToolOptions
+            {
+                Properties = [],
+                AppOptions = appOptions
+            };
+
+            var options = new Mock<IOptionsMonitor<ToolOptions>>();
+            options.Setup(o => o.Get("MyAppTool")).Returns(toolOptions);
+            options.Setup(o => o.Get(It.Is<string>(s => s != "MyAppTool")))
+                   .Returns(new ToolOptions { Properties = [] });
+            var resourceOptions = new Mock<IOptionsMonitor<ResourceOptions>>();
+            resourceOptions.Setup(o => o.Get(It.IsAny<string>())).Returns(new ResourceOptions());
+
+            var transformer = new McpFunctionMetadataTransformer(options.Object, resourceOptions.Object);
+
+            var fn = CreateFunctionMetadata(null, null, "Func",
+                ["{\"type\":\"mcpToolTrigger\",\"toolName\":\"MyAppTool\"}"]);
+
+            var list = new List<IFunctionMetadata> { fn.Object };
+            transformer.Transform(list);
+
+            // Should have the original function + 1 synthetic view function
+            Assert.Equal(2, list.Count);
+
+            var synthetic = list[1];
+            Assert.Equal("__McpApp_MyAppTool", synthetic.Name);
+            Assert.Equal("dotnet-isolated", synthetic.Language);
+            Assert.NotNull(synthetic.RawBindings);
+            Assert.True(McpAppUtilities.IsSyntheticFunction("__McpApp_MyAppTool"));
+        }
+        finally
+        {
+            McpAppUtilities.ClearForTesting();
+        }
+    }
+
+    [Fact]
+    public void Transform_ToolWithStaticAssets_EmitsBothSyntheticFunctions()
+    {
+        McpAppUtilities.ClearForTesting();
+        try
+        {
+            var appOptions = new AppOptions();
+            appOptions.Views[string.Empty] = new ViewOptions
+            {
+                Source = McpViewSource.FromFile("ui/app.html")
+            };
+            appOptions.StaticAssetsDirectory = "ui/dist";
+
+            var toolOptions = new ToolOptions
+            {
+                Properties = [],
+                AppOptions = appOptions
+            };
+
+            var options = new Mock<IOptionsMonitor<ToolOptions>>();
+            options.Setup(o => o.Get("AssetTool")).Returns(toolOptions);
+            options.Setup(o => o.Get(It.Is<string>(s => s != "AssetTool")))
+                   .Returns(new ToolOptions { Properties = [] });
+            var resourceOptions = new Mock<IOptionsMonitor<ResourceOptions>>();
+            resourceOptions.Setup(o => o.Get(It.IsAny<string>())).Returns(new ResourceOptions());
+
+            var transformer = new McpFunctionMetadataTransformer(options.Object, resourceOptions.Object);
+
+            var fn = CreateFunctionMetadata(null, null, "Func",
+                ["{\"type\":\"mcpToolTrigger\",\"toolName\":\"AssetTool\"}"]);
+
+            var list = new List<IFunctionMetadata> { fn.Object };
+            transformer.Transform(list);
+
+            // Original + view function + assets function
+            Assert.Equal(3, list.Count);
+            Assert.Equal("__McpApp_AssetTool", list[1].Name);
+            Assert.Equal("__McpAppAssets_AssetTool", list[2].Name);
+        }
+        finally
+        {
+            McpAppUtilities.ClearForTesting();
+        }
+    }
+
+    [Fact]
+    public void Transform_ToolWithoutAppOptions_NoSyntheticFunctions()
+    {
+        var configuredProps = new List<ToolProperty>
+        {
+            new("x", "string", "desc", true)
+        };
+
+        var options = new Mock<IOptionsMonitor<ToolOptions>>();
+        options.Setup(o => o.Get(It.IsAny<string>()))
+               .Returns(new ToolOptions { Properties = configuredProps });
+        var resourceOptions = new Mock<IOptionsMonitor<ResourceOptions>>();
+        resourceOptions.Setup(o => o.Get(It.IsAny<string>())).Returns(new ResourceOptions());
+
+        var transformer = new McpFunctionMetadataTransformer(options.Object, resourceOptions.Object);
+
+        var fn = CreateFunctionMetadata(null, null, "Func",
+            ["{\"type\":\"mcpToolTrigger\",\"toolName\":\"RegularTool\"}"]);
+
+        var list = new List<IFunctionMetadata> { fn.Object };
+        transformer.Transform(list);
+
+        Assert.Single(list);
+    }
+
     private static McpFunctionMetadataTransformer CreateTransformer(List<ToolProperty>? configured = null)
     {
         var options =  new Mock<IOptionsMonitor<ToolOptions>>();
