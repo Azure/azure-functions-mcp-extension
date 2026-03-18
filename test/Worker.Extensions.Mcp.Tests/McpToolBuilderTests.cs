@@ -236,7 +236,7 @@ public class McpToolBuilderTests
         var ex = Assert.Throws<ArgumentException>(() => builder.WithMetadata(
             new KeyValuePair<string, object?>("valid", "value"),
             new KeyValuePair<string, object?>(string.Empty, "value")));
-        Assert.Equal("key", ex.ParamName);
+        Assert.Equal("Key", ex.ParamName);
     }
 
     [Fact]
