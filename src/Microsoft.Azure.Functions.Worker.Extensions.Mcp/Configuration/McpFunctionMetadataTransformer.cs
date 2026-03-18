@@ -16,6 +16,8 @@ public sealed class McpFunctionMetadataTransformer(IOptionsMonitor<ToolOptions> 
 
     public void Transform(IList<IFunctionMetadata> original)
     {
+        List<(string ToolName, AppOptions App)>? appToolsToEmit = null;
+
         foreach (var function in original)
         {
             if (function.RawBindings is null || function.Name is null)
@@ -42,8 +44,10 @@ public sealed class McpFunctionMetadataTransformer(IOptionsMonitor<ToolOptions> 
                 switch (bindingType)
                 {
                     case McpToolTriggerBindingType:
-                        if (jsonObject.TryGetPropertyValue("toolName", out var toolNameNode)
-                            && GetToolProperties(toolNameNode?.ToString(), function, out toolProperties))
+                        var currentToolName = jsonObject["toolName"]?.ToString();
+
+                        if (currentToolName is not null
+                            && GetToolProperties(currentToolName, function, out toolProperties))
                         {
                             jsonObject["toolProperties"] = ToolPropertyParser.GetPropertiesJson(toolProperties);
                         }
@@ -51,6 +55,19 @@ public sealed class McpFunctionMetadataTransformer(IOptionsMonitor<ToolOptions> 
                         if (MetadataParser.TryGetToolMetadata(function, out var toolMetadataJson))
                         {
                             jsonObject["metadata"] = toolMetadataJson;
+                        }
+
+                        // Inject _meta.ui for MCP App tools
+                        if (currentToolName is not null)
+                        {
+                            var toolOptions = toolOptionsMonitor.Get(currentToolName);
+                            if (toolOptions.AppOptions is { } appOptions)
+                            {
+                                InjectAppMetadata(jsonObject, appOptions);
+
+                                appToolsToEmit ??= [];
+                                appToolsToEmit.Add((currentToolName, appOptions));
+                            }
                         }
 
                         function.RawBindings[i] = jsonObject.ToJsonString();
@@ -78,6 +95,126 @@ public sealed class McpFunctionMetadataTransformer(IOptionsMonitor<ToolOptions> 
             // This is required for attributed properties/input bindings:
             PatchInputBindingMetadata(function, inputBindingProperties, toolProperties);
         }
+
+        // Emit synthetic resource functions for MCP App tools
+        if (appToolsToEmit is not null)
+        {
+            foreach (var (toolName, appOptions) in appToolsToEmit)
+            {
+                var syntheticName = $"{SyntheticFunctionPrefix}{toolName}{SyntheticFunctionSuffix}";
+
+                var resourceBinding = new JsonObject
+                {
+                    ["type"] = McpResourceTriggerBindingType,
+                    ["direction"] = "In",
+                    ["name"] = "context",
+                    ["title"] = $"{toolName} UI",
+                    ["uri"] = appOptions.ResourceUri,
+                    ["resourceName"] = $"{toolName}_ui",
+                    ["mimeType"] = McpAppMimeType
+                };
+
+                original.Add(new SyntheticFunctionMetadata(syntheticName, resourceBinding.ToJsonString()));
+            }
+        }
+    }
+
+    private static void InjectAppMetadata(JsonObject jsonObject, AppOptions appOptions)
+    {
+        // Parse any existing metadata
+        var existingMetadataJson = jsonObject["metadata"]?.GetValue<string>();
+        JsonObject metadataObj;
+
+        if (!string.IsNullOrEmpty(existingMetadataJson))
+        {
+            metadataObj = JsonNode.Parse(existingMetadataJson)?.AsObject() ?? new JsonObject();
+        }
+        else
+        {
+            metadataObj = new JsonObject();
+        }
+
+        // Build the ui object (placed directly in metadata, which maps to _meta in the protocol)
+        var uiNode = new JsonObject
+        {
+            ["resourceUri"] = appOptions.ResourceUri,
+            ["visibility"] = SerializeVisibility(appOptions.Visibility)
+        };
+
+        if (appOptions.PrefersBorder.HasValue)
+        {
+            uiNode["prefersBorder"] = appOptions.PrefersBorder.Value;
+        }
+
+        if (appOptions.Domain is not null)
+        {
+            uiNode["domain"] = appOptions.Domain;
+        }
+
+        if (appOptions.Csp is not null)
+        {
+            uiNode["csp"] = SerializeCsp(appOptions.Csp);
+        }
+
+        if (appOptions.Permissions != McpAppPermissions.None)
+        {
+            uiNode["permissions"] = SerializePermissions(appOptions.Permissions);
+        }
+
+        // The metadata dictionary is serialized directly into Tool.Meta (_meta in the wire protocol),
+        // so "ui" should be a direct child of metadataObj, not nested under another "_meta" key.
+        metadataObj["ui"] = uiNode;
+
+        jsonObject["metadata"] = metadataObj.ToJsonString();
+    }
+
+    private static JsonNode SerializeVisibility(McpVisibility visibility)
+    {
+        return visibility switch
+        {
+            McpVisibility.Model => new JsonArray("model"),
+            McpVisibility.App => new JsonArray("app"),
+            McpVisibility.ModelAndApp => new JsonArray("model", "app"),
+            _ => new JsonArray("model", "app")
+        };
+    }
+
+    private static JsonObject SerializeCsp(AppCspOptions csp)
+    {
+        var cspNode = new JsonObject();
+
+        if (csp.ConnectDomains is { Count: > 0 })
+        {
+            var arr = new JsonArray();
+            foreach (var d in csp.ConnectDomains) arr.Add(d);
+            cspNode["connectDomains"] = arr;
+        }
+
+        if (csp.ResourceDomains is { Count: > 0 })
+        {
+            var arr = new JsonArray();
+            foreach (var d in csp.ResourceDomains) arr.Add(d);
+            cspNode["resourceDomains"] = arr;
+        }
+
+        return cspNode;
+    }
+
+    private static JsonObject SerializePermissions(McpAppPermissions permissions)
+    {
+        var obj = new JsonObject();
+
+        if (permissions.HasFlag(McpAppPermissions.ClipboardWrite))
+        {
+            obj["clipboardWrite"] = new JsonObject();
+        }
+
+        if (permissions.HasFlag(McpAppPermissions.ClipboardRead))
+        {
+            obj["clipboardRead"] = new JsonObject();
+        }
+
+        return obj;
     }
 
     private static void PatchInputBindingMetadata(IFunctionMetadata function, Dictionary<string, ToolPropertyBinding> inputBindingProperties, List<ToolProperty>? toolProperties)

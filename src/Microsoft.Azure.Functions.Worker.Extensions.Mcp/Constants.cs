@@ -15,4 +15,9 @@ internal static class Constants
     // Resource constants
     public const string ResourceInvocationContextKey = "ResourceInvocationContext";
     public const string McpResourceTriggerBindingType = "mcpResourceTrigger";
+
+    // MCP App synthetic function constants
+    public const string SyntheticFunctionPrefix = "McpApp-";
+    public const string SyntheticFunctionSuffix = "-View";
+    public const string McpAppMimeType = "text/html;profile=mcp-app";
 }

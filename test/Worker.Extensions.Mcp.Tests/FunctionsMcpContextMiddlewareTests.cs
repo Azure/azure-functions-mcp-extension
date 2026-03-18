@@ -1,12 +1,16 @@
 using System.Text.Json;
 using Microsoft.Azure.Functions.Worker.Extensions.Mcp;
+using Microsoft.Azure.Functions.Worker.Extensions.Mcp.Configuration;
+using Microsoft.Extensions.Options;
+using Moq;
 using static Worker.Extensions.Mcp.Tests.Helpers.FunctionContextHelper;
 
 namespace Worker.Extensions.Mcp.Tests;
 
 public class FunctionsMcpContextMiddlewareTests
 {
-    private readonly FunctionsMcpContextMiddleware _middleware = new();
+    private readonly FunctionsMcpContextMiddleware _middleware = new(
+        new Mock<IOptionsMonitor<ToolOptions>>().Object);
 
     [Fact]
     public async Task Invoke_AddsToolInvocationContext_WhenTriggerPresent()
