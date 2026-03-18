@@ -6,6 +6,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.Azure.Functions.Worker.Core.FunctionMetadata;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using static Microsoft.Azure.Functions.Worker.Extensions.Mcp.Constants;
 
@@ -14,9 +15,11 @@ namespace Microsoft.Azure.Functions.Worker.Extensions.Mcp.Configuration;
 internal sealed class McpFunctionMetadataTransformer(
     IOptionsMonitor<ToolOptions> toolOptionsMonitor,
     IOptionsMonitor<ResourceOptions> resourceOptionsMonitor,
-    ILogger<McpFunctionMetadataTransformer> logger)
+    ILogger<McpFunctionMetadataTransformer>? logger = null)
     : IFunctionMetadataTransformer
 {
+    private readonly ILogger _logger = logger ?? (ILogger)NullLogger.Instance;
+
     public string Name => nameof(McpFunctionMetadataTransformer);
 
     public void Transform(IList<IFunctionMetadata> original)
@@ -65,6 +68,9 @@ internal sealed class McpFunctionMetadataTransformer(
                         {
                             ApplyOrMergeMetadata(jsonObject, toolMetadataJson, "Tool", toolName);
                         }
+
+                        // Merge MCP App UI metadata from fluent API
+                        MergeAppUiMetadata(jsonObject, toolNameNode?.ToString());
 
                         function.RawBindings[i] = jsonObject.ToJsonString();
                         break;
@@ -166,11 +172,11 @@ internal sealed class McpFunctionMetadataTransformer(
         if (jsonObject.ContainsKey("metadata"))
         {
             jsonObject["metadata"] = MergeMetadata(jsonObject["metadata"]?.GetValue<string>(), attributedMetadataJson, out var overlappingKeys);
-            logger.LogTrace("{Type} '{Identifier}' has metadata defined using both the fluent API and [McpMetadata] attributes. Metadata from both sources has been merged.", type, identifier);
+            _logger.LogTrace("{Type} '{Identifier}' has metadata defined using both the fluent API and [McpMetadata] attributes. Metadata from both sources has been merged.", type, identifier);
 
             if (overlappingKeys.Count > 0)
             {
-                logger.LogDebug("{Type} '{Identifier}' has overlapping metadata keys: {Keys}. Values from [McpMetadata] attributes will be used.", type, identifier, string.Join(", ", overlappingKeys));
+                _logger.LogDebug("{Type} '{Identifier}' has overlapping metadata keys: {Keys}. Values from [McpMetadata] attributes will be used.", type, identifier, string.Join(", ", overlappingKeys));
             }
         }
         else
@@ -210,4 +216,163 @@ internal sealed class McpFunctionMetadataTransformer(
     }
 
     private record ToolPropertyBinding(int Index, JsonObject Binding);
+
+    private void MergeAppUiMetadata(JsonObject jsonObject, string? toolName)
+    {
+        if (string.IsNullOrWhiteSpace(toolName))
+        {
+            return;
+        }
+
+        var toolOptions = toolOptionsMonitor.Get(toolName);
+
+        if (toolOptions.AppOptions is null)
+        {
+            return;
+        }
+
+        var uiNode = BuildUiMetadata(toolOptions.AppOptions);
+
+        // Parse existing metadata to check for conflicts
+        if (jsonObject.TryGetPropertyValue("metadata", out var existingMetaNode)
+            && existingMetaNode is not null)
+        {
+            JsonObject? metaObj = null;
+            if (existingMetaNode is JsonValue metaValue)
+            {
+                var metaStr = metaValue.GetValue<string>();
+                metaObj = JsonNode.Parse(metaStr) as JsonObject;
+            }
+            else if (existingMetaNode is JsonObject existingObj)
+            {
+                metaObj = existingObj;
+            }
+
+            if (metaObj?.TryGetPropertyValue("ui", out var existingUi) == true && existingUi is not null)
+            {
+                _logger.LogWarning(
+                    "Tool '{ToolName}' defines _meta.ui via McpMetadataAttribute, but the " +
+                    "fluent API also configures UI metadata. The fluent API configuration " +
+                    "will take precedence.",
+                    toolName);
+            }
+        }
+
+        // Register the synthetic function name
+        var syntheticName = McpAppConstants.SyntheticFunctionName(toolName);
+        McpAppConstants.Register(syntheticName);
+
+        jsonObject["appUiMetadata"] = uiNode.ToJsonString();
+    }
+
+    internal static JsonObject BuildUiMetadata(AppOptions appOptions)
+    {
+        var ui = new JsonObject();
+
+        foreach (var (viewName, viewOptions) in appOptions.Views)
+        {
+            var viewNode = new JsonObject();
+
+            if (viewOptions.Title is not null)
+            {
+                viewNode["title"] = viewOptions.Title;
+            }
+
+            if (viewOptions.Border)
+            {
+                viewNode["border"] = true;
+            }
+
+            if (viewOptions.Domain is not null)
+            {
+                viewNode["domain"] = viewOptions.Domain;
+            }
+
+            if (viewOptions.Csp is not null)
+            {
+                viewNode["csp"] = BuildCspNode(viewOptions.Csp);
+            }
+
+            if (viewOptions.Permissions != McpAppPermissions.None)
+            {
+                viewNode["permissions"] = SerializePermissions(viewOptions.Permissions);
+            }
+
+            // For single unnamed view, properties go directly on the ui object
+            // For named views, nest under the view name
+            if (string.IsNullOrEmpty(viewName))
+            {
+                foreach (var prop in viewNode)
+                {
+                    ui[prop.Key] = prop.Value?.DeepClone();
+                }
+            }
+            else
+            {
+                ui[viewName] = viewNode;
+            }
+        }
+
+        ui["visibility"] = SerializeVisibility(appOptions.Visibility);
+
+        return ui;
+    }
+
+    internal static JsonArray SerializeVisibility(McpVisibility visibility)
+    {
+        var array = new JsonArray();
+        if (visibility.HasFlag(McpVisibility.Model))
+        {
+            array.Add("model");
+        }
+
+        if (visibility.HasFlag(McpVisibility.App))
+        {
+            array.Add("app");
+        }
+
+        return array;
+    }
+
+    internal static JsonArray SerializePermissions(McpAppPermissions permissions)
+    {
+        var array = new JsonArray();
+        if (permissions.HasFlag(McpAppPermissions.ClipboardRead))
+        {
+            array.Add("clipboard-read");
+        }
+
+        if (permissions.HasFlag(McpAppPermissions.ClipboardWrite))
+        {
+            array.Add("clipboard-write");
+        }
+
+        return array;
+    }
+
+    internal static JsonObject BuildCspNode(CspOptions csp)
+    {
+        var node = new JsonObject();
+        if (csp.ConnectSources.Count > 0)
+        {
+            node["connect-src"] = new JsonArray(csp.ConnectSources.Select(s => (JsonNode)s!).ToArray());
+        }
+
+        if (csp.ResourceSources.Count > 0)
+        {
+            node["default-src"] = new JsonArray(csp.ResourceSources.Select(s => (JsonNode)s!).ToArray());
+        }
+
+        if (csp.ScriptSources.Count > 0)
+        {
+            node["script-src"] = new JsonArray(csp.ScriptSources.Select(s => (JsonNode)s!).ToArray());
+        }
+
+        if (csp.StyleSources.Count > 0)
+        {
+            node["style-src"] = new JsonArray(csp.StyleSources.Select(s => (JsonNode)s!).ToArray());
+        }
+
+        return node;
+    }
 }

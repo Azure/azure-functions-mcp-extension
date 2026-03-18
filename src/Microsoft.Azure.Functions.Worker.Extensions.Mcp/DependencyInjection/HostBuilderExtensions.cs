@@ -8,6 +8,7 @@ using Microsoft.Azure.Functions.Worker.Extensions.Mcp.Converters;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
 using System.ComponentModel;
 
 namespace Microsoft.Azure.Functions.Worker.Builder;
@@ -42,6 +43,8 @@ public static class McpHostBuilderExtensions
         ArgumentNullException.ThrowIfNull(builder);
 
         builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IFunctionMetadataTransformer, McpFunctionMetadataTransformer>());
+
+        builder.Services.TryAddSingleton<IValidateOptions<ToolOptions>, ToolOptionsValidator>();
 
         builder.UseMiddleware<FunctionsMcpContextMiddleware>();
 
