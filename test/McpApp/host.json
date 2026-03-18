@@ -1,0 +1,19 @@
+{
+  "version": "2.0",
+  "logging": {
+    "applicationInsights": {
+      "samplingSettings": {
+        "isEnabled": true,
+        "excludedTypes": "Request"
+      },
+      "enableLiveMetricsFilters": true
+    }
+  },
+  "extensions": {
+    "mcp": {
+      "serverName": "Test project server",
+      "serverVersion": "2.1.0",
+      "instructions": "These instructions are only meant for testing and can be ignored."
+    }
+  }
+}
