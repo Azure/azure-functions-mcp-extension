@@ -7,6 +7,7 @@
 ### Microsoft.Azure.Functions.Extensions 1.3.0
 
 - Added structured content support for tools (#172)
+- Fixed typo in JSON property name `sessionId` on `Transport` class (#206)
 
 ### Microsoft.Azure.Functions.Worker.Extensions.Mcp 1.3.0
 
