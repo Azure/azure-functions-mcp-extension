@@ -19,7 +19,7 @@ public class Transport
     /// <summary>
     /// Gets the transport name.
     /// </summary>
-    [JsonPropertyName("sesssionId")]
+    [JsonPropertyName("sessionId")]
     public string? SessionId { get; set; }
 
     /// <summary>
