@@ -3,13 +3,17 @@
 
 using System.ComponentModel;
 
-namespace Microsoft.Azure.Functions.Worker.Extensions.Mcp.Configuration;
+namespace Microsoft.Azure.Functions.Worker.Extensions.Mcp.McpApp;
 
 /// <summary>
 /// A view source backed by inline HTML. For testing only.
 /// </summary>
 [EditorBrowsable(EditorBrowsableState.Never)]
-public sealed record InlineHtmlViewSource(string Html) : McpViewSource;
+public sealed record InlineHtmlViewSource(string Html) : McpViewSource
+{
+    internal override Task<string> GetContentAsync(CancellationToken cancellationToken)
+        => Task.FromResult(Html);
+}
 
 /// <summary>
 /// Test-only extensions for McpViewSource. Not intended for production use.

@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 using Microsoft.Azure.Functions.Worker.Extensions.Mcp.Configuration;
+using Microsoft.Azure.Functions.Worker.Extensions.Mcp.McpApp;
 using Microsoft.Extensions.Options;
 
 namespace Worker.Extensions.Mcp.Tests;

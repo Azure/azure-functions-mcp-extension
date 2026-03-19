@@ -4,7 +4,7 @@
 using System.Reflection;
 using System.Runtime.CompilerServices;
 
-namespace Microsoft.Azure.Functions.Worker.Extensions.Mcp.Configuration;
+namespace Microsoft.Azure.Functions.Worker.Extensions.Mcp.McpApp;
 
 /// <summary>
 /// Represents the content source for an MCP App view.
@@ -12,8 +12,12 @@ namespace Microsoft.Azure.Functions.Worker.Extensions.Mcp.Configuration;
 /// </summary>
 public abstract record McpViewSource
 {
-    // Prevent external subclassing
-    internal McpViewSource() { }
+    /// <summary>
+    /// Resolves and returns the HTML content from this view source.
+    /// </summary>
+    /// <param name="cancellationToken">A token to cancel the operation.</param>
+    /// <returns>The HTML content as a string.</returns>
+    public abstract Task<string> GetContentAsync(CancellationToken cancellationToken);
 
     /// <summary>
     /// Creates a view source backed by a file on disk.
@@ -43,16 +47,3 @@ public abstract record McpViewSource
         return new EmbeddedViewSource(assembly ?? Assembly.GetCallingAssembly(), resourceName);
     }
 }
-
-/// <summary>
-/// A view source backed by a file on disk.
-/// </summary>
-/// <param name="Path">The path to the HTML file.</param>
-public sealed record FileViewSource(string Path) : McpViewSource;
-
-/// <summary>
-/// A view source backed by a manifest resource embedded in an assembly.
-/// </summary>
-/// <param name="Assembly">The assembly containing the resource.</param>
-/// <param name="ResourceName">The fully qualified manifest resource name.</param>
-public sealed record EmbeddedViewSource(Assembly Assembly, string ResourceName) : McpViewSource;

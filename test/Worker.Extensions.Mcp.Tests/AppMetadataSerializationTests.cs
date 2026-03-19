@@ -3,6 +3,7 @@
 
 using Microsoft.Azure.Functions.Worker.Extensions.Mcp;
 using Microsoft.Azure.Functions.Worker.Extensions.Mcp.Configuration;
+using Microsoft.Azure.Functions.Worker.Extensions.Mcp.McpApp;
 
 namespace Worker.Extensions.Mcp.Tests;
 

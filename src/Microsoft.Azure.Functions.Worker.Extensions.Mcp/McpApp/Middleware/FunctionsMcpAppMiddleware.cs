@@ -60,11 +60,7 @@ internal class FunctionsMcpAppMiddleware : IFunctionsWorkerMiddleware
         }
 
         // Resolve HTML content
-        var html = await McpAppFunctions.ResolveViewContentAsync(
-            view.Source,
-            toolName,
-            string.Empty,
-            context.CancellationToken);
+        var html = await view.Source.GetContentAsync(context.CancellationToken);
 
         // Build the resource content with _meta.ui for the resources/read response.
         var resourceContent = new McpAppResourceContent

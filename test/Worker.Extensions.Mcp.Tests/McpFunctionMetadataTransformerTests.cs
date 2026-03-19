@@ -7,6 +7,7 @@ using Microsoft.Azure.Functions.Worker.Core.FunctionMetadata;
 using Microsoft.Azure.Functions.Worker.Extensions.Mcp;
 using Microsoft.Azure.Functions.Worker.Extensions.Mcp.Configuration;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Azure.Functions.Worker.Extensions.Mcp.McpApp;
 using Microsoft.Extensions.Options;
 using Moq;
 
