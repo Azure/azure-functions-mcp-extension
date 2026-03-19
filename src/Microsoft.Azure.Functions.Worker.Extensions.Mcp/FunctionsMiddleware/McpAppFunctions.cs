@@ -13,7 +13,7 @@ namespace Microsoft.Azure.Functions.Worker.Extensions.Mcp;
 /// invoked by the Azure Functions host when the MCP host issues <c>resources/read</c>
 /// for a <c>ui://</c> resource.
 /// </summary>
-public static class McpAppFunctions
+internal static class McpAppFunctions
 {
 #pragma warning disable IL3000 // Avoid accessing Assembly file path when publishing as a single file
     internal static readonly string ScriptFile = Path.GetFileName(typeof(McpAppFunctions).Assembly.Location);
@@ -21,17 +21,7 @@ public static class McpAppFunctions
 
     internal static readonly string ServeViewEntryPoint = $"{typeof(McpAppFunctions).FullName!}.{nameof(ServeView)}";
 
-    /// <summary>
-    /// Serves the HTML content for an MCP App view as a resource response.
-    /// </summary>
-    public static string ServeView(
-        [McpResourceTrigger("ui://placeholder", "placeholder")] ResourceInvocationContext context)
-    {
-        // The actual URI and resource name are set by the synthetic metadata.
-        // The attribute values here are placeholders — they are overridden at runtime
-        // by the binding metadata generated in McpAppFunctionMetadataFactory.
-        return string.Empty;
-    }
+    public static void ServeView() { }
 
     internal static async Task<string> ResolveViewContentAsync(
         McpViewSource source,

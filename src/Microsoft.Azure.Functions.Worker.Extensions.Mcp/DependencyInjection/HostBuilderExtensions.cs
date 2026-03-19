@@ -47,6 +47,7 @@ public static class McpHostBuilderExtensions
         builder.Services.TryAddSingleton<IValidateOptions<ToolOptions>, ToolOptionsValidator>();
 
         builder.UseMiddleware<FunctionsMcpContextMiddleware>();
+        builder.UseMiddleware<FunctionsMcpAppMiddleware>();
 
         builder.Services.Configure<WorkerOptions>(static (workerOption) =>
         {
