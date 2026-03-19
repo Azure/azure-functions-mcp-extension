@@ -11,7 +11,7 @@ namespace Microsoft.Azure.Functions.Worker.Extensions.Mcp.McpApp;
 [EditorBrowsable(EditorBrowsableState.Never)]
 public sealed record InlineHtmlViewSource(string Html) : McpViewSource
 {
-    internal override Task<string> GetContentAsync(CancellationToken cancellationToken)
+    public override Task<string> GetContentAsync(CancellationToken cancellationToken)
         => Task.FromResult(Html);
 }
 
