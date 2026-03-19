@@ -2,7 +2,6 @@
 // Licensed under the MIT License.
 
 using System.Reflection;
-using System.Text.Json.Nodes;
 using Microsoft.Azure.Functions.Worker.Extensions.Mcp.Configuration;
 
 namespace Microsoft.Azure.Functions.Worker.Extensions.Mcp;
@@ -63,75 +62,45 @@ internal static class McpAppFunctions
     }
 
     /// <summary>
-    /// Builds the <c>_meta.ui</c> JSON object for resource response metadata,
+    /// Builds the <c>_meta.ui</c> object for resource response metadata,
     /// containing CSP, permissions, border preference, and domain per the MCP Apps spec.
+    /// Returns null if the view has no metadata to emit.
     /// </summary>
-    internal static JsonObject BuildResourceUiMeta(ViewOptions viewOptions)
+    internal static McpAppUiMeta? BuildResourceUiMeta(ViewOptions viewOptions)
     {
-        var uiMeta = new JsonObject();
-
+        McpAppCsp? csp = null;
         if (viewOptions.Csp is not null)
         {
-            uiMeta["csp"] = BuildCspNode(viewOptions.Csp);
+            csp = new McpAppCsp
+            {
+                ConnectDomains = viewOptions.Csp.ConnectDomains.Count > 0 ? viewOptions.Csp.ConnectDomains : null,
+                ResourceDomains = viewOptions.Csp.ResourceDomains.Count > 0 ? viewOptions.Csp.ResourceDomains : null,
+                FrameDomains = viewOptions.Csp.FrameDomains.Count > 0 ? viewOptions.Csp.FrameDomains : null,
+                BaseUriDomains = viewOptions.Csp.BaseUriDomains.Count > 0 ? viewOptions.Csp.BaseUriDomains : null,
+            };
         }
 
+        McpAppPermissionsMap? permissions = null;
         if (viewOptions.Permissions != McpAppPermissions.None)
         {
-            uiMeta["permissions"] = BuildPermissionsNode(viewOptions.Permissions);
+            permissions = new McpAppPermissionsMap
+            {
+                ClipboardRead = viewOptions.Permissions.HasFlag(McpAppPermissions.ClipboardRead) ? new EmptyObject() : null,
+                ClipboardWrite = viewOptions.Permissions.HasFlag(McpAppPermissions.ClipboardWrite) ? new EmptyObject() : null,
+            };
         }
 
-        if (viewOptions.PrefersBorder is not null)
+        if (csp is null && permissions is null && viewOptions.PrefersBorder is null && viewOptions.Domain is null)
         {
-            uiMeta["prefersBorder"] = viewOptions.PrefersBorder.Value;
+            return null;
         }
 
-        if (viewOptions.Domain is not null)
+        return new McpAppUiMeta
         {
-            uiMeta["domain"] = viewOptions.Domain;
-        }
-
-        return uiMeta;
-    }
-
-    private static JsonObject BuildCspNode(CspOptions csp)
-    {
-        var node = new JsonObject();
-        if (csp.ConnectDomains.Count > 0)
-        {
-            node["connectDomains"] = new JsonArray(csp.ConnectDomains.Select(s => (JsonNode)s!).ToArray());
-        }
-
-        if (csp.ResourceDomains.Count > 0)
-        {
-            node["resourceDomains"] = new JsonArray(csp.ResourceDomains.Select(s => (JsonNode)s!).ToArray());
-        }
-
-        if (csp.FrameDomains.Count > 0)
-        {
-            node["frameDomains"] = new JsonArray(csp.FrameDomains.Select(s => (JsonNode)s!).ToArray());
-        }
-
-        if (csp.BaseUriDomains.Count > 0)
-        {
-            node["baseUriDomains"] = new JsonArray(csp.BaseUriDomains.Select(s => (JsonNode)s!).ToArray());
-        }
-
-        return node;
-    }
-
-    private static JsonObject BuildPermissionsNode(McpAppPermissions permissions)
-    {
-        var node = new JsonObject();
-        if (permissions.HasFlag(McpAppPermissions.ClipboardRead))
-        {
-            node["clipboardRead"] = new JsonObject();
-        }
-
-        if (permissions.HasFlag(McpAppPermissions.ClipboardWrite))
-        {
-            node["clipboardWrite"] = new JsonObject();
-        }
-
-        return node;
+            Csp = csp,
+            Permissions = permissions,
+            PrefersBorder = viewOptions.PrefersBorder,
+            Domain = viewOptions.Domain,
+        };
     }
 }

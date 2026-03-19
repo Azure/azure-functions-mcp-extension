@@ -2,7 +2,6 @@
 // Licensed under the MIT License.
 
 using System.Text.Json;
-using System.Text.Json.Nodes;
 using Microsoft.Azure.Functions.Worker.Extensions.Mcp.Configuration;
 using Microsoft.Azure.Functions.Worker.Middleware;
 using Microsoft.Extensions.Options;
@@ -67,39 +66,33 @@ internal class FunctionsMcpAppMiddleware : IFunctionsWorkerMiddleware
             string.Empty,
             context.CancellationToken);
 
-        // Build the resource content JSON with _meta.ui for the resources/read response.
-        // The host's ResourceReturnValueBinder will deserialize this as McpResourceResult
-        // and pass _meta through to the MCP protocol response.
-        var resourceUri = McpAppUtilities.ResourceUri(toolName);
-        var resourceContent = BuildResourceContentJson(resourceUri, html, view);
+        // Build the resource content with _meta.ui for the resources/read response.
+        var resourceContent = new McpAppResourceContent
+        {
+            Uri = McpAppUtilities.ResourceUri(toolName),
+            MimeType = McpAppFunctionMetadataFactory.AppMimeType,
+            Text = html,
+            Meta = BuildResourceMeta(view),
+        };
 
-        // Return as McpResourceResult JSON so the host binder picks up _meta
-        var resultJson = JsonSerializer.Serialize(new { content = resourceContent });
+        // Serialize as McpResourceResult so the host's ResourceReturnValueBinder
+        // picks up the full content including _meta.
+        var contentJson = JsonSerializer.Serialize(resourceContent, McpJsonContext.Default.McpAppResourceContent);
+        var result = new McpAppResourceResult { Content = contentJson };
+        var resultJson = JsonSerializer.Serialize(result, McpJsonContext.Default.McpAppResourceResult);
 
         var invocationResult = context.GetInvocationResult();
         invocationResult.Value = resultJson;
     }
 
-    /// <summary>
-    /// Builds a JSON string representing a ResourceContents object with _meta.ui metadata
-    /// for the resources/read response.
-    /// </summary>
-    private static string BuildResourceContentJson(string uri, string html, ViewOptions viewOptions)
+    private static McpAppResourceMeta? BuildResourceMeta(ViewOptions viewOptions)
     {
-        var content = new JsonObject
-        {
-            ["uri"] = uri,
-            ["mimeType"] = McpAppFunctionMetadataFactory.AppMimeType,
-            ["text"] = html,
-        };
-
-        // Build _meta.ui with CSP, permissions, border, domain
         var uiMeta = McpAppFunctions.BuildResourceUiMeta(viewOptions);
-        if (uiMeta.Count > 0)
+        if (uiMeta is null)
         {
-            content["_meta"] = new JsonObject { ["ui"] = uiMeta };
+            return null;
         }
 
-        return content.ToJsonString();
+        return new McpAppResourceMeta { Ui = uiMeta };
     }
 }

@@ -1,7 +1,6 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-using System.Text.Json.Nodes;
 using Microsoft.Azure.Functions.Worker.Extensions.Mcp;
 using Microsoft.Azure.Functions.Worker.Extensions.Mcp.Configuration;
 
@@ -75,15 +74,16 @@ public class AppMetadataSerializationTests
 
         var result = McpAppFunctions.BuildResourceUiMeta(viewOptions);
 
-        var csp = result["csp"]!.AsObject();
-        Assert.Equal("https://api.example.com", csp["connectDomains"]!.AsArray()[0]!.GetValue<string>());
-        Assert.Equal("https://cdn.example.com", csp["resourceDomains"]!.AsArray()[0]!.GetValue<string>());
-        Assert.Equal("https://youtube.com", csp["frameDomains"]!.AsArray()[0]!.GetValue<string>());
-        Assert.Equal("https://base.example.com", csp["baseUriDomains"]!.AsArray()[0]!.GetValue<string>());
+        Assert.NotNull(result);
+        Assert.NotNull(result!.Csp);
+        Assert.Contains("https://api.example.com", result.Csp!.ConnectDomains!);
+        Assert.Contains("https://cdn.example.com", result.Csp.ResourceDomains!);
+        Assert.Contains("https://youtube.com", result.Csp.FrameDomains!);
+        Assert.Contains("https://base.example.com", result.Csp.BaseUriDomains!);
     }
 
     [Fact]
-    public void BuildResourceUiMeta_WithPermissions_UsesObjectKeys()
+    public void BuildResourceUiMeta_WithPermissions_SetsPermissionObjects()
     {
         var viewOptions = new ViewOptions
         {
@@ -93,12 +93,10 @@ public class AppMetadataSerializationTests
 
         var result = McpAppFunctions.BuildResourceUiMeta(viewOptions);
 
-        var perms = result["permissions"]!.AsObject();
-        Assert.True(perms.ContainsKey("clipboardRead"));
-        Assert.True(perms.ContainsKey("clipboardWrite"));
-        // Values are empty objects per spec
-        Assert.IsType<JsonObject>(perms["clipboardRead"]);
-        Assert.IsType<JsonObject>(perms["clipboardWrite"]);
+        Assert.NotNull(result);
+        Assert.NotNull(result!.Permissions);
+        Assert.NotNull(result.Permissions!.ClipboardRead);
+        Assert.NotNull(result.Permissions.ClipboardWrite);
     }
 
     [Fact]
@@ -112,7 +110,8 @@ public class AppMetadataSerializationTests
 
         var result = McpAppFunctions.BuildResourceUiMeta(viewOptions);
 
-        Assert.True(result["prefersBorder"]!.GetValue<bool>());
+        Assert.NotNull(result);
+        Assert.True(result!.PrefersBorder);
     }
 
     [Fact]
@@ -126,11 +125,12 @@ public class AppMetadataSerializationTests
 
         var result = McpAppFunctions.BuildResourceUiMeta(viewOptions);
 
-        Assert.False(result["prefersBorder"]!.GetValue<bool>());
+        Assert.NotNull(result);
+        Assert.False(result!.PrefersBorder);
     }
 
     [Fact]
-    public void BuildResourceUiMeta_PrefersBorderNull_Omitted()
+    public void BuildResourceUiMeta_PrefersBorderNull_ReturnsNull()
     {
         var viewOptions = new ViewOptions
         {
@@ -140,7 +140,7 @@ public class AppMetadataSerializationTests
 
         var result = McpAppFunctions.BuildResourceUiMeta(viewOptions);
 
-        Assert.False(result.ContainsKey("prefersBorder"));
+        Assert.Null(result);
     }
 
     [Fact]
@@ -154,7 +154,8 @@ public class AppMetadataSerializationTests
 
         var result = McpAppFunctions.BuildResourceUiMeta(viewOptions);
 
-        Assert.Equal("myapp.example.com", result["domain"]!.GetValue<string>());
+        Assert.NotNull(result);
+        Assert.Equal("myapp.example.com", result!.Domain);
     }
 
     [Fact]
@@ -167,10 +168,7 @@ public class AppMetadataSerializationTests
 
         var result = McpAppFunctions.BuildResourceUiMeta(viewOptions);
 
-        Assert.False(result.ContainsKey("csp"));
-        Assert.False(result.ContainsKey("permissions"));
-        Assert.False(result.ContainsKey("prefersBorder"));
-        Assert.False(result.ContainsKey("domain"));
+        Assert.Null(result);
     }
 
     private static AppOptions CreateMinimalAppOptions()
