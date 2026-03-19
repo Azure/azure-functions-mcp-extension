@@ -67,4 +67,15 @@ public class McpAppFunctionMetadataFactoryTests
         Assert.Equal("ui://data_explorer/view", triggerBinding["uri"]!.GetValue<string>());
         Assert.Equal("data_explorer_view", triggerBinding["resourceName"]!.GetValue<string>());
     }
+
+    [Fact]
+    public void CreateViewResourceFunction_NoMetadataOnBinding()
+    {
+        var metadata = McpAppFunctionMetadataFactory.CreateViewResourceFunction("myTool");
+
+        var triggerBinding = JsonNode.Parse(metadata.RawBindings![0])!.AsObject();
+        // CSP/permissions/border/domain are returned at runtime via middleware in resources/read,
+        // not in the resource registration binding metadata
+        Assert.False(triggerBinding.ContainsKey("metadata"));
+    }
 }
