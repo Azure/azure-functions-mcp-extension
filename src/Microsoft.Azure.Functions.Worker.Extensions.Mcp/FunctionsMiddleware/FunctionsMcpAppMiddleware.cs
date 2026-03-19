@@ -27,15 +27,15 @@ internal class FunctionsMcpAppMiddleware : IFunctionsWorkerMiddleware
     {
         ArgumentNullException.ThrowIfNull(context);
 
-        var functionName = context.FunctionDefinition.Name;
 
-        if (!McpAppUtilities.IsSyntheticFunction(functionName))
+        if (!context.Items.ContainsKey(Constants.ResourceInvocationContextKey)
+            || !McpAppUtilities.IsSyntheticFunction(context.FunctionDefinition.Name))
         {
             await next(context);
             return;
         }
 
-        var toolName = McpAppUtilities.ExtractToolName(functionName);
+        var toolName = McpAppUtilities.ExtractToolName(context.FunctionDefinition.Name);
         var toolOptions = _optionsMonitor.Get(toolName);
 
         if (toolOptions.AppOptions is null)
