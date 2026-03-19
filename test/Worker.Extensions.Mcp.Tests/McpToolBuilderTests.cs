@@ -137,7 +137,7 @@ public class McpToolBuilderTests
     }
 
     [Fact]
-    public void WithMeta_AddsMetadataEntry()
+    public void WithMetadata_AddsMetadataEntry()
     {
         var toolName = "myTool";
         var builder = CreateBuilder(toolName, out var services);
@@ -152,7 +152,7 @@ public class McpToolBuilderTests
     }
 
     [Fact]
-    public void WithMeta_MultipleEntries_AddsAllMetadata()
+    public void WithMetadata_MultipleEntries_AddsAllMetadata()
     {
         var toolName = "myTool";
         var builder = CreateBuilder(toolName, out var services);
@@ -172,7 +172,7 @@ public class McpToolBuilderTests
     }
 
     [Fact]
-    public void WithMeta_EmptyKey_Throws()
+    public void WithMetadata_EmptyKey_Throws()
     {
         var builder = CreateBuilder("tool", out _);
 
@@ -181,7 +181,7 @@ public class McpToolBuilderTests
     }
 
     [Fact]
-    public void WithMeta_ReturnsSameBuilderInstance()
+    public void WithMetadata_ReturnsSameBuilderInstance()
     {
         var builder = CreateBuilder("tool", out _);
         var result = builder.WithMetadata("key", "value");
@@ -190,7 +190,7 @@ public class McpToolBuilderTests
     }
 
     [Fact]
-    public void Chaining_WithPropertyAndWithMeta_ConfiguresAll()
+    public void Chaining_WithPropertyAndWithMetadata_ConfiguresAll()
     {
         var toolName = "myTool";
         var builder = CreateBuilder(toolName, out var services);
@@ -209,7 +209,7 @@ public class McpToolBuilderTests
     }
 
     [Fact]
-    public void WithMeta_Batch_AddsAllMetadata()
+    public void WithMetadata_Batch_AddsAllMetadata()
     {
         var toolName = "myTool";
         var builder = CreateBuilder(toolName, out var services);
@@ -229,7 +229,7 @@ public class McpToolBuilderTests
     }
 
     [Fact]
-    public void WithMeta_Batch_EmptyKey_Throws()
+    public void WithMetadata_Batch_EmptyKey_Throws()
     {
         var builder = CreateBuilder("tool", out _);
 
@@ -240,7 +240,7 @@ public class McpToolBuilderTests
     }
 
     [Fact]
-    public void WithMeta_Batch_ReturnsSameBuilderInstance()
+    public void WithMetadata_Batch_ReturnsSameBuilderInstance()
     {
         var builder = CreateBuilder("tool", out _);
 

@@ -24,7 +24,7 @@ public class McpResourceBuilderTests
     }
 
     [Fact]
-    public void WithMeta_AddsMetadataEntry()
+    public void WithMetadata_AddsMetadataEntry()
     {
         var resourceUri = "ui://my/resource.html";
         var builder = CreateBuilder(resourceUri, out var services);
@@ -39,7 +39,7 @@ public class McpResourceBuilderTests
     }
 
     [Fact]
-    public void WithMeta_MultipleEntries_AddsAllMetadata()
+    public void WithMetadata_MultipleEntries_AddsAllMetadata()
     {
         var resourceUri = "ui://my/resource.html";
         var builder = CreateBuilder(resourceUri, out var services);
@@ -59,7 +59,7 @@ public class McpResourceBuilderTests
     }
 
     [Fact]
-    public void WithMeta_EmptyKey_Throws()
+    public void WithMetadata_EmptyKey_Throws()
     {
         var builder = CreateBuilder("ui://my/resource.html", out _);
 
@@ -68,7 +68,7 @@ public class McpResourceBuilderTests
     }
 
     [Fact]
-    public void WithMeta_ReturnsSameBuilderInstance()
+    public void WithMetadata_ReturnsSameBuilderInstance()
     {
         var builder = CreateBuilder("ui://my/resource.html", out _);
         var result = builder.WithMetadata("key", "value");
@@ -77,7 +77,7 @@ public class McpResourceBuilderTests
     }
 
     [Fact]
-    public void Chaining_MultipleWithMeta_ConfiguresAllMetadata()
+    public void Chaining_MultipleWithMetadata_ConfiguresAllMetadata()
     {
         var resourceUri = "ui://my/resource.html";
         var builder = CreateBuilder(resourceUri, out var services);
@@ -97,7 +97,7 @@ public class McpResourceBuilderTests
     }
 
     [Fact]
-    public void WithMeta_Batch_AddsAllMetadata()
+    public void WithMetadata_Batch_AddsAllMetadata()
     {
         var resourceUri = "ui://my/resource.html";
         var builder = CreateBuilder(resourceUri, out var services);
@@ -117,7 +117,7 @@ public class McpResourceBuilderTests
     }
 
     [Fact]
-    public void WithMeta_Batch_EmptyKey_Throws()
+    public void WithMetadata_Batch_EmptyKey_Throws()
     {
         var builder = CreateBuilder("ui://my/resource.html", out _);
 
@@ -128,7 +128,7 @@ public class McpResourceBuilderTests
     }
 
     [Fact]
-    public void WithMeta_Batch_ReturnsSameBuilderInstance()
+    public void WithMetadata_Batch_ReturnsSameBuilderInstance()
     {
         var builder = CreateBuilder("ui://my/resource.html", out _);
 

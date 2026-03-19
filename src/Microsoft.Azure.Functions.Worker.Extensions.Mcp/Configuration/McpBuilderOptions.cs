@@ -11,5 +11,5 @@ public abstract class McpBuilderOptions
     /// <summary>
     /// Gets the metadata associated with the options.
     /// </summary>
-    public Dictionary<string, object?> Metadata { get; } = [];
+    public IDictionary<string, object?> Metadata { get; } = new Dictionary<string, object?>();
 }
