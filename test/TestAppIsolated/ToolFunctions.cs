@@ -199,4 +199,11 @@ public class TestFunction
         Unemployed
     }
 
+    [Function(nameof(HelloApp))]
+    public string HelloApp(
+        [McpToolTrigger("HelloApp", "A simple MCP App that says hello.")] ToolInvocationContext context)
+    {
+        _logger.LogInformation("HelloApp tool invoked.");
+        return "Hello from app";
+    }
 }

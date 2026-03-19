@@ -56,6 +56,7 @@ public sealed class McpToolBuilder(IFunctionsWorkerApplicationBuilder builder, s
         {
             toolOptions.AppOptions ??= new AppOptions();
             var appBuilder = new McpAppBuilder(toolOptions.AppOptions, this);
+
             configure(appBuilder);
         });
 

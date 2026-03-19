@@ -242,24 +242,23 @@ internal sealed class McpFunctionMetadataTransformer(
             return;
         }
 
-        var uiNode = BuildUiMetadata(toolOptions.AppOptions);
+        // Build the tool's _meta.ui per the MCP Apps spec (SEP-1865):
+        // Only resourceUri and visibility go on the tool metadata.
+        // CSP, permissions, border, domain go on the resource response.
+        var uiNode = BuildToolUiMetadata(toolName, toolOptions.AppOptions);
 
-        // Parse existing metadata to check for conflicts
+        // The binding's "metadata" property becomes `_meta` in the MCP protocol.
+        // We need to merge the "ui" key into the existing metadata JSON (if any),
+        // or create a new metadata JSON with just the "ui" key.
+        JsonObject metaObj;
+
         if (jsonObject.TryGetPropertyValue("metadata", out var existingMetaNode)
             && existingMetaNode is not null)
         {
-            JsonObject? metaObj = null;
-            if (existingMetaNode is JsonValue metaValue)
-            {
-                var metaStr = metaValue.GetValue<string>();
-                metaObj = JsonNode.Parse(metaStr) as JsonObject;
-            }
-            else if (existingMetaNode is JsonObject existingObj)
-            {
-                metaObj = existingObj;
-            }
+            var metaStr = existingMetaNode.GetValue<string>();
+            metaObj = JsonNode.Parse(metaStr) as JsonObject ?? new JsonObject();
 
-            if (metaObj?.TryGetPropertyValue("ui", out var existingUi) == true && existingUi is not null)
+            if (metaObj.ContainsKey("ui"))
             {
                 _logger.LogWarning(
                     "Tool '{ToolName}' defines _meta.ui via McpMetadataAttribute, but the " +
@@ -268,74 +267,33 @@ internal sealed class McpFunctionMetadataTransformer(
                     toolName);
             }
         }
+        else
+        {
+            metaObj = new JsonObject();
+        }
 
-        // Emit synthetic HTTP functions for view serving
+        metaObj["ui"] = uiNode;
+        jsonObject["metadata"] = metaObj.ToJsonString();
+
+        // Emit synthetic resource function for view serving
         syntheticFunctions ??= [];
 
-        var viewFunction = McpAppFunctionMetadataFactory.CreateViewFunction(toolName);
+        var viewFunction = McpAppFunctionMetadataFactory.CreateViewResourceFunction(toolName);
         syntheticFunctions.Add(viewFunction);
         McpAppUtilities.Register(viewFunction.Name!);
-
-        // Emit static assets function if configured
-        if (toolOptions.AppOptions.StaticAssetsDirectory is not null)
-        {
-            var assetsFunction = McpAppFunctionMetadataFactory.CreateStaticAssetsFunction(toolName);
-            syntheticFunctions.Add(assetsFunction);
-            McpAppUtilities.Register(assetsFunction.Name!);
-        }
-
-        jsonObject["appUiMetadata"] = uiNode.ToJsonString();
     }
 
-    internal static JsonObject BuildUiMetadata(AppOptions appOptions)
+    /// <summary>
+    /// Builds the tool's <c>_meta.ui</c> per the MCP Apps spec.
+    /// Contains only <c>resourceUri</c> and <c>visibility</c>.
+    /// </summary>
+    internal static JsonObject BuildToolUiMetadata(string toolName, AppOptions appOptions)
     {
-        var ui = new JsonObject();
-
-        foreach (var (viewName, viewOptions) in appOptions.Views)
+        var ui = new JsonObject
         {
-            var viewNode = new JsonObject();
-
-            if (viewOptions.Title is not null)
-            {
-                viewNode["title"] = viewOptions.Title;
-            }
-
-            if (viewOptions.Border)
-            {
-                viewNode["border"] = true;
-            }
-
-            if (viewOptions.Domain is not null)
-            {
-                viewNode["domain"] = viewOptions.Domain;
-            }
-
-            if (viewOptions.Csp is not null)
-            {
-                viewNode["csp"] = BuildCspNode(viewOptions.Csp);
-            }
-
-            if (viewOptions.Permissions != McpAppPermissions.None)
-            {
-                viewNode["permissions"] = SerializePermissions(viewOptions.Permissions);
-            }
-
-            // For single unnamed view, properties go directly on the ui object
-            // For named views, nest under the view name
-            if (string.IsNullOrEmpty(viewName))
-            {
-                foreach (var prop in viewNode)
-                {
-                    ui[prop.Key] = prop.Value?.DeepClone();
-                }
-            }
-            else
-            {
-                ui[viewName] = viewNode;
-            }
-        }
-
-        ui["visibility"] = SerializeVisibility(appOptions.Visibility);
+            ["resourceUri"] = McpAppUtilities.ResourceUri(toolName),
+            ["visibility"] = SerializeVisibility(appOptions.Visibility)
+        };
 
         return ui;
     }
@@ -354,47 +312,5 @@ internal sealed class McpFunctionMetadataTransformer(
         }
 
         return array;
-    }
-
-    internal static JsonArray SerializePermissions(McpAppPermissions permissions)
-    {
-        var array = new JsonArray();
-        if (permissions.HasFlag(McpAppPermissions.ClipboardRead))
-        {
-            array.Add("clipboard-read");
-        }
-
-        if (permissions.HasFlag(McpAppPermissions.ClipboardWrite))
-        {
-            array.Add("clipboard-write");
-        }
-
-        return array;
-    }
-
-    internal static JsonObject BuildCspNode(CspOptions csp)
-    {
-        var node = new JsonObject();
-        if (csp.ConnectSources.Count > 0)
-        {
-            node["connect-src"] = new JsonArray(csp.ConnectSources.Select(s => (JsonNode)s!).ToArray());
-        }
-
-        if (csp.ResourceSources.Count > 0)
-        {
-            node["default-src"] = new JsonArray(csp.ResourceSources.Select(s => (JsonNode)s!).ToArray());
-        }
-
-        if (csp.ScriptSources.Count > 0)
-        {
-            node["script-src"] = new JsonArray(csp.ScriptSources.Select(s => (JsonNode)s!).ToArray());
-        }
-
-        if (csp.StyleSources.Count > 0)
-        {
-            node["style-src"] = new JsonArray(csp.StyleSources.Select(s => (JsonNode)s!).ToArray());
-        }
-
-        return node;
     }
 }

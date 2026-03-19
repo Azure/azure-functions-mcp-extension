@@ -46,9 +46,4 @@ public interface IMcpAppBuilder
     /// Sets the visibility of this tool. Last call wins.
     /// </summary>
     IMcpAppBuilder WithVisibility(McpVisibility visibility);
-
-    /// <summary>
-    /// Returns to the tool builder to configure tool-level properties.
-    /// </summary>
-    McpToolBuilder ConfigureTool();
 }

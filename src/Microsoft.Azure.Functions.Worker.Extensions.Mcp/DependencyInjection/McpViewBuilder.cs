@@ -21,19 +21,21 @@ internal sealed class McpViewBuilder : IMcpViewBuilder
     public IMcpViewBuilder WithTitle(string title)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(title);
+
         _viewOptions.Title = title;
         return this;
     }
 
     public IMcpViewBuilder WithBorder(bool border = true)
     {
-        _viewOptions.Border = border;
+        _viewOptions.PrefersBorder = border;
         return this;
     }
 
     public IMcpViewBuilder WithDomain(string domain)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(domain);
+
         _viewOptions.Domain = domain;
         return this;
     }
@@ -41,8 +43,10 @@ internal sealed class McpViewBuilder : IMcpViewBuilder
     public IMcpViewBuilder WithCsp(Action<IMcpCspBuilder> configure)
     {
         ArgumentNullException.ThrowIfNull(configure);
+
         var cspOptions = _viewOptions.Csp ??= new CspOptions();
         var cspBuilder = new McpCspBuilder(cspOptions);
+
         configure(cspBuilder);
         return this;
     }

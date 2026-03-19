@@ -148,7 +148,7 @@ public class McpAppBuilderTests
             .WithBorder());
 
         var options = GetToolOptions(services, "test");
-        Assert.True(options.AppOptions!.Views[string.Empty].Border);
+        Assert.True(options.AppOptions!.Views[string.Empty].PrefersBorder);
     }
 
     [Fact]
@@ -161,7 +161,7 @@ public class McpAppBuilderTests
             .WithBorder(false));
 
         var options = GetToolOptions(services, "test");
-        Assert.False(options.AppOptions!.Views[string.Empty].Border);
+        Assert.False(options.AppOptions!.Views[string.Empty].PrefersBorder);
     }
 
     [Fact]
@@ -177,8 +177,8 @@ public class McpAppBuilderTests
         var options = GetToolOptions(services, "test");
         var csp = options.AppOptions!.Views[string.Empty].Csp;
         Assert.NotNull(csp);
-        Assert.Contains("a.com", csp!.ConnectSources);
-        Assert.Contains("b.com", csp.ConnectSources);
+        Assert.Contains("a.com", csp!.ConnectDomains);
+        Assert.Contains("b.com", csp.ConnectDomains);
     }
 
     [Fact]
@@ -322,7 +322,7 @@ public class McpAppBuilderTests
                 .WithDomain("myapp.example.com")
                 .WithCsp(csp => csp
                     .ConnectTo("https://api.example.com")
-                    .LoadScriptsFrom("https://cdn.example.com"))
+                    .LoadResourcesFrom("https://cdn.example.com"))
                 .WithPermissions(McpAppPermissions.ClipboardRead | McpAppPermissions.ClipboardWrite)
                 .ConfigureApp()
                 .WithView("settings", "ui/dist/settings.html")
@@ -338,11 +338,11 @@ public class McpAppBuilderTests
 
         var mainView = options.AppOptions.Views["main"];
         Assert.Equal("Dashboard", mainView.Title);
-        Assert.True(mainView.Border);
+        Assert.True(mainView.PrefersBorder);
         Assert.Equal("myapp.example.com", mainView.Domain);
         Assert.NotNull(mainView.Csp);
-        Assert.Contains("https://api.example.com", mainView.Csp!.ConnectSources);
-        Assert.Contains("https://cdn.example.com", mainView.Csp.ScriptSources);
+        Assert.Contains("https://api.example.com", mainView.Csp!.ConnectDomains);
+        Assert.Contains("https://cdn.example.com", mainView.Csp.ResourceDomains);
         Assert.Equal(McpAppPermissions.ClipboardRead | McpAppPermissions.ClipboardWrite, mainView.Permissions);
 
         var settingsView = options.AppOptions.Views["settings"];

@@ -20,9 +20,9 @@ public class ViewOptions
     public string? Title { get; set; }
 
     /// <summary>
-    /// Whether the host should render a border around the view. Defaults to false.
+    /// Whether the host should render a border around the view. Null means host decides.
     /// </summary>
-    public bool Border { get; set; }
+    public bool? PrefersBorder { get; set; }
 
     /// <summary>
     /// Domain hint for the view, used by the host to scope cookies and storage.

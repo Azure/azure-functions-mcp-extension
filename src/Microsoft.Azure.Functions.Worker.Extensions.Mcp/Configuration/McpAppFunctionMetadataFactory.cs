@@ -7,18 +7,22 @@ namespace Microsoft.Azure.Functions.Worker.Extensions.Mcp.Configuration;
 
 /// <summary>
 /// Factory for creating synthetic <see cref="DefaultFunctionMetadata"/> instances
-/// for MCP App HTTP endpoints (view serving and static assets).
+/// for MCP App resource endpoints that serve UI views via the <c>ui://</c> scheme.
 /// </summary>
 internal static class McpAppFunctionMetadataFactory
 {
+    internal const string AppMimeType = "text/html;profile=mcp-app";
+
     /// <summary>
-    /// Creates function metadata for the view-serving HTTP trigger of an MCP App tool.
+    /// Creates function metadata for a synthetic MCP resource trigger that serves
+    /// the view HTML for an MCP App tool via the <c>ui://</c> scheme.
     /// </summary>
     /// <param name="toolName">The MCP tool name.</param>
-    /// <returns>A <see cref="DefaultFunctionMetadata"/> with an HTTP GET trigger routed to <c>mcp/ui/{toolName}</c>.</returns>
-    internal static DefaultFunctionMetadata CreateViewFunction(string toolName)
+    /// <returns>A <see cref="DefaultFunctionMetadata"/> with an mcpResourceTrigger binding.</returns>
+    internal static DefaultFunctionMetadata CreateViewResourceFunction(string toolName)
     {
         var functionName = McpAppUtilities.SyntheticFunctionName(toolName);
+        var resourceUri = McpAppUtilities.ResourceUri(toolName);
 
         return new DefaultFunctionMetadata()
         {
@@ -26,33 +30,9 @@ internal static class McpAppFunctionMetadataFactory
             Language = "dotnet-isolated",
             RawBindings =
             [
-                $"{{\"name\":\"req\",\"type\":\"httpTrigger\",\"direction\":\"In\",\"authLevel\":\"anonymous\",\"methods\":[\"get\"],\"route\":\"mcp/ui/{toolName}\"}}",
-                "{\"name\":\"$return\",\"type\":\"http\",\"direction\":\"Out\"}",
+                $"{{\"name\":\"context\",\"type\":\"mcpResourceTrigger\",\"direction\":\"In\",\"uri\":\"{resourceUri}\",\"resourceName\":\"{toolName}_view\",\"mimeType\":\"{AppMimeType}\"}}"
             ],
             EntryPoint = McpAppFunctions.ServeViewEntryPoint,
-            ScriptFile = McpAppFunctions.ScriptFile,
-        };
-    }
-
-    /// <summary>
-    /// Creates function metadata for the static-assets-serving HTTP trigger of an MCP App tool.
-    /// </summary>
-    /// <param name="toolName">The MCP tool name.</param>
-    /// <returns>A <see cref="DefaultFunctionMetadata"/> with an HTTP GET trigger routed to <c>mcp/ui/{toolName}/assets/{{*path}}</c>.</returns>
-    internal static DefaultFunctionMetadata CreateStaticAssetsFunction(string toolName)
-    {
-        var functionName = McpAppUtilities.SyntheticAssetsFunctionName(toolName);
-
-        return new DefaultFunctionMetadata()
-        {
-            Name = functionName,
-            Language = "dotnet-isolated",
-            RawBindings =
-            [
-                $"{{\"name\":\"req\",\"type\":\"httpTrigger\",\"direction\":\"In\",\"authLevel\":\"anonymous\",\"methods\":[\"get\"],\"route\":\"mcp/ui/{toolName}/assets/{{*path}}\"}}",
-                "{\"name\":\"$return\",\"type\":\"http\",\"direction\":\"Out\"}",
-            ],
-            EntryPoint = McpAppFunctions.ServeStaticAssetEntryPoint,
             ScriptFile = McpAppFunctions.ScriptFile,
         };
     }

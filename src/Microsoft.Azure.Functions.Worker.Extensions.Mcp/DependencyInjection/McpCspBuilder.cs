@@ -17,28 +17,28 @@ internal sealed class McpCspBuilder : IMcpCspBuilder
     public IMcpCspBuilder ConnectTo(string origin)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(origin);
-        _options.ConnectSources.Add(origin);
+        _options.ConnectDomains.Add(origin);
         return this;
     }
 
     public IMcpCspBuilder LoadResourcesFrom(string origin)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(origin);
-        _options.ResourceSources.Add(origin);
+        _options.ResourceDomains.Add(origin);
         return this;
     }
 
-    public IMcpCspBuilder LoadScriptsFrom(string origin)
+    public IMcpCspBuilder AllowFrame(string origin)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(origin);
-        _options.ScriptSources.Add(origin);
+        _options.FrameDomains.Add(origin);
         return this;
     }
 
-    public IMcpCspBuilder LoadStylesFrom(string origin)
+    public IMcpCspBuilder AllowBaseUri(string origin)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(origin);
-        _options.StyleSources.Add(origin);
+        _options.BaseUriDomains.Add(origin);
         return this;
     }
 }

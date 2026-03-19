@@ -8,15 +8,15 @@ namespace Microsoft.Azure.Functions.Worker.Builder;
 /// </summary>
 public interface IMcpCspBuilder
 {
-    /// <summary>Adds an origin to connect-src.</summary>
+    /// <summary>Adds an origin for network requests (fetch/XHR/WebSocket). Maps to CSP connect-src.</summary>
     IMcpCspBuilder ConnectTo(string origin);
 
-    /// <summary>Adds an origin to default-src (general resource loading).</summary>
+    /// <summary>Adds an origin for static resources (scripts, images, styles, fonts, media). Maps to CSP resource directives.</summary>
     IMcpCspBuilder LoadResourcesFrom(string origin);
 
-    /// <summary>Adds an origin to script-src.</summary>
-    IMcpCspBuilder LoadScriptsFrom(string origin);
+    /// <summary>Adds an origin for nested iframes. Maps to CSP frame-src.</summary>
+    IMcpCspBuilder AllowFrame(string origin);
 
-    /// <summary>Adds an origin to style-src.</summary>
-    IMcpCspBuilder LoadStylesFrom(string origin);
+    /// <summary>Adds an allowed base URI for the document. Maps to CSP base-uri.</summary>
+    IMcpCspBuilder AllowBaseUri(string origin);
 }

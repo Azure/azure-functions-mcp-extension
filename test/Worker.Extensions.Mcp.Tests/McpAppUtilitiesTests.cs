@@ -22,7 +22,7 @@ public class McpAppUtilitiesTests : IDisposable
     {
         var result = McpAppUtilities.SyntheticFunctionName("data_explorer");
 
-        Assert.Equal("__McpApp_data_explorer", result);
+        Assert.Equal("functions--mcpapp-data_explorer", result);
     }
 
     [Fact]
@@ -37,7 +37,7 @@ public class McpAppUtilitiesTests : IDisposable
     [Fact]
     public void IsSyntheticFunction_NotRegistered_ReturnsFalse()
     {
-        Assert.False(McpAppUtilities.IsSyntheticFunction("__McpApp_unknown"));
+        Assert.False(McpAppUtilities.IsSyntheticFunction("functions--mcpapp-unknown"));
     }
 
     [Fact]
@@ -46,7 +46,7 @@ public class McpAppUtilitiesTests : IDisposable
         var name = McpAppUtilities.SyntheticFunctionName("foo");
         McpAppUtilities.Register(name);
 
-        Assert.False(McpAppUtilities.IsSyntheticFunction("__McpApp_foobar"));
+        Assert.False(McpAppUtilities.IsSyntheticFunction("functions--mcpapp-foobar"));
     }
 
     [Fact]
@@ -60,11 +60,11 @@ public class McpAppUtilitiesTests : IDisposable
     }
 
     [Fact]
-    public void SyntheticAssetsFunctionName_FormatsCorrectly()
+    public void ResourceUri_FormatsCorrectly()
     {
-        var result = McpAppUtilities.SyntheticAssetsFunctionName("data_explorer");
+        var result = McpAppUtilities.ResourceUri("data_explorer");
 
-        Assert.Equal("__McpAppAssets_data_explorer", result);
+        Assert.Equal("ui://data_explorer/view", result);
     }
 
     [Fact]

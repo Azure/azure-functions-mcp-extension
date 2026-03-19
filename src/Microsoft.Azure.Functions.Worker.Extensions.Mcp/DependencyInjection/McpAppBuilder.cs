@@ -19,6 +19,7 @@ internal sealed class McpAppBuilder : IMcpAppBuilder
     public IMcpViewBuilder WithView(McpViewSource source)
     {
         ArgumentNullException.ThrowIfNull(source);
+
         return WithViewInternal(string.Empty, source);
     }
 
@@ -26,12 +27,14 @@ internal sealed class McpAppBuilder : IMcpAppBuilder
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(viewName);
         ArgumentNullException.ThrowIfNull(source);
+
         return WithViewInternal(viewName, source);
     }
 
     public IMcpViewBuilder WithView(string filePath)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
+
         return WithViewInternal(string.Empty, McpViewSource.FromFile(filePath));
     }
 
@@ -39,6 +42,7 @@ internal sealed class McpAppBuilder : IMcpAppBuilder
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(viewName);
         ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
+
         return WithViewInternal(viewName, McpViewSource.FromFile(filePath));
     }
 
@@ -52,6 +56,7 @@ internal sealed class McpAppBuilder : IMcpAppBuilder
     public IMcpAppBuilder WithStaticAssets(string directory)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(directory);
+
         _appOptions.StaticAssetsDirectory = directory;
         return this;
     }
@@ -60,6 +65,7 @@ internal sealed class McpAppBuilder : IMcpAppBuilder
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(directory);
         ArgumentNullException.ThrowIfNull(configure);
+
         _appOptions.StaticAssetsDirectory = directory;
         var options = new StaticAssetOptions();
         configure(options);
@@ -72,6 +78,4 @@ internal sealed class McpAppBuilder : IMcpAppBuilder
         _appOptions.Visibility = visibility;
         return this;
     }
-
-    public McpToolBuilder ConfigureTool() => _toolBuilder;
 }

@@ -10,25 +10,24 @@ namespace Microsoft.Azure.Functions.Worker.Extensions.Mcp.Configuration;
 /// </summary>
 internal static class McpAppUtilities
 {
-    private const string Prefix = "__McpApp_";
-    private const string AssetsPrefix = "__McpAppAssets_";
+    private const string Prefix = "functions--mcpapp-";
 
     /// <summary>
-    /// The length of the assets prefix, used for extracting tool names from asset function names.
+    /// The length of the prefix, used for extracting tool names from function names.
     /// </summary>
-    public static int AssetsPrefixLength => AssetsPrefix.Length;
+    public static int PrefixLength => Prefix.Length;
 
     private static readonly ConcurrentDictionary<string, byte> _registry = new();
 
     /// <summary>
-    /// Generates the synthetic function name for the view-serving function of the given tool.
+    /// Generates the synthetic function name for the view-serving resource of the given tool.
     /// </summary>
     public static string SyntheticFunctionName(string toolName) => $"{Prefix}{toolName}";
 
     /// <summary>
-    /// Generates the synthetic function name for the static-assets-serving function of the given tool.
+    /// Generates the <c>ui://</c> resource URI for the given tool name, per the MCP Apps spec.
     /// </summary>
-    public static string SyntheticAssetsFunctionName(string toolName) => $"{AssetsPrefix}{toolName}";
+    public static string ResourceUri(string toolName) => $"ui://{toolName}/view";
 
     /// <summary>
     /// Returns true if the given function name is a registered synthetic MCP App function.

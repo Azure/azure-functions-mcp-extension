@@ -14,7 +14,7 @@ public interface IMcpViewBuilder
     IMcpViewBuilder WithTitle(string title);
 
     /// <summary>
-    /// Controls whether the host renders a border. Defaults to false.
+    /// Controls whether the host renders a border. Null (default) lets the host decide.
     /// </summary>
     IMcpViewBuilder WithBorder(bool border = true);
 
