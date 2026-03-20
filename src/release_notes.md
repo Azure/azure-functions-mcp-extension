@@ -7,6 +7,7 @@
 ### Microsoft.Azure.Functions.Extensions <version>
 
 - Fixed typo in JSON property name `sessionId` on `Transport` class (#206)
+- Add support for resource templates (#200)
 
 ### Microsoft.Azure.Functions.Worker.Extensions.Mcp <version>
 

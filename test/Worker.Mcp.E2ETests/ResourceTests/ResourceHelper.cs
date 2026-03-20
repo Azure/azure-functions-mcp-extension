@@ -71,6 +71,19 @@ public static class ResourceHelper
     }
 
     /// <summary>
+    /// Creates a JSON-RPC request object for resources/templates/list
+    /// </summary>
+    public static object CreateResourceTemplatesListRequest(int id)
+    {
+        return new
+        {
+            jsonrpc = "2.0",
+            id,
+            method = "resources/templates/list"
+        };
+    }
+
+    /// <summary>
     /// Extracts JSON from Server-Sent Events format response.
     /// SSE format: "event: message\ndata: {json}"
     /// </summary>

@@ -19,6 +19,7 @@ internal sealed class McpResourceTriggerBinding : ITriggerBinding
     private readonly McpResourceTriggerAttribute _resourceAttribute;
     private readonly ParameterInfo _triggerParameter;
     private readonly ILoggerFactory _loggerFactory;
+    private readonly ILogger _logger;
     private readonly IReadOnlyDictionary<string, object?> _resourceMetadata;
 
     public McpResourceTriggerBinding(
@@ -33,10 +34,10 @@ internal sealed class McpResourceTriggerBinding : ITriggerBinding
         _resourceAttribute = resourceAttribute;
         _triggerParameter = triggerParameter;
         _loggerFactory = loggerFactory;
-        var logger = _loggerFactory.CreateLogger<McpResourceTriggerBinding>();
-        _resourceMetadata = MetadataParser.ParseMetadata(resourceAttribute.Metadata, logger);
+        _logger = _loggerFactory.CreateLogger<McpResourceTriggerBinding>();
+        _resourceMetadata = MetadataParser.ParseMetadata(resourceAttribute.Metadata, _logger);
 
-        BindingDataContract = new Dictionary<string, Type>(StringComparer.OrdinalIgnoreCase)
+        var bindingContract = new Dictionary<string, Type>(StringComparer.OrdinalIgnoreCase)
         {
             { triggerParameter.Name!, triggerParameter.ParameterType },
             { "mcpresourceuri", typeof(string) },
@@ -44,6 +45,16 @@ internal sealed class McpResourceTriggerBinding : ITriggerBinding
             { "mcpsessionid", typeof(string) },
             { "$return", typeof(object).MakeByRefType() }
         };
+
+        foreach (var parameterName in ResourceUriHelper.GetTemplateParameterNames(resourceAttribute.Uri))
+        {
+            if (!bindingContract.ContainsKey(parameterName))
+            {
+                bindingContract[parameterName] = typeof(string);
+            }
+        }
+
+        BindingDataContract = bindingContract;
     }
 
     public Type TriggerValueType { get; } = typeof(object);
@@ -79,6 +90,20 @@ internal sealed class McpResourceTriggerBinding : ITriggerBinding
         if (executionContext.Request.Uri is not null)
         {
             bindingData["mcpresourceuri"] = executionContext.Request.Uri;
+        }
+
+        if (executionContext.Request.Uri is not null &&
+            ResourceUriHelper.TryExtractParameters(_resourceAttribute.Uri, executionContext.Request.Uri, out var templateValues))
+        {
+            foreach (var kvp in templateValues)
+            {
+                if (bindingData.ContainsKey(kvp.Key))
+                {
+                    _logger.LogTrace("Overwriting existing binding data key '{Key}' with template parameter value.", kvp.Key);
+                }
+
+                bindingData[kvp.Key] = kvp.Value;
+            }
         }
 
         IValueProvider valueProvider = new ObjectValueProvider(triggerValue, _triggerParameter.ParameterType);
@@ -124,6 +149,7 @@ internal sealed class McpResourceTriggerBinding : ITriggerBinding
             _resourceAttribute.MimeType,
             _resourceAttribute.Size,
             _resourceMetadata);
+
         _resourceRegistry.Register(listener);
 
         return Task.FromResult<IListener>(listener);

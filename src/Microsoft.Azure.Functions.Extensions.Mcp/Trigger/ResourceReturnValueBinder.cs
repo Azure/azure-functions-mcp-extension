@@ -18,6 +18,9 @@ internal sealed class ResourceReturnValueBinder(
     public Type Type { get; } = typeof(object);
     private readonly ILogger<ResourceReturnValueBinder> _logger = logger;
 
+    // The resolved URI from the request (with template parameters filled in), falling back to the template URI
+    private string ResolvedUri => executionContext.Request.Uri ?? resourceAttribute.Uri;
+
     public Task SetValueAsync(object value, CancellationToken cancellationToken)
     {
         if (value is null)
@@ -40,7 +43,7 @@ internal sealed class ResourceReturnValueBinder(
             {
                 Contents = [new TextResourceContents
                 {
-                    Uri = resourceAttribute.Uri,
+                    Uri = ResolvedUri,
                     MimeType = resourceAttribute.MimeType,
                     Text = stringValue
                 }]
@@ -56,7 +59,7 @@ internal sealed class ResourceReturnValueBinder(
             {
                 Contents = [new BlobResourceContents
                 {
-                    Uri = resourceAttribute.Uri,
+                    Uri = ResolvedUri,
                     MimeType = resourceAttribute.MimeType,
                     Blob = Convert.ToBase64String(binaryData)
                 }]
@@ -86,7 +89,7 @@ internal sealed class ResourceReturnValueBinder(
         try
         {
             var mcpResult = JsonSerializer.Deserialize<McpResourceResult>(jsonString, McpJsonSerializerOptions.DefaultOptions);
-                    
+
             if (mcpResult is null)
             {
                 return false;
@@ -117,7 +120,7 @@ internal sealed class ResourceReturnValueBinder(
         // Ensure URI and MimeType are set from attribute if not in the content returned or if empty
         if (string.IsNullOrEmpty(resourceContents.Uri))
         {
-            resourceContents.Uri = resourceAttribute.Uri;
+            resourceContents.Uri = ResolvedUri;
         }
 
         if (string.IsNullOrEmpty(resourceContents.MimeType))

@@ -81,6 +81,13 @@ public static class McpWebJobsBuilderExtensions
 
                 return resourceRegistry.ListResourcesAsync(ct);
             })
+            .WithListResourceTemplatesHandler(static (c, ct) =>
+            {
+                var resourceRegistry = c.Services?.GetRequiredService<IResourceRegistry>()
+                    ?? throw new InvalidOperationException("Resource registry not properly registered.");
+
+                return resourceRegistry.ListResourceTemplatesAsync(ct);
+            })
             .WithReadResourceHandler(static async (c, ct) =>
             {
                 var resourceRegistry = c.Services?.GetRequiredService<IResourceRegistry>()

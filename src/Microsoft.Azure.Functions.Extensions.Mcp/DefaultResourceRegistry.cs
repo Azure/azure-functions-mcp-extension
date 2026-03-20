@@ -4,6 +4,7 @@
 using Microsoft.Azure.Functions.Extensions.Mcp.Abstractions;
 using ModelContextProtocol.Protocol;
 using System.Diagnostics.CodeAnalysis;
+using System.Text.RegularExpressions;
 
 namespace Microsoft.Azure.Functions.Extensions.Mcp;
 
@@ -12,16 +13,33 @@ namespace Microsoft.Azure.Functions.Extensions.Mcp;
 /// </summary>
 internal sealed class DefaultResourceRegistry : IResourceRegistry
 {
-    private readonly Dictionary<string, IMcpResource> _resources = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, IMcpResource> _staticResources = new(StringComparer.OrdinalIgnoreCase);
+    private readonly List<(IMcpResource Template, Regex Matcher)> _templates = [];
 
     /// <inheritdoc/>
     public void Register(IMcpResource resource)
     {
         ArgumentNullException.ThrowIfNull(resource);
 
-        ValidateResourceUri(resource.Uri);
+        ResourceUriHelper.Validate(resource.Uri);
 
-        if (!_resources.TryAdd(resource.Uri, resource))
+        if (ResourceUriHelper.IsTemplate(resource.Uri))
+        {
+            // Check for structurally equivalent template URIs (e.g., {id} and {name} in the same position)
+            var normalizedUri = ResourceUriHelper.NormalizeTemplateStructure(resource.Uri);
+            var existing = _templates.FirstOrDefault(t =>
+                string.Equals(ResourceUriHelper.NormalizeTemplateStructure(t.Template.Uri), normalizedUri, StringComparison.OrdinalIgnoreCase));
+
+            if (existing.Template is not null)
+            {
+                throw new InvalidOperationException(
+                    $"A resource template with an equivalent URI pattern is already registered. Existing: '{existing.Template.Uri}', New: '{resource.Uri}'.");
+            }
+
+            var regex = ResourceUriHelper.BuildTemplateRegex(resource.Uri);
+            _templates.Add((resource, regex));
+        }
+        else if (!_staticResources.TryAdd(resource.Uri, resource))
         {
             throw new InvalidOperationException($"Resource with URI '{resource.Uri}' is already registered.");
         }
@@ -32,15 +50,30 @@ internal sealed class DefaultResourceRegistry : IResourceRegistry
     {
         ArgumentNullException.ThrowIfNull(uri);
 
-        ValidateResourceUri(uri);
+        ResourceUriHelper.Validate(uri);
 
-        return _resources.TryGetValue(uri, out resource);
+        if (_staticResources.TryGetValue(uri, out resource))
+        {
+            return true;
+        }
+
+        foreach (var (template, matcher) in _templates)
+        {
+            if (matcher.IsMatch(uri))
+            {
+                resource = template;
+                return true;
+            }
+        }
+
+        resource = null;
+        return false;
     }
 
     /// <inheritdoc/>
     public IReadOnlyCollection<IMcpResource> GetResources()
     {
-        return _resources.Values;
+        return [.. _staticResources.Values, .. _templates.Select(t => t.Template)];
     }
 
     /// <inheritdoc/>
@@ -48,7 +81,7 @@ internal sealed class DefaultResourceRegistry : IResourceRegistry
     {
         var result = new ListResourcesResult
         {
-            Resources = [.. _resources.Values.Select(static resource => new Resource
+            Resources = [.. _staticResources.Values.Select(static resource => new Resource
             {
                 Uri = resource.Uri,
                 Name = resource.Name,
@@ -63,26 +96,22 @@ internal sealed class DefaultResourceRegistry : IResourceRegistry
         return new ValueTask<ListResourcesResult>(result);
     }
 
-    /// <summary>
-    /// Validates a resource URI according to MCP security requirements.
-    /// Servers MUST validate all resource URIs per the MCP specification.
-    /// </summary>
-    /// <param name="uri">The URI to validate.</param>
-    /// <exception cref="ArgumentException">Thrown when the URI is invalid.</exception>
-    private static void ValidateResourceUri(string uri)
+    /// <inheritdoc/>
+    public ValueTask<ListResourceTemplatesResult> ListResourceTemplatesAsync(CancellationToken cancellationToken = default)
     {
-        if (string.IsNullOrWhiteSpace(uri))
+        var result = new ListResourceTemplatesResult
         {
-            throw new ArgumentException("Resource URI cannot be null or whitespace.", nameof(uri));
-        }
+            ResourceTemplates = [.. _templates.Select(static entry => new ResourceTemplate
+            {
+                UriTemplate = entry.Template.Uri,
+                Name = entry.Template.Name,
+                Title = entry.Template.Title,
+                Description = entry.Template.Description,
+                MimeType = entry.Template.MimeType,
+                Meta = MetadataParser.SerializeMetadata(entry.Template.Metadata)
+            })]
+        };
 
-        // Validate URI format - require absolute URIs with a scheme
-        if (!Uri.TryCreate(uri, UriKind.Absolute, out var parsedUri) || !parsedUri.IsAbsoluteUri)
-        {
-            throw new ArgumentException($"Invalid resource URI format: '{uri}'", nameof(uri));
-        }
-
-        // TODO: Do we also want to validate the scheme here (e.g., only allow ui, file, etc.)?
-        // This might be too restrictive depending on use cases.
+        return new ValueTask<ListResourceTemplatesResult>(result);
     }
 }
