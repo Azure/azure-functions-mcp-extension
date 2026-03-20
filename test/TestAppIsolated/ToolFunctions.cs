@@ -164,11 +164,13 @@ public class TestFunction
     }
 
     /// <summary>
-    /// Snippet class decorated with McpContent to enable structured content output.
+    /// Snippet class decorated with McpOutput to enable structured content output
+    /// and automatic output schema generation.
     /// When returned from a tool function, this will be serialized as both text content
     /// (for backwards compatibility) and structured content (for clients that support it).
+    /// The output schema is automatically generated and included in the tool's definition.
     /// </summary>
-    [McpContent]
+    [McpOutput]
     public class Snippet
     {
         [Description("The name of the snippet")]

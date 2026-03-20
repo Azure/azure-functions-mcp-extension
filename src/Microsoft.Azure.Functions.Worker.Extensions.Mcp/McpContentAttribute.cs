@@ -12,7 +12,7 @@ namespace Microsoft.Azure.Functions.Worker.Extensions.Mcp;
 /// <remarks>
 /// This attribute can be applied to classes, structs, and record types.
 /// </remarks>
-[AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct, AllowMultiple = false)]
-public sealed class McpContentAttribute : Attribute
+[AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct, AllowMultiple = false, Inherited = true)]
+public class McpContentAttribute : Attribute
 {
 }

@@ -45,4 +45,11 @@ public class ToolOptions
     /// When set, this takes priority over schema generated from <see cref="Properties"/>.
     /// </summary>
     public string? InputSchema { get; set; }
+
+    /// <summary>
+    /// Gets or sets an explicit JSON output schema for the tool.
+    /// When set, the tool's definition will include this schema and the tool
+    /// must return structured content conforming to the declared schema.
+    /// </summary>
+    public string? OutputSchema { get; set; }
 }

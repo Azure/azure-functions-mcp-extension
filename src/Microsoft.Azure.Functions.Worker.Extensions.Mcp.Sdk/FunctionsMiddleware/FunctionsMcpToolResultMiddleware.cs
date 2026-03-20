@@ -145,36 +145,35 @@ internal class FunctionsMcpToolResultMiddleware : IFunctionsWorkerMiddleware
         return context.FunctionDefinition.OutputBindings.Any();
     }
 
-        /// <summary>
-        /// Determines whether structured content should be created for the given object.
-        /// </summary>
-        /// <remarks>
-        /// <para>
-        /// Returns true if the type is directly decorated with <see cref="McpContentAttribute"/>.
-        /// For collections, users should create a wrapper type with the attribute, e.g.:
-        /// <code>
-        /// [McpContent]
-        /// public class ImageList : List&lt;MyImage&gt; { }
-        /// </code>
-        /// </para>
-        /// 
-        /// <para><b>Supported Types:</b></para>
-        /// <list type="bullet">
-        ///   <item><c>class</c>, <c>record class</c>, <c>struct</c>, <c>record struct</c> - Fully supported</item>
-        ///   <item><c>interface</c>, <c>enum</c> - Not supported (cannot be decorated with attributes in a meaningful way)</item>
-        /// </list>
-        /// 
-        /// <para><b>Not Supported:</b></para>
-        /// <list type="bullet">
-        ///   <item>Inherited attribution: Only direct decoration with <see cref="McpContentAttribute"/> is recognized</item>
-        ///   <item>Automatic collection element detection: Users must explicitly mark collection wrapper types</item>
-        /// </list>
-        /// </remarks>
-        /// <param name="obj">The object to evaluate.</param>
-        /// <returns>True if structured content should be created; otherwise, false.</returns>
-        private static bool ShouldCreateStructuredContent(object obj)
-        {
-            var type = obj.GetType();
-            return type.HasMcpContentAttribute();
-        }
+    /// <summary>
+    /// Determines whether structured content should be created for the given object.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Returns true if the type is directly decorated with <see cref="McpContentAttribute"/>
+    /// or <see cref="McpOutputAttribute"/>. For collections, users should create a wrapper type with
+    /// one of those attributes, e.g.:
+    /// <code>
+    /// [McpContent]
+    /// public class ImageList : List&lt;MyImage&gt; { }
+    /// </code>
+    /// </para>
+    /// <para><b>Supported Types:</b></para>
+    /// <list type="bullet">
+    ///   <item><c>class</c>, <c>record class</c>, <c>struct</c>, <c>record struct</c> - Fully supported</item>
+    ///   <item><c>interface</c>, <c>enum</c> - Not supported (cannot be decorated with attributes in a meaningful way)</item>
+    /// </list>
+    /// <para><b>Not Supported:</b></para>
+    /// <list type="bullet">
+    ///   <item>Inherited attribution: Only direct decoration is recognized</item>
+    ///   <item>Automatic collection element detection: Users must explicitly mark collection wrapper types</item>
+    /// </list>
+    /// </remarks>
+    /// <param name="obj">The object to evaluate.</param>
+    /// <returns>True if structured content should be created; otherwise, false.</returns>
+    private static bool ShouldCreateStructuredContent(object obj)
+    {
+        var type = obj.GetType();
+        return type.HasStructuredContentAttribute();
     }
+}

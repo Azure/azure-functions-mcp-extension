@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
+using System.Text.Json;
 using Microsoft.Azure.Functions.Extensions.Mcp.Validation;
 using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
@@ -22,7 +23,12 @@ internal interface IMcpTool
     /// <summary>
     /// Gets the input schema for the tool properties.
     /// </summary>
-    public ToolInputSchema ToolInputSchema { get; }
+    public ToolInputSchema InputSchema { get; }
+
+    /// <summary>
+    /// Gets the output schema for the tool, if one was provided.
+    /// </summary>
+    public JsonElement? OutputSchema { get; }
 
     /// <summary>
     /// Gets the metadata dictionary associated with the tool.
@@ -30,7 +36,7 @@ internal interface IMcpTool
     IReadOnlyDictionary<string, object?> Metadata { get; }
 
     /// <summary>
-    /// Gets the input schema for the tool properties.
+    /// Runs the tool for the supplied request.
     /// </summary>
     /// <param name="callToolRequest"> The call tool request context.</param>
     /// <param name="cancellationToken">A cancellation token.</param>

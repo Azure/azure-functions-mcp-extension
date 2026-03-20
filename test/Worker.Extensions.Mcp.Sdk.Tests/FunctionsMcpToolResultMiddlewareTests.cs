@@ -987,6 +987,13 @@ public class FunctionsMcpToolResultMiddlewareTests
         public string Email { get; set; } = string.Empty;
     }
 
+    [McpOutput]
+    private class TestPocoWithOutputAttribute
+    {
+        public string Name { get; set; } = string.Empty;
+        public int Age { get; set; }
+    }
+
     #region ShouldCreateStructuredContent Test Types
 
     // Base class with [McpContent] attribute for inheritance tests
@@ -1034,6 +1041,25 @@ public class FunctionsMcpToolResultMiddlewareTests
     {
         var context = CreateMcpFunctionContext();
         var poco = new TestPocoWithAttribute { Name = "Test", Age = 25, Email = "test@example.com" };
+
+        await _middleware.Invoke(context, ctx =>
+        {
+            SetInvocationResult(ctx, poco);
+            return Task.CompletedTask;
+        });
+
+        var result = _currentResult as string;
+        Assert.NotNull(result);
+        var mcpToolResult = JsonSerializer.Deserialize(result, McpJsonContext.Default.McpToolResult);
+        Assert.NotNull(mcpToolResult);
+        Assert.NotNull(mcpToolResult.StructuredContent);
+    }
+
+    [Fact]
+    public async Task ShouldCreateStructuredContent_McpOutputAttribution_Class_ReturnsTrue()
+    {
+        var context = CreateMcpFunctionContext();
+        var poco = new TestPocoWithOutputAttribute { Name = "Test", Age = 25 };
 
         await _middleware.Invoke(context, ctx =>
         {

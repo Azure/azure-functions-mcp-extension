@@ -114,6 +114,7 @@ internal sealed class McpToolTriggerBinding : ITriggerBinding
     public Task<IListener> CreateListenerAsync(ListenerFactoryContext context)
     {
         ToolInputSchema inputSchema = CreateToolInputSchema();
+        JsonElement? outputSchema = GetOutputSchema(_toolAttribute);
 
         var listener = new McpToolListener(
             context.Executor,
@@ -121,7 +122,8 @@ internal sealed class McpToolTriggerBinding : ITriggerBinding
             _toolAttribute.ToolName,
             _toolAttribute.Description,
             inputSchema,
-            _toolMetadata);
+            _toolMetadata,
+            outputSchema);
 
         _toolRegistry.Register(listener);
 
@@ -177,6 +179,33 @@ internal sealed class McpToolTriggerBinding : ITriggerBinding
             doc?.Dispose();
             throw new InvalidOperationException(
                 $"Failed to parse InputSchema for tool '{attribute.ToolName}'. Schema must be valid JSON.", ex);
+        }
+    }
+
+    internal static JsonElement? GetOutputSchema(McpToolTriggerAttribute attribute)
+    {
+        if (string.IsNullOrEmpty(attribute.OutputSchema))
+        {
+            return null;
+        }
+
+        try
+        {
+            using var doc = JsonDocument.Parse(attribute.OutputSchema);
+
+            if (doc.RootElement.ValueKind != JsonValueKind.Object)
+            {
+                throw new ArgumentException(
+                    $"OutputSchema for tool '{attribute.ToolName}' must be a JSON object.",
+                    nameof(attribute.OutputSchema));
+            }
+
+            return doc.RootElement.Clone();
+        }
+        catch (JsonException ex)
+        {
+            throw new InvalidOperationException(
+                $"Failed to parse OutputSchema for tool '{attribute.ToolName}'. Schema must be valid JSON.", ex);
         }
     }
 

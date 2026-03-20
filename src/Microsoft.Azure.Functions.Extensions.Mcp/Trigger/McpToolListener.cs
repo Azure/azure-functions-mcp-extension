@@ -16,7 +16,8 @@ internal sealed class McpToolListener(ITriggeredFunctionExecutor executor,
                                       string toolName,
                                       string? toolDescription,
                                       ToolInputSchema requestHandler,
-                                      IReadOnlyDictionary<string, object?> metadata) : IListener, IMcpTool
+                                      IReadOnlyDictionary<string, object?> metadata,
+                                      JsonElement? outputSchema = null) : IListener, IMcpTool
 {
     public ITriggeredFunctionExecutor Executor { get; } = executor;
 
@@ -28,12 +29,14 @@ internal sealed class McpToolListener(ITriggeredFunctionExecutor executor,
 
     public IReadOnlyDictionary<string, object?> Metadata { get; } = metadata;
 
-    public ToolInputSchema ToolInputSchema { get; } = requestHandler ?? throw new ArgumentNullException(nameof(requestHandler));
+    public ToolInputSchema InputSchema { get; } = requestHandler ?? throw new ArgumentNullException(nameof(requestHandler));
+
+    public JsonElement? OutputSchema { get; } = outputSchema;
 
     public void Dispose()
     {
         // Dispose the validator if it implements IDisposable (e.g., JsonSchemaToolInputSchema)
-        if (ToolInputSchema is IDisposable disposable)
+        if (InputSchema is IDisposable disposable)
         {
             disposable.Dispose();
         }
@@ -48,7 +51,7 @@ internal sealed class McpToolListener(ITriggeredFunctionExecutor executor,
     public async Task<CallToolResult> RunAsync(RequestContext<CallToolRequestParams> callToolRequest, CancellationToken cancellationToken)
     {
         // Validate required properties are present in the incoming request.
-        ToolInputSchema.Validate(callToolRequest.Params);
+        InputSchema.Validate(callToolRequest.Params);
 
         var execution = new CallToolExecutionContext(callToolRequest);
 
@@ -68,6 +71,26 @@ internal sealed class McpToolListener(ITriggeredFunctionExecutor executor,
 
         if (toolResult is CallToolResult callToolResult)
         {
+            // Validate structured content against the output schema, if one was declared.
+            if (OutputSchema is JsonElement schema)
+            {
+                if (callToolResult.StructuredContent is not System.Text.Json.Nodes.JsonObject structuredContent)
+                {
+                    throw new McpProtocolException(
+                        "Output schema is declared but the tool result does not contain structured content. " +
+                        "When an output schema is provided, the tool must return structured content conforming to the schema.",
+                        McpErrorCode.InvalidParams);
+                }
+
+                var validationResult = JsonSchemaValidator.Validate(schema, structuredContent);
+                if (!validationResult.IsValid)
+                {
+                    throw new McpProtocolException(
+                        $"Structured content does not conform to the output schema. {validationResult.ErrorMessage}",
+                        McpErrorCode.InvalidParams);
+                }
+            }
+
             return callToolResult;
         }
 

@@ -10,6 +10,6 @@ internal static class McpToolExtensions
     internal static JsonElement GetPropertiesInputSchema(this IMcpTool tool)
     {
         ArgumentNullException.ThrowIfNull(tool);
-        return tool.ToolInputSchema.GetSchemaElement();
+        return tool.InputSchema.GetSchemaElement();
     }
 }
