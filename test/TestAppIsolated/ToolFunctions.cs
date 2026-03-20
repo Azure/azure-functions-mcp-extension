@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation. All rights reserved.
+// Licensed under the MIT License.
+
 using System.Collections;
 using System.ComponentModel;
 using System.Globalization;
@@ -51,7 +54,6 @@ public class TestFunction
             Attributes: {(attributes is ICollection { Count: > 0} ? string.Join(", ", attributes) : "(none)")}
             """;
     }
-
     [Function(nameof(MultiContentTypeFunction))]
     public IList<ContentBlock> MultiContentTypeFunction(
         [McpToolTrigger(nameof(MultiContentTypeFunction), "Responds to user with multiple content blocks.")] ToolInvocationContext context,

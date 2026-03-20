@@ -18,6 +18,9 @@
 
 - Added fluent configuration APIs (`ConfigureMcpResource` and `WithMetadata`) to configure MCP tool and resource metadata at startup (#195)
 
+- Added structured content support for tools (#172)
+- Generate the tool input schema in the worker and enable `UseWorkerInputSchema` support (#166)
+
     ```csharp
     // Configure MCP resource metadata using the fluent API
     builder

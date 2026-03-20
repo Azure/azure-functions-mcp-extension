@@ -29,6 +29,7 @@ internal sealed class McpFunctionMetadataTransformer(
             }
 
             List<ToolProperty>? toolProperties = null;
+            JsonNode? inputSchema = null;
             Dictionary<string, ToolPropertyBinding> inputBindingProperties = [];
 
             for (int i = 0; i < function.RawBindings.Count; i++)
@@ -52,12 +53,7 @@ internal sealed class McpFunctionMetadataTransformer(
                         if (jsonObject.TryGetPropertyValue("toolName", out var toolNameNode))
                         {
                             toolName = toolNameNode?.ToString();
-
-                            if (GetToolProperties(toolName, function, out toolProperties))
-                            {
-                                jsonObject["toolProperties"] = ToolPropertyParser.GetPropertiesJson(toolProperties);
-                            }
-
+                            TryProcessToolTriggerBinding(jsonObject, function, toolName, out toolProperties, out inputSchema);
                             TryApplyMetadata(toolName, jsonObject, toolOptionsMonitor);
                         }
 
@@ -65,7 +61,6 @@ internal sealed class McpFunctionMetadataTransformer(
                         {
                             ApplyOrMergeMetadata(jsonObject, toolMetadataJson, "Tool", toolName);
                         }
-
                         function.RawBindings[i] = jsonObject.ToJsonString();
                         break;
 
@@ -97,27 +92,126 @@ internal sealed class McpFunctionMetadataTransformer(
                 }
             }
 
-            // This is required for attributed properties/input bindings:
-            PatchInputBindingMetadata(function, inputBindingProperties, toolProperties);
+            PatchInputBindingMetadata(function, inputBindingProperties, toolProperties, inputSchema);
         }
     }
 
-    private static void PatchInputBindingMetadata(IFunctionMetadata function, Dictionary<string, ToolPropertyBinding> inputBindingProperties, List<ToolProperty>? toolProperties)
+    private bool TryProcessToolTriggerBinding(JsonObject jsonObject, IFunctionMetadata function, string? toolName, out List<ToolProperty>? toolProperties, out JsonNode? inputSchema)
     {
-        if (toolProperties is null
-            || toolProperties.Count == 0
-            || inputBindingProperties.Count == 0)
+        toolProperties = null;
+        inputSchema = null;
+
+        bool useWorkerInputSchema = jsonObject.TryGetPropertyValue("useWorkerInputSchema", out var useInputSchemaNode)
+            && useInputSchemaNode is not null
+            && useInputSchemaNode.GetValue<bool>();
+
+        if (useWorkerInputSchema)
+        {
+            return TryGenerateInputSchema(jsonObject, function, out inputSchema);
+        }
+
+        return TryGenerateToolProperties(jsonObject, function, toolName, out toolProperties);
+    }
+
+    private static bool TryGenerateInputSchema(JsonObject jsonObject, IFunctionMetadata function, out JsonNode? inputSchema)
+    {
+        if (InputSchemaGenerator.TryGenerateFromFunction(function, out inputSchema) && inputSchema is not null)
+        {
+            // Store the generated schema directly in the binding metadata
+            jsonObject["inputSchema"] = inputSchema.ToJsonString();
+            return true;
+        }
+
+        inputSchema = null;
+        return false;
+    }
+
+    private bool TryGenerateToolProperties(JsonObject jsonObject, IFunctionMetadata function, string? toolName, out List<ToolProperty>? toolProperties)
+    {
+        if (GetToolProperties(toolName, function, out toolProperties))
+        {
+            jsonObject["toolProperties"] = ToolPropertyParser.GetPropertiesJson(toolProperties);
+            return true;
+        }
+
+        return false;
+    }
+
+    private static void PatchInputBindingMetadata(IFunctionMetadata function, Dictionary<string, ToolPropertyBinding> inputBindingProperties, List<ToolProperty>? toolProperties, JsonNode? inputSchema)
+    {
+        if (inputBindingProperties.Count == 0)
         {
             return;
         }
 
-        foreach (var property in toolProperties)
+        if (toolProperties is not null && toolProperties.Count > 0)
         {
-            if (inputBindingProperties.TryGetValue(property.Name, out var reference))
+            foreach (var property in toolProperties)
             {
-                reference.Binding[Constants.McpToolPropertyType] = property.Type;
-                function.RawBindings![reference.Index] = reference.Binding.ToJsonString();
+                if (inputBindingProperties.TryGetValue(property.Name, out var reference))
+                {
+                    reference.Binding[McpToolPropertyType] = property.Type;
+                    function.RawBindings![reference.Index] = reference.Binding.ToJsonString();
+                }
             }
+
+            return;
+        }
+
+        if (inputSchema is null)
+        {
+            return;
+        }
+
+        try
+        {
+            using var doc = JsonDocument.Parse(inputSchema.ToJsonString());
+            var schema = doc.RootElement;
+
+            if (!schema.TryGetProperty("properties", out var propertiesElement))
+            {
+                return;
+            }
+
+            foreach (var kvp in inputBindingProperties)
+            {
+                var propertyName = kvp.Key;
+                var bindingRef = kvp.Value;
+
+                if (!propertiesElement.TryGetProperty(propertyName, out var propertySchema))
+                {
+                    continue;
+                }
+
+                string? propertyType = null;
+
+                if (propertySchema.TryGetProperty("type", out var typeElement))
+                {
+                    var typeStr = typeElement.GetString();
+                    if (typeStr == "array")
+                    {
+                        if (propertySchema.TryGetProperty("items", out var itemsElement)
+                            && itemsElement.TryGetProperty("type", out var itemTypeElement))
+                        {
+                            propertyType = itemTypeElement.GetString();
+                        }
+                    }
+                    else
+                    {
+                        propertyType = typeStr;
+                    }
+                }
+
+                if (!string.IsNullOrEmpty(propertyType))
+                {
+                    bindingRef.Binding[McpToolPropertyType] = propertyType;
+                    function.RawBindings![bindingRef.Index] = bindingRef.Binding.ToJsonString();
+                }
+            }
+        }
+        catch
+        {
+            // If parsing fails, skip patching.
         }
     }
 
@@ -130,7 +224,6 @@ internal sealed class McpFunctionMetadataTransformer(
             return false;
         }
 
-        // Get from configured options first:
         var toolOptions = toolOptionsMonitor.Get(toolName);
 
         if (toolOptions.Properties.Count != 0)
@@ -139,9 +232,14 @@ internal sealed class McpFunctionMetadataTransformer(
             return true;
         }
 
-        return ToolPropertyParser.TryGetPropertiesFromAttributes(functionMetadata, out toolProperties);
-    }
+        if (ToolPropertyExtractor.TryExtractFromAttributes(functionMetadata, out var attributedToolProperties))
+        {
+            toolProperties = attributedToolProperties;
+            return true;
+        }
 
+        return false;
+    }
     private static void TryApplyMetadata<TOptions>(string? name, JsonObject jsonObject, IOptionsMonitor<TOptions> optionsMonitor)
         where TOptions : McpBuilderOptions
     {
@@ -158,9 +256,6 @@ internal sealed class McpFunctionMetadataTransformer(
         }
     }
 
-    /// <summary>
-    /// Applies attributed metadata to the binding, merging with existing fluent API metadata if present.
-    /// </summary>
     private void ApplyOrMergeMetadata(JsonObject jsonObject, string attributedMetadataJson, string type, string? identifier)
     {
         if (jsonObject.ContainsKey("metadata"))
@@ -179,12 +274,6 @@ internal sealed class McpFunctionMetadataTransformer(
         }
     }
 
-    /// <summary>
-    /// Merges two JSON metadata strings. Properties from the attributed metadata take precedence
-    /// over fluent API metadata when keys overlap. Attributed metadata wins because attributes are
-    /// declared directly on the function and are more explicit, whereas fluent API metadata is
-    /// configured separately and is intended for defaults or shared configuration.
-    /// </summary>
     internal static string MergeMetadata(string? fluentJson, string? attributedJson, out List<string> overlappingKeys)
     {
         var fluentNode = string.IsNullOrWhiteSpace(fluentJson)
