@@ -87,7 +87,7 @@ public class ListResourceTests(DefaultProjectFixture fixture, ITestOutputHelper 
     [InlineData(HttpTransportMode.Sse)]
     [InlineData(HttpTransportMode.AutoDetect)]
     [InlineData(HttpTransportMode.StreamableHttp)]
-    public async Task DefaultListResources_BinaryResourceHasCorrectProperties(HttpTransportMode mode)
+    public async Task DefaultListResources_BinaryResourceHasFluentApiMetadata(HttpTransportMode mode)
     {
         var client = await Fixture.CreateClientAsync(mode);
         var resources = await client.ListResourcesAsync(cancellationToken: TestContext.Current.CancellationToken);
@@ -100,9 +100,15 @@ public class ListResourceTests(DefaultProjectFixture fixture, ITestOutputHelper 
         Assert.Equal("Azure Functions logo", logoResource.Description);
         Assert.Equal("image/png", logoResource.MimeType);
 
-        // This resource has no McpMetadata attributes, so Meta should be null
-        Assert.Null(logoResource.ProtocolResource.Meta);
+        // Verify fluent API metadata is included in _meta
+        var meta = logoResource.ProtocolResource.Meta;
+        Assert.NotNull(meta);
+
+        Assert.True(meta.ContainsKey("ui"));
+        var uiNode = meta["ui"]!.AsObject();
+        Assert.True(uiNode["prefersBorder"]!.GetValue<bool>());
 
         TestOutputHelper.WriteLine($"Resource: Name={logoResource.Name}, Description={logoResource.Description}, MimeType={logoResource.MimeType}");
+        TestOutputHelper.WriteLine($"Metadata: ui.prefersBorder={uiNode["prefersBorder"]}");
     }
 }

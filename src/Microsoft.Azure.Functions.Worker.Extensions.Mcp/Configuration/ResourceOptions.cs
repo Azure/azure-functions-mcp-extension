@@ -1,0 +1,11 @@
+// Copyright (c) Microsoft Corporation. All rights reserved.
+// Licensed under the MIT License.
+
+namespace Microsoft.Azure.Functions.Worker.Extensions.Mcp.Configuration;
+
+/// <summary>
+/// Represents resource configuration options for metadata.
+/// </summary>
+public class ResourceOptions : McpBuilderOptions
+{
+}

@@ -10,7 +10,7 @@ namespace Microsoft.Azure.Functions.Worker.Extensions.Mcp.Configuration;
 /// Represents tool configuration options, including property definitions and their names, types, descriptions,
 /// and required status.
 /// </summary>
-public class ToolOptions
+public class ToolOptions : McpBuilderOptions
 {
     [Obsolete($"Use the overload with an {nameof(McpToolPropertyType)} parameter.")]
     [EditorBrowsable(EditorBrowsableState.Never)]

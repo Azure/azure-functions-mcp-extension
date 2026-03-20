@@ -135,4 +135,119 @@ public class McpToolBuilderTests
 
         Assert.Same(builder, result);
     }
+
+    [Fact]
+    public void WithMetadata_AddsMetadataEntry()
+    {
+        var toolName = "myTool";
+        var builder = CreateBuilder(toolName, out var services);
+
+        builder.WithMetadata("openai/strict", true);
+
+        using var sp = services.BuildServiceProvider();
+        var options = sp.GetRequiredService<IOptionsMonitor<ToolOptions>>().Get(toolName);
+
+        Assert.Single(options.Metadata);
+        Assert.True((bool)options.Metadata["openai/strict"]!);
+    }
+
+    [Fact]
+    public void WithMetadata_MultipleEntries_AddsAllMetadata()
+    {
+        var toolName = "myTool";
+        var builder = CreateBuilder(toolName, out var services);
+
+        builder
+            .WithMetadata("key1", "value1")
+            .WithMetadata("key2", 42)
+            .WithMetadata("key3", false);
+
+        using var sp = services.BuildServiceProvider();
+        var options = sp.GetRequiredService<IOptionsMonitor<ToolOptions>>().Get(toolName);
+
+        Assert.Equal(3, options.Metadata.Count);
+        Assert.Equal("value1", options.Metadata["key1"]);
+        Assert.Equal(42, options.Metadata["key2"]);
+        Assert.False((bool)options.Metadata["key3"]!);
+    }
+
+    [Fact]
+    public void WithMetadata_EmptyKey_Throws()
+    {
+        var builder = CreateBuilder("tool", out _);
+
+        var ex = Assert.Throws<ArgumentException>(() => builder.WithMetadata(string.Empty, "value"));
+        Assert.Equal("key", ex.ParamName);
+    }
+
+    [Fact]
+    public void WithMetadata_ReturnsSameBuilderInstance()
+    {
+        var builder = CreateBuilder("tool", out _);
+        var result = builder.WithMetadata("key", "value");
+
+        Assert.Same(builder, result);
+    }
+
+    [Fact]
+    public void Chaining_WithPropertyAndWithMetadata_ConfiguresAll()
+    {
+        var toolName = "myTool";
+        var builder = CreateBuilder(toolName, out var services);
+
+        builder
+            .WithProperty("name", McpToolPropertyType.String, "The name", required: true)
+            .WithMetadata("openai/strict", true)
+            .WithProperty("count", McpToolPropertyType.Integer, "The count");
+
+        using var sp = services.BuildServiceProvider();
+        var options = sp.GetRequiredService<IOptionsMonitor<ToolOptions>>().Get(toolName);
+
+        Assert.Equal(2, options.Properties.Count);
+        Assert.Single(options.Metadata);
+        Assert.True((bool)options.Metadata["openai/strict"]!);
+    }
+
+    [Fact]
+    public void WithMetadata_Batch_AddsAllMetadata()
+    {
+        var toolName = "myTool";
+        var builder = CreateBuilder(toolName, out var services);
+
+        builder.WithMetadata(
+            new KeyValuePair<string, object?>("key1", "value1"),
+            new KeyValuePair<string, object?>("key2", 42),
+            new KeyValuePair<string, object?>("key3", false));
+
+        using var sp = services.BuildServiceProvider();
+        var options = sp.GetRequiredService<IOptionsMonitor<ToolOptions>>().Get(toolName);
+
+        Assert.Equal(3, options.Metadata.Count);
+        Assert.Equal("value1", options.Metadata["key1"]);
+        Assert.Equal(42, options.Metadata["key2"]);
+        Assert.False((bool)options.Metadata["key3"]!);
+    }
+
+    [Fact]
+    public void WithMetadata_Batch_EmptyKey_Throws()
+    {
+        var builder = CreateBuilder("tool", out _);
+
+        var ex = Assert.Throws<ArgumentException>(() => builder.WithMetadata(
+            new KeyValuePair<string, object?>("valid", "value"),
+            new KeyValuePair<string, object?>(string.Empty, "value")));
+        Assert.Equal("Key", ex.ParamName);
+    }
+
+    [Fact]
+    public void WithMetadata_Batch_ReturnsSameBuilderInstance()
+    {
+        var builder = CreateBuilder("tool", out _);
+
+        var result = builder.WithMetadata(
+            new KeyValuePair<string, object?>("key1", "value1"),
+            new KeyValuePair<string, object?>("key2", "value2"));
+
+        Assert.Same(builder, result);
+    }
 }

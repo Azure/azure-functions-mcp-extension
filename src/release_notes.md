@@ -4,15 +4,34 @@
 - My change description (#PR/#issue)
 -->
 
-### Microsoft.Azure.Functions.Extensions 1.3.0
+### Microsoft.Azure.Functions.Extensions <version>
 
-- Added structured content support for tools (#172)
 - Fixed typo in JSON property name `sessionId` on `Transport` class (#206)
 
-### Microsoft.Azure.Functions.Worker.Extensions.Mcp 1.3.0
+### Microsoft.Azure.Functions.Worker.Extensions.Mcp <version>
 
-- Added structured content support for tools (#172)
+#### Breaking Changes
 
-### Microsoft.Azure.Functions.Worker.Extensions.Mcp.Sdk 1.0.0-preview.4
+- `McpFunctionMetadataTransformer` is now an internal class (#195)
 
-- Added structured content support for tools (#172)
+#### Changes
+
+- Added fluent configuration APIs (`ConfigureMcpResource` and `WithMetadata`) to configure MCP tool and resource metadata at startup (#195)
+
+    ```csharp
+    // Configure MCP resource metadata using the fluent API
+    builder
+        .ConfigureMcpResource("ui://my/welcomepage.html")
+        .WithMetadata("ui", new { prefersBorder = true });
+
+
+    // Configure MCP tool metadata using the fluent API
+    builder
+        .ConfigureMcpTool("sayhello")
+        .WithProperty("name", McpToolPropertyType.String, "Name of the user", required: true)
+        .WithMetadata("ui", new { resourceUri = "ui://index.html" });
+    ```
+
+### Microsoft.Azure.Functions.Worker.Extensions.Mcp.Sdk <version>
+
+- <entry>
