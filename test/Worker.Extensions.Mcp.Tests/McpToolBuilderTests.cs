@@ -11,6 +11,7 @@ using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using System.Text.Json.Serialization;
 
 namespace Worker.Extensions.Mcp.Tests;
 
@@ -807,6 +808,43 @@ public class McpToolBuilderTests
         Assert.Equal("The status message", statusProp!["description"]?.GetValue<string>());
     }
 
+    [Fact]
+    public void WithOutputSchema_Type_RespectsSerializationAttributesAndInheritance()
+    {
+        var toolName = "annotatedOutputTool";
+        var builder = CreateBuilder(toolName, out var services);
+
+        builder.WithOutputSchema<AnnotatedOutput>();
+
+        using var sp = services.BuildServiceProvider();
+        var options = sp.GetRequiredService<IOptionsMonitor<ToolOptions>>().Get(toolName);
+
+        var schemaNode = JsonNode.Parse(options.OutputSchema!)!.AsObject();
+        var properties = schemaNode["properties"]!.AsObject();
+
+        Assert.NotNull(properties["baseStatus"]);
+        Assert.NotNull(properties["renamedStatus"]);
+        Assert.Null(properties["ignoredValue"]);
+    }
+
+    [Fact]
+    public void WithOutputSchema_Type_UsesNullableMetadataForRequiredProperties()
+    {
+        var toolName = "nullableOutputTool";
+        var builder = CreateBuilder(toolName, out var services);
+
+        builder.WithOutputSchema<NullableAwareOutput>();
+
+        using var sp = services.BuildServiceProvider();
+        var options = sp.GetRequiredService<IOptionsMonitor<ToolOptions>>().Get(toolName);
+
+        var schemaNode = JsonNode.Parse(options.OutputSchema!)!.AsObject();
+        var required = schemaNode["required"]!.AsArray().Select(node => node!.GetValue<string>()).ToArray();
+
+        Assert.Contains("requiredName", required);
+        Assert.DoesNotContain("optionalDescription", required);
+    }
+
     public class TestInput
     {
         [Description("The city name")]
@@ -833,5 +871,26 @@ public class McpToolBuilderTests
     {
         public string Result { get; set; }
         public int Code { get; set; }
+    }
+
+    public class AnnotatedBaseOutput
+    {
+        public string BaseStatus { get; set; } = "";
+    }
+
+    public class AnnotatedOutput : AnnotatedBaseOutput
+    {
+        [JsonPropertyName("renamedStatus")]
+        public string Status { get; set; } = "";
+
+        [JsonIgnore]
+        public string IgnoredValue { get; set; } = "";
+    }
+
+    public class NullableAwareOutput
+    {
+        public required string RequiredName { get; set; }
+
+        public string? OptionalDescription { get; set; }
     }
 }

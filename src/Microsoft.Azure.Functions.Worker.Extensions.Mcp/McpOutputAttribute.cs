@@ -4,10 +4,9 @@
 namespace Microsoft.Azure.Functions.Worker.Extensions.Mcp;
 
 /// <summary>
-/// Marks a POCO type as an MCP output type with automatic output schema generation.
-/// Inherits from <see cref="McpContentAttribute"/>, so the result is serialized as
-/// both text content and structured content. Additionally, the type's JSON schema
-/// is automatically generated and included in the tool's definition as the output schema.
+/// Marks a POCO type as an MCP output type.
+/// Types decorated with this attribute are serialized as structured content,
+/// and their JSON schema is automatically generated and included in the tool definition.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -22,6 +21,6 @@ namespace Microsoft.Azure.Functions.Worker.Extensions.Mcp;
 /// </para>
 /// </remarks>
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct, AllowMultiple = false, Inherited = true)]
-public sealed class McpOutputAttribute : McpContentAttribute
+public sealed class McpOutputAttribute : Attribute
 {
 }

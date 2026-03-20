@@ -92,7 +92,14 @@ public sealed class McpToolBuilder(IFunctionsWorkerApplicationBuilder builder, s
         var schemaNode = JsonNode.Parse(jsonSchema)
             ?? throw new ArgumentException("The provided JSON schema is not valid JSON.", nameof(jsonSchema));
 
-        ValidateSchema(schemaNode, "Input");
+        try
+        {
+            JsonSchemaObjectSupport.ValidateObjectSchema(schemaNode);
+        }
+        catch (ArgumentException ex) when (ex.ParamName == nameof(schemaNode))
+        {
+            throw new ArgumentException($"Input schema is invalid. {ex.Message}", nameof(jsonSchema), ex);
+        }
 
         var normalizedSchema = schemaNode.ToJsonString();
         builder.Services.Configure<ToolOptions>(toolName, o => o.InputSchema = normalizedSchema);
@@ -116,7 +123,14 @@ public sealed class McpToolBuilder(IFunctionsWorkerApplicationBuilder builder, s
 
         EnsureMode(ConfigurationMode.InputSchema);
 
-        ValidateSchema(schemaNode, "Input");
+        try
+        {
+            JsonSchemaObjectSupport.ValidateObjectSchema(schemaNode);
+        }
+        catch (ArgumentException ex) when (ex.ParamName == nameof(schemaNode))
+        {
+            throw new ArgumentException($"Input schema is invalid. {ex.Message}", nameof(schemaNode), ex);
+        }
 
         var schemaJson = schemaNode.ToJsonString();
         builder.Services.Configure<ToolOptions>(toolName, o => o.InputSchema = schemaJson);
@@ -142,7 +156,15 @@ public sealed class McpToolBuilder(IFunctionsWorkerApplicationBuilder builder, s
 
         EnsureMode(ConfigurationMode.InputSchema);
 
-        var schemaJson = GenerateSchemaFromType(type, "input", serializerOptions);
+        string schemaJson;
+        try
+        {
+            schemaJson = JsonSchemaObjectSupport.GenerateObjectSchemaFromType(type, serializerOptions);
+        }
+        catch (ArgumentException ex) when (ex.ParamName == nameof(type))
+        {
+            throw new ArgumentException($"Input schema type is invalid. {ex.Message}", nameof(type), ex);
+        }
         builder.Services.Configure<ToolOptions>(toolName, o => o.InputSchema = schemaJson);
 
         return this;
@@ -176,7 +198,14 @@ public sealed class McpToolBuilder(IFunctionsWorkerApplicationBuilder builder, s
         var schemaNode = JsonNode.Parse(jsonSchema)
             ?? throw new ArgumentException("The provided JSON schema is not valid JSON.", nameof(jsonSchema));
 
-        ValidateSchema(schemaNode, "Output");
+        try
+        {
+            JsonSchemaObjectSupport.ValidateObjectSchema(schemaNode);
+        }
+        catch (ArgumentException ex) when (ex.ParamName == nameof(schemaNode))
+        {
+            throw new ArgumentException($"Output schema is invalid. {ex.Message}", nameof(jsonSchema), ex);
+        }
 
         var normalizedSchema = schemaNode.ToJsonString();
         builder.Services.Configure<ToolOptions>(toolName, o => o.OutputSchema = normalizedSchema);
@@ -197,7 +226,14 @@ public sealed class McpToolBuilder(IFunctionsWorkerApplicationBuilder builder, s
     {
         ArgumentNullException.ThrowIfNull(schemaNode, nameof(schemaNode));
 
-        ValidateSchema(schemaNode, "Output");
+        try
+        {
+            JsonSchemaObjectSupport.ValidateObjectSchema(schemaNode);
+        }
+        catch (ArgumentException ex) when (ex.ParamName == nameof(schemaNode))
+        {
+            throw new ArgumentException($"Output schema is invalid. {ex.Message}", nameof(schemaNode), ex);
+        }
 
         var schemaJson = schemaNode.ToJsonString();
         builder.Services.Configure<ToolOptions>(toolName, o => o.OutputSchema = schemaJson);
@@ -219,7 +255,15 @@ public sealed class McpToolBuilder(IFunctionsWorkerApplicationBuilder builder, s
     {
         ArgumentNullException.ThrowIfNull(type, nameof(type));
 
-        var schemaJson = GenerateSchemaFromType(type, "output", serializerOptions);
+        string schemaJson;
+        try
+        {
+            schemaJson = JsonSchemaObjectSupport.GenerateObjectSchemaFromType(type, serializerOptions);
+        }
+        catch (ArgumentException ex) when (ex.ParamName == nameof(type))
+        {
+            throw new ArgumentException($"Output schema type is invalid. {ex.Message}", nameof(type), ex);
+        }
         builder.Services.Configure<ToolOptions>(toolName, o => o.OutputSchema = schemaJson);
 
         return this;
@@ -238,76 +282,4 @@ public sealed class McpToolBuilder(IFunctionsWorkerApplicationBuilder builder, s
         return WithOutputSchema(typeof(T), serializerOptions);
     }
 
-    /// <summary>
-    /// Generates a JSON schema from the specified CLR type, validates it, and returns the serialized schema string.
-    /// </summary>
-    private static string GenerateSchemaFromType(Type type, string schemaKind, JsonSerializerOptions? serializerOptions)
-    {
-        if (type.IsPrimitive || type == typeof(string) || type.IsEnum || type.IsAbstract || type.IsInterface)
-        {
-            throw new ArgumentException(
-                $"Type '{type.FullName}' is not a valid {schemaKind} schema type. " +
-                $"The type must be a non-abstract class, record, or struct with public properties.",
-                nameof(type));
-        }
-
-        // Default to Web options which includes camelCase naming policy
-        // to match the property names produced when serializing structured content.
-        var options = serializerOptions ?? SchemaExporterOptionsFactory.DefaultSerializerOptions;
-        var schemaNode = options.GetJsonSchemaAsNode(type, SchemaExporterOptionsFactory.Create());
-
-        ValidateSchema(schemaNode, schemaKind, type);
-
-        return schemaNode.ToJsonString();
-    }
-
-    /// <summary>
-    /// Validates that a schema node conforms to MCP tool schema requirements.
-    /// The schema must be a JSON object with root <c>"type": "object"</c>,
-    /// optional <c>"properties"</c> (object), and optional <c>"required"</c> (array).
-    /// </summary>
-    private static void ValidateSchema(JsonNode schemaNode, string schemaKind, Type? sourceType = null)
-    {
-        var label = char.ToUpperInvariant(schemaKind[0]) + schemaKind[1..];
-
-        if (schemaNode is not JsonObject schemaObject)
-        {
-            throw new ArgumentException(
-                FormatValidationError($"{label} schema must be a JSON object.", sourceType));
-        }
-
-        // Must have "type": "object" at root
-        if (!schemaObject.TryGetPropertyValue("type", out var typeNode)
-            || typeNode?.GetValue<string>() != "object")
-        {
-            throw new ArgumentException(
-                FormatValidationError(
-                    $"{label} schema must have root \"type\": \"object\". " +
-                    "Ensure you are passing a class or record type with public properties, not a primitive type.",
-                    sourceType));
-        }
-
-        // If "properties" exists, it should be an object
-        if (schemaObject.TryGetPropertyValue("properties", out var propsNode)
-            && propsNode is not null && propsNode is not JsonObject)
-        {
-            throw new ArgumentException(
-                FormatValidationError($"{label} schema \"properties\" must be a JSON object.", sourceType));
-        }
-
-        // If "required" exists, it should be an array
-        if (schemaObject.TryGetPropertyValue("required", out var reqNode)
-            && reqNode is not null && reqNode is not JsonArray)
-        {
-            throw new ArgumentException(
-                FormatValidationError($"{label} schema \"required\" must be a JSON array.", sourceType));
-        }
-    }
-
-    private static string FormatValidationError(string message, Type? sourceType)
-    {
-        return sourceType is not null
-            ? $"{message} Type: '{sourceType.FullName}'."
-            : message;
-    }
 }

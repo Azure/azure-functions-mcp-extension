@@ -15,7 +15,7 @@ public class McpToolExtensionsTests
     {
         var mock = new Mock<IMcpTool>();
         var toolInputSchema = new PropertyBasedToolInputSchema(properties);
-        mock.SetupGet(t => t.ToolInputSchema).Returns(toolInputSchema);
+        mock.SetupGet(t => t.InputSchema).Returns(toolInputSchema);
         mock.SetupGet(t => t.Name).Returns("tool");
         mock.SetupProperty(t => t.Description, "desc");
         mock.Setup(t => t.RunAsync(It.IsAny<RequestContext<CallToolRequestParams>>(), It.IsAny<CancellationToken>()))
@@ -43,7 +43,7 @@ public class McpToolExtensionsTests
             toolInputSchema = new PropertyBasedToolInputSchema(properties);
         }
         
-        mock.SetupGet(t => t.ToolInputSchema).Returns(toolInputSchema);
+        mock.SetupGet(t => t.InputSchema).Returns(toolInputSchema);
         mock.SetupGet(t => t.Name).Returns("tool");
         mock.SetupProperty(t => t.Description, "desc");
         mock.Setup(t => t.RunAsync(It.IsAny<RequestContext<CallToolRequestParams>>(), It.IsAny<CancellationToken>()))

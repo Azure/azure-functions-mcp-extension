@@ -15,6 +15,27 @@ namespace Microsoft.Azure.Functions.Worker.Mcp.E2ETests.ToolTests;
 public class OutputSchemaTests(DefaultProjectFixture fixture, ITestOutputHelper testOutputHelper)
     : McpE2ETestBase(fixture, testOutputHelper)
 {
+    // ToolFunctions currently uses Snippet as an output model for getsnippets.
+    // SaveSnippet accepts Snippet as input only, so it is not expected to have an output schema.
+    private static readonly string[] SnippetOutputTools = ["getsnippets"];
+
+    [Theory]
+    [InlineData(HttpTransportMode.Sse)]
+    [InlineData(HttpTransportMode.AutoDetect)]
+    [InlineData(HttpTransportMode.StreamableHttp)]
+    public async Task SnippetOutputTools_HaveOutputSchema(HttpTransportMode mode)
+    {
+        var client = await Fixture.CreateClientAsync(mode);
+        var tools = await client.ListToolsAsync(cancellationToken: TestContext.Current.CancellationToken);
+
+        foreach (var toolName in SnippetOutputTools)
+        {
+            var tool = tools.FirstOrDefault(t => t.Name == toolName);
+            Assert.NotNull(tool);
+            Assert.NotNull(tool.ProtocolTool.OutputSchema);
+        }
+    }
+
     [Theory]
     [InlineData(HttpTransportMode.Sse)]
     [InlineData(HttpTransportMode.AutoDetect)]

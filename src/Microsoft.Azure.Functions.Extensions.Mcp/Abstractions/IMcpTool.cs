@@ -23,7 +23,7 @@ internal interface IMcpTool
     /// <summary>
     /// Gets the input schema for the tool properties.
     /// </summary>
-    public ToolInputSchema ToolInputSchema { get; }
+    public ToolInputSchema InputSchema { get; }
 
     /// <summary>
     /// Gets the output schema for the tool, if one was provided.
@@ -36,7 +36,7 @@ internal interface IMcpTool
     IReadOnlyDictionary<string, object?> Metadata { get; }
 
     /// <summary>
-    /// Gets the input schema for the tool properties.
+    /// Runs the tool for the supplied request.
     /// </summary>
     /// <param name="callToolRequest"> The call tool request context.</param>
     /// <param name="cancellationToken">A cancellation token.</param>

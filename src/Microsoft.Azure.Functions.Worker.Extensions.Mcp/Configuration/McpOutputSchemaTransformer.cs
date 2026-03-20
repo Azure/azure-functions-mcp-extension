@@ -3,7 +3,6 @@
 
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using System.Text.Json.Schema;
 using Microsoft.Azure.Functions.Worker.Core.FunctionMetadata;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -142,13 +141,7 @@ internal sealed class McpOutputSchemaTransformer(
 
         try
         {
-            // Use Web defaults which includes camelCase naming policy
-            // to match the property names produced when serializing structured content.
-            var schemaNode = SchemaExporterOptionsFactory.DefaultSerializerOptions.GetJsonSchemaAsNode(
-                returnType,
-                SchemaExporterOptionsFactory.Create());
-
-            jsonObject[OutputSchemaKey] = schemaNode.ToJsonString();
+            jsonObject[OutputSchemaKey] = JsonSchemaObjectSupport.GenerateObjectSchemaFromType(returnType);
 
             logger.LogDebug(
                 "Auto-generated output schema for tool in function '{FunctionName}' from return type '{ReturnType}'.",

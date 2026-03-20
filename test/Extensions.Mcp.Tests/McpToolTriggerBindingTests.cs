@@ -682,4 +682,54 @@ public class McpToolTriggerBindingTests
         // Clean up
         result.Dispose();
     }
+
+    [Fact]
+    public void GetOutputSchema_WithValidObjectSchema_ParsesCorrectly()
+    {
+        var attribute = new McpToolTriggerAttribute("TestTool", "Test Description")
+        {
+            OutputSchema = """
+                {
+                    "type": "object",
+                    "properties": {
+                        "name": {
+                            "type": "string"
+                        }
+                    }
+                }
+                """
+        };
+
+        var result = McpToolTriggerBinding.GetOutputSchema(attribute);
+
+        Assert.NotNull(result);
+        Assert.Equal(JsonValueKind.Object, result.Value.ValueKind);
+        Assert.Equal("object", result.Value.GetProperty("type").GetString());
+    }
+
+    [Fact]
+    public void GetOutputSchema_WithNonObjectSchema_ThrowsArgumentException()
+    {
+        var attribute = new McpToolTriggerAttribute("TestTool", "Test Description")
+        {
+            OutputSchema = "[1, 2, 3]"
+        };
+
+        var ex = Assert.Throws<ArgumentException>(() => McpToolTriggerBinding.GetOutputSchema(attribute));
+
+        Assert.Contains("OutputSchema for tool 'TestTool' must be a JSON object.", ex.Message);
+    }
+
+    [Fact]
+    public void GetOutputSchema_WithInvalidJson_ThrowsInvalidOperationException()
+    {
+        var attribute = new McpToolTriggerAttribute("TestTool", "Test Description")
+        {
+            OutputSchema = "{"
+        };
+
+        var ex = Assert.Throws<InvalidOperationException>(() => McpToolTriggerBinding.GetOutputSchema(attribute));
+
+        Assert.Contains("Failed to parse OutputSchema for tool 'TestTool'. Schema must be valid JSON.", ex.Message);
+    }
 }

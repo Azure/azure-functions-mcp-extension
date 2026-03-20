@@ -192,6 +192,14 @@ internal sealed class McpToolTriggerBinding : ITriggerBinding
         try
         {
             using var doc = JsonDocument.Parse(attribute.OutputSchema);
+
+            if (doc.RootElement.ValueKind != JsonValueKind.Object)
+            {
+                throw new ArgumentException(
+                    $"OutputSchema for tool '{attribute.ToolName}' must be a JSON object.",
+                    nameof(attribute.OutputSchema));
+            }
+
             return doc.RootElement.Clone();
         }
         catch (JsonException ex)
