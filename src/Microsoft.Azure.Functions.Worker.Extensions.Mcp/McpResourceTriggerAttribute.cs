@@ -25,6 +25,11 @@ public sealed class McpResourceTriggerAttribute(string uri, string resourceName)
     public string ResourceName { get; } = resourceName;
 
     /// <summary>
+    /// Gets or sets an optional human-readable title for display purposes.
+    /// </summary>
+    public string? Title { get; init; }
+
+    /// <summary>
     /// Gets or sets the MIME type of the MCP resource.
     /// </summary>
     public string? MimeType { get; init; }

@@ -55,6 +55,7 @@ public class ListResourceTests(DefaultProjectFixture fixture, ITestOutputHelper 
 
         Assert.NotNull(readmeResource);
         Assert.Equal("readme", readmeResource.Name);
+        Assert.Equal("Application Readme", readmeResource.Title);
         Assert.Equal("Application readme file", readmeResource.Description);
         Assert.Equal("text/plain", readmeResource.MimeType);
 
@@ -78,7 +79,7 @@ public class ListResourceTests(DefaultProjectFixture fixture, ITestOutputHelper 
         Assert.Equal("of", exampleArray[1]!.ToString());
         Assert.Equal("values", exampleArray[2]!.ToString());
 
-        TestOutputHelper.WriteLine($"Resource: Name={readmeResource.Name}, Description={readmeResource.Description}, MimeType={readmeResource.MimeType}");
+        TestOutputHelper.WriteLine($"Resource: Name={readmeResource.Name}, Title={readmeResource.Title}, Description={readmeResource.Description}, MimeType={readmeResource.MimeType}");
         TestOutputHelper.WriteLine($"Metadata: author={meta["author"]}, file.version={fileNode["version"]}, file.releaseDate={fileNode["releaseDate"]}, test.example=[{string.Join(", ", exampleArray)}]");
     }
 

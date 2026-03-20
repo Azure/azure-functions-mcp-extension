@@ -34,17 +34,17 @@ extends:
         - job: Prepare
           templateContext:
             type: validationJob
-            inputs:
-            - input: pipelineArtifact
-              pipeline: build
-              artifactName: ${{ parameters.artifactName }}
-              targetPath: $(Pipeline.Workspace)/drop
 
           steps:
-          - template: /eng/ci/templates/steps/get-package-version.yml
+          - download: build
+            artifact: ${{ parameters.artifactName }}
+            patterns: '**/Microsoft.Azure.Functions.Extensions.Mcp.*.nupkg'
+            displayName: Download host extension package
+          - template: /eng/ci/templates/steps/get-package-version.yml@self
             parameters:
               packageName: Microsoft.Azure.Functions.Extensions.Mcp
               buildTag: host-extension
+              dropPath: $(Pipeline.Workspace)/build/${{ parameters.artifactName }}
 
     - stage: Release
       dependsOn: Prepare

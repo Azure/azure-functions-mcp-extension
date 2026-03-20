@@ -6,7 +6,7 @@
 
 ### Microsoft.Azure.Functions.Extensions <version>
 
-- Added structured content support for tools (#172)
+- Fixed typo in JSON property name `sessionId` on `Transport` class (#206)
 
 ### Microsoft.Azure.Functions.Worker.Extensions.Mcp <version>
 
@@ -16,7 +16,6 @@
 
 #### Changes
 
-- Added structured content support for tools (#172)
 - Added fluent configuration APIs (`ConfigureMcpResource` and `WithMetadata`) to configure MCP tool and resource metadata at startup (#195)
 
     ```csharp
@@ -35,4 +34,4 @@
 
 ### Microsoft.Azure.Functions.Worker.Extensions.Mcp.Sdk <version>
 
-- Added structured content support for tools (#172)
+- <entry>

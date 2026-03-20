@@ -52,6 +52,7 @@ internal sealed class DefaultResourceRegistry : IResourceRegistry
             {
                 Uri = resource.Uri,
                 Name = resource.Name,
+                Title = resource.Title,
                 Description = resource.Description,
                 MimeType = resource.MimeType,
                 Size = resource.Size,
