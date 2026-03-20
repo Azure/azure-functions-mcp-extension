@@ -4,10 +4,12 @@
 using Microsoft.Azure.Functions.Worker.Core.FunctionMetadata;
 using Microsoft.Azure.Functions.Worker.Extensions.Mcp;
 using Microsoft.Azure.Functions.Worker.Extensions.Mcp.Configuration;
+using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using System.ComponentModel;
 using System.Reflection;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 
 namespace Worker.Extensions.Mcp.Tests;
 
@@ -15,12 +17,15 @@ public class InputSchemaGeneratorTests
 {
     private const string FunctionsApplicationDirectoryKey = "FUNCTIONS_APPLICATION_DIRECTORY";
 
+    private static IFunctionMethodResolver CreateResolver() =>
+        new FunctionMethodResolver(NullLogger<FunctionMethodResolver>.Instance);
+
     [Fact]
     public void TryGenerateFromFunction_InvalidEntryPoint_ReturnsFalse()
     {
         var functionMetadata = CreateFunctionMetadata("InvalidEntryPoint", "Test.dll", "TestMethod");
 
-        var result = InputSchemaGenerator.TryGenerateFromFunction(functionMetadata.Object, out var inputSchema);
+        var result = InputSchemaGenerator.TryGenerateFromFunction(functionMetadata.Object, CreateResolver(), out var inputSchema);
 
         Assert.False(result);
         Assert.Null(inputSchema);
@@ -34,7 +39,7 @@ public class InputSchemaGeneratorTests
 
         var functionMetadata = CreateFunctionMetadata(entryPoint, scriptFile, "TestMethod");
 
-        var result = InputSchemaGenerator.TryGenerateFromFunction(functionMetadata.Object, out var inputSchema);
+        var result = InputSchemaGenerator.TryGenerateFromFunction(functionMetadata.Object, CreateResolver(), out var inputSchema);
 
         Assert.True(result);
         Assert.NotNull(inputSchema);
@@ -326,5 +331,119 @@ public class InputSchemaGeneratorTests
         Active,
         Completed,
         Cancelled
+    }
+
+    [Fact]
+    public void GenerateFromToolProperties_EmptyList_ReturnsEmptySchema()
+    {
+        var properties = new List<ToolProperty>();
+
+        var schema = InputSchemaGenerator.GenerateFromToolProperties(properties);
+
+        var schemaDoc = JsonDocument.Parse(schema.ToJsonString());
+        var root = schemaDoc.RootElement;
+
+        Assert.Equal("object", root.GetProperty("type").GetString());
+        Assert.Empty(root.GetProperty("properties").EnumerateObject());
+        Assert.Equal(0, root.GetProperty("required").GetArrayLength());
+    }
+
+    [Fact]
+    public void GenerateFromToolProperties_SingleProperty_GeneratesCorrectSchema()
+    {
+        var properties = new List<ToolProperty>
+        {
+            new("city", "string", "The city name", isRequired: true)
+        };
+
+        var schema = InputSchemaGenerator.GenerateFromToolProperties(properties);
+
+        var schemaDoc = JsonDocument.Parse(schema.ToJsonString());
+        var root = schemaDoc.RootElement;
+
+        Assert.Equal("object", root.GetProperty("type").GetString());
+
+        var props = root.GetProperty("properties");
+        Assert.True(props.TryGetProperty("city", out var cityProp));
+        Assert.Equal("string", cityProp.GetProperty("type").GetString());
+        Assert.Equal("The city name", cityProp.GetProperty("description").GetString());
+
+        var required = root.GetProperty("required").EnumerateArray().Select(e => e.GetString()).ToArray();
+        Assert.Single(required);
+        Assert.Contains("city", required);
+    }
+
+    [Fact]
+    public void GenerateFromToolProperties_MultipleProperties_GeneratesCorrectSchema()
+    {
+        var properties = new List<ToolProperty>
+        {
+            new("name", "string", "The name", isRequired: true),
+            new("age", "integer", "The age", isRequired: false),
+            new("active", "boolean", "Is active", isRequired: true)
+        };
+
+        var schema = InputSchemaGenerator.GenerateFromToolProperties(properties);
+
+        var schemaDoc = JsonDocument.Parse(schema.ToJsonString());
+        var root = schemaDoc.RootElement;
+        var props = root.GetProperty("properties");
+
+        Assert.Equal(3, props.EnumerateObject().Count());
+        Assert.True(props.TryGetProperty("name", out _));
+        Assert.True(props.TryGetProperty("age", out _));
+        Assert.True(props.TryGetProperty("active", out _));
+
+        var required = root.GetProperty("required").EnumerateArray().Select(e => e.GetString()).ToArray();
+        Assert.Equal(2, required.Length);
+        Assert.Contains("name", required);
+        Assert.Contains("active", required);
+        Assert.DoesNotContain("age", required);
+    }
+
+    [Fact]
+    public void GenerateFromToolProperties_ArrayProperty_GeneratesCorrectSchema()
+    {
+        var properties = new List<ToolProperty>
+        {
+            new("tags", "string", "List of tags", isRequired: false, isArray: true)
+        };
+
+        var schema = InputSchemaGenerator.GenerateFromToolProperties(properties);
+
+        var schemaDoc = JsonDocument.Parse(schema.ToJsonString());
+        var root = schemaDoc.RootElement;
+        var props = root.GetProperty("properties");
+
+        Assert.True(props.TryGetProperty("tags", out var tagsProp));
+        Assert.Equal("array", tagsProp.GetProperty("type").GetString());
+        Assert.Equal("List of tags", tagsProp.GetProperty("description").GetString());
+
+        var items = tagsProp.GetProperty("items");
+        Assert.Equal("string", items.GetProperty("type").GetString());
+    }
+
+    [Fact]
+    public void GenerateFromToolProperties_EnumProperty_GeneratesCorrectSchema()
+    {
+        var properties = new List<ToolProperty>
+        {
+            new("status", "string", "Task status", isRequired: true, enumValues: new[] { "Active", "Completed", "Cancelled" })
+        };
+
+        var schema = InputSchemaGenerator.GenerateFromToolProperties(properties);
+
+        var schemaDoc = JsonDocument.Parse(schema.ToJsonString());
+        var root = schemaDoc.RootElement;
+        var props = root.GetProperty("properties");
+
+        Assert.True(props.TryGetProperty("status", out var statusProp));
+        Assert.Equal("string", statusProp.GetProperty("type").GetString());
+
+        Assert.True(statusProp.TryGetProperty("enum", out var enumProp));
+        var enumValues = enumProp.EnumerateArray().Select(e => e.GetString()).ToArray();
+        Assert.Contains("Active", enumValues);
+        Assert.Contains("Completed", enumValues);
+        Assert.Contains("Cancelled", enumValues);
     }
 }

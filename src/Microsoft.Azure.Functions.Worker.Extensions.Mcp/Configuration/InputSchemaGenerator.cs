@@ -5,6 +5,7 @@ using System.Reflection;
 using System.Text.Json.Nodes;
 using Microsoft.Azure.Functions.Worker.Core.FunctionMetadata;
 using Microsoft.Azure.Functions.Worker.Extensions.Mcp.Reflection;
+using Microsoft.Extensions.Logging;
 
 namespace Microsoft.Azure.Functions.Worker.Extensions.Mcp.Configuration;
 
@@ -17,13 +18,15 @@ internal static class InputSchemaGenerator
     /// Generates a JSON schema from function parameters.
     /// </summary>
     /// <param name="functionMetadata">The function metadata containing method information.</param>
+    /// <param name="functionMethodResolver">The resolver for looking up function methods.</param>
     /// <param name="inputSchema">The generated JSON schema as a JsonNode if successful.</param>
+    /// <param name="logger">Optional logger for diagnostics.</param>
     /// <returns>True if schema generation was successful, false otherwise.</returns>
-    public static bool TryGenerateFromFunction(IFunctionMetadata functionMetadata, out JsonNode? inputSchema)
+    public static bool TryGenerateFromFunction(IFunctionMetadata functionMetadata, IFunctionMethodResolver functionMethodResolver, out JsonNode? inputSchema, ILogger? logger = null)
     {
         inputSchema = null;
 
-        if (!FunctionReflectionHelper.TryResolveMethod(functionMetadata, out var method) || method is null)
+        if (!functionMethodResolver.TryResolveMethod(functionMetadata, out var method) || method is null)
         {
             return false;
         }
@@ -206,6 +209,34 @@ internal static class InputSchemaGenerator
             enumArray.Add(enumValue);
         }
         return enumArray;
+    }
+
+    /// <summary>
+    /// Generates a JSON schema from a list of <see cref="ToolProperty"/> objects.
+    /// Used when tool properties are configured via the fluent API (IOptionsMonitor).
+    /// </summary>
+    /// <param name="toolProperties">The tool properties to generate the schema from.</param>
+    /// <returns>A JSON schema JsonNode representing the tool properties.</returns>
+    public static JsonNode GenerateFromToolProperties(List<ToolProperty> toolProperties)
+    {
+        var properties = new JsonObject();
+        var required = new JsonArray();
+
+        foreach (var toolProperty in toolProperties)
+        {
+            properties[toolProperty.Name] = CreatePropertySchema(
+                toolProperty.Type,
+                toolProperty.Description ?? string.Empty,
+                toolProperty.IsArray,
+                toolProperty.EnumValues);
+
+            if (toolProperty.IsRequired)
+            {
+                required.Add(toolProperty.Name);
+            }
+        }
+
+        return CreateSchemaNode(properties, required);
     }
 
     /// <summary>

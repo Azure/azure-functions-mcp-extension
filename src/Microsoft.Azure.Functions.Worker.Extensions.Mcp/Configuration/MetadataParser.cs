@@ -16,17 +16,17 @@ internal static class MetadataParser
     /// <summary>
     /// Gets resource metadata JSON from function metadata.
     /// </summary>
-    public static bool TryGetResourceMetadata(IFunctionMetadata functionMetadata, [NotNullWhen(true)] out string? metadataJson)
+    public static bool TryGetResourceMetadata(IFunctionMetadata functionMetadata, IFunctionMethodResolver functionMethodResolver, [NotNullWhen(true)] out string? metadataJson)
     {
-        return TryGetMetadata<McpResourceTriggerAttribute>(functionMetadata, out metadataJson);
+        return TryGetMetadata<McpResourceTriggerAttribute>(functionMetadata, functionMethodResolver, out metadataJson);
     }
 
     /// <summary>
     /// Gets tool metadata JSON from function metadata.
     /// </summary>
-    public static bool TryGetToolMetadata(IFunctionMetadata functionMetadata, [NotNullWhen(true)] out string? metadataJson)
+    public static bool TryGetToolMetadata(IFunctionMetadata functionMetadata, IFunctionMethodResolver functionMethodResolver, [NotNullWhen(true)] out string? metadataJson)
     {
-        return TryGetMetadata<McpToolTriggerAttribute>(functionMetadata, out metadataJson);
+        return TryGetMetadata<McpToolTriggerAttribute>(functionMetadata, functionMethodResolver, out metadataJson);
     }
 
     /// <summary>
@@ -34,12 +34,13 @@ internal static class MetadataParser
     /// </summary>
     public static bool TryGetMetadata<TTriggerAttribute>(
         IFunctionMetadata functionMetadata,
+        IFunctionMethodResolver functionMethodResolver,
         [NotNullWhen(true)] out string? metadataJson)
         where TTriggerAttribute : Attribute
     {
         metadataJson = null;
 
-        if (!FunctionMethodResolver.TryResolveMethod(functionMetadata, out var method))
+        if (!functionMethodResolver.TryResolveMethod(functionMetadata, out var method))
         {
             return false;
         }

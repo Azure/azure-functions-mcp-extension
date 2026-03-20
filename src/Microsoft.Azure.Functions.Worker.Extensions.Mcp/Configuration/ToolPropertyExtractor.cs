@@ -5,7 +5,7 @@ using System.Reflection;
 using Microsoft.Azure.Functions.Worker.Builder;
 using Microsoft.Azure.Functions.Worker.Core.FunctionMetadata;
 using Microsoft.Azure.Functions.Worker.Extensions.Mcp.Reflection;
-
+using Microsoft.Extensions.Logging.Abstractions;
 namespace Microsoft.Azure.Functions.Worker.Extensions.Mcp.Configuration;
 
 internal static class ToolPropertyExtractor
@@ -13,8 +13,9 @@ internal static class ToolPropertyExtractor
     public static bool TryExtractFromAttributes(IFunctionMetadata functionMetadata, out List<ToolProperty> toolProperties)
     {
         toolProperties = [];
+        var functionMethodResolver = new FunctionMethodResolver(NullLogger<FunctionMethodResolver>.Instance);
 
-        if (!FunctionReflectionHelper.TryResolveMethodStrict(functionMetadata, out var method) || method is null)
+        if (!functionMethodResolver.TryResolveMethod(functionMetadata, out var method) || method is null)
         {
             return false;
         }
