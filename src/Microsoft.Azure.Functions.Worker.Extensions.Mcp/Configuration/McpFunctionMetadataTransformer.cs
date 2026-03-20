@@ -1,7 +1,6 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.Azure.Functions.Worker.Core.FunctionMetadata;
@@ -14,6 +13,7 @@ namespace Microsoft.Azure.Functions.Worker.Extensions.Mcp.Configuration;
 internal sealed class McpFunctionMetadataTransformer(
     IOptionsMonitor<ToolOptions> toolOptionsMonitor,
     IOptionsMonitor<ResourceOptions> resourceOptionsMonitor,
+    IFunctionMethodResolver functionMethodResolver,
     ILogger<McpFunctionMetadataTransformer> logger)
     : IFunctionMetadataTransformer
 {
@@ -27,9 +27,6 @@ internal sealed class McpFunctionMetadataTransformer(
             {
                 continue;
             }
-
-            List<ToolProperty>? toolProperties = null;
-            Dictionary<string, ToolPropertyBinding> inputBindingProperties = [];
 
             for (int i = 0; i < function.RawBindings.Count; i++)
             {
@@ -52,16 +49,10 @@ internal sealed class McpFunctionMetadataTransformer(
                         if (jsonObject.TryGetPropertyValue("toolName", out var toolNameNode))
                         {
                             toolName = toolNameNode?.ToString();
-
-                            if (GetToolProperties(toolName, function, out toolProperties))
-                            {
-                                jsonObject["toolProperties"] = ToolPropertyParser.GetPropertiesJson(toolProperties);
-                            }
-
                             TryApplyMetadata(toolName, jsonObject, toolOptionsMonitor);
                         }
 
-                        if (MetadataParser.TryGetToolMetadata(function, out var toolMetadataJson))
+                        if (MetadataParser.TryGetToolMetadata(function, functionMethodResolver, out var toolMetadataJson))
                         {
                             ApplyOrMergeMetadata(jsonObject, toolMetadataJson, "Tool", toolName);
                         }
@@ -78,68 +69,16 @@ internal sealed class McpFunctionMetadataTransformer(
                             TryApplyMetadata(resourceUri, jsonObject, resourceOptionsMonitor);
                         }
 
-                        if (MetadataParser.TryGetResourceMetadata(function, out var resourceMetadataJson))
+                        if (MetadataParser.TryGetResourceMetadata(function, functionMethodResolver, out var resourceMetadataJson))
                         {
                             ApplyOrMergeMetadata(jsonObject, resourceMetadataJson, "Resource", resourceUri);
                         }
 
                         function.RawBindings[i] = jsonObject.ToJsonString();
                         break;
-
-                    case McpToolPropertyBindingType:
-                        if (jsonObject.TryGetPropertyValue(McpToolPropertyName, out var propertyNameNode)
-                            && propertyNameNode is not null)
-                        {
-                            var propertyName = propertyNameNode.ToString();
-                            inputBindingProperties.TryAdd(propertyName, new ToolPropertyBinding(i, jsonObject));
-                        }
-                        break;
                 }
             }
-
-            // This is required for attributed properties/input bindings:
-            PatchInputBindingMetadata(function, inputBindingProperties, toolProperties);
         }
-    }
-
-    private static void PatchInputBindingMetadata(IFunctionMetadata function, Dictionary<string, ToolPropertyBinding> inputBindingProperties, List<ToolProperty>? toolProperties)
-    {
-        if (toolProperties is null
-            || toolProperties.Count == 0
-            || inputBindingProperties.Count == 0)
-        {
-            return;
-        }
-
-        foreach (var property in toolProperties)
-        {
-            if (inputBindingProperties.TryGetValue(property.Name, out var reference))
-            {
-                reference.Binding[Constants.McpToolPropertyType] = property.Type;
-                function.RawBindings![reference.Index] = reference.Binding.ToJsonString();
-            }
-        }
-    }
-
-    private bool GetToolProperties(string? toolName, IFunctionMetadata functionMetadata, [NotNullWhen(true)] out List<ToolProperty>? toolProperties)
-    {
-        toolProperties = null;
-
-        if (string.IsNullOrWhiteSpace(toolName))
-        {
-            return false;
-        }
-
-        // Get from configured options first:
-        var toolOptions = toolOptionsMonitor.Get(toolName);
-
-        if (toolOptions.Properties.Count != 0)
-        {
-            toolProperties = toolOptions.Properties;
-            return true;
-        }
-
-        return ToolPropertyParser.TryGetPropertiesFromAttributes(functionMetadata, out toolProperties);
     }
 
     private static void TryApplyMetadata<TOptions>(string? name, JsonObject jsonObject, IOptionsMonitor<TOptions> optionsMonitor)
@@ -151,7 +90,6 @@ internal sealed class McpFunctionMetadataTransformer(
         }
 
         var options = optionsMonitor.Get(name);
-
         if (options.Metadata.Count > 0)
         {
             jsonObject["metadata"] = JsonSerializer.Serialize(options.Metadata);
@@ -208,6 +146,4 @@ internal sealed class McpFunctionMetadataTransformer(
 
         return fluentNode.ToJsonString();
     }
-
-    private record ToolPropertyBinding(int Index, JsonObject Binding);
 }
