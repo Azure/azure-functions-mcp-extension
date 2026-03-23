@@ -36,6 +36,17 @@ public static class McpHostBuilderExtensions
         return new McpResourceBuilder(builder, resourceUri);
     }
 
+    /// <summary>
+    /// Configures an MCP prompt with the specified name and returns a builder for fluent configuration.
+    /// </summary>
+    /// <param name="builder">The Functions Worker application builder.</param>
+    /// <param name="promptName">The unique name of the prompt to configure.</param>
+    /// <returns>An <see cref="McpPromptBuilder"/> instance for configuring the prompt.</returns>
+    public static McpPromptBuilder ConfigureMcpPrompt(this IFunctionsWorkerApplicationBuilder builder, string promptName)
+    {
+        return new McpPromptBuilder(builder, promptName);
+    }
+
     [EditorBrowsable(EditorBrowsableState.Never)]
     public static IFunctionsWorkerApplicationBuilder ConfigureMcpExtension(this IFunctionsWorkerApplicationBuilder builder)
     {
