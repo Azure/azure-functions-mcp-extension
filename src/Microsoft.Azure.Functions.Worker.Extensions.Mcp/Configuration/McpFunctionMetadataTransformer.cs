@@ -14,6 +14,7 @@ namespace Microsoft.Azure.Functions.Worker.Extensions.Mcp.Configuration;
 internal sealed class McpFunctionMetadataTransformer(
     IOptionsMonitor<ToolOptions> toolOptionsMonitor,
     IOptionsMonitor<ResourceOptions> resourceOptionsMonitor,
+    IOptionsMonitor<PromptOptions> promptOptionsMonitor,
     ILogger<McpFunctionMetadataTransformer> logger)
     : IFunctionMetadataTransformer
 {
@@ -86,6 +87,29 @@ internal sealed class McpFunctionMetadataTransformer(
                         function.RawBindings[i] = jsonObject.ToJsonString();
                         break;
 
+                    case McpPromptTriggerBindingType:
+                        string? promptName = null;
+
+                        if (jsonObject.TryGetPropertyValue("promptName", out var promptNameNode))
+                        {
+                            promptName = promptNameNode?.ToString();
+
+                            if (GetPromptArguments(promptName, function, out var promptArguments))
+                            {
+                                jsonObject["promptArguments"] = PromptArgumentParser.GetArgumentsJson(promptArguments);
+                            }
+
+                            TryApplyMetadata(promptName, jsonObject, promptOptionsMonitor);
+                        }
+
+                        if (MetadataParser.TryGetPromptMetadata(function, out var promptMetadataJson))
+                        {
+                            ApplyOrMergeMetadata(jsonObject, promptMetadataJson, "Prompt", promptName);
+                        }
+
+                        function.RawBindings[i] = jsonObject.ToJsonString();
+                        break;
+
                     case McpToolPropertyBindingType:
                         if (jsonObject.TryGetPropertyValue(McpToolPropertyName, out var propertyNameNode)
                             && propertyNameNode is not null)
@@ -140,6 +164,26 @@ internal sealed class McpFunctionMetadataTransformer(
         }
 
         return ToolPropertyParser.TryGetPropertiesFromAttributes(functionMetadata, out toolProperties);
+    }
+
+    private bool GetPromptArguments(string? promptName, IFunctionMetadata functionMetadata, [NotNullWhen(true)] out List<PromptArgumentDefinition>? promptArguments)
+    {
+        promptArguments = null;
+
+        if (string.IsNullOrWhiteSpace(promptName))
+        {
+            return false;
+        }
+
+        var promptOpts = promptOptionsMonitor.Get(promptName);
+
+        if (promptOpts.Arguments.Count != 0)
+        {
+            promptArguments = promptOpts.Arguments;
+            return true;
+        }
+
+        return PromptArgumentParser.TryGetArgumentsFromAttributes(functionMetadata, out promptArguments);
     }
 
     private static void TryApplyMetadata<TOptions>(string? name, JsonObject jsonObject, IOptionsMonitor<TOptions> optionsMonitor)
