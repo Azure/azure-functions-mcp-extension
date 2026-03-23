@@ -152,4 +152,91 @@ public class PromptReturnValueBinderTests
         var content = Assert.IsType<TextContentBlock>(result.Messages[0].Content);
         Assert.Equal("", content.Text);
     }
+
+    [Fact]
+    public async Task SetValueAsync_WithMcpPromptResultWrapper_GetPromptResultType_DeserializesCorrectly()
+    {
+        var executionContext = GetPromptExecutionContextHelper.CreateExecutionContext();
+        var binder = new PromptReturnValueBinder(executionContext);
+
+        // Simulate what the SDK middleware produces for a GetPromptResult return type
+        var getPromptResult = new GetPromptResult
+        {
+            Description = "Code review for Python",
+            Messages =
+            [
+                new PromptMessage
+                {
+                    Role = Role.User,
+                    Content = new TextContentBlock { Text = "Review this code..." }
+                }
+            ]
+        };
+
+        var mcpPromptResult = new McpPromptResult
+        {
+            Type = "get_prompt_result",
+            Content = JsonSerializer.Serialize(getPromptResult, ModelContextProtocol.McpJsonUtilities.DefaultOptions)
+        };
+
+        var json = JsonSerializer.Serialize(mcpPromptResult, Serialization.McpJsonSerializerOptions.DefaultOptions);
+        await binder.SetValueAsync(json, CancellationToken.None);
+
+        var result = await executionContext.ResultTask;
+        Assert.NotNull(result);
+        Assert.Equal("Code review for Python", result.Description);
+        Assert.Single(result.Messages);
+        Assert.Equal(Role.User, result.Messages[0].Role);
+        var textBlock = Assert.IsType<TextContentBlock>(result.Messages[0].Content);
+        Assert.Equal("Review this code...", textBlock.Text);
+    }
+
+    [Fact]
+    public async Task SetValueAsync_WithMcpPromptResultWrapper_PromptMessagesType_DeserializesCorrectly()
+    {
+        var executionContext = GetPromptExecutionContextHelper.CreateExecutionContext();
+        var binder = new PromptReturnValueBinder(executionContext);
+
+        // Simulate what the SDK middleware produces for a PromptMessage list return type
+        var messages = new List<PromptMessage>
+        {
+            new() { Role = Role.User, Content = new TextContentBlock { Text = "Question" } },
+            new() { Role = Role.Assistant, Content = new TextContentBlock { Text = "Answer" } }
+        };
+
+        var mcpPromptResult = new McpPromptResult
+        {
+            Type = "prompt_messages",
+            Content = JsonSerializer.Serialize(messages, ModelContextProtocol.McpJsonUtilities.DefaultOptions)
+        };
+
+        var json = JsonSerializer.Serialize(mcpPromptResult, Serialization.McpJsonSerializerOptions.DefaultOptions);
+        await binder.SetValueAsync(json, CancellationToken.None);
+
+        var result = await executionContext.ResultTask;
+        Assert.NotNull(result);
+        Assert.Equal(2, result.Messages.Count);
+        Assert.Equal(Role.User, result.Messages[0].Role);
+        Assert.Equal(Role.Assistant, result.Messages[1].Role);
+    }
+
+    [Fact]
+    public async Task SetValueAsync_WithMcpPromptResultWrapper_UnknownType_ThrowsInvalidOperationException()
+    {
+        var executionContext = GetPromptExecutionContextHelper.CreateExecutionContext();
+        var binder = new PromptReturnValueBinder(executionContext);
+
+        var mcpPromptResult = new McpPromptResult
+        {
+            Type = "unknown_type",
+            Content = "{}"
+        };
+
+        var json = JsonSerializer.Serialize(mcpPromptResult, Serialization.McpJsonSerializerOptions.DefaultOptions);
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => binder.SetValueAsync(json, CancellationToken.None));
+
+        Assert.Contains("unknown_type", exception.Message);
+    }
 }

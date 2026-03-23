@@ -46,6 +46,9 @@ internal sealed class McpExtensionConfigProvider(IToolRegistry toolRegistry, IRe
         context.AddBindingRule<McpToolPropertyAttribute>()
             .Bind(new McpToolPropertyBindingProvider());
 
+        context.AddBindingRule<McpPromptArgumentAttribute>()
+            .Bind(new McpPromptArgumentBindingProvider());
+
        backplaneService.StartAsync(CancellationToken.None)
            .GetAwaiter()
            .GetResult();

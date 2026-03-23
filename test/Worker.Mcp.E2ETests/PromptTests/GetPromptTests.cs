@@ -30,6 +30,7 @@ public class GetPromptTests(DefaultProjectFixture fixture, ITestOutputHelper tes
             cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.NotNull(result);
+        Assert.Equal("Code review prompt for python", result.Description);
         Assert.Single(result.Messages);
 
         var message = result.Messages[0];
