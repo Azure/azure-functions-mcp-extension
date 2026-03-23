@@ -12,4 +12,10 @@ internal static class Constants
     public const string TextContextResult = "text";
 
     public const string CallToolResultType = "call_tool_result";
+
+    public const string PromptInvocationContextKey = "PromptInvocationContext";
+
+    public const string GetPromptResultType = "get_prompt_result";
+
+    public const string PromptMessagesType = "prompt_messages";
 }

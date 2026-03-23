@@ -15,4 +15,10 @@ internal static class Constants
     // Resource constants
     public const string ResourceInvocationContextKey = "ResourceInvocationContext";
     public const string McpResourceTriggerBindingType = "mcpResourceTrigger";
+
+    // Prompt constants
+    public const string PromptInvocationContextKey = "PromptInvocationContext";
+    public const string McpPromptTriggerBindingType = "mcpPromptTrigger";
+    public const string McpPromptArgumentBindingType = "mcpPromptArgument";
+    public const string McpPromptArgumentName = "argumentName";
 }

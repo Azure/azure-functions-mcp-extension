@@ -41,6 +41,9 @@ public static class McpWebJobsBuilderExtensions
         // Resources
         builder.Services.AddSingleton<IResourceRegistry, DefaultResourceRegistry>();
 
+        // Prompts
+        builder.Services.AddSingleton<IPromptRegistry, DefaultPromptRegistry>();
+
         // Core services
         builder.Services.AddSingleton<IMcpInstanceIdProvider, DefaultMcpInstanceIdProvider>();
         builder.Services.AddSingleton<IMcpClientSessionManager, McpClientSessionManager>();
@@ -99,6 +102,25 @@ public static class McpWebJobsBuilderExtensions
                 }
 
                 throw new McpProtocolException($"Unknown resource: '{c.Params?.Uri}'", McpErrorCode.InvalidParams);
+            })
+            .WithListPromptsHandler(static (c, ct) =>
+            {
+                var promptRegistry = c.Services?.GetRequiredService<IPromptRegistry>()
+                    ?? throw new InvalidOperationException("Prompt registry not properly registered.");
+
+                return promptRegistry.ListPromptsAsync(ct);
+            })
+            .WithGetPromptHandler(static async (c, ct) =>
+            {
+                var promptRegistry = c.Services?.GetRequiredService<IPromptRegistry>()
+                    ?? throw new InvalidOperationException("Prompt registry not properly registered.");
+
+                if (c.Params is { Name: var name } && promptRegistry.TryGetPrompt(name, out var prompt))
+                {
+                    return await prompt.GetAsync(c, ct);
+                }
+
+                throw new McpProtocolException($"Unknown prompt: '{c.Params?.Name}'", McpErrorCode.InvalidParams);
             });
 
         // Extension configuration
