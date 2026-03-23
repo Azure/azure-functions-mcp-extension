@@ -3,6 +3,7 @@
 
 using Microsoft.Azure.Functions.Worker.Core.FunctionMetadata;
 using Microsoft.Azure.Functions.Worker.Extensions.Mcp.Configuration;
+using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 
 namespace Worker.Extensions.Mcp.Tests.Configuration;
@@ -11,6 +12,9 @@ public class FunctionMethodResolverTests
 {
     private const string FunctionsApplicationDirectoryKey = "FUNCTIONS_APPLICATION_DIRECTORY";
     private const string FunctionsWorkerDirectoryKey = "FUNCTIONS_WORKER_DIRECTORY";
+
+    private static FunctionMethodResolver CreateResolver() =>
+        new FunctionMethodResolver(NullLogger<FunctionMethodResolver>.Instance);
 
     [Fact]
     public void TryGetScriptRoot_ApplicationDirectorySet_ReturnsTrue()
@@ -124,38 +128,12 @@ public class FunctionMethodResolverTests
     }
 
     [Fact]
-    public void EnsureScriptRoot_NotSet_ThrowsInvalidOperationException()
-    {
-        Environment.SetEnvironmentVariable(FunctionsApplicationDirectoryKey, null);
-        Environment.SetEnvironmentVariable(FunctionsWorkerDirectoryKey, null);
-
-        var ex = Assert.Throws<InvalidOperationException>(() => FunctionMethodResolver.EnsureScriptRoot());
-        Assert.Contains(FunctionsApplicationDirectoryKey, ex.Message);
-    }
-
-    [Fact]
-    public void EnsureScriptRoot_Set_DoesNotThrow()
-    {
-        Environment.SetEnvironmentVariable(FunctionsApplicationDirectoryKey, "/some/path");
-
-        try
-        {
-            var exception = Record.Exception(() => FunctionMethodResolver.EnsureScriptRoot());
-            Assert.Null(exception);
-        }
-        finally
-        {
-            Environment.SetEnvironmentVariable(FunctionsApplicationDirectoryKey, null);
-        }
-    }
-
-    [Fact]
     public void TryResolveMethod_NullEntryPoint_ReturnsFalse()
     {
         var fn = new Mock<IFunctionMetadata>();
         fn.SetupGet(f => f.EntryPoint).Returns((string?)null);
 
-        var result = FunctionMethodResolver.TryResolveMethod(fn.Object, out var method);
+        var result = CreateResolver().TryResolveMethod(fn.Object, out var method);
 
         Assert.False(result);
         Assert.Null(method);
@@ -167,7 +145,7 @@ public class FunctionMethodResolverTests
         var fn = new Mock<IFunctionMetadata>();
         fn.SetupGet(f => f.EntryPoint).Returns(string.Empty);
 
-        var result = FunctionMethodResolver.TryResolveMethod(fn.Object, out var method);
+        var result = CreateResolver().TryResolveMethod(fn.Object, out var method);
 
         Assert.False(result);
         Assert.Null(method);
@@ -179,7 +157,7 @@ public class FunctionMethodResolverTests
         var fn = new Mock<IFunctionMetadata>();
         fn.SetupGet(f => f.EntryPoint).Returns("InvalidEntryPoint");
 
-        var result = FunctionMethodResolver.TryResolveMethod(fn.Object, out var method);
+        var result = CreateResolver().TryResolveMethod(fn.Object, out var method);
 
         Assert.False(result);
         Assert.Null(method);
@@ -194,7 +172,7 @@ public class FunctionMethodResolverTests
         var fn = new Mock<IFunctionMetadata>();
         fn.SetupGet(f => f.EntryPoint).Returns("Namespace.Type.Method");
 
-        var result = FunctionMethodResolver.TryResolveMethod(fn.Object, out var method);
+        var result = CreateResolver().TryResolveMethod(fn.Object, out var method);
 
         Assert.False(result);
         Assert.Null(method);
@@ -216,7 +194,7 @@ public class FunctionMethodResolverTests
             fn.SetupGet(f => f.EntryPoint).Returns(entryPoint);
             fn.SetupGet(f => f.ScriptFile).Returns(scriptFile);
 
-            var result = FunctionMethodResolver.TryResolveMethod(fn.Object, out var method);
+            var result = CreateResolver().TryResolveMethod(fn.Object, out var method);
 
             Assert.True(result);
             Assert.NotNull(method);
@@ -244,7 +222,7 @@ public class FunctionMethodResolverTests
             fn.SetupGet(f => f.EntryPoint).Returns(entryPoint);
             fn.SetupGet(f => f.ScriptFile).Returns(scriptFile);
 
-            var result = FunctionMethodResolver.TryResolveMethod(fn.Object, out var method);
+            var result = CreateResolver().TryResolveMethod(fn.Object, out var method);
 
             Assert.False(result);
             Assert.Null(method);
@@ -271,7 +249,7 @@ public class FunctionMethodResolverTests
             fn.SetupGet(f => f.EntryPoint).Returns(entryPoint);
             fn.SetupGet(f => f.ScriptFile).Returns(scriptFile);
 
-            var result = FunctionMethodResolver.TryResolveMethod(fn.Object, out var method);
+            var result = CreateResolver().TryResolveMethod(fn.Object, out var method);
 
             Assert.False(result);
             Assert.Null(method);
