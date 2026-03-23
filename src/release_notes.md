@@ -30,7 +30,7 @@
         .WithProperty("name", McpToolPropertyType.String, "Name of the user", required: true)
         .WithMetadata("ui", new { resourceUri = "ui://index.html" });
     ```
-- Generate the tool input schema in the worker and enable `UseWorkerInputSchema` support (#166)
+- Refactoring input binding configuration for extensibility
 
 ### Microsoft.Azure.Functions.Worker.Extensions.Mcp.Sdk <version>
 

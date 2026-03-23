@@ -44,11 +44,6 @@ public static class McpHostBuilderExtensions
         builder.Services.TryAddSingleton<IFunctionMethodResolver, FunctionMethodResolver>();
         builder.Services.TryAddSingleton<IMetadataParser, MetadataParser>();
 
-        // Input schema resolvers are registered in priority order.
-        // The transformer iterates them and returns the first successful resolution.
-        builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IInputSchemaResolver, PropertyBasedInputSchemaResolver>());
-        builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IInputSchemaResolver, ReflectionBasedInputSchemaResolver>());
-
         builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IFunctionMetadataTransformer, McpFunctionMetadataTransformer>());
 
         builder.UseMiddleware<FunctionsMcpContextMiddleware>();
