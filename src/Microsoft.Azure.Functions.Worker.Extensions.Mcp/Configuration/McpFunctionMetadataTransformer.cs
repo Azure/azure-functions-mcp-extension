@@ -1,7 +1,6 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.Azure.Functions.Worker.Core.FunctionMetadata;
@@ -14,6 +13,7 @@ namespace Microsoft.Azure.Functions.Worker.Extensions.Mcp.Configuration;
 internal sealed class McpFunctionMetadataTransformer(
     IOptionsMonitor<ToolOptions> toolOptionsMonitor,
     IOptionsMonitor<ResourceOptions> resourceOptionsMonitor,
+    IEnumerable<IToolPropertiesResolver> toolPropertiesResolvers,
     ILogger<McpFunctionMetadataTransformer> logger)
     : IFunctionMetadataTransformer
 {
@@ -53,7 +53,7 @@ internal sealed class McpFunctionMetadataTransformer(
                         {
                             toolName = toolNameNode?.ToString();
 
-                            if (GetToolProperties(toolName, function, out toolProperties))
+                            if (TryResolveToolProperties(toolName, function, out toolProperties))
                             {
                                 jsonObject["toolProperties"] = ToolPropertyParser.GetPropertiesJson(toolProperties);
                             }
@@ -121,7 +121,7 @@ internal sealed class McpFunctionMetadataTransformer(
         }
     }
 
-    private bool GetToolProperties(string? toolName, IFunctionMetadata functionMetadata, [NotNullWhen(true)] out List<ToolProperty>? toolProperties)
+    private bool TryResolveToolProperties(string? toolName, IFunctionMetadata functionMetadata, out List<ToolProperty>? toolProperties)
     {
         toolProperties = null;
 
@@ -130,16 +130,16 @@ internal sealed class McpFunctionMetadataTransformer(
             return false;
         }
 
-        // Get from configured options first:
-        var toolOptions = toolOptionsMonitor.Get(toolName);
-
-        if (toolOptions.Properties.Count != 0)
+        foreach (var resolver in toolPropertiesResolvers)
         {
-            toolProperties = toolOptions.Properties;
-            return true;
+            if (resolver.TryResolve(toolName, functionMetadata, out toolProperties) && toolProperties is not null)
+            {
+                return true;
+            }
         }
 
-        return ToolPropertyParser.TryGetPropertiesFromAttributes(functionMetadata, out toolProperties);
+        toolProperties = null;
+        return false;
     }
 
     private static void TryApplyMetadata<TOptions>(string? name, JsonObject jsonObject, IOptionsMonitor<TOptions> optionsMonitor)
@@ -208,6 +208,4 @@ internal sealed class McpFunctionMetadataTransformer(
 
         return fluentNode.ToJsonString();
     }
-
-    private record ToolPropertyBinding(int Index, JsonObject Binding);
 }

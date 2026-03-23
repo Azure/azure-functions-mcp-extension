@@ -41,6 +41,11 @@ public static class McpHostBuilderExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
 
+        // Tool properties resolvers are registered in priority order.
+        // The transformer iterates them and returns the first successful resolution.
+        builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IToolPropertiesResolver, ConfiguredToolPropertiesResolver>());
+        builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IToolPropertiesResolver, AttributeBasedToolPropertiesResolver>());
+
         builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IFunctionMetadataTransformer, McpFunctionMetadataTransformer>());
 
         builder.UseMiddleware<FunctionsMcpContextMiddleware>();
