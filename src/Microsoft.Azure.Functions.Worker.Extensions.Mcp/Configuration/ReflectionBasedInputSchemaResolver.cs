@@ -12,12 +12,11 @@ namespace Microsoft.Azure.Functions.Worker.Extensions.Mcp.Configuration;
 /// and generating a schema from its parameters.
 /// </summary>
 internal class ReflectionBasedInputSchemaResolver(
-    IFunctionMethodResolver functionMethodResolver,
     ILogger<ReflectionBasedInputSchemaResolver> logger) : IInputSchemaResolver
 {
     public bool TryResolve(string toolName, IFunctionMetadata functionMetadata, out JsonNode? inputSchema)
     {
-        if (InputSchemaGenerator.TryGenerateFromFunction(functionMetadata, functionMethodResolver, out inputSchema, logger) && inputSchema is not null)
+        if (InputSchemaGenerator.TryGenerateFromFunction(functionMetadata, out inputSchema, logger) && inputSchema is not null)
         {
             return true;
         }

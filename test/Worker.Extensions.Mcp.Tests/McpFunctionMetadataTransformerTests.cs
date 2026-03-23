@@ -15,8 +15,6 @@ public class McpFunctionMetadataTransformerTests
 {
     private const string FunctionsApplicationDirectoryKey = "FUNCTIONS_APPLICATION_DIRECTORY";
 
-    private static IFunctionMethodResolver CreateMethodResolver() =>
-        new FunctionMethodResolver(NullLogger<FunctionMethodResolver>.Instance);
 
     [Fact]
     public void Transform_NoRawBindings_DoesNothing()
@@ -291,12 +289,11 @@ public class McpFunctionMetadataTransformerTests
 
     private static IInputSchemaResolver[] CreateSchemaResolvers(IOptionsMonitor<ToolOptions> toolOptionsMonitor)
     {
-        var methodResolver = CreateMethodResolver();
         return
         [
             new ExplicitInputSchemaResolver(toolOptionsMonitor),
             new PropertyBasedInputSchemaResolver(toolOptionsMonitor),
-            new ReflectionBasedInputSchemaResolver(methodResolver, NullLogger<ReflectionBasedInputSchemaResolver>.Instance),
+            new ReflectionBasedInputSchemaResolver(NullLogger<ReflectionBasedInputSchemaResolver>.Instance),
         ];
     }
 
@@ -322,7 +319,6 @@ public class McpFunctionMetadataTransformerTests
             toolOptionsMonitor.Object,
             resourceOptionsMonitor.Object,
             CreateSchemaResolvers(toolOptionsMonitor.Object),
-            new MetadataParser(CreateMethodResolver()),
             NullLogger<McpFunctionMetadataTransformer>.Instance);
     }
 

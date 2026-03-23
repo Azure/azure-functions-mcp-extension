@@ -11,12 +11,12 @@ namespace Microsoft.Azure.Functions.Worker.Extensions.Mcp.Configuration;
 /// <summary>
 /// Extracts metadata from function parameters.
 /// </summary>
-internal class MetadataParser(IFunctionMethodResolver functionMethodResolver) : IMetadataParser
+internal static class MetadataParser
 {
     /// <summary>
     /// Gets resource metadata JSON from function metadata.
     /// </summary>
-    public bool TryGetResourceMetadata(IFunctionMetadata functionMetadata, [NotNullWhen(true)] out string? metadataJson)
+    public static bool TryGetResourceMetadata(IFunctionMetadata functionMetadata, [NotNullWhen(true)] out string? metadataJson)
     {
         return TryGetMetadata<McpResourceTriggerAttribute>(functionMetadata, out metadataJson);
     }
@@ -24,7 +24,7 @@ internal class MetadataParser(IFunctionMethodResolver functionMethodResolver) : 
     /// <summary>
     /// Gets tool metadata JSON from function metadata.
     /// </summary>
-    public bool TryGetToolMetadata(IFunctionMetadata functionMetadata, [NotNullWhen(true)] out string? metadataJson)
+    public static bool TryGetToolMetadata(IFunctionMetadata functionMetadata, [NotNullWhen(true)] out string? metadataJson)
     {
         return TryGetMetadata<McpToolTriggerAttribute>(functionMetadata, out metadataJson);
     }
@@ -32,14 +32,14 @@ internal class MetadataParser(IFunctionMethodResolver functionMethodResolver) : 
     /// <summary>
     /// Generic method to extract metadata JSON from function parameters based on trigger attribute type.
     /// </summary>
-    private bool TryGetMetadata<TTriggerAttribute>(
+    public static bool TryGetMetadata<TTriggerAttribute>(
         IFunctionMetadata functionMetadata,
         [NotNullWhen(true)] out string? metadataJson)
         where TTriggerAttribute : Attribute
     {
         metadataJson = null;
 
-        if (!functionMethodResolver.TryResolveMethod(functionMetadata, out var method))
+        if (!FunctionMethodResolver.TryResolveMethod(functionMetadata, out var method))
         {
             return false;
         }
@@ -52,7 +52,7 @@ internal class MetadataParser(IFunctionMethodResolver functionMethodResolver) : 
     /// <summary>
     /// Extracts MCP metadata attribute JSON from the parameter that has the specified trigger attribute.
     /// </summary>
-    internal static bool TryExtractMetadataFromParameter<TTriggerAttribute>(
+    public static bool TryExtractMetadataFromParameter<TTriggerAttribute>(
         ParameterInfo[] parameters,
         [NotNullWhen(true)] out string? metadataJson)
         where TTriggerAttribute : Attribute

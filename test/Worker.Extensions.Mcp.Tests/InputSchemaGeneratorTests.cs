@@ -17,15 +17,13 @@ public class InputSchemaGeneratorTests
 {
     private const string FunctionsApplicationDirectoryKey = "FUNCTIONS_APPLICATION_DIRECTORY";
 
-    private static IFunctionMethodResolver CreateResolver() =>
-        new FunctionMethodResolver(NullLogger<FunctionMethodResolver>.Instance);
 
     [Fact]
     public void TryGenerateFromFunction_InvalidEntryPoint_ReturnsFalse()
     {
         var functionMetadata = CreateFunctionMetadata("InvalidEntryPoint", "Test.dll", "TestMethod");
 
-        var result = InputSchemaGenerator.TryGenerateFromFunction(functionMetadata.Object, CreateResolver(), out var inputSchema);
+        var result = InputSchemaGenerator.TryGenerateFromFunction(functionMetadata.Object, out var inputSchema);
 
         Assert.False(result);
         Assert.Null(inputSchema);
@@ -39,7 +37,7 @@ public class InputSchemaGeneratorTests
 
         var functionMetadata = CreateFunctionMetadata(entryPoint, scriptFile, "TestMethod");
 
-        var result = InputSchemaGenerator.TryGenerateFromFunction(functionMetadata.Object, CreateResolver(), out var inputSchema);
+        var result = InputSchemaGenerator.TryGenerateFromFunction(functionMetadata.Object, out var inputSchema);
 
         Assert.True(result);
         Assert.NotNull(inputSchema);

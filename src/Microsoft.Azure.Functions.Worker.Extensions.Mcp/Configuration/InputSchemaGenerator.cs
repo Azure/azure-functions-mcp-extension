@@ -18,22 +18,33 @@ internal static class InputSchemaGenerator
     /// Generates a JSON schema from function parameters.
     /// </summary>
     /// <param name="functionMetadata">The function metadata containing method information.</param>
-    /// <param name="functionMethodResolver">The resolver for looking up function methods.</param>
     /// <param name="inputSchema">The generated JSON schema as a JsonNode if successful.</param>
     /// <param name="logger">Optional logger for diagnostics.</param>
     /// <returns>True if schema generation was successful, false otherwise.</returns>
-    public static bool TryGenerateFromFunction(IFunctionMetadata functionMetadata, IFunctionMethodResolver functionMethodResolver, out JsonNode? inputSchema, ILogger? logger = null)
+    public static bool TryGenerateFromFunction(IFunctionMetadata functionMetadata, out JsonNode? inputSchema, ILogger? logger = null)
     {
         inputSchema = null;
 
-        if (!functionMethodResolver.TryResolveMethod(functionMetadata, out var method) || method is null)
+        try
+        {
+            if (!FunctionMethodResolver.TryGetScriptRoot(out _))
+            {
+                return false;
+            }
+
+            if (!FunctionMethodResolver.TryResolveMethod(functionMetadata, out var method) || method is null)
+            {
+                return false;
+            }
+
+            var parameters = method.GetParameters();
+            inputSchema = GenerateFromParameters(parameters);
+            return true;
+        }
+        catch (Exception)
         {
             return false;
         }
-
-        var parameters = method.GetParameters();
-        inputSchema = GenerateFromParameters(parameters);
-        return true;
     }
 
     /// <summary>

@@ -17,17 +17,13 @@ public class McpInputSchemaTransformerTests
 {
     private const string FunctionsApplicationDirectoryKey = "FUNCTIONS_APPLICATION_DIRECTORY";
 
-    private static IFunctionMethodResolver CreateMethodResolver() =>
-        new FunctionMethodResolver(NullLogger<FunctionMethodResolver>.Instance);
-
     private static IInputSchemaResolver[] CreateSchemaResolvers(IOptionsMonitor<ToolOptions> toolOptionsMonitor)
     {
-        var methodResolver = CreateMethodResolver();
         return
         [
             new ExplicitInputSchemaResolver(toolOptionsMonitor),
             new PropertyBasedInputSchemaResolver(toolOptionsMonitor),
-            new ReflectionBasedInputSchemaResolver(methodResolver, NullLogger<ReflectionBasedInputSchemaResolver>.Instance),
+            new ReflectionBasedInputSchemaResolver(NullLogger<ReflectionBasedInputSchemaResolver>.Instance),
         ];
     }
 
@@ -722,7 +718,6 @@ public class McpInputSchemaTransformerTests
             options.Object,
             resourceOptions.Object,
             CreateSchemaResolvers(options.Object),
-            new MetadataParser(CreateMethodResolver()),
             NullLogger<McpFunctionMetadataTransformer>.Instance);
     }
 
@@ -735,7 +730,6 @@ public class McpInputSchemaTransformerTests
             toolOptionsMonitor,
             resourceOptions.Object,
             CreateSchemaResolvers(toolOptionsMonitor),
-            new MetadataParser(CreateMethodResolver()),
             NullLogger<McpFunctionMetadataTransformer>.Instance);
     }
 

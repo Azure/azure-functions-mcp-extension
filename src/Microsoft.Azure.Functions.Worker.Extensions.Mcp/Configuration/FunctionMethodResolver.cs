@@ -6,14 +6,13 @@ using System.Reflection;
 using System.Runtime.Loader;
 using System.Text.RegularExpressions;
 using Microsoft.Azure.Functions.Worker.Core.FunctionMetadata;
-using Microsoft.Extensions.Logging;
 
 namespace Microsoft.Azure.Functions.Worker.Extensions.Mcp.Configuration;
 
 /// <summary>
 /// Resolves function methods from function metadata using reflection.
 /// </summary>
-internal sealed partial class FunctionMethodResolver(ILogger<FunctionMethodResolver> logger) : IFunctionMethodResolver
+internal static partial class FunctionMethodResolver
 {
     private const string FunctionsWorkerDirectoryKey = "FUNCTIONS_WORKER_DIRECTORY";
     private const string FunctionsApplicationDirectoryKey = "FUNCTIONS_APPLICATION_DIRECTORY";
@@ -21,7 +20,7 @@ internal sealed partial class FunctionMethodResolver(ILogger<FunctionMethodResol
     /// <summary>
     /// Attempts to resolve the method for a function from its metadata.
     /// </summary>
-    public bool TryResolveMethod(IFunctionMetadata functionMetadata, [NotNullWhen(true)] out MethodInfo? method)
+    public static bool TryResolveMethod(IFunctionMetadata functionMetadata, [NotNullWhen(true)] out MethodInfo? method)
     {
         method = null;
 
@@ -39,29 +38,18 @@ internal sealed partial class FunctionMethodResolver(ILogger<FunctionMethodResol
             return false;
         }
 
-        try
-        {
-            var scriptFile = Path.Combine(scriptRoot, functionMetadata.ScriptFile ?? string.Empty);
-            var assemblyPath = Path.GetFullPath(scriptFile);
-            var assembly = AssemblyLoadContext.Default.LoadFromAssemblyPath(assemblyPath);
-            var type = assembly.GetType(typeName);
+        var scriptFile = Path.Combine(scriptRoot, functionMetadata.ScriptFile ?? string.Empty);
+        var assemblyPath = Path.GetFullPath(scriptFile);
+        var assembly = AssemblyLoadContext.Default.LoadFromAssemblyPath(assemblyPath);
+        var type = assembly.GetType(typeName);
 
-            if (type is null)
-            {
-                return false;
-            }
-
-            method = type.GetMethod(methodName);
-            return method is not null;
-        }
-        catch (Exception ex) when (ex is FileNotFoundException or FileLoadException or BadImageFormatException or TypeLoadException)
+        if (type is null)
         {
-            logger.LogWarning(ex,
-                "Failed to resolve method for function '{FunctionName}' (entryPoint: '{EntryPoint}')",
-                functionMetadata.Name,
-                functionMetadata.EntryPoint);
             return false;
         }
+
+        method = type.GetMethod(methodName);
+        return method is not null;
     }
 
     /// <summary>
@@ -73,6 +61,21 @@ internal sealed partial class FunctionMethodResolver(ILogger<FunctionMethodResol
                     ?? Environment.GetEnvironmentVariable(FunctionsWorkerDirectoryKey);
 
         return !string.IsNullOrWhiteSpace(scriptRoot);
+    }
+
+    /// <summary>
+    /// Ensures the script root environment variable is set.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">Thrown when the script root is not configured.</exception>
+    public static void EnsureScriptRoot()
+    {
+        var scriptRoot = Environment.GetEnvironmentVariable(FunctionsApplicationDirectoryKey)
+                        ?? Environment.GetEnvironmentVariable(FunctionsWorkerDirectoryKey);
+
+        if (string.IsNullOrWhiteSpace(scriptRoot))
+        {
+            throw new InvalidOperationException($"The '{FunctionsApplicationDirectoryKey}' environment variable value is not defined. This is a required environment variable that is automatically set by the Azure Functions runtime.");
+        }
     }
 
     [GeneratedRegex(@"^(?<typename>.*)\.(?<methodname>\S*)$")]

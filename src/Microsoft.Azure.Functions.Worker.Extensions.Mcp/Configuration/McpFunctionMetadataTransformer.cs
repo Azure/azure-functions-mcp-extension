@@ -15,7 +15,6 @@ internal sealed class McpFunctionMetadataTransformer(
     IOptionsMonitor<ToolOptions> toolOptionsMonitor,
     IOptionsMonitor<ResourceOptions> resourceOptionsMonitor,
     IEnumerable<IInputSchemaResolver> inputSchemaResolvers,
-    IMetadataParser metadataParser,
     ILogger<McpFunctionMetadataTransformer> logger)
     : IFunctionMetadataTransformer
 {
@@ -57,9 +56,16 @@ internal sealed class McpFunctionMetadataTransformer(
                             TryApplyMetadata(toolName, jsonObject, toolOptionsMonitor);
                         }
 
-                        if (metadataParser.TryGetToolMetadata(function, out var toolMetadataJson))
+                        try
                         {
-                            ApplyOrMergeMetadata(jsonObject, toolMetadataJson, "Tool", toolName);
+                            if (MetadataParser.TryGetToolMetadata(function, out var toolMetadataJson))
+                            {
+                                ApplyOrMergeMetadata(jsonObject, toolMetadataJson, "Tool", toolName);
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            logger.LogWarning(ex, "Failed to resolve tool metadata for function '{FunctionName}'.", function.Name);
                         }
 
                         // Generate input schema for the tool trigger
@@ -77,9 +83,16 @@ internal sealed class McpFunctionMetadataTransformer(
                             TryApplyMetadata(resourceUri, jsonObject, resourceOptionsMonitor);
                         }
 
-                        if (metadataParser.TryGetResourceMetadata(function, out var resourceMetadataJson))
+                        try
                         {
-                            ApplyOrMergeMetadata(jsonObject, resourceMetadataJson, "Resource", resourceUri);
+                            if (MetadataParser.TryGetResourceMetadata(function, out var resourceMetadataJson))
+                            {
+                                ApplyOrMergeMetadata(jsonObject, resourceMetadataJson, "Resource", resourceUri);
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            logger.LogWarning(ex, "Failed to resolve resource metadata for function '{FunctionName}'.", function.Name);
                         }
 
                         function.RawBindings[i] = jsonObject.ToJsonString();
