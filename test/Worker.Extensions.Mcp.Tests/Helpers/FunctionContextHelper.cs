@@ -53,6 +53,19 @@ public static class FunctionContextHelper
         return contextMock.Object;
     }
 
+    public static FunctionContext CreateFunctionContextWithPromptContext(PromptInvocationContext promptContext)
+    {
+        var items = new Dictionary<object, object?>
+        {
+            { Constants.PromptInvocationContextKey, promptContext }
+        };
+
+        var contextMock = new Mock<FunctionContext>();
+        contextMock.SetupGet(c => c.Items).Returns(items!);
+
+        return contextMock.Object;
+    }
+
     public static FunctionContext CreateEmptyFunctionContext()
     {
         var contextMock = new Mock<FunctionContext>();
