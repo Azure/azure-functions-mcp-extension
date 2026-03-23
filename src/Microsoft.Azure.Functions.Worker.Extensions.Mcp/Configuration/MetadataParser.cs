@@ -30,6 +30,14 @@ internal static class MetadataParser
     }
 
     /// <summary>
+    /// Gets prompt metadata JSON from function metadata.
+    /// </summary>
+    public static bool TryGetPromptMetadata(IFunctionMetadata functionMetadata, [NotNullWhen(true)] out string? metadataJson)
+    {
+        return TryGetMetadata<McpPromptTriggerAttribute>(functionMetadata, out metadataJson);
+    }
+
+    /// <summary>
     /// Generic method to extract metadata JSON from function parameters based on trigger attribute type.
     /// </summary>
     public static bool TryGetMetadata<TTriggerAttribute>(
