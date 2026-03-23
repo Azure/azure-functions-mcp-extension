@@ -1,18 +1,18 @@
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Extensions.Mcp;
 using Microsoft.Extensions.Logging;
+using ModelContextProtocol.Protocol;
 
 namespace TestAppIsolated;
 
 public class PromptFunctions(ILogger<PromptFunctions> logger)
 {
     /// <summary>
-    /// A simple prompt that generates a code review message.
-    /// Returns a plain string which the host wraps in a PromptMessage automatically.
-    /// Rich return types (e.g. GetPromptResult) are supported via Worker.Extensions.Mcp.Sdk.
+    /// A prompt that returns a GetPromptResult with structured messages.
+    /// The SDK middleware serializes this into McpPromptResult format for the host.
     /// </summary>
     [Function(nameof(CodeReviewPrompt))]
-    public string CodeReviewPrompt(
+    public GetPromptResult CodeReviewPrompt(
         [McpPromptTrigger(
             "code_review",
             Title = "Code Review",
@@ -26,7 +26,21 @@ public class PromptFunctions(ILogger<PromptFunctions> logger)
         code ??= "// no code provided";
         language ??= "unknown";
 
-        return $"Please review the following {language} code and suggest improvements:\n\n```{language}\n{code}\n```";
+        return new GetPromptResult
+        {
+            Description = $"Code review prompt for {language}",
+            Messages =
+            [
+                new PromptMessage
+                {
+                    Role = Role.User,
+                    Content = new TextContentBlock
+                    {
+                        Text = $"Please review the following {language} code and suggest improvements:\n\n```{language}\n{code}\n```"
+                    }
+                }
+            ]
+        };
     }
 
     /// <summary>

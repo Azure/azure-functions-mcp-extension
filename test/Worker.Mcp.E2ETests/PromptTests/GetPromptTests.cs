@@ -29,6 +29,7 @@ public class GetPromptTests(DefaultProjectFixture fixture, ITestOutputHelper tes
             cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.NotNull(result);
+        Assert.Equal("Code review prompt for python", result.Description);
         Assert.Single(result.Messages);
 
         var message = result.Messages[0];
@@ -37,6 +38,7 @@ public class GetPromptTests(DefaultProjectFixture fixture, ITestOutputHelper tes
         Assert.Contains("def hello(): print('world')", textContent.Text);
         Assert.Contains("python", textContent.Text);
 
+        TestOutputHelper.WriteLine($"Description: {result.Description}");
         TestOutputHelper.WriteLine($"Message: {textContent.Text}");
     }
 
@@ -53,6 +55,7 @@ public class GetPromptTests(DefaultProjectFixture fixture, ITestOutputHelper tes
             cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.NotNull(result);
+        Assert.Equal("Code review prompt for unknown", result.Description);
         Assert.Single(result.Messages);
 
         var textContent = Assert.IsType<TextContentBlock>(result.Messages[0].Content);

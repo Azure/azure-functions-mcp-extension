@@ -23,4 +23,10 @@ internal sealed class McpConstants
         public const string Resource = "resource";
         public const string ResourceLink = "resource_link";
     }
+
+    internal sealed class PromptResultContentTypes
+    {
+        public const string GetPromptResult = "get_prompt_result";
+        public const string PromptMessages = "prompt_messages";
+    }
 }
