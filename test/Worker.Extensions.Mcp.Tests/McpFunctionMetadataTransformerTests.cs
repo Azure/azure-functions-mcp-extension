@@ -289,6 +289,17 @@ public class McpFunctionMetadataTransformerTests
         Assert.Contains("shared", overlapping);
     }
 
+    private static IInputSchemaResolver[] CreateSchemaResolvers(IOptionsMonitor<ToolOptions> toolOptionsMonitor)
+    {
+        var methodResolver = CreateMethodResolver();
+        return
+        [
+            new ExplicitInputSchemaResolver(toolOptionsMonitor),
+            new PropertyBasedInputSchemaResolver(toolOptionsMonitor),
+            new ReflectionBasedInputSchemaResolver(methodResolver, NullLogger<ReflectionBasedInputSchemaResolver>.Instance),
+        ];
+    }
+
     private static McpFunctionMetadataTransformer CreateTransformer(
         IReadOnlyDictionary<string, ToolOptions>? toolOptions = null,
         IReadOnlyDictionary<string, ResourceOptions>? resourceOptions = null)
@@ -310,7 +321,8 @@ public class McpFunctionMetadataTransformerTests
         return new McpFunctionMetadataTransformer(
             toolOptionsMonitor.Object,
             resourceOptionsMonitor.Object,
-            CreateMethodResolver(),
+            CreateSchemaResolvers(toolOptionsMonitor.Object),
+            new MetadataParser(CreateMethodResolver()),
             NullLogger<McpFunctionMetadataTransformer>.Instance);
     }
 

@@ -281,6 +281,101 @@ public class BindingTypeResolverTests
             Assert.Equal("boolean", bindings[2].Value.Binding[Constants.McpToolPropertyType]?.GetValue<string>());
         }
 
+    [Fact]
+    public void ResolveAndApplyTypes_ArrayItemsAsString_DoesNotPatch()
+    {
+        // Arrange - items is a string instead of an object
+        var inputSchema = JsonNode.Parse("""
+            {
+                "type": "object",
+                "properties": {
+                    "tags": {
+                        "type": "array",
+                        "items": "string"
+                    }
+                }
+            }
+            """)!;
+        var binding = CreateToolPropertyBinding("tags");
+
+        // Act
+        BindingTypeResolver.ResolveAndApplyTypes(inputSchema, new[] { binding });
+
+        // Assert - items is not an object, so the type should not be patched
+        Assert.False(binding.Value.Binding.ContainsKey(Constants.McpToolPropertyType));
+    }
+
+    [Fact]
+    public void ResolveAndApplyTypes_ArrayItemsAsArray_DoesNotPatch()
+    {
+        // Arrange - items is an array instead of an object
+        var inputSchema = JsonNode.Parse("""
+            {
+                "type": "object",
+                "properties": {
+                    "tags": {
+                        "type": "array",
+                        "items": ["string", "integer"]
+                    }
+                }
+            }
+            """)!;
+        var binding = CreateToolPropertyBinding("tags");
+
+        // Act
+        BindingTypeResolver.ResolveAndApplyTypes(inputSchema, new[] { binding });
+
+        // Assert - items is not an object, so the type should not be patched
+        Assert.False(binding.Value.Binding.ContainsKey(Constants.McpToolPropertyType));
+    }
+
+    [Fact]
+    public void ResolveAndApplyTypes_ArrayItemsWithEmptyType_DoesNotPatch()
+    {
+        // Arrange - items has an empty type string
+        var inputSchema = JsonNode.Parse("""
+            {
+                "type": "object",
+                "properties": {
+                    "tags": {
+                        "type": "array",
+                        "items": {
+                            "type": ""
+                        }
+                    }
+                }
+            }
+            """)!;
+        var binding = CreateToolPropertyBinding("tags");
+
+        // Act
+        BindingTypeResolver.ResolveAndApplyTypes(inputSchema, new[] { binding });
+
+        // Assert
+        Assert.False(binding.Value.Binding.ContainsKey(Constants.McpToolPropertyType));
+    }
+
+    [Fact]
+    public void ResolveAndApplyTypes_PropertySchemaNotObject_DoesNotPatch()
+    {
+        // Arrange - a property schema is a string value instead of an object
+        var inputSchema = JsonNode.Parse("""
+            {
+                "type": "object",
+                "properties": {
+                    "name": "string"
+                }
+            }
+            """)!;
+        var binding = CreateToolPropertyBinding("name");
+
+        // Act
+        BindingTypeResolver.ResolveAndApplyTypes(inputSchema, new[] { binding });
+
+        // Assert
+        Assert.False(binding.Value.Binding.ContainsKey(Constants.McpToolPropertyType));
+    }
+
     private static JsonNode CreateValidSchema()
     {
         return JsonNode.Parse("""

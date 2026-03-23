@@ -13,20 +13,22 @@ using Moq;
 
 namespace Worker.Extensions.Mcp.Tests;
 
-public class McpUseWorkerInputSchemaTransformerTests
+public class McpInputSchemaTransformerTests
 {
     private const string FunctionsApplicationDirectoryKey = "FUNCTIONS_APPLICATION_DIRECTORY";
 
     private static IFunctionMethodResolver CreateMethodResolver() =>
         new FunctionMethodResolver(NullLogger<FunctionMethodResolver>.Instance);
 
-    private static IInputSchemaResolver CreateSchemaResolver(IOptionsMonitor<ToolOptions> toolOptionsMonitor)
+    private static IInputSchemaResolver[] CreateSchemaResolvers(IOptionsMonitor<ToolOptions> toolOptionsMonitor)
     {
         var methodResolver = CreateMethodResolver();
-        return new CompositeInputSchemaResolver(
+        return
+        [
             new ExplicitInputSchemaResolver(toolOptionsMonitor),
             new PropertyBasedInputSchemaResolver(toolOptionsMonitor),
-            new ReflectionBasedInputSchemaResolver(methodResolver, NullLogger<ReflectionBasedInputSchemaResolver>.Instance));
+            new ReflectionBasedInputSchemaResolver(methodResolver, NullLogger<ReflectionBasedInputSchemaResolver>.Instance),
+        ];
     }
 
     [Fact]
@@ -74,7 +76,7 @@ public class McpUseWorkerInputSchemaTransformerTests
 
         var options = new Mock<IOptionsMonitor<ToolOptions>>();
         options.Setup(o => o.Get(It.IsAny<string>())).Returns(new ToolOptions { Properties = [] });
-        var transformer = new McpUseWorkerInputSchemaTransformer(CreateSchemaResolver(options.Object));
+        var transformer = CreateTransformerWithOptions(options.Object);
 
         var fn = CreateFunctionMetadata(entryPoint, scriptFile, "Func", ["{\"type\":\"mcpToolTrigger\",\"toolName\":\"NoAttributes\"}"]);
 
@@ -108,7 +110,7 @@ public class McpUseWorkerInputSchemaTransformerTests
         var options = new Mock<IOptionsMonitor<ToolOptions>>();
         options.Setup(o => o.Get("MyTool")).Returns(new ToolOptions { Properties = configuredProps });
 
-        var transformer = new McpUseWorkerInputSchemaTransformer(CreateSchemaResolver(options.Object));
+        var transformer = CreateTransformerWithOptions(options.Object);
 
         var fn = CreateFunctionMetadata(
             entryPoint: null,
@@ -145,7 +147,7 @@ public class McpUseWorkerInputSchemaTransformerTests
 
         var options = new Mock<IOptionsMonitor<ToolOptions>>();
         options.Setup(o => o.Get(It.IsAny<string>())).Returns(new ToolOptions { Properties = [] });
-        var transformer = new McpUseWorkerInputSchemaTransformer(CreateSchemaResolver(options.Object));
+        var transformer = CreateTransformerWithOptions(options.Object);
 
         var fn = CreateFunctionMetadata(entryPoint, scriptFile, "Func", ["{\"type\":\"mcpToolTrigger\",\"toolName\":\"WithToolProperty\"}"]);
 
@@ -181,7 +183,7 @@ public class McpUseWorkerInputSchemaTransformerTests
 
         var options = new Mock<IOptionsMonitor<ToolOptions>>();
         options.Setup(o => o.Get(It.IsAny<string>())).Returns(new ToolOptions { Properties = [] });
-        var transformer = new McpUseWorkerInputSchemaTransformer(CreateSchemaResolver(options.Object));
+        var transformer = CreateTransformerWithOptions(options.Object);
 
         var fn = CreateFunctionMetadata(entryPoint, scriptFile, "Func", ["{\"type\":\"mcpToolTrigger\",\"toolName\":\"WithTriggerPoco\"}"]);
 
@@ -205,54 +207,60 @@ public class McpUseWorkerInputSchemaTransformerTests
     }
 
     [Fact]
-    public void Transform_InvalidEntryPoint_ThrowsNotSupportedException()
+    public void Transform_InvalidEntryPoint_DoesNotThrow_LogsWarning()
     {
         var options = new Mock<IOptionsMonitor<ToolOptions>>();
         options.Setup(o => o.Get(It.IsAny<string>())).Returns(new ToolOptions { Properties = [] });
-        var transformer = new McpUseWorkerInputSchemaTransformer(CreateSchemaResolver(options.Object));
+        var transformer = CreateTransformerWithOptions(options.Object);
 
         var fn = CreateFunctionMetadata("BadEntryPoint", "Some.dll", "Func", ["{\"type\":\"mcpToolTrigger\",\"toolName\":\"Bad\"}"]);
         fn.SetupGet(f => f.RawBindings).Returns(["{\"type\":\"mcpToolTrigger\",\"toolName\":\"Bad\"}"]);
 
-        var ex = Assert.Throws<NotSupportedException>(() => transformer.Transform([fn.Object]));
-        Assert.Contains("Bad", ex.Message);
-        Assert.Contains("WithInputSchema", ex.Message);
+        // Should not throw - gracefully handles unresolvable schema
+        transformer.Transform([fn.Object]);
+        var json = JsonNode.Parse(fn.Object.RawBindings![0])!.AsObject();
+        Assert.True(json.ContainsKey("useWorkerInputSchema"));
+        Assert.False(json.ContainsKey("inputSchema"));
     }
 
     [Fact]
-    public void Transform_MethodNotFound_ThrowsNotSupportedException()
+    public void Transform_MethodNotFound_DoesNotThrow_LogsWarning()
     {
         var (entryPoint, scriptFile, outputDir) = GetFunctionMetadataInfo<TestFunctions>("NonExistent");
         Environment.SetEnvironmentVariable(FunctionsApplicationDirectoryKey, outputDir);
 
         var options = new Mock<IOptionsMonitor<ToolOptions>>();
         options.Setup(o => o.Get(It.IsAny<string>())).Returns(new ToolOptions { Properties = [] });
-        var transformer = new McpUseWorkerInputSchemaTransformer(CreateSchemaResolver(options.Object));
+        var transformer = CreateTransformerWithOptions(options.Object);
 
         var fn = CreateFunctionMetadata(entryPoint, scriptFile, "Func", ["{\"type\":\"mcpToolTrigger\",\"toolName\":\"Whatever\"}"]);
 
-        var ex = Assert.Throws<NotSupportedException>(() => transformer.Transform([fn.Object]));
-        Assert.Contains("Whatever", ex.Message);
-        Assert.Contains("WithInputSchema", ex.Message);
+        // Should not throw - gracefully handles unresolvable schema
+        transformer.Transform([fn.Object]);
+        var json = JsonNode.Parse(fn.Object.RawBindings![0])!.AsObject();
+        Assert.True(json.ContainsKey("useWorkerInputSchema"));
+        Assert.False(json.ContainsKey("inputSchema"));
     }
 
     [Fact]
-    public void Transform_TypeNotFound_ThrowsNotSupportedException()
+    public void Transform_TypeNotFound_DoesNotThrow_LogsWarning()
     {
         var (entryPoint, scriptFile, outputDir) = GetFunctionMetadataInfo<TestFunctions>(nameof(TestFunctions.WithToolProperty));
         // Corrupt the type portion
-        entryPoint = entryPoint.Replace(typeof(TestFunctions).FullName!, typeof(McpUseWorkerInputSchemaTransformerTests).FullName! + "Missing");
+        entryPoint = entryPoint.Replace(typeof(TestFunctions).FullName!, typeof(McpInputSchemaTransformerTests).FullName! + "Missing");
         Environment.SetEnvironmentVariable(FunctionsApplicationDirectoryKey, outputDir);
 
         var options = new Mock<IOptionsMonitor<ToolOptions>>();
         options.Setup(o => o.Get(It.IsAny<string>())).Returns(new ToolOptions { Properties = [] });
-        var transformer = new McpUseWorkerInputSchemaTransformer(CreateSchemaResolver(options.Object));
+        var transformer = CreateTransformerWithOptions(options.Object);
 
         var fn = CreateFunctionMetadata(entryPoint, scriptFile, "Func", ["{\"type\":\"mcpToolTrigger\",\"toolName\":\"WithToolProperty\"}"]);
 
-        var ex = Assert.Throws<NotSupportedException>(() => transformer.Transform([fn.Object]));
-        Assert.Contains("WithToolProperty", ex.Message);
-        Assert.Contains("WithInputSchema", ex.Message);
+        // Should not throw - gracefully handles unresolvable schema
+        transformer.Transform([fn.Object]);
+        var json = JsonNode.Parse(fn.Object.RawBindings![0])!.AsObject();
+        Assert.True(json.ContainsKey("useWorkerInputSchema"));
+        Assert.False(json.ContainsKey("inputSchema"));
     }
 
     [Fact]
@@ -263,7 +271,7 @@ public class McpUseWorkerInputSchemaTransformerTests
 
         var options = new Mock<IOptionsMonitor<ToolOptions>>();
         options.Setup(o => o.Get(It.IsAny<string>())).Returns(new ToolOptions { Properties = [] });
-        var transformer = new McpUseWorkerInputSchemaTransformer(CreateSchemaResolver(options.Object));
+        var transformer = CreateTransformerWithOptions(options.Object);
 
         var fn = CreateFunctionMetadata(entryPoint, scriptFile, "Func", ["{\"type\":\"mcpToolTrigger\",\"toolName\":\"WithContextAndPoco\"}"]);
         transformer.Transform([fn.Object]);
@@ -528,7 +536,7 @@ public class McpUseWorkerInputSchemaTransformerTests
     }
 
     [Fact]
-    public void Transform_InputSchemaGeneration_ThrowsOnInvalidFunction()
+    public void Transform_InputSchemaGeneration_DoesNotThrowOnInvalidFunction()
     {
         // Set environment variable to test method resolution failure rather than environment setup failure
         var (entryPoint, scriptFile, outputDir) = GetFunctionMetadataInfo<TestFunctions>(nameof(TestFunctions.WithToolProperty));
@@ -540,10 +548,11 @@ public class McpUseWorkerInputSchemaTransformerTests
         var fn = CreateFunctionMetadata(entryPoint, "NonExistent.dll", "Func",
             new List<string> { "{\"type\":\"mcpToolTrigger\",\"toolName\":\"Invalid\"}" });
 
-        var ex = Assert.Throws<NotSupportedException>(() =>
-            transformer.Transform(new List<IFunctionMetadata> { fn.Object }));
-        Assert.Contains("Invalid", ex.Message);
-        Assert.Contains("WithInputSchema", ex.Message);
+        // Should not throw - gracefully handles unresolvable schema
+        transformer.Transform(new List<IFunctionMetadata> { fn.Object });
+        var json = JsonNode.Parse(fn.Object.RawBindings![0])!.AsObject();
+        Assert.True(json.ContainsKey("useWorkerInputSchema"));
+        Assert.False(json.ContainsKey("inputSchema"));
     }
 
     [Fact]
@@ -558,7 +567,7 @@ public class McpUseWorkerInputSchemaTransformerTests
         var options = new Mock<IOptionsMonitor<ToolOptions>>();
         options.Setup(o => o.Get("MyTool")).Returns(new ToolOptions { Properties = configuredProps });
 
-        var transformer = new McpUseWorkerInputSchemaTransformer(CreateSchemaResolver(options.Object));
+        var transformer = CreateTransformerWithOptions(options.Object);
 
         var bindings = new List<string>
         {
@@ -604,7 +613,7 @@ public class McpUseWorkerInputSchemaTransformerTests
             InputSchema = explicitSchema
         });
 
-        var transformer = new McpUseWorkerInputSchemaTransformer(CreateSchemaResolver(options.Object));
+        var transformer = CreateTransformerWithOptions(options.Object);
 
         var fn = CreateFunctionMetadata(
             entryPoint: null,
@@ -638,7 +647,7 @@ public class McpUseWorkerInputSchemaTransformerTests
             InputSchema = explicitSchema
         });
 
-        var transformer = new McpUseWorkerInputSchemaTransformer(CreateSchemaResolver(options.Object));
+        var transformer = CreateTransformerWithOptions(options.Object);
 
         var fn = CreateFunctionMetadata(
             entryPoint: null,
@@ -672,7 +681,7 @@ public class McpUseWorkerInputSchemaTransformerTests
             InputSchema = explicitSchema
         });
 
-        var transformer = new McpUseWorkerInputSchemaTransformer(CreateSchemaResolver(options.Object));
+        var transformer = CreateTransformerWithOptions(options.Object);
 
         var bindings = new List<string>
         {
@@ -701,12 +710,33 @@ public class McpUseWorkerInputSchemaTransformerTests
         Assert.Equal("integer", countJson["propertyType"]!.GetValue<string>());
     }
 
-    private static McpUseWorkerInputSchemaTransformer CreateTransformer(List<ToolProperty>? configured = null)
+    private static McpFunctionMetadataTransformer CreateTransformer(List<ToolProperty>? configured = null)
     {
         var options = new Mock<IOptionsMonitor<ToolOptions>>();
         options.Setup(o => o.Get(It.IsAny<string>()))
             .Returns(new ToolOptions { Properties = configured ?? [] });
-        return new McpUseWorkerInputSchemaTransformer(CreateSchemaResolver(options.Object));
+        var resourceOptions = new Mock<IOptionsMonitor<ResourceOptions>>();
+        resourceOptions.Setup(o => o.Get(It.IsAny<string>()))
+            .Returns(new ResourceOptions());
+        return new McpFunctionMetadataTransformer(
+            options.Object,
+            resourceOptions.Object,
+            CreateSchemaResolvers(options.Object),
+            new MetadataParser(CreateMethodResolver()),
+            NullLogger<McpFunctionMetadataTransformer>.Instance);
+    }
+
+    private static McpFunctionMetadataTransformer CreateTransformerWithOptions(IOptionsMonitor<ToolOptions> toolOptionsMonitor)
+    {
+        var resourceOptions = new Mock<IOptionsMonitor<ResourceOptions>>();
+        resourceOptions.Setup(o => o.Get(It.IsAny<string>()))
+            .Returns(new ResourceOptions());
+        return new McpFunctionMetadataTransformer(
+            toolOptionsMonitor,
+            resourceOptions.Object,
+            CreateSchemaResolvers(toolOptionsMonitor),
+            new MetadataParser(CreateMethodResolver()),
+            NullLogger<McpFunctionMetadataTransformer>.Instance);
     }
 
     private static Mock<IFunctionMetadata> CreateFunctionMetadata(string? entryPoint, string? scriptFile, string? name, IList<string>? bindings)

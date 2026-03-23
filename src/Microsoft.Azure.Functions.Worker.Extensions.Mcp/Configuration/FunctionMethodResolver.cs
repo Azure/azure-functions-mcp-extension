@@ -75,21 +75,6 @@ internal sealed partial class FunctionMethodResolver(ILogger<FunctionMethodResol
         return !string.IsNullOrWhiteSpace(scriptRoot);
     }
 
-    /// <summary>
-    /// Ensures the script root environment variable is set.
-    /// </summary>
-    /// <exception cref="InvalidOperationException">Thrown when the script root is not configured.</exception>
-    public static void EnsureScriptRoot()
-    {
-        var scriptRoot = Environment.GetEnvironmentVariable(FunctionsApplicationDirectoryKey)
-                        ?? Environment.GetEnvironmentVariable(FunctionsWorkerDirectoryKey);
-
-        if (string.IsNullOrWhiteSpace(scriptRoot))
-        {
-            throw new InvalidOperationException($"The '{FunctionsApplicationDirectoryKey}' environment variable value is not defined. This is a required environment variable that is automatically set by the Azure Functions runtime.");
-        }
-    }
-
     [GeneratedRegex(@"^(?<typename>.*)\.(?<methodname>\S*)$")]
     private static partial Regex GetEntryPointRegex();
 }

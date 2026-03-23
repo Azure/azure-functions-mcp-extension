@@ -6,6 +6,7 @@ using System.Text.Json.Nodes;
 using Microsoft.Azure.Functions.Worker.Core.FunctionMetadata;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using static Microsoft.Azure.Functions.Worker.Extensions.Mcp.Configuration.BindingTypeResolver;
 using static Microsoft.Azure.Functions.Worker.Extensions.Mcp.Constants;
 
 namespace Microsoft.Azure.Functions.Worker.Extensions.Mcp.Configuration;
@@ -13,7 +14,8 @@ namespace Microsoft.Azure.Functions.Worker.Extensions.Mcp.Configuration;
 internal sealed class McpFunctionMetadataTransformer(
     IOptionsMonitor<ToolOptions> toolOptionsMonitor,
     IOptionsMonitor<ResourceOptions> resourceOptionsMonitor,
-    IFunctionMethodResolver functionMethodResolver,
+    IEnumerable<IInputSchemaResolver> inputSchemaResolvers,
+    IMetadataParser metadataParser,
     ILogger<McpFunctionMetadataTransformer> logger)
     : IFunctionMetadataTransformer
 {
@@ -27,6 +29,9 @@ internal sealed class McpFunctionMetadataTransformer(
             {
                 continue;
             }
+
+            JsonNode? inputSchema = null;
+            Dictionary<string, ToolPropertyBinding> inputBindingProperties = [];
 
             for (int i = 0; i < function.RawBindings.Count; i++)
             {
@@ -52,10 +57,13 @@ internal sealed class McpFunctionMetadataTransformer(
                             TryApplyMetadata(toolName, jsonObject, toolOptionsMonitor);
                         }
 
-                        if (MetadataParser.TryGetToolMetadata(function, functionMethodResolver, out var toolMetadataJson))
+                        if (metadataParser.TryGetToolMetadata(function, out var toolMetadataJson))
                         {
                             ApplyOrMergeMetadata(jsonObject, toolMetadataJson, "Tool", toolName);
                         }
+
+                        // Generate input schema for the tool trigger
+                        ProcessToolInputSchema(jsonObject, function, toolName, ref inputSchema);
 
                         function.RawBindings[i] = jsonObject.ToJsonString();
                         break;
@@ -69,15 +77,89 @@ internal sealed class McpFunctionMetadataTransformer(
                             TryApplyMetadata(resourceUri, jsonObject, resourceOptionsMonitor);
                         }
 
-                        if (MetadataParser.TryGetResourceMetadata(function, functionMethodResolver, out var resourceMetadataJson))
+                        if (metadataParser.TryGetResourceMetadata(function, out var resourceMetadataJson))
                         {
                             ApplyOrMergeMetadata(jsonObject, resourceMetadataJson, "Resource", resourceUri);
                         }
 
                         function.RawBindings[i] = jsonObject.ToJsonString();
                         break;
+
+                    case McpToolPropertyBindingType:
+                        if (jsonObject.TryGetPropertyValue(McpToolPropertyName, out var propertyNameNode)
+                            && propertyNameNode is not null)
+                        {
+                            var propertyName = propertyNameNode.ToString();
+                            inputBindingProperties.TryAdd(propertyName, new ToolPropertyBinding(i, jsonObject));
+                        }
+                        break;
                 }
             }
+
+            // Patch input binding metadata with type information from the resolved input schema
+            PatchInputBindingMetadata(function, inputBindingProperties, inputSchema);
+        }
+    }
+
+    private void ProcessToolInputSchema(
+        JsonObject jsonObject,
+        IFunctionMetadata function,
+        string? toolName,
+        ref JsonNode? inputSchema)
+    {
+        jsonObject["useWorkerInputSchema"] = true;
+
+        if (!TryResolveInputSchema(toolName, function, jsonObject, out inputSchema))
+        {
+            logger.LogWarning(
+                "Failed to generate input schema for tool '{ToolName}' in function '{FunctionName}'. " +
+                "You can provide a custom input schema using the fluent API: " +
+                "builder.ConfigureMcpTool(\"{ToolName}\").WithInputSchema(...).",
+                toolName, function.Name, toolName);
+        }
+    }
+
+    private bool TryResolveInputSchema(
+        string? toolName,
+        IFunctionMetadata function,
+        JsonObject jsonObject,
+        out JsonNode? inputSchema)
+    {
+        inputSchema = null;
+
+        if (string.IsNullOrWhiteSpace(toolName))
+        {
+            return false;
+        }
+
+        foreach (var resolver in inputSchemaResolvers)
+        {
+            if (resolver.TryResolve(toolName, function, out inputSchema) && inputSchema is not null)
+            {
+                jsonObject["inputSchema"] = inputSchema.ToJsonString();
+                return true;
+            }
+        }
+
+        inputSchema = null;
+        return false;
+    }
+
+    private static void PatchInputBindingMetadata(
+        IFunctionMetadata function,
+        Dictionary<string, ToolPropertyBinding> inputBindingProperties,
+        JsonNode? inputSchema)
+    {
+        if (inputBindingProperties.Count == 0 || inputSchema is null)
+        {
+            return;
+        }
+
+        ResolveAndApplyTypes(inputSchema, inputBindingProperties);
+
+        foreach (var (_, binding) in inputBindingProperties)
+        {
+            function.RawBindings![binding.Index] = binding.Binding.ToJsonString();
         }
     }
 

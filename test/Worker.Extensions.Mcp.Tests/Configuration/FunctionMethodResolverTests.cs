@@ -128,32 +128,6 @@ public class FunctionMethodResolverTests
     }
 
     [Fact]
-    public void EnsureScriptRoot_NotSet_ThrowsInvalidOperationException()
-    {
-        Environment.SetEnvironmentVariable(FunctionsApplicationDirectoryKey, null);
-        Environment.SetEnvironmentVariable(FunctionsWorkerDirectoryKey, null);
-
-        var ex = Assert.Throws<InvalidOperationException>(() => FunctionMethodResolver.EnsureScriptRoot());
-        Assert.Contains(FunctionsApplicationDirectoryKey, ex.Message);
-    }
-
-    [Fact]
-    public void EnsureScriptRoot_Set_DoesNotThrow()
-    {
-        Environment.SetEnvironmentVariable(FunctionsApplicationDirectoryKey, "/some/path");
-
-        try
-        {
-            var exception = Record.Exception(() => FunctionMethodResolver.EnsureScriptRoot());
-            Assert.Null(exception);
-        }
-        finally
-        {
-            Environment.SetEnvironmentVariable(FunctionsApplicationDirectoryKey, null);
-        }
-    }
-
-    [Fact]
     public void TryResolveMethod_NullEntryPoint_ReturnsFalse()
     {
         var fn = new Mock<IFunctionMetadata>();

@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 using Microsoft.Azure.Functions.Worker.Core.FunctionMetadata;
+using Microsoft.Extensions.Logging;
 using System.Text.Json.Nodes;
 using static Microsoft.Azure.Functions.Worker.Extensions.Mcp.Configuration.BindingTypeResolver;
 using static Microsoft.Azure.Functions.Worker.Extensions.Mcp.Constants;
@@ -9,7 +10,8 @@ using static Microsoft.Azure.Functions.Worker.Extensions.Mcp.Constants;
 namespace Microsoft.Azure.Functions.Worker.Extensions.Mcp.Configuration;
 
 internal sealed class McpUseWorkerInputSchemaTransformer(
-    IInputSchemaResolver inputSchemaResolver)
+    IInputSchemaResolver inputSchemaResolver,
+    ILogger<McpUseWorkerInputSchemaTransformer> logger)
     : IFunctionMetadataTransformer
 {
     public string Name => nameof(McpUseWorkerInputSchemaTransformer);
@@ -77,10 +79,11 @@ internal sealed class McpUseWorkerInputSchemaTransformer(
 
         if (!TryResolveInputSchema(toolName, function, jsonObject, out inputSchema))
         {
-            throw new NotSupportedException(
-                $"Failed to generate input schema for tool '{toolName}' in function '{function.Name}'. " +
-                $"Provide a custom input schema using the fluent API: " +
-                $"builder.ConfigureMcpTool(\"{toolName}\").WithInputSchema(...).");
+            logger.LogWarning(
+                "Failed to generate input schema for tool '{ToolName}' in function '{FunctionName}'. " +
+                "You can provide a custom input schema using the fluent API: " +
+                "builder.ConfigureMcpTool(\"{ToolName}\").WithInputSchema(...).",
+                toolName, function.Name, toolName);
         }
     }
 

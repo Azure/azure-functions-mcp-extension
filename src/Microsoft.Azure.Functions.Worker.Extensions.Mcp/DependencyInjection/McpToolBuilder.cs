@@ -27,7 +27,7 @@ public sealed class McpToolBuilder(IFunctionsWorkerApplicationBuilder builder, s
 
     private ConfigurationMode _mode = ConfigurationMode.None;
 
-    private void EnsureMode(ConfigurationMode requested)
+    private void EnsureSchemaConfigurationMode(ConfigurationMode requested)
     {
         if (_mode != ConfigurationMode.None && _mode != requested)
         {
@@ -45,7 +45,7 @@ public sealed class McpToolBuilder(IFunctionsWorkerApplicationBuilder builder, s
     [EditorBrowsable(EditorBrowsableState.Never)]
     public McpToolBuilder WithProperty(string name, string type, string description, bool required = false)
     {
-        EnsureMode(ConfigurationMode.Property);
+        EnsureSchemaConfigurationMode(ConfigurationMode.Property);
 
         Builder.Services.Configure<ToolOptions>(Name, o => o.AddProperty(name, type, description, required));
 
@@ -68,7 +68,7 @@ public sealed class McpToolBuilder(IFunctionsWorkerApplicationBuilder builder, s
         ArgumentException.ThrowIfNullOrEmpty(name, nameof(name));
         ArgumentNullException.ThrowIfNull(type, nameof(type));
 
-        EnsureMode(ConfigurationMode.Property);
+        EnsureSchemaConfigurationMode(ConfigurationMode.Property);
 
         Builder.Services.Configure<ToolOptions>(Name, o => o.AddProperty(name, type, description, required));
 
@@ -88,7 +88,7 @@ public sealed class McpToolBuilder(IFunctionsWorkerApplicationBuilder builder, s
     {
         ArgumentException.ThrowIfNullOrEmpty(jsonSchema, nameof(jsonSchema));
 
-        EnsureMode(ConfigurationMode.InputSchema);
+        EnsureSchemaConfigurationMode(ConfigurationMode.InputSchema);
 
         var schemaNode = JsonNode.Parse(jsonSchema)
             ?? throw new ArgumentException("The provided JSON schema is not valid JSON.", nameof(jsonSchema));
@@ -114,7 +114,7 @@ public sealed class McpToolBuilder(IFunctionsWorkerApplicationBuilder builder, s
     {
         ArgumentNullException.ThrowIfNull(schemaNode, nameof(schemaNode));
 
-        EnsureMode(ConfigurationMode.InputSchema);
+        EnsureSchemaConfigurationMode(ConfigurationMode.InputSchema);
 
         ValidateInputSchema(schemaNode);
 
@@ -140,9 +140,9 @@ public sealed class McpToolBuilder(IFunctionsWorkerApplicationBuilder builder, s
     {
         ArgumentNullException.ThrowIfNull(type, nameof(type));
 
-        EnsureMode(ConfigurationMode.InputSchema);
+        EnsureSchemaConfigurationMode(ConfigurationMode.InputSchema);
 
-        if (type.IsPrimitive || type == typeof(string) || type.IsEnum || type.IsAbstract)
+        if (type.IsPrimitive || type == typeof(string) || type.IsEnum || type.IsAbstract || type.IsInterface)
         {
             throw new ArgumentException(
                 $"Type '{type.FullName}' is not a valid input schema type. " +
