@@ -26,7 +26,7 @@ internal sealed class McpPromptListener(
 
     public string? Title { get; } = promptTitle;
 
-    public string? Description { get; } = promptDescription;
+    public string? Description { get; set; } = promptDescription;
 
     public IReadOnlyList<PromptArgument>? Arguments { get; } = arguments;
 
@@ -59,6 +59,12 @@ internal sealed class McpPromptListener(
         }
 
         var promptResult = await execution.ResultTask;
-        return promptResult;
+
+        if (promptResult is GetPromptResult getPromptResult)
+        {
+            return getPromptResult;
+        }
+
+        return new GetPromptResult { Messages = [] };
     }
 }
