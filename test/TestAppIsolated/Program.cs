@@ -1,14 +1,25 @@
+// Copyright (c) Microsoft Corporation. All rights reserved.
+// Licensed under the MIT License.
+
 using Microsoft.Azure.Functions.Worker.Builder;
+using Microsoft.Azure.Functions.Worker.Extensions.Mcp;
+using Microsoft.Azure.Functions.Worker.Extensions.Mcp.Configuration;
 using Microsoft.Extensions.Hosting;
 
 var builder = FunctionsApplication.CreateBuilder(args);
 
 builder.ConfigureFunctionsWebApplication();
 
-// Application Insights isn't enabled by default. See https://aka.ms/AAt8mw4.
-// builder.Services
-//     .AddApplicationInsightsTelemetryWorkerService()
-//     .ConfigureFunctionsApplicationInsights();
+builder.ConfigureMcpTool("HelloApp")
+    .AsMcpApp(app => app
+        .WithView("assets/hello-app.html")
+        .WithTitle("Hello App")
+        .WithPermissions(McpAppPermissions.ClipboardWrite | McpAppPermissions.ClipboardRead)
+        .WithCsp(csp =>
+        {
+            csp.AllowBaseUri("https://www.microsoft.com")
+            .ConnectTo("https://www.microsoft.com");
+        }));
 
 builder.ConfigureMcpResource("file://logo.png")
         .WithMetadata("ui", new { prefersBorder = true });

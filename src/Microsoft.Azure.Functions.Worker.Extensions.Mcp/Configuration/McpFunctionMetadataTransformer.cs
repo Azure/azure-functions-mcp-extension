@@ -6,6 +6,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.Azure.Functions.Worker.Core.FunctionMetadata;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using static Microsoft.Azure.Functions.Worker.Extensions.Mcp.Constants;
 
@@ -14,13 +15,17 @@ namespace Microsoft.Azure.Functions.Worker.Extensions.Mcp.Configuration;
 internal sealed class McpFunctionMetadataTransformer(
     IOptionsMonitor<ToolOptions> toolOptionsMonitor,
     IOptionsMonitor<ResourceOptions> resourceOptionsMonitor,
-    ILogger<McpFunctionMetadataTransformer> logger)
+    ILogger<McpFunctionMetadataTransformer>? logger = null)
     : IFunctionMetadataTransformer
 {
+    private readonly ILogger _logger = logger ?? (ILogger)NullLogger.Instance;
+
     public string Name => nameof(McpFunctionMetadataTransformer);
 
     public void Transform(IList<IFunctionMetadata> original)
     {
+        List<DefaultFunctionMetadata>? syntheticFunctions = null;
+
         foreach (var function in original)
         {
             if (function.RawBindings is null || function.Name is null)
@@ -66,6 +71,9 @@ internal sealed class McpFunctionMetadataTransformer(
                             ApplyOrMergeMetadata(jsonObject, toolMetadataJson, "Tool", toolName);
                         }
 
+                        // Merge MCP App UI metadata and emit synthetic resource functions
+                        MergeAppUiMetadata(jsonObject, toolNameNode?.ToString(), ref syntheticFunctions);
+
                         function.RawBindings[i] = jsonObject.ToJsonString();
                         break;
 
@@ -99,6 +107,15 @@ internal sealed class McpFunctionMetadataTransformer(
 
             // This is required for attributed properties/input bindings:
             PatchInputBindingMetadata(function, inputBindingProperties, toolProperties);
+        }
+
+        // Add synthetic functions after iteration to avoid modifying collection during enumeration
+        if (syntheticFunctions is not null)
+        {
+            foreach (var synthetic in syntheticFunctions)
+            {
+                original.Add(synthetic);
+            }
         }
     }
 
@@ -166,11 +183,11 @@ internal sealed class McpFunctionMetadataTransformer(
         if (jsonObject.ContainsKey("metadata"))
         {
             jsonObject["metadata"] = MergeMetadata(jsonObject["metadata"]?.GetValue<string>(), attributedMetadataJson, out var overlappingKeys);
-            logger.LogTrace("{Type} '{Identifier}' has metadata defined using both the fluent API and [McpMetadata] attributes. Metadata from both sources has been merged.", type, identifier);
+            _logger.LogTrace("{Type} '{Identifier}' has metadata defined using both the fluent API and [McpMetadata] attributes. Metadata from both sources has been merged.", type, identifier);
 
             if (overlappingKeys.Count > 0)
             {
-                logger.LogDebug("{Type} '{Identifier}' has overlapping metadata keys: {Keys}. Values from [McpMetadata] attributes will be used.", type, identifier, string.Join(", ", overlappingKeys));
+                _logger.LogDebug("{Type} '{Identifier}' has overlapping metadata keys: {Keys}. Values from [McpMetadata] attributes will be used.", type, identifier, string.Join(", ", overlappingKeys));
             }
         }
         else
@@ -210,4 +227,87 @@ internal sealed class McpFunctionMetadataTransformer(
     }
 
     private record ToolPropertyBinding(int Index, JsonObject Binding);
+
+    private void MergeAppUiMetadata(JsonObject jsonObject, string? toolName, ref List<DefaultFunctionMetadata>? syntheticFunctions)
+    {
+        if (string.IsNullOrWhiteSpace(toolName))
+        {
+            return;
+        }
+
+        var toolOptions = toolOptionsMonitor.Get(toolName);
+
+        if (toolOptions.AppOptions is null)
+        {
+            return;
+        }
+
+        // Build the tool's _meta.ui per the MCP Apps spec (SEP-1865):
+        // Only resourceUri and visibility go on the tool metadata.
+        // CSP, permissions, border, domain go on the resource response.
+        var uiNode = BuildToolUiMetadata(toolName, toolOptions.AppOptions);
+
+        // The binding's "metadata" property becomes `_meta` in the MCP protocol.
+        // We need to merge the "ui" key into the existing metadata JSON (if any),
+        // or create a new metadata JSON with just the "ui" key.
+        JsonObject metaObj;
+
+        if (jsonObject.TryGetPropertyValue("metadata", out var existingMetaNode)
+            && existingMetaNode is not null)
+        {
+            var metaStr = existingMetaNode.GetValue<string>();
+            metaObj = JsonNode.Parse(metaStr) as JsonObject ?? new JsonObject();
+
+            if (metaObj.ContainsKey("ui"))
+            {
+                _logger.LogWarning(
+                    "Tool '{ToolName}' defines _meta.ui via McpMetadataAttribute, but the " +
+                    "fluent API also configures UI metadata. The fluent API configuration " +
+                    "will take precedence.",
+                    toolName);
+            }
+        }
+        else
+        {
+            metaObj = new JsonObject();
+        }
+
+        metaObj["ui"] = uiNode;
+        jsonObject["metadata"] = metaObj.ToJsonString();
+
+        // Emit synthetic resource function for view serving
+        syntheticFunctions ??= [];
+        syntheticFunctions.Add(McpAppFunctionMetadataFactory.CreateViewResourceFunction(toolName));
+    }
+
+    /// <summary>
+    /// Builds the tool's <c>_meta.ui</c> per the MCP Apps spec.
+    /// Contains only <c>resourceUri</c> and <c>visibility</c>.
+    /// </summary>
+    internal static JsonObject BuildToolUiMetadata(string toolName, AppOptions appOptions)
+    {
+        var ui = new JsonObject
+        {
+            ["resourceUri"] = McpAppUtilities.ResourceUri(toolName),
+            ["visibility"] = SerializeVisibility(appOptions.Visibility)
+        };
+
+        return ui;
+    }
+
+    internal static JsonArray SerializeVisibility(McpVisibility visibility)
+    {
+        var array = new JsonArray();
+        if (visibility.HasFlag(McpVisibility.Model))
+        {
+            array.Add("model");
+        }
+
+        if (visibility.HasFlag(McpVisibility.App))
+        {
+            array.Add("app");
+        }
+
+        return array;
+    }
 }
