@@ -17,7 +17,6 @@
 #### Changes
 
 - Added fluent configuration APIs (`ConfigureMcpResource` and `WithMetadata`) to configure MCP tool and resource metadata at startup (#195)
-
     ```csharp
     // Configure MCP resource metadata using the fluent API
     builder
@@ -31,6 +30,7 @@
         .WithProperty("name", McpToolPropertyType.String, "Name of the user", required: true)
         .WithMetadata("ui", new { resourceUri = "ui://index.html" });
     ```
+- Generate the tool input schema in the worker and enable `UseWorkerInputSchema` support (#166)
 
 ### Microsoft.Azure.Functions.Worker.Extensions.Mcp.Sdk <version>
 
