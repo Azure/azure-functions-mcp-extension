@@ -12,7 +12,7 @@ namespace Microsoft.Azure.Functions.Extensions.Mcp.Tests;
 public static class ReadResourceExecutionContextHelper
 {
     internal static ReadResourceExecutionContext CreateExecutionContext(
-        string uri = "test://resource/1",
+        string? uri = "test://resource/1",
         string? sessionId = "session-123",
         Implementation? clientInfo = null,
         IHttpContextAccessor? httpContextAccessor = null)
@@ -21,7 +21,7 @@ public static class ReadResourceExecutionContextHelper
 
         var requestParams = new ReadResourceRequestParams
         {
-            Uri = uri
+            Uri = uri!
         };
 
         var services = new ServiceCollection();

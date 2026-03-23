@@ -265,6 +265,48 @@ public class DefaultResourceRegistryTests
     }
 
     [Fact]
+    public async Task ListResourcesAsync_ExcludesResourceTemplates()
+    {
+        var registry = new DefaultResourceRegistry();
+        registry.Register(CreateTestResource("test://resource/1"));
+        registry.Register(CreateTestResourceTemplate("file://{filename}", name: "TemplateResource"));
+
+        var result = await registry.ListResourcesAsync();
+
+        Assert.Single(result.Resources);
+        Assert.DoesNotContain(result.Resources, r => r.Uri == "file://{filename}");
+    }
+
+    [Fact]
+    public async Task ListResourceTemplatesAsync_ReturnsTemplatesOnly()
+    {
+        var registry = new DefaultResourceRegistry();
+        registry.Register(CreateTestResource("test://resource/1", name: "Static"));
+        registry.Register(CreateTestResourceTemplate("file://{filename}", name: "TemplateResource", description: "Reads files"));
+
+        var result = await registry.ListResourceTemplatesAsync();
+
+        Assert.Single(result.ResourceTemplates);
+        var template = result.ResourceTemplates[0];
+        Assert.Equal("file://{filename}", template.UriTemplate);
+        Assert.Equal("TemplateResource", template.Name);
+        Assert.Equal("Reads files", template.Description);
+    }
+
+    [Fact]
+    public void TryGetResource_MatchesUriTemplate()
+    {
+        var registry = new DefaultResourceRegistry();
+        var template = CreateTestResourceTemplate("file://{filename}", name: "TemplateResource");
+        registry.Register(template);
+
+        var found = registry.TryGetResource("file://welcome.html", out var resource);
+
+        Assert.True(found);
+        Assert.Same(template, resource);
+    }
+
+    [Fact]
     public async Task ListResourcesAsync_WithName_IncludesName()
     {
         var registry = new DefaultResourceRegistry();
@@ -337,6 +379,34 @@ public class DefaultResourceRegistryTests
         Assert.Single(result.Resources);
     }
 
+    [Fact]
+    public void Register_WithStructurallyEquivalentTemplates_ThrowsInvalidOperationException()
+    {
+        var registry = new DefaultResourceRegistry();
+        var template1 = CreateTestResourceTemplate("user://profile/{id}");
+        var template2 = CreateTestResourceTemplate("user://profile/{name}");
+
+        registry.Register(template1);
+
+        var exception = Assert.Throws<InvalidOperationException>(() => registry.Register(template2));
+        Assert.Contains("already registered", exception.Message);
+        Assert.Contains("user://profile/{id}", exception.Message);
+        Assert.Contains("user://profile/{name}", exception.Message);
+    }
+
+    [Fact]
+    public void Register_WithDuplicateTemplateUri_ThrowsInvalidOperationException()
+    {
+        var registry = new DefaultResourceRegistry();
+        var template1 = CreateTestResourceTemplate("file://{filename}");
+        var template2 = CreateTestResourceTemplate("file://{filename}");
+
+        registry.Register(template1);
+
+        var exception = Assert.Throws<InvalidOperationException>(() => registry.Register(template2));
+        Assert.Contains("already registered", exception.Message);
+    }
+
     private static TestResource CreateTestResource(
         string uri,
         string? name = null,
@@ -351,6 +421,25 @@ public class DefaultResourceRegistryTests
             Uri = uri,
             Name = name ?? "TestResource",
             Title = title,
+            MimeType = mimeType,
+            Description = description,
+            Size = size,
+            Metadata = metadata ?? new Dictionary<string, object?>()
+        };
+    }
+
+    private static TestResource CreateTestResourceTemplate(
+        string uriTemplate,
+        string? name = null,
+        string? mimeType = null,
+        string? description = null,
+        long? size = null,
+        IReadOnlyDictionary<string, object?>? metadata = null)
+    {
+        return new TestResource
+        {
+            Uri = uriTemplate,
+            Name = name ?? "TestResourceTemplate",
             MimeType = mimeType,
             Description = description,
             Size = size,

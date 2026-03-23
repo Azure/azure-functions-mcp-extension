@@ -34,4 +34,9 @@ internal interface IResourceRegistry
     /// Lists all registered MCP resources.
     /// </summary>
     ValueTask<ListResourcesResult> ListResourcesAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Lists all registered MCP resource templates.
+    /// </summary>
+    ValueTask<ListResourceTemplatesResult> ListResourceTemplatesAsync(CancellationToken cancellationToken = default);
 }
