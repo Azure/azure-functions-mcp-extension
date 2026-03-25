@@ -28,7 +28,15 @@ internal static class SafePathResolver
         }
 
         // URL-decode to handle %2e%2e and similar encoding attacks
-        var decoded = Uri.UnescapeDataString(requestedPath);
+        string decoded;
+        try
+        {
+            decoded = Uri.UnescapeDataString(requestedPath);
+        }
+        catch (UriFormatException)
+        {
+            return null;
+        }
 
         // Reject null bytes (used in some traversal attacks)
         if (decoded.Contains('\0'))

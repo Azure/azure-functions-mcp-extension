@@ -52,7 +52,7 @@ public sealed class McpToolBuilder(IFunctionsWorkerApplicationBuilder builder, s
     {
         ArgumentNullException.ThrowIfNull(configure);
 
-        builder.Services.Configure<ToolOptions>(toolName, toolOptions =>
+        Builder.Services.Configure<ToolOptions>(toolName, toolOptions =>
         {
             toolOptions.AppOptions ??= new AppOptions();
             var appBuilder = new McpAppBuilder(toolOptions.AppOptions, this);
