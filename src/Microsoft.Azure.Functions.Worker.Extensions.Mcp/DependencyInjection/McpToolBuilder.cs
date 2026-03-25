@@ -42,4 +42,24 @@ public sealed class McpToolBuilder(IFunctionsWorkerApplicationBuilder builder, s
 
         return this;
     }
+
+    /// <summary>
+    /// Configures this tool as an MCP App with a UI view.
+    /// </summary>
+    /// <param name="configure">A delegate to configure the app settings.</param>
+    /// <returns>The tool builder for further chaining.</returns>
+    public McpToolBuilder AsMcpApp(Action<IMcpAppBuilder> configure)
+    {
+        ArgumentNullException.ThrowIfNull(configure);
+
+        Builder.Services.Configure<ToolOptions>(toolName, toolOptions =>
+        {
+            toolOptions.AppOptions ??= new AppOptions();
+            var appBuilder = new McpAppBuilder(toolOptions.AppOptions, this);
+
+            configure(appBuilder);
+        });
+
+        return this;
+    }
 }

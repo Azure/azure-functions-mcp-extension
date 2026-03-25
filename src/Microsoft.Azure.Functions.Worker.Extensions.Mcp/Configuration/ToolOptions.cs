@@ -39,4 +39,9 @@ public class ToolOptions : McpBuilderOptions
     /// Gets or sets the collection of properties that define the characteristics or configuration of the tool.
     /// </summary>
     public required List<ToolProperty> Properties { get; set; } = [];
+
+    /// <summary>
+    /// MCP App configuration for this tool. Null if this tool is not an MCP App.
+    /// </summary>
+    public AppOptions? AppOptions { get; set; }
 }
