@@ -3,6 +3,7 @@ using System.Text.Json.Nodes;
 using Microsoft.Azure.Functions.Worker.Core.FunctionMetadata;
 using Microsoft.Azure.Functions.Worker.Extensions.Mcp;
 using Microsoft.Azure.Functions.Worker.Extensions.Mcp.Configuration;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Moq;
@@ -60,7 +61,7 @@ public class McpFunctionMetadataTransformerTests
             options.Setup(o => o.Get(It.IsAny<string>())).Returns(new ToolOptions { Properties = [] });
             var resourceOptions = new Mock<IOptionsMonitor<ResourceOptions>>();
             resourceOptions.Setup(o => o.Get(It.IsAny<string>())).Returns(new ResourceOptions());
-            var transformer = new McpFunctionMetadataTransformer(options.Object, resourceOptions.Object, NullLogger<McpFunctionMetadataTransformer>.Instance);
+            var transformer = new McpFunctionMetadataTransformer(options.Object, resourceOptions.Object, NullLoggerFactory.Instance);
 
             var fn = CreateFunctionMetadata(entryPoint, scriptFile, "Func", ["{\"type\":\"mcpToolTrigger\",\"toolName\":\"NoAttributes\"}"]);
 
@@ -86,7 +87,7 @@ public class McpFunctionMetadataTransformerTests
         var resourceOptions = new Mock<IOptionsMonitor<ResourceOptions>>();
         resourceOptions.Setup(o => o.Get(It.IsAny<string>())).Returns(new ResourceOptions());
 
-        var transformer = new McpFunctionMetadataTransformer(options.Object, resourceOptions.Object, NullLogger<McpFunctionMetadataTransformer>.Instance);
+        var transformer = new McpFunctionMetadataTransformer(options.Object, resourceOptions.Object, NullLoggerFactory.Instance);
 
         var fn = CreateFunctionMetadata(
             entryPoint: null,
@@ -111,7 +112,7 @@ public class McpFunctionMetadataTransformerTests
             options.Setup(o => o.Get(It.IsAny<string>())).Returns(new ToolOptions { Properties = [] });
             var resourceOptions = new Mock<IOptionsMonitor<ResourceOptions>>();
             resourceOptions.Setup(o => o.Get(It.IsAny<string>())).Returns(new ResourceOptions());
-            var transformer = new McpFunctionMetadataTransformer(options.Object, resourceOptions.Object, NullLogger<McpFunctionMetadataTransformer>.Instance);
+            var transformer = new McpFunctionMetadataTransformer(options.Object, resourceOptions.Object, NullLoggerFactory.Instance);
 
             var fn = CreateFunctionMetadata(entryPoint, scriptFile, "Func", ["{\"type\":\"mcpToolTrigger\",\"toolName\":\"WithToolProperty\"}"]);
 
@@ -132,7 +133,7 @@ public class McpFunctionMetadataTransformerTests
             options.Setup(o => o.Get(It.IsAny<string>())).Returns(new ToolOptions { Properties = [] });
             var resourceOptions = new Mock<IOptionsMonitor<ResourceOptions>>();
             resourceOptions.Setup(o => o.Get(It.IsAny<string>())).Returns(new ResourceOptions());
-            var transformer = new McpFunctionMetadataTransformer(options.Object, resourceOptions.Object, NullLogger<McpFunctionMetadataTransformer>.Instance);
+            var transformer = new McpFunctionMetadataTransformer(options.Object, resourceOptions.Object, NullLoggerFactory.Instance);
 
             var fn = CreateFunctionMetadata(entryPoint, scriptFile, "Func", ["{\"type\":\"mcpToolTrigger\",\"toolName\":\"WithTriggerPoco\"}"]);
 
@@ -150,7 +151,7 @@ public class McpFunctionMetadataTransformerTests
         options.Setup(o => o.Get(It.IsAny<string>())).Returns(new ToolOptions { Properties = [] });
         var resourceOptions = new Mock<IOptionsMonitor<ResourceOptions>>();
         resourceOptions.Setup(o => o.Get(It.IsAny<string>())).Returns(new ResourceOptions());
-        var transformer = new McpFunctionMetadataTransformer(options.Object, resourceOptions.Object, NullLogger<McpFunctionMetadataTransformer>.Instance);
+        var transformer = new McpFunctionMetadataTransformer(options.Object, resourceOptions.Object, NullLoggerFactory.Instance);
 
         var fn = CreateFunctionMetadata("BadEntryPoint", "Some.dll", "Func", ["{\"type\":\"mcpToolTrigger\",\"toolName\":\"Bad\"}"]);
         fn.SetupGet(f => f.RawBindings).Returns(["{\"type\":\"mcpToolTrigger\",\"toolName\":\"Bad\"}"]);
@@ -172,7 +173,7 @@ public class McpFunctionMetadataTransformerTests
             options.Setup(o => o.Get(It.IsAny<string>())).Returns(new ToolOptions { Properties = [] });
             var resourceOptions = new Mock<IOptionsMonitor<ResourceOptions>>();
             resourceOptions.Setup(o => o.Get(It.IsAny<string>())).Returns(new ResourceOptions());
-            var transformer = new McpFunctionMetadataTransformer(options.Object, resourceOptions.Object, NullLogger<McpFunctionMetadataTransformer>.Instance);
+            var transformer = new McpFunctionMetadataTransformer(options.Object, resourceOptions.Object, NullLoggerFactory.Instance);
 
             var fn = CreateFunctionMetadata(entryPoint, scriptFile, "Func", ["{\"type\":\"mcpToolTrigger\",\"toolName\":\"Whatever\"}"]);
             transformer.Transform([fn.Object]);
@@ -193,7 +194,7 @@ public class McpFunctionMetadataTransformerTests
             options.Setup(o => o.Get(It.IsAny<string>())).Returns(new ToolOptions { Properties = [] });
             var resourceOptions = new Mock<IOptionsMonitor<ResourceOptions>>();
             resourceOptions.Setup(o => o.Get(It.IsAny<string>())).Returns(new ResourceOptions());
-            var transformer = new McpFunctionMetadataTransformer(options.Object, resourceOptions.Object, NullLogger<McpFunctionMetadataTransformer>.Instance);
+            var transformer = new McpFunctionMetadataTransformer(options.Object, resourceOptions.Object, NullLoggerFactory.Instance);
 
             var fn = CreateFunctionMetadata(entryPoint, scriptFile, "Func", ["{\"type\":\"mcpToolTrigger\",\"toolName\":\"WithToolProperty\"}"]);
             transformer.Transform([fn.Object]);
@@ -212,7 +213,7 @@ public class McpFunctionMetadataTransformerTests
         options.Setup(o => o.Get(It.IsAny<string>())).Returns(new ToolOptions { Properties = [] });
         var resourceOptions = new Mock<IOptionsMonitor<ResourceOptions>>();
         resourceOptions.Setup(o => o.Get(It.IsAny<string>())).Returns(new ResourceOptions());
-        var transformer = new McpFunctionMetadataTransformer(options.Object, resourceOptions.Object, NullLogger<McpFunctionMetadataTransformer>.Instance);
+        var transformer = new McpFunctionMetadataTransformer(options.Object, resourceOptions.Object, NullLoggerFactory.Instance);
 
         var fn = CreateFunctionMetadata(entryPoint, scriptFile, "Func", ["{\"type\":\"mcpToolTrigger\",\"toolName\":\"WithContextAndPoco\"}"]);
         transformer.Transform([fn.Object]);
@@ -233,7 +234,7 @@ public class McpFunctionMetadataTransformerTests
         var options = new Mock<IOptionsMonitor<ToolOptions>>();
         var resourceOptions = new Mock<IOptionsMonitor<ResourceOptions>>();
         resourceOptions.Setup(o => o.Get(It.IsAny<string>())).Returns(new ResourceOptions());
-        var transformer = new McpFunctionMetadataTransformer(options.Object, resourceOptions.Object, NullLogger<McpFunctionMetadataTransformer>.Instance);
+        var transformer = new McpFunctionMetadataTransformer(options.Object, resourceOptions.Object, NullLoggerFactory.Instance);
 
         var fn = CreateFunctionMetadata(
             entryPoint,
@@ -259,7 +260,7 @@ public class McpFunctionMetadataTransformerTests
         var options = new Mock<IOptionsMonitor<ToolOptions>>();
         var resourceOptions = new Mock<IOptionsMonitor<ResourceOptions>>();
         resourceOptions.Setup(o => o.Get(It.IsAny<string>())).Returns(new ResourceOptions());
-        var transformer = new McpFunctionMetadataTransformer(options.Object, resourceOptions.Object, NullLogger<McpFunctionMetadataTransformer>.Instance);
+        var transformer = new McpFunctionMetadataTransformer(options.Object, resourceOptions.Object, NullLoggerFactory.Instance);
 
         var fn = CreateFunctionMetadata(
             entryPoint,
@@ -284,7 +285,7 @@ public class McpFunctionMetadataTransformerTests
         options.Setup(o => o.Get(It.IsAny<string>())).Returns(new ToolOptions { Properties = [] });
         var resourceOptions = new Mock<IOptionsMonitor<ResourceOptions>>();
         resourceOptions.Setup(o => o.Get(It.IsAny<string>())).Returns(new ResourceOptions());
-        var transformer = new McpFunctionMetadataTransformer(options.Object, resourceOptions.Object, NullLogger<McpFunctionMetadataTransformer>.Instance);
+        var transformer = new McpFunctionMetadataTransformer(options.Object, resourceOptions.Object, NullLoggerFactory.Instance);
 
         var fn = CreateFunctionMetadata(
             entryPoint,
@@ -311,7 +312,7 @@ public class McpFunctionMetadataTransformerTests
         options.Setup(o => o.Get(It.IsAny<string>())).Returns(new ToolOptions { Properties = [] });
         var resourceOptions = new Mock<IOptionsMonitor<ResourceOptions>>();
         resourceOptions.Setup(o => o.Get(It.IsAny<string>())).Returns(new ResourceOptions());
-        var transformer = new McpFunctionMetadataTransformer(options.Object, resourceOptions.Object, NullLogger<McpFunctionMetadataTransformer>.Instance);
+        var transformer = new McpFunctionMetadataTransformer(options.Object, resourceOptions.Object, NullLoggerFactory.Instance);
 
         var fn = CreateFunctionMetadata(
             entryPoint,
@@ -340,7 +341,7 @@ public class McpFunctionMetadataTransformerTests
         options.Setup(o => o.Get("NoAttributes")).Returns(toolOptions);
         var resourceOptions = new Mock<IOptionsMonitor<ResourceOptions>>();
         resourceOptions.Setup(o => o.Get(It.IsAny<string>())).Returns(new ResourceOptions());
-        var transformer = new McpFunctionMetadataTransformer(options.Object, resourceOptions.Object, NullLogger<McpFunctionMetadataTransformer>.Instance);
+        var transformer = new McpFunctionMetadataTransformer(options.Object, resourceOptions.Object, NullLoggerFactory.Instance);
 
         var fn = CreateFunctionMetadata(
             entryPoint,
@@ -372,7 +373,7 @@ public class McpFunctionMetadataTransformerTests
         options.Setup(o => o.Get(It.IsAny<string>())).Returns(new ToolOptions { Properties = [] });
         var resourceOptions = new Mock<IOptionsMonitor<ResourceOptions>>();
         resourceOptions.Setup(o => o.Get("file://test")).Returns(resourceOpts);
-        var transformer = new McpFunctionMetadataTransformer(options.Object, resourceOptions.Object, NullLogger<McpFunctionMetadataTransformer>.Instance);
+        var transformer = new McpFunctionMetadataTransformer(options.Object, resourceOptions.Object, NullLoggerFactory.Instance);
 
         var fn = CreateFunctionMetadata(
             entryPoint,
@@ -402,7 +403,7 @@ public class McpFunctionMetadataTransformerTests
         options.Setup(o => o.Get("WithToolMetadata")).Returns(toolOptions);
         var resourceOptions = new Mock<IOptionsMonitor<ResourceOptions>>();
         resourceOptions.Setup(o => o.Get(It.IsAny<string>())).Returns(new ResourceOptions());
-        var transformer = new McpFunctionMetadataTransformer(options.Object, resourceOptions.Object, NullLogger<McpFunctionMetadataTransformer>.Instance);
+        var transformer = new McpFunctionMetadataTransformer(options.Object, resourceOptions.Object, NullLoggerFactory.Instance);
 
         var fn = CreateFunctionMetadata(
             entryPoint,
@@ -436,7 +437,7 @@ public class McpFunctionMetadataTransformerTests
         options.Setup(o => o.Get(It.IsAny<string>())).Returns(new ToolOptions { Properties = [] });
         var resourceOptions = new Mock<IOptionsMonitor<ResourceOptions>>();
         resourceOptions.Setup(o => o.Get("file://test")).Returns(resourceOpts);
-        var transformer = new McpFunctionMetadataTransformer(options.Object, resourceOptions.Object, NullLogger<McpFunctionMetadataTransformer>.Instance);
+        var transformer = new McpFunctionMetadataTransformer(options.Object, resourceOptions.Object, NullLoggerFactory.Instance);
 
         var fn = CreateFunctionMetadata(
             entryPoint,
@@ -460,7 +461,7 @@ public class McpFunctionMetadataTransformerTests
     [Fact]
     public void MergeMetadata_BothNull_ReturnsEmptyObject()
     {
-        var result = McpFunctionMetadataTransformer.MergeMetadata(null, null, out var overlapping);
+        var result = MetadataMerger.MergeMetadata(null, null, out var overlapping);
         Assert.Equal("{}", result);
         Assert.Empty(overlapping);
     }
@@ -469,7 +470,7 @@ public class McpFunctionMetadataTransformerTests
     public void MergeMetadata_FluentOnly_ReturnsFluent()
     {
         var fluent = """{"key1":"value1"}""";
-        var result = McpFunctionMetadataTransformer.MergeMetadata(fluent, null, out var overlapping);
+        var result = MetadataMerger.MergeMetadata(fluent, null, out var overlapping);
         var node = JsonNode.Parse(result)!.AsObject();
         Assert.Equal("value1", node["key1"]!.GetValue<string>());
         Assert.Empty(overlapping);
@@ -479,7 +480,7 @@ public class McpFunctionMetadataTransformerTests
     public void MergeMetadata_AttributedOnly_ReturnsAttributed()
     {
         var attributed = """{"key1":"value1"}""";
-        var result = McpFunctionMetadataTransformer.MergeMetadata(null, attributed, out var overlapping);
+        var result = MetadataMerger.MergeMetadata(null, attributed, out var overlapping);
         var node = JsonNode.Parse(result)!.AsObject();
         Assert.Equal("value1", node["key1"]!.GetValue<string>());
         Assert.Empty(overlapping);
@@ -490,7 +491,7 @@ public class McpFunctionMetadataTransformerTests
     {
         var fluent = """{"fluentKey":"fluentValue"}""";
         var attributed = """{"attrKey":"attrValue"}""";
-        var result = McpFunctionMetadataTransformer.MergeMetadata(fluent, attributed, out var overlapping);
+        var result = MetadataMerger.MergeMetadata(fluent, attributed, out var overlapping);
         var node = JsonNode.Parse(result)!.AsObject();
         Assert.Equal("fluentValue", node["fluentKey"]!.GetValue<string>());
         Assert.Equal("attrValue", node["attrKey"]!.GetValue<string>());
@@ -502,7 +503,7 @@ public class McpFunctionMetadataTransformerTests
     {
         var fluent = """{"shared":"fromFluent","onlyFluent":"kept"}""";
         var attributed = """{"shared":"fromAttributed","onlyAttr":"also"}""";
-        var result = McpFunctionMetadataTransformer.MergeMetadata(fluent, attributed, out var overlapping);
+        var result = MetadataMerger.MergeMetadata(fluent, attributed, out var overlapping);
         var node = JsonNode.Parse(result)!.AsObject();
         Assert.Equal("fromAttributed", node["shared"]!.GetValue<string>());
         Assert.Equal("kept", node["onlyFluent"]!.GetValue<string>());
@@ -516,7 +517,7 @@ public class McpFunctionMetadataTransformerTests
     {
         var fluent = """{"a":"1","b":"2","c":"3"}""";
         var attributed = """{"a":"x","b":"y"}""";
-        var result = McpFunctionMetadataTransformer.MergeMetadata(fluent, attributed, out var overlapping);
+        var result = MetadataMerger.MergeMetadata(fluent, attributed, out var overlapping);
         var node = JsonNode.Parse(result)!.AsObject();
         Assert.Equal("x", node["a"]!.GetValue<string>());
         Assert.Equal("y", node["b"]!.GetValue<string>());
@@ -533,7 +534,7 @@ public class McpFunctionMetadataTransformerTests
             .Returns(new ToolOptions { Properties = configured ?? [] });
         var resourceOptions = new Mock<IOptionsMonitor<ResourceOptions>>();
         resourceOptions.Setup(o => o.Get(It.IsAny<string>())).Returns(new ResourceOptions());
-        return new McpFunctionMetadataTransformer(options.Object, resourceOptions.Object, NullLogger<McpFunctionMetadataTransformer>.Instance);
+        return new McpFunctionMetadataTransformer(options.Object, resourceOptions.Object, NullLoggerFactory.Instance);
     }
 
     private static Mock<IFunctionMetadata> CreateFunctionMetadata(string? entryPoint, string? scriptFile, string? name, IList<string>? bindings)
