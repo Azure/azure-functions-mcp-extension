@@ -52,6 +52,103 @@ public class McpFunctionMetadataTransformerTests
     }
 
     [Fact]
+    public void Transform_MixedBindings_OnlyMcpBindingsMutated()
+    {
+        var configuredProps = new List<ToolProperty>
+        {
+            new("x", "string", "desc", true)
+        };
+
+        var options = new Mock<IOptionsMonitor<ToolOptions>>();
+        options.Setup(o => o.Get("MyTool")).Returns(new ToolOptions { Properties = configuredProps });
+        var resourceOptions = new Mock<IOptionsMonitor<ResourceOptions>>();
+        resourceOptions.Setup(o => o.Get(It.IsAny<string>())).Returns(new ResourceOptions());
+        var transformer = new McpFunctionMetadataTransformer(options.Object, resourceOptions.Object, NullLoggerFactory.Instance);
+
+        var httpBinding = "{\"type\":\"httpTrigger\",\"direction\":\"in\"}";
+        var mcpBinding = "{\"type\":\"mcpToolTrigger\",\"toolName\":\"MyTool\"}";
+        var queueBinding = "{\"type\":\"queue\",\"queueName\":\"items\"}";
+
+        var fn = CreateFunctionMetadata(
+            entryPoint: null, scriptFile: null, name: "Func",
+            bindings: [httpBinding, mcpBinding, queueBinding]);
+
+        transformer.Transform([fn.Object]);
+
+        // Non-MCP bindings preserved as-is
+        Assert.Equal(httpBinding, fn.Object.RawBindings![0]);
+        Assert.Equal(queueBinding, fn.Object.RawBindings![2]);
+
+        // MCP binding was transformed (toolProperties added)
+        var mcpJson = JsonNode.Parse(fn.Object.RawBindings![1])!.AsObject();
+        Assert.True(mcpJson.ContainsKey("toolProperties"));
+    }
+
+    [Fact]
+    public void Transform_ConfiguredOptions_TakePrecedenceOverAttributes()
+    {
+        var (entryPoint, scriptFile, outputDir) = GetFunctionMetadataInfo<TestFunctions>(nameof(TestFunctions.WithToolProperty));
+        Environment.SetEnvironmentVariable(FunctionsApplicationDirectoryKey, outputDir);
+
+        var configuredProps = new List<ToolProperty>
+        {
+            new("configuredProp", "integer", "from config", false)
+        };
+
+        var options = new Mock<IOptionsMonitor<ToolOptions>>();
+        options.Setup(o => o.Get("WithToolProperty")).Returns(new ToolOptions { Properties = configuredProps });
+        var resourceOptions = new Mock<IOptionsMonitor<ResourceOptions>>();
+        resourceOptions.Setup(o => o.Get(It.IsAny<string>())).Returns(new ResourceOptions());
+        var transformer = new McpFunctionMetadataTransformer(options.Object, resourceOptions.Object, NullLoggerFactory.Instance);
+
+        // This function has [McpToolProperty("name", ...)] on its parameter,
+        // but configured options should win.
+        var fn = CreateFunctionMetadata(entryPoint, scriptFile, "Func",
+            ["{\"type\":\"mcpToolTrigger\",\"toolName\":\"WithToolProperty\"}"]);
+
+        transformer.Transform([fn.Object]);
+        var json = JsonNode.Parse(fn.Object.RawBindings![0])!.AsObject();
+        var tp = json["toolProperties"]!.GetValue<string>();
+
+        Assert.Contains("\"propertyName\":\"configuredProp\"", tp);
+        Assert.DoesNotContain("\"propertyName\":\"name\"", tp);
+    }
+
+    [Fact]
+    public void Transform_PatchPropertyBindings_OnlyMatchingPropertiesPatched()
+    {
+        var configuredProps = new List<ToolProperty>
+        {
+            new("age", "integer", "age desc", true)
+        };
+
+        var options = new Mock<IOptionsMonitor<ToolOptions>>();
+        options.Setup(o => o.Get("MyTool")).Returns(new ToolOptions { Properties = configuredProps });
+        var resourceOptions = new Mock<IOptionsMonitor<ResourceOptions>>();
+        resourceOptions.Setup(o => o.Get(It.IsAny<string>())).Returns(new ResourceOptions());
+        var transformer = new McpFunctionMetadataTransformer(options.Object, resourceOptions.Object, NullLoggerFactory.Instance);
+
+        var fn = CreateFunctionMetadata(
+            entryPoint: null, scriptFile: null, name: "Func",
+            bindings:
+            [
+                "{\"type\":\"mcpToolTrigger\",\"toolName\":\"MyTool\"}",
+                "{\"type\":\"mcpToolProperty\",\"propertyName\":\"age\"}",
+                "{\"type\":\"mcpToolProperty\",\"propertyName\":\"unrelated\"}"
+            ]);
+
+        transformer.Transform([fn.Object]);
+
+        // "age" should be patched with type from resolved properties
+        var ageJson = JsonNode.Parse(fn.Object.RawBindings![1])!.AsObject();
+        Assert.Equal("integer", ageJson["propertyType"]?.ToString());
+
+        // "unrelated" should NOT have propertyType set
+        var unrelatedJson = JsonNode.Parse(fn.Object.RawBindings![2])!.AsObject();
+        Assert.Null(unrelatedJson["propertyType"]);
+    }
+
+    [Fact]
     public void Transform_MatchingBinding_NoToolPropertiesConfiguredAndNoAttributes_FallsBackEmpty()
     {
         var (entryPoint, scriptFile, outputDir) = GetFunctionMetadataInfo<TestFunctions>(nameof(TestFunctions.NoAttributes));
