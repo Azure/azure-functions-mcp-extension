@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 using System.Text.Json;
+using Microsoft.Azure.Functions.Extensions.Mcp.Serialization;
 using ModelContextProtocol.Protocol;
 
 namespace Microsoft.Azure.Functions.Extensions.Mcp.Tests;
@@ -61,7 +62,7 @@ public class PromptReturnValueBinderTests
             ]
         };
 
-        var json = JsonSerializer.Serialize(getPromptResult, ModelContextProtocol.McpJsonUtilities.DefaultOptions);
+        var json = JsonSerializer.Serialize(getPromptResult, McpJsonSerializerOptions.DefaultOptions);
         await binder.SetValueAsync(json, CancellationToken.None);
 
         var result = await executionContext.ResultTask;

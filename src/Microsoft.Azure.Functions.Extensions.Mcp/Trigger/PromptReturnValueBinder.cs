@@ -68,7 +68,7 @@ internal sealed class PromptReturnValueBinder(GetPromptExecutionContext executio
         {
             var deserialized = JsonSerializer.Deserialize<GetPromptResult>(jsonString, McpJsonSerializerOptions.DefaultOptions);
 
-            if (deserialized?.Messages is not null)
+            if (deserialized?.Messages is { Count: > 0 } || deserialized?.Description is not null)
             {
                 result = deserialized;
                 return true;
