@@ -46,19 +46,11 @@ internal sealed class FunctionsMcpAppMiddleware : IFunctionsWorkerMiddleware
             return;
         }
 
-        // Resolve the default view (empty string key)
-        if (!toolOptions.AppOptions.Views.TryGetValue(string.Empty, out var view)
-            || view.Source is null)
+        var view = toolOptions.AppOptions.View;
+        if (view?.Source is null)
         {
-            // Fall back to first available view
-            var firstView = toolOptions.AppOptions.Views.Values.FirstOrDefault();
-            if (firstView?.Source is null)
-            {
-                await next(context);
-                return;
-            }
-
-            view = firstView;
+            await next(context);
+            return;
         }
 
         // Resolve HTML content

@@ -175,7 +175,7 @@ public class AppMetadataSerializationTests
     private static AppOptions CreateMinimalAppOptions()
     {
         var options = new AppOptions();
-        options.Views[string.Empty] = new ViewOptions
+        options.View = new ViewOptions
         {
             Source = McpViewSource.FromFile("app.html")
         };

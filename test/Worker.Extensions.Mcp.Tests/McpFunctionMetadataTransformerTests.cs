@@ -535,7 +535,7 @@ public class McpFunctionMetadataTransformerTests
     {
         var appOptions = new AppOptions();
         appOptions.Visibility = McpVisibility.Model | McpVisibility.App;
-        appOptions.Views[string.Empty] = new ViewOptions
+        appOptions.View = new ViewOptions
         {
             Source = McpViewSource.FromFile("ui/app.html")
         };
@@ -579,7 +579,7 @@ public class McpFunctionMetadataTransformerTests
     public void Transform_ToolWithAppOptions_MergesWithExistingMetadata()
     {
         var appOptions = new AppOptions();
-        appOptions.Views[string.Empty] = new ViewOptions
+        appOptions.View = new ViewOptions
         {
             Source = McpViewSource.FromFile("ui/app.html")
         };
@@ -618,7 +618,7 @@ public class McpFunctionMetadataTransformerTests
     public void Transform_ToolWithAppOptions_EmitsSyntheticResourceFunction()
     {
         var appOptions = new AppOptions();
-        appOptions.Views[string.Empty] = new ViewOptions
+        appOptions.View = new ViewOptions
         {
             Source = McpViewSource.FromFile("ui/app.html")
         };
@@ -658,7 +658,7 @@ public class McpFunctionMetadataTransformerTests
     public void Transform_ToolWithStaticAssets_EmitsSingleResourceFunction()
     {
         var appOptions = new AppOptions();
-        appOptions.Views[string.Empty] = new ViewOptions
+        appOptions.View = new ViewOptions
         {
             Source = McpViewSource.FromFile("ui/app.html")
         };

@@ -63,9 +63,9 @@ public class FunctionsMcpAppMiddlewareTests
     }
 
     [Fact]
-    public async Task Invoke_SyntheticFunction_NoViews_CallsNext()
+    public async Task Invoke_SyntheticFunction_NoView_CallsNext()
     {
-        var appOptions = new AppOptions(); // No views added
+        var appOptions = new AppOptions(); // No view configured
         var middleware = CreateMiddleware("emptyViews", appOptions);
         var context = CreateContext(
             McpAppUtilities.SyntheticFunctionName("emptyViews"),
@@ -82,7 +82,7 @@ public class FunctionsMcpAppMiddlewareTests
     {
         var appOptions = new AppOptions();
 #pragma warning disable MCP001
-        appOptions.Views[string.Empty] = new ViewOptions
+        appOptions.View = new ViewOptions
         {
             Source = McpViewSourceTestExtensions.FromHtml("<html>Hello</html>")
         };
@@ -105,7 +105,7 @@ public class FunctionsMcpAppMiddlewareTests
     {
         var appOptions = new AppOptions();
 #pragma warning disable MCP001
-        appOptions.Views[string.Empty] = new ViewOptions
+        appOptions.View = new ViewOptions
         {
             Source = McpViewSourceTestExtensions.FromHtml("<html><body>Test Content</body></html>")
         };
@@ -136,7 +136,7 @@ public class FunctionsMcpAppMiddlewareTests
     {
         var appOptions = new AppOptions();
 #pragma warning disable MCP001
-        appOptions.Views[string.Empty] = new ViewOptions
+        appOptions.View = new ViewOptions
         {
             Source = McpViewSourceTestExtensions.FromHtml("<html/>")
         };
@@ -162,7 +162,7 @@ public class FunctionsMcpAppMiddlewareTests
     {
         var appOptions = new AppOptions();
 #pragma warning disable MCP001
-        appOptions.Views[string.Empty] = new ViewOptions
+        appOptions.View = new ViewOptions
         {
             Source = McpViewSourceTestExtensions.FromHtml("<html/>"),
             PrefersBorder = true,
@@ -171,7 +171,7 @@ public class FunctionsMcpAppMiddlewareTests
             Csp = new CspOptions()
         };
 #pragma warning restore MCP001
-        appOptions.Views[string.Empty].Csp!.ConnectDomains.Add("https://api.example.com");
+        appOptions.View!.Csp!.ConnectDomains.Add("https://api.example.com");
 
         var middleware = CreateMiddleware("metaApp", appOptions);
         var (context, resultCapture) = CreateContextWithResultCapture(
@@ -201,7 +201,7 @@ public class FunctionsMcpAppMiddlewareTests
     {
         var appOptions = new AppOptions();
 #pragma warning disable MCP001
-        appOptions.Views[string.Empty] = new ViewOptions
+        appOptions.View = new ViewOptions
         {
             Source = McpViewSourceTestExtensions.FromHtml("<html/>")
         };
@@ -220,34 +220,6 @@ public class FunctionsMcpAppMiddlewareTests
         var content = JsonNode.Parse(contentJson)!.AsObject();
 
         Assert.False(content.ContainsKey("_meta"));
-    }
-
-    [Fact]
-    public async Task Invoke_SyntheticFunction_FallsBackToFirstView()
-    {
-        var appOptions = new AppOptions();
-#pragma warning disable MCP001
-        // No default (empty key) view — only a named view
-        appOptions.Views["dashboard"] = new ViewOptions
-        {
-            Source = McpViewSourceTestExtensions.FromHtml("<html>Dashboard</html>")
-        };
-#pragma warning restore MCP001
-
-        var middleware = CreateMiddleware("fallbackApp", appOptions);
-        var (context, resultCapture) = CreateContextWithResultCapture(
-            McpAppUtilities.SyntheticFunctionName("fallbackApp"),
-            includeResourceContext: true);
-
-        await middleware.Invoke(context, _ => Task.CompletedTask);
-
-        var resultJson = resultCapture.Value as string;
-        Assert.NotNull(resultJson);
-
-        var resourceResult = JsonNode.Parse(resultJson!)!.AsObject();
-        var contentJson = resourceResult["content"]!.GetValue<string>();
-        var content = JsonNode.Parse(contentJson)!.AsObject();
-        Assert.Contains("Dashboard", content["text"]!.GetValue<string>());
     }
 
     // --- Helpers ---

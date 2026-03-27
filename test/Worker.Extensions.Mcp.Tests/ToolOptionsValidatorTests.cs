@@ -33,7 +33,7 @@ public class ToolOptionsValidatorTests
         var result = _validator.Validate("myTool", options);
 
         Assert.True(result.Failed);
-        Assert.Contains("no views configured", result.FailureMessage);
+        Assert.Contains("no view configured", result.FailureMessage);
     }
 
     [Fact]
@@ -44,12 +44,12 @@ public class ToolOptionsValidatorTests
             Properties = [],
             AppOptions = new AppOptions()
         };
-        options.AppOptions.Views[string.Empty] = new ViewOptions { Source = null };
+        options.AppOptions.View = new ViewOptions { Source = null };
 
         var result = _validator.Validate("myTool", options);
 
         Assert.True(result.Failed);
-        Assert.Contains("no view source configured", result.FailureMessage);
+        Assert.Contains("no source configured", result.FailureMessage);
     }
 
     [Fact]
@@ -60,7 +60,7 @@ public class ToolOptionsValidatorTests
             Properties = [],
             AppOptions = new AppOptions()
         };
-        options.AppOptions.Views[string.Empty] = new ViewOptions
+        options.AppOptions.View = new ViewOptions
         {
             Source = McpViewSource.FromFile("ui/app.html")
         };
@@ -78,7 +78,7 @@ public class ToolOptionsValidatorTests
             Properties = [],
             AppOptions = new AppOptions()
         };
-        options.AppOptions.Views[string.Empty] = new ViewOptions
+        options.AppOptions.View = new ViewOptions
         {
             Source = McpViewSource.FromEmbeddedResource("res.html", typeof(ToolOptionsValidatorTests).Assembly)
         };
@@ -89,26 +89,6 @@ public class ToolOptionsValidatorTests
     }
 
     [Fact]
-    public void Validate_MultipleViews_OneNullSource_ReturnsFail()
-    {
-        var options = new ToolOptions
-        {
-            Properties = [],
-            AppOptions = new AppOptions()
-        };
-        options.AppOptions.Views[string.Empty] = new ViewOptions
-        {
-            Source = McpViewSource.FromFile("ok.html")
-        };
-        options.AppOptions.Views["broken"] = new ViewOptions { Source = null };
-
-        var result = _validator.Validate("myTool", options);
-
-        Assert.True(result.Failed);
-        Assert.Contains("view 'broken'", result.FailureMessage);
-    }
-
-    [Fact]
     public void Validate_EmptyStaticAssetsDirectory_ReturnsFail()
     {
         var options = new ToolOptions
@@ -116,7 +96,7 @@ public class ToolOptionsValidatorTests
             Properties = [],
             AppOptions = new AppOptions()
         };
-        options.AppOptions.Views[string.Empty] = new ViewOptions
+        options.AppOptions.View = new ViewOptions
         {
             Source = McpViewSource.FromFile("ok.html")
         };
@@ -141,37 +121,5 @@ public class ToolOptionsValidatorTests
 
         Assert.True(result.Failed);
         Assert.Contains("mySpecialTool", result.FailureMessage);
-    }
-
-    [Fact]
-    public void Validate_ErrorMessage_IncludesViewName()
-    {
-        var options = new ToolOptions
-        {
-            Properties = [],
-            AppOptions = new AppOptions()
-        };
-        options.AppOptions.Views["dashboard"] = new ViewOptions { Source = null };
-
-        var result = _validator.Validate("myTool", options);
-
-        Assert.True(result.Failed);
-        Assert.Contains("view 'dashboard'", result.FailureMessage);
-    }
-
-    [Fact]
-    public void Validate_DefaultView_NullSource_ShowsDefaultViewName()
-    {
-        var options = new ToolOptions
-        {
-            Properties = [],
-            AppOptions = new AppOptions()
-        };
-        options.AppOptions.Views[string.Empty] = new ViewOptions { Source = null };
-
-        var result = _validator.Validate("myTool", options);
-
-        Assert.True(result.Failed);
-        Assert.Contains("the default view", result.FailureMessage);
     }
 }
