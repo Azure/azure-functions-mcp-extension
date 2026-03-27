@@ -21,36 +21,17 @@ internal sealed class McpAppBuilder : IMcpAppBuilder
     {
         ArgumentNullException.ThrowIfNull(source);
 
-        return WithViewInternal(string.Empty, source);
-    }
-
-    public IMcpViewBuilder WithView(string viewName, McpViewSource source)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(viewName);
-        ArgumentNullException.ThrowIfNull(source);
-
-        return WithViewInternal(viewName, source);
+        var viewOptions = new ViewOptions { Source = source };
+        _appOptions.View = viewOptions;
+        return new McpViewBuilder(viewOptions, this, _toolBuilder);
     }
 
     public IMcpViewBuilder WithView(string filePath)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
 
-        return WithViewInternal(string.Empty, McpViewSource.FromFile(filePath));
-    }
-
-    public IMcpViewBuilder WithView(string viewName, string filePath)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(viewName);
-        ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
-
-        return WithViewInternal(viewName, McpViewSource.FromFile(filePath));
-    }
-
-    private IMcpViewBuilder WithViewInternal(string viewName, McpViewSource source)
-    {
-        var viewOptions = new ViewOptions { Source = source };
-        _appOptions.Views[viewName] = viewOptions;
+        var viewOptions = new ViewOptions { Source = McpViewSource.FromFile(filePath) };
+        _appOptions.View = viewOptions;
         return new McpViewBuilder(viewOptions, this, _toolBuilder);
     }
 

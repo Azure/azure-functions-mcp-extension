@@ -40,22 +40,8 @@ public class McpAppBuilderTests
 
         var options = GetToolOptions(services, "test");
         Assert.NotNull(options.AppOptions);
-        Assert.True(options.AppOptions!.Views.ContainsKey(string.Empty));
-        var source = options.AppOptions.Views[string.Empty].Source;
-        var fileSource = Assert.IsType<FileViewSource>(source);
-        Assert.Equal("ui/app.html", fileSource.Path);
-    }
-
-    [Fact]
-    public void WithView_NamedFilePathShorthand_SetsFileViewSource()
-    {
-        var builder = CreateBuilder("test", out var services);
-
-        builder.AsMcpApp(app => app.WithView("main", "ui/app.html"));
-
-        var options = GetToolOptions(services, "test");
-        Assert.True(options.AppOptions!.Views.ContainsKey("main"));
-        var source = options.AppOptions.Views["main"].Source;
+        Assert.True(options.AppOptions!.View is not null);
+        var source = options.AppOptions.View!.Source;
         var fileSource = Assert.IsType<FileViewSource>(source);
         Assert.Equal("ui/app.html", fileSource.Path);
     }
@@ -68,7 +54,7 @@ public class McpAppBuilderTests
         builder.AsMcpApp(app => app.WithView(McpViewSource.FromFile("ui/app.html")));
 
         var options = GetToolOptions(services, "test");
-        var source = options.AppOptions!.Views[string.Empty].Source;
+        var source = options.AppOptions!.View!.Source;
         var fileSource = Assert.IsType<FileViewSource>(source);
         Assert.Equal("ui/app.html", fileSource.Path);
     }
@@ -82,26 +68,10 @@ public class McpAppBuilderTests
         builder.AsMcpApp(app => app.WithView(McpViewSource.FromEmbeddedResource("res.html", asm)));
 
         var options = GetToolOptions(services, "test");
-        var source = options.AppOptions!.Views[string.Empty].Source;
+        var source = options.AppOptions!.View!.Source;
         var embeddedSource = Assert.IsType<EmbeddedViewSource>(source);
         Assert.Equal("res.html", embeddedSource.ResourceName);
         Assert.Same(asm, embeddedSource.Assembly);
-    }
-
-    [Fact]
-    public void WithView_SameName_Overwrites()
-    {
-        var builder = CreateBuilder("test", out var services);
-
-        builder.AsMcpApp(app => app
-            .WithView("v1", "a.html")
-            .ConfigureApp()
-            .WithView("v1", "b.html"));
-
-        var options = GetToolOptions(services, "test");
-        Assert.Single(options.AppOptions!.Views);
-        var fileSource = Assert.IsType<FileViewSource>(options.AppOptions.Views["v1"].Source);
-        Assert.Equal("b.html", fileSource.Path);
     }
 
     [Fact]
@@ -136,7 +106,7 @@ public class McpAppBuilderTests
             .WithTitle("My App"));
 
         var options = GetToolOptions(services, "test");
-        Assert.Equal("My App", options.AppOptions!.Views[string.Empty].Title);
+        Assert.Equal("My App", options.AppOptions!.View!.Title);
     }
 
     [Fact]
@@ -149,7 +119,7 @@ public class McpAppBuilderTests
             .WithBorder());
 
         var options = GetToolOptions(services, "test");
-        Assert.True(options.AppOptions!.Views[string.Empty].PrefersBorder);
+        Assert.True(options.AppOptions!.View!.PrefersBorder);
     }
 
     [Fact]
@@ -162,7 +132,7 @@ public class McpAppBuilderTests
             .WithBorder(false));
 
         var options = GetToolOptions(services, "test");
-        Assert.False(options.AppOptions!.Views[string.Empty].PrefersBorder);
+        Assert.False(options.AppOptions!.View!.PrefersBorder);
     }
 
     [Fact]
@@ -176,7 +146,7 @@ public class McpAppBuilderTests
             .WithCsp(csp => csp.ConnectTo("b.com")));
 
         var options = GetToolOptions(services, "test");
-        var csp = options.AppOptions!.Views[string.Empty].Csp;
+        var csp = options.AppOptions!.View!.Csp;
         Assert.NotNull(csp);
         Assert.Contains("a.com", csp!.ConnectDomains);
         Assert.Contains("b.com", csp.ConnectDomains);
@@ -226,24 +196,6 @@ public class McpAppBuilderTests
     }
 
     [Fact]
-    public void ConfigureApp_ReturnsAppBuilder_ForMultiViewChaining()
-    {
-        var builder = CreateBuilder("test", out var services);
-
-        builder.AsMcpApp(app => app
-            .WithView("a.html")
-            .WithTitle("A")
-            .ConfigureApp()
-            .WithView("second", "b.html")
-            .WithTitle("B"));
-
-        var options = GetToolOptions(services, "test");
-        Assert.Equal(2, options.AppOptions!.Views.Count);
-        Assert.Equal("A", options.AppOptions.Views[string.Empty].Title);
-        Assert.Equal("B", options.AppOptions.Views["second"].Title);
-    }
-
-    [Fact]
     public void ConfigureTool_ReturnsToolBuilder()
     {
         var builder = CreateBuilder("test", out var services);
@@ -270,7 +222,7 @@ public class McpAppBuilderTests
             .WithPermissions(McpAppPermissions.ClipboardRead | McpAppPermissions.ClipboardWrite));
 
         var options = GetToolOptions(services, "test");
-        var permissions = options.AppOptions!.Views[string.Empty].Permissions;
+        var permissions = options.AppOptions!.View!.Permissions;
         Assert.Equal(McpAppPermissions.ClipboardRead | McpAppPermissions.ClipboardWrite, permissions);
     }
 
@@ -284,20 +236,7 @@ public class McpAppBuilderTests
             .WithDomain("myapp.example.com"));
 
         var options = GetToolOptions(services, "test");
-        Assert.Equal("myapp.example.com", options.AppOptions!.Views[string.Empty].Domain);
-    }
-
-    [Fact]
-    public void AsMcpApp_Idempotent_ReusesAppOptions()
-    {
-        var builder = CreateBuilder("test", out var services);
-
-        builder
-            .AsMcpApp(app => app.WithView("a.html"))
-            .AsMcpApp(app => app.WithView("second", "b.html"));
-
-        var options = GetToolOptions(services, "test");
-        Assert.Equal(2, options.AppOptions!.Views.Count);
+        Assert.Equal("myapp.example.com", options.AppOptions!.View!.Domain);
     }
 
     [Fact]
@@ -317,7 +256,7 @@ public class McpAppBuilderTests
 
         builder
             .AsMcpApp(app => app
-                .WithView("main", McpViewSource.FromFile("ui/dist/main.html"))
+                .WithView(McpViewSource.FromFile("ui/dist/main.html"))
                 .WithTitle("Dashboard")
                 .WithBorder()
                 .WithDomain("myapp.example.com")
@@ -326,18 +265,14 @@ public class McpAppBuilderTests
                     .LoadResourcesFrom("https://cdn.example.com"))
                 .WithPermissions(McpAppPermissions.ClipboardRead | McpAppPermissions.ClipboardWrite)
                 .ConfigureApp()
-                .WithView("settings", "ui/dist/settings.html")
-                .WithTitle("Settings")
-                .ConfigureApp()
                 .WithStaticAssets("ui/dist", o => o.IncludeSourceMaps = false)
                 .WithVisibility(McpVisibility.Model | McpVisibility.App))
             .WithProperty("dataset", McpToolPropertyType.String, "The dataset");
 
         var options = GetToolOptions(services, "full_tool");
         Assert.NotNull(options.AppOptions);
-        Assert.Equal(2, options.AppOptions!.Views.Count);
 
-        var mainView = options.AppOptions.Views["main"];
+        var mainView = options.AppOptions!.View!;
         Assert.Equal("Dashboard", mainView.Title);
         Assert.True(mainView.PrefersBorder);
         Assert.Equal("myapp.example.com", mainView.Domain);
@@ -345,9 +280,6 @@ public class McpAppBuilderTests
         Assert.Contains("https://api.example.com", mainView.Csp!.ConnectDomains);
         Assert.Contains("https://cdn.example.com", mainView.Csp.ResourceDomains);
         Assert.Equal(McpAppPermissions.ClipboardRead | McpAppPermissions.ClipboardWrite, mainView.Permissions);
-
-        var settingsView = options.AppOptions.Views["settings"];
-        Assert.Equal("Settings", settingsView.Title);
 
         Assert.Equal("ui/dist", options.AppOptions.StaticAssetsDirectory);
         Assert.False(options.AppOptions.StaticAssets?.IncludeSourceMaps);

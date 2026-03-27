@@ -9,10 +9,9 @@ namespace Microsoft.Azure.Functions.Worker.Extensions.Mcp.Configuration;
 public class AppOptions
 {
     /// <summary>
-    /// Views registered for this MCP App. Keyed by view name.
-    /// The default unnamed view uses <see cref="string.Empty"/> as its key.
+    /// The view configuration for this MCP App. Null if no view has been configured.
     /// </summary>
-    public Dictionary<string, ViewOptions> Views { get; } = new();
+    public ViewOptions? View { get; set; }
 
     /// <summary>
     /// Directory from which static assets are served. Null if not configured.
