@@ -1,3 +1,4 @@
+using System.Text.Json.Nodes;
 using Microsoft.Azure.Functions.Worker.Extensions.Mcp;
 using Microsoft.Azure.Functions.Worker.Extensions.Mcp.Configuration;
 using Microsoft.Azure.Functions.Worker.Extensions.Mcp.Configuration.Builders.Steps;
@@ -14,10 +15,8 @@ public class PatchPropertyBindingsExtensionTests
             "{\"type\":\"mcpToolTrigger\",\"toolName\":\"Tool\"}",
             "{\"type\":\"mcpToolProperty\",\"propertyName\":\"age\"}");
 
-        builder.Context.ResolvedToolProperties =
-        [
-            new ToolProperty("age", "integer", "age desc", true)
-        ];
+        builder.Context.ResolvedInputSchema = JsonNode.Parse(
+            """{"type":"object","properties":{"age":{"type":"integer","description":"age desc"}},"required":["age"]}""");
 
         builder.PatchPropertyBindings();
 
@@ -31,10 +30,8 @@ public class PatchPropertyBindingsExtensionTests
             "{\"type\":\"mcpToolTrigger\",\"toolName\":\"Tool\"}",
             "{\"type\":\"mcpToolProperty\",\"propertyName\":\"unrelated\"}");
 
-        builder.Context.ResolvedToolProperties =
-        [
-            new ToolProperty("age", "integer", "age desc", true)
-        ];
+        builder.Context.ResolvedInputSchema = JsonNode.Parse(
+            """{"type":"object","properties":{"age":{"type":"integer","description":"age desc"}},"required":["age"]}""");
 
         builder.PatchPropertyBindings();
 
@@ -42,7 +39,7 @@ public class PatchPropertyBindingsExtensionTests
     }
 
     [Fact]
-    public void PatchPropertyBindings_NoResolvedProperties_Noop()
+    public void PatchPropertyBindings_NoResolvedSchema_Noop()
     {
         var builder = CreateBuilder("{\"type\":\"mcpToolProperty\",\"propertyName\":\"name\"}");
 
@@ -52,10 +49,11 @@ public class PatchPropertyBindingsExtensionTests
     }
 
     [Fact]
-    public void PatchPropertyBindings_EmptyResolvedProperties_Noop()
+    public void PatchPropertyBindings_EmptySchemaProperties_Noop()
     {
         var builder = CreateBuilder("{\"type\":\"mcpToolProperty\",\"propertyName\":\"name\"}");
-        builder.Context.ResolvedToolProperties = [];
+        builder.Context.ResolvedInputSchema = JsonNode.Parse(
+            """{"type":"object","properties":{},"required":[]}""");
 
         builder.PatchPropertyBindings();
 
@@ -71,11 +69,8 @@ public class PatchPropertyBindingsExtensionTests
             "{\"type\":\"mcpToolProperty\",\"propertyName\":\"age\"}",
             "{\"type\":\"mcpToolProperty\",\"propertyName\":\"unknown\"}");
 
-        builder.Context.ResolvedToolProperties =
-        [
-            new ToolProperty("name", "string", "name desc", true),
-            new ToolProperty("age", "integer", "age desc", false)
-        ];
+        builder.Context.ResolvedInputSchema = JsonNode.Parse(
+            """{"type":"object","properties":{"name":{"type":"string","description":"name desc"},"age":{"type":"integer","description":"age desc"}},"required":["name"]}""");
 
         builder.PatchPropertyBindings();
 
@@ -91,11 +86,8 @@ public class PatchPropertyBindingsExtensionTests
             "{\"type\":\"mcpToolTrigger\",\"toolName\":\"Tool\"}",
             "{\"type\":\"mcpToolProperty\",\"propertyName\":\"name\"}");
 
-        builder.Context.ResolvedToolProperties =
-        [
-            new ToolProperty("name", "string", "name desc", true),
-            new ToolProperty("Tool", "string", "should not match trigger", false)
-        ];
+        builder.Context.ResolvedInputSchema = JsonNode.Parse(
+            """{"type":"object","properties":{"name":{"type":"string","description":"name desc"},"Tool":{"type":"string","description":"should not match"}},"required":["name"]}""");
 
         builder.PatchPropertyBindings();
 

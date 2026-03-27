@@ -6,7 +6,7 @@ using static Microsoft.Azure.Functions.Worker.Extensions.Mcp.Constants;
 namespace Microsoft.Azure.Functions.Worker.Extensions.Mcp.Configuration.Builders.Steps;
 
 /// <summary>
-/// Patches mcpToolProperty bindings with type information from resolved tool properties.
+/// Patches mcpToolProperty bindings with type information from the resolved input schema.
 /// </summary>
 internal static class PatchPropertyBindingsExtension
 {
@@ -14,7 +14,7 @@ internal static class PatchPropertyBindingsExtension
     {
         var context = builder.Context;
 
-        if (context.ResolvedToolProperties is null || context.ResolvedToolProperties.Count == 0)
+        if (context.ResolvedInputSchema is null)
         {
             return builder;
         }
@@ -32,13 +32,7 @@ internal static class PatchPropertyBindingsExtension
 
         if (propertyBindings is not null)
         {
-            foreach (var property in context.ResolvedToolProperties)
-            {
-                if (propertyBindings.TryGetValue(property.Name, out var binding))
-                {
-                    binding.JsonObject[McpToolPropertyType] = property.Type;
-                }
-            }
+            BindingTypeResolver.ResolveAndApplyTypes(context.ResolvedInputSchema, propertyBindings);
         }
 
         return builder;

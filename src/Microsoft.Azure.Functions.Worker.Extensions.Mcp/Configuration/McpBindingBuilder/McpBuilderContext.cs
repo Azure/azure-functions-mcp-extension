@@ -1,13 +1,14 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
+using System.Text.Json.Nodes;
 using Microsoft.Azure.Functions.Worker.Core.FunctionMetadata;
 using Microsoft.Extensions.Logging;
 
 namespace Microsoft.Azure.Functions.Worker.Extensions.Mcp.Configuration.Builders;
 
 /// <summary>
-/// Shared context passed to each <see cref="IBindingTransformStep"/>.
+/// Shared context passed to each builder step.
 /// Holds the parsed bindings, function metadata, and cross-step shared state.
 /// </summary>
 internal sealed class McpBuilderContext
@@ -26,8 +27,8 @@ internal sealed class McpBuilderContext
     public ILogger Logger { get; }
 
     /// <summary>
-    /// Tool properties resolved by <see cref="AddToolPropertiesStep"/>,
-    /// consumed by <see cref="PatchPropertyBindingsStep"/>.
+    /// Input schema resolved by <see cref="Steps.AddInputSchemaExtension"/>,
+    /// consumed by <see cref="Steps.PatchPropertyBindingsExtension"/>.
     /// </summary>
-    public List<ToolProperty>? ResolvedToolProperties { get; set; }
+    public JsonNode? ResolvedInputSchema { get; set; }
 }
