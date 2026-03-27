@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.Azure.Functions.Worker.Core.FunctionMetadata;
 using Microsoft.Azure.Functions.Worker.Extensions.Mcp;
@@ -79,9 +80,11 @@ public class McpFunctionMetadataTransformerTests
         Assert.Equal(httpBinding, fn.Object.RawBindings![0]);
         Assert.Equal(queueBinding, fn.Object.RawBindings![2]);
 
-        // MCP binding was transformed (toolProperties added)
+        // MCP binding was transformed (input schema added)
         var mcpJson = JsonNode.Parse(fn.Object.RawBindings![1])!.AsObject();
-        Assert.True(mcpJson.ContainsKey("toolProperties"));
+        Assert.True(mcpJson.ContainsKey("useWorkerInputSchema"));
+        Assert.True(mcpJson["useWorkerInputSchema"]!.GetValue<bool>());
+        Assert.True(mcpJson.ContainsKey("inputSchema"));
     }
 
     [Fact]
@@ -102,16 +105,21 @@ public class McpFunctionMetadataTransformerTests
         var transformer = new McpFunctionMetadataTransformer(options.Object, resourceOptions.Object, NullLoggerFactory.Instance);
 
         // This function has [McpToolProperty("name", ...)] on its parameter,
-        // but configured options should win.
+        // but configured property-based options should win over reflection.
         var fn = CreateFunctionMetadata(entryPoint, scriptFile, "Func",
             ["{\"type\":\"mcpToolTrigger\",\"toolName\":\"WithToolProperty\"}"]);
 
         transformer.Transform([fn.Object]);
         var json = JsonNode.Parse(fn.Object.RawBindings![0])!.AsObject();
-        var tp = json["toolProperties"]!.GetValue<string>();
+        Assert.True(json.ContainsKey("inputSchema"));
+        var inputSchemaString = json["inputSchema"]!.GetValue<string>();
+        var schemaDoc = JsonDocument.Parse(inputSchemaString);
+        var properties = schemaDoc.RootElement.GetProperty("properties");
 
-        Assert.Contains("\"propertyName\":\"configuredProp\"", tp);
-        Assert.DoesNotContain("\"propertyName\":\"name\"", tp);
+        // Property-based schema should have "configuredProp" from configured options
+        Assert.True(properties.TryGetProperty("configuredProp", out _));
+        // Should NOT have "name" from reflection-based attribute
+        Assert.False(properties.TryGetProperty("name", out _));
     }
 
     [Fact]
@@ -149,7 +157,7 @@ public class McpFunctionMetadataTransformerTests
     }
 
     [Fact]
-    public void Transform_MatchingBinding_NoToolPropertiesConfiguredAndNoAttributes_FallsBackEmpty()
+    public void Transform_MatchingBinding_NoToolPropertiesConfiguredAndNoAttributes_HasInputSchemaWithNoProperties()
     {
         var (entryPoint, scriptFile, outputDir) = GetFunctionMetadataInfo<TestFunctions>(nameof(TestFunctions.NoAttributes));
         Environment.SetEnvironmentVariable(FunctionsApplicationDirectoryKey, outputDir);
@@ -166,9 +174,16 @@ public class McpFunctionMetadataTransformerTests
 
             var binding = fn.Object.RawBindings![0];
             var json = JsonNode.Parse(binding)!.AsObject();
-            var tp = json["toolProperties"]!.GetValue<string>();
 
-            Assert.Equal("[]", tp);
+            Assert.True(json.ContainsKey("useWorkerInputSchema"));
+            Assert.True(json["useWorkerInputSchema"]!.GetValue<bool>());
+
+            // Reflection-based schema for NoAttributes should produce an input schema with no properties
+            Assert.True(json.ContainsKey("inputSchema"));
+            var inputSchemaString = json["inputSchema"]!.GetValue<string>();
+            var schemaDoc = JsonDocument.Parse(inputSchemaString);
+            var properties = schemaDoc.RootElement.GetProperty("properties");
+            Assert.Empty(properties.EnumerateObject());
     }
 
     [Fact]
@@ -194,9 +209,12 @@ public class McpFunctionMetadataTransformerTests
 
         transformer.Transform([fn.Object]);
         var json = JsonNode.Parse(fn.Object.RawBindings![0])!.AsObject();
-        var tp = json["toolProperties"]!.GetValue<string>();
+        Assert.True(json.ContainsKey("inputSchema"));
+        var inputSchemaString = json["inputSchema"]!.GetValue<string>();
+        var schemaDoc = JsonDocument.Parse(inputSchemaString);
+        var properties = schemaDoc.RootElement.GetProperty("properties");
 
-        Assert.Contains("\"propertyName\":\"x\"", tp);
+        Assert.True(properties.TryGetProperty("x", out _));
     }
 
     [Fact]
@@ -215,9 +233,18 @@ public class McpFunctionMetadataTransformerTests
 
             transformer.Transform([fn.Object]);
             var json = JsonNode.Parse(fn.Object.RawBindings![0])!.AsObject();
-            var tp = json["toolProperties"]!.GetValue<string>();
+            Assert.True(json.ContainsKey("inputSchema"));
+            var inputSchemaString = json["inputSchema"]!.GetValue<string>();
+            var schemaDoc = JsonDocument.Parse(inputSchemaString);
+            var schema = schemaDoc.RootElement;
+            var properties = schema.GetProperty("properties");
 
-            Assert.Equal("[{\"propertyName\":\"name\",\"propertyType\":\"string\",\"description\":\"Name value\",\"isRequired\":true,\"isArray\":false,\"enumValues\":[]}]", tp);
+            Assert.True(properties.TryGetProperty("name", out var nameProp));
+            Assert.Equal("string", nameProp.GetProperty("type").GetString());
+            Assert.Equal("Name value", nameProp.GetProperty("description").GetString());
+
+            var required = schema.GetProperty("required").EnumerateArray().Select(e => e.GetString()).ToArray();
+            Assert.Contains("name", required);
     }
 
     [Fact]
@@ -236,9 +263,12 @@ public class McpFunctionMetadataTransformerTests
 
             transformer.Transform([fn.Object]);
             var json = JsonNode.Parse(fn.Object.RawBindings![0])!.AsObject();
-            var tp = json["toolProperties"]!.GetValue<string>();
-            Assert.Contains("\"propertyName\":\"Content\"", tp);
-            Assert.Contains("\"propertyName\":\"Title\"", tp);
+            Assert.True(json.ContainsKey("inputSchema"));
+            var inputSchemaString = json["inputSchema"]!.GetValue<string>();
+            var schemaDoc = JsonDocument.Parse(inputSchemaString);
+            var properties = schemaDoc.RootElement.GetProperty("properties");
+            Assert.True(properties.TryGetProperty("Content", out _));
+            Assert.True(properties.TryGetProperty("Title", out _));
         }
 
     [Fact]
@@ -257,7 +287,9 @@ public class McpFunctionMetadataTransformerTests
         var binding = fn.Object.RawBindings![0];
         var json = JsonNode.Parse(binding)!.AsObject();
 
-        Assert.False(json.ContainsKey("toolProperties"));
+        // useWorkerInputSchema is always set, but inputSchema is not when reflection fails
+        Assert.True(json.ContainsKey("useWorkerInputSchema"));
+        Assert.False(json.ContainsKey("inputSchema"));
     }
 
     [Fact]
@@ -276,7 +308,8 @@ public class McpFunctionMetadataTransformerTests
             transformer.Transform([fn.Object]);
             var json = JsonNode.Parse(fn.Object.RawBindings![0])!.AsObject();
 
-            Assert.False(json.ContainsKey("toolProperties"));
+            Assert.True(json.ContainsKey("useWorkerInputSchema"));
+            Assert.False(json.ContainsKey("inputSchema"));
         }
 
     [Fact]
@@ -297,7 +330,8 @@ public class McpFunctionMetadataTransformerTests
             transformer.Transform([fn.Object]);
             var json = JsonNode.Parse(fn.Object.RawBindings![0])!.AsObject();
 
-            Assert.False(json.ContainsKey("toolProperties"));
+            Assert.True(json.ContainsKey("useWorkerInputSchema"));
+            Assert.False(json.ContainsKey("inputSchema"));
         }
 
     [Fact]
@@ -315,11 +349,14 @@ public class McpFunctionMetadataTransformerTests
         var fn = CreateFunctionMetadata(entryPoint, scriptFile, "Func", ["{\"type\":\"mcpToolTrigger\",\"toolName\":\"WithContextAndPoco\"}"]);
         transformer.Transform([fn.Object]);
         var json = JsonNode.Parse(fn.Object.RawBindings![0])!.AsObject();
-        var tp = json["toolProperties"]!.GetValue<string>();
+        Assert.True(json.ContainsKey("inputSchema"));
+        var inputSchemaString = json["inputSchema"]!.GetValue<string>();
+        var schemaDoc = JsonDocument.Parse(inputSchemaString);
+        var properties = schemaDoc.RootElement.GetProperty("properties");
 
         // Should have only the property from the POCO, not the context parameter
-        Assert.DoesNotContain("mcptoolcontext", tp, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("\"propertyName\":\"Name\"", tp);
+        Assert.False(properties.TryGetProperty("context", out _));
+        Assert.True(properties.TryGetProperty("Name", out _));
     }
 
     [Fact]

@@ -36,7 +36,7 @@ internal sealed class McpFunctionMetadataTransformer(
             }
 
             builder
-                .AddToolProperties(toolOptionsMonitor)
+                .AddInputSchema(toolOptionsMonitor)
                 .AddMetadata(toolOptionsMonitor, resourceOptionsMonitor)
                 .PatchPropertyBindings()
                 .Build();
