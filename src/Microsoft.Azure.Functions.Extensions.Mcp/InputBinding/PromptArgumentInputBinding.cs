@@ -25,6 +25,12 @@ public class PromptArgumentInputBinding(McpPromptArgumentAttribute attribute) : 
             value = argValue.ToString();
         }
 
+        if (attribute.IsRequired && value is null)
+        {
+            throw new InvalidOperationException(
+                $"Required prompt argument '{attribute.ArgumentName}' was not provided.");
+        }
+
         IValueProvider valueProvider = new PromptArgumentValueProvider(value);
         return Task.FromResult(valueProvider);
     }

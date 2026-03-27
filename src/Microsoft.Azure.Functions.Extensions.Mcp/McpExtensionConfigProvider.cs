@@ -40,6 +40,9 @@ internal sealed class McpExtensionConfigProvider(IToolRegistry toolRegistry, IRe
         context.AddBindingRule<McpPromptTriggerAttribute>()
             .BindToTrigger(new McpPromptTriggerBindingProvider(promptRegistry, loggerFactory));
 
+        context.AddBindingRule<McpPromptArgumentAttribute>()
+            .Bind(new McpPromptArgumentBindingProvider());
+
         context.AddBindingRule<McpToolPropertyAttribute>()
             .Bind(new McpToolPropertyBindingProvider());
 
