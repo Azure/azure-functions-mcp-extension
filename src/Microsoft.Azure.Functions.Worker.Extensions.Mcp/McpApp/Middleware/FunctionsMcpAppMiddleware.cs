@@ -15,7 +15,7 @@ namespace Microsoft.Azure.Functions.Worker.Extensions.Mcp;
 /// with the appropriate <c>_meta.ui</c> metadata (CSP, permissions, border, domain).
 /// Must be registered after <see cref="FunctionsMcpContextMiddleware"/> in the pipeline.
 /// </summary>
-internal class FunctionsMcpAppMiddleware : IFunctionsWorkerMiddleware
+internal sealed class FunctionsMcpAppMiddleware : IFunctionsWorkerMiddleware
 {
     private readonly IOptionsMonitor<ToolOptions> _optionsMonitor;
     private readonly ILogger<FunctionsMcpAppMiddleware> _logger;

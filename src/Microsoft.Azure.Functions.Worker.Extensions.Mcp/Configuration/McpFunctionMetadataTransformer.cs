@@ -6,7 +6,6 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.Azure.Functions.Worker.Core.FunctionMetadata;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using static Microsoft.Azure.Functions.Worker.Extensions.Mcp.Constants;
 
@@ -15,10 +14,10 @@ namespace Microsoft.Azure.Functions.Worker.Extensions.Mcp.Configuration;
 internal sealed class McpFunctionMetadataTransformer(
     IOptionsMonitor<ToolOptions> toolOptionsMonitor,
     IOptionsMonitor<ResourceOptions> resourceOptionsMonitor,
-    ILogger<McpFunctionMetadataTransformer>? logger = null)
+    ILogger<McpFunctionMetadataTransformer> logger)
     : IFunctionMetadataTransformer
 {
-    private readonly ILogger _logger = logger ?? (ILogger)NullLogger.Instance;
+    private readonly ILogger _logger = logger;
 
     public string Name => nameof(McpFunctionMetadataTransformer);
 
@@ -278,6 +277,7 @@ internal sealed class McpFunctionMetadataTransformer(
         // Emit synthetic resource function for view serving
         syntheticFunctions ??= [];
         syntheticFunctions.Add(McpAppFunctionMetadataFactory.CreateViewResourceFunction(toolName));
+        _logger.LogDebug("Added synthetic MCP App resource function for tool '{ToolName}'.", toolName);
     }
 
     /// <summary>

@@ -30,7 +30,7 @@ internal static class McpAppFunctionMetadataFactory
             Language = "dotnet-isolated",
             RawBindings =
             [
-                $"{{\"name\":\"context\",\"type\":\"mcpResourceTrigger\",\"direction\":\"In\",\"uri\":\"{resourceUri}\",\"resourceName\":\"{toolName}_view\",\"mimeType\":\"{AppMimeType}\"}}"
+                $$"""{"name":"context","type":"mcpResourceTrigger","direction":"In","uri":"{{resourceUri}}","resourceName":"{{toolName}}_view","mimeType":"{{AppMimeType}}"}"""
             ],
             EntryPoint = McpAppFunctions.ServeViewEntryPoint,
             ScriptFile = McpAppFunctions.ScriptFile,
