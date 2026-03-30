@@ -5,6 +5,7 @@ using Microsoft.Azure.Functions.Worker.Mcp.E2ETests.Fixtures;
 using Microsoft.Azure.Functions.Worker.Mcp.E2ETests.ProtocolTests;
 using ModelContextProtocol.Protocol;
 using System.Globalization;
+using System.Text;
 using ModelContextProtocol;
 
 namespace Microsoft.Azure.Functions.Worker.Mcp.E2ETests.ToolTests;
@@ -213,7 +214,7 @@ public class CallToolTests(DefaultProjectFixture fixture, ITestOutputHelper test
 
         Assert.Contains(result.Content, block => block is ImageContentBlock imageBlock
             && imageBlock.MimeType == "image/jpeg"
-            && imageBlock.Data.StartsWith(data.Substring(0, 20)));
+            && Encoding.UTF8.GetString(imageBlock.Data.Span).StartsWith(data.Substring(0, 20)));
     }
 
     [Fact]
@@ -240,7 +241,7 @@ public class CallToolTests(DefaultProjectFixture fixture, ITestOutputHelper test
 
         Assert.Contains(result.Content, block => block is TextContentBlock textBlock && textBlock.Text == "Here is an image for you!");
         Assert.Contains(result.Content, block => block is ResourceLinkBlock linkBlock && linkBlock.Uri == "https://www.google.com/");
-        Assert.Contains(result.Content, block => block is ImageContentBlock imageBlock && imageBlock.MimeType == "image/jpeg" && imageBlock.Data.StartsWith(data.Substring(0, 20)));
+        Assert.Contains(result.Content, block => block is ImageContentBlock imageBlock && imageBlock.MimeType == "image/jpeg" && Encoding.UTF8.GetString(imageBlock.Data.Span).StartsWith(data.Substring(0, 20)));
     }
 
     [Fact]

@@ -1,8 +1,8 @@
 using System.Collections;
 using System.ComponentModel;
 using System.Globalization;
+using System.Text;
 using System.Text.Json;
-using System.Text.Json.Nodes;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Extensions.Mcp;
 using Microsoft.Extensions.Logging;
@@ -62,7 +62,7 @@ public class TestFunction
         {
             new TextContentBlock { Text = "Here is an image for you!" },
             new ResourceLinkBlock { Name = "example", Uri = "https://www.google.com/", Description = "Image Information" },
-            new ImageContentBlock { Data = data, MimeType = mimeType ?? "image/jpeg" }
+            new ImageContentBlock { Data = Encoding.UTF8.GetBytes(data), MimeType = mimeType ?? "image/jpeg" }
         };
     }
 
@@ -72,7 +72,7 @@ public class TestFunction
         [McpToolProperty(nameof(data), "Base64-encoded image data", true)] string data,
         [McpToolProperty(nameof(mimeType), "Mime type", false)] string? mimeType)
     {
-        return new ImageContentBlock { Data = data, MimeType = mimeType ?? "image/jpeg" };
+        return new ImageContentBlock { Data = Encoding.UTF8.GetBytes(data), MimeType = mimeType ?? "image/jpeg" };
     }
 
     [Function(nameof(BirthdayTracker))]
@@ -156,10 +156,10 @@ public class TestFunction
             { 
                 // REQUIRED: TextContent block with serialized structured content (for backwards compatibility)
                 new TextContentBlock { Text = metadataJson },
-                new ImageContentBlock { Data = Convert.ToBase64String(imageBytes), MimeType = "image/png" }
+                new ImageContentBlock { Data = Encoding.UTF8.GetBytes(Convert.ToBase64String(imageBytes)), MimeType = "image/png" }
             },
             // Structured content for clients that support it
-            StructuredContent = JsonNode.Parse(metadataJson)
+            StructuredContent = JsonSerializer.Deserialize<JsonElement>(metadataJson)
         };
     }
 
