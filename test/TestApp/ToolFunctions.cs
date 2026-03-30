@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation. All rights reserved.
+// Licensed under the MIT License.
+
 using Microsoft.Azure.Functions.Extensions.Mcp;
 using Microsoft.Azure.WebJobs;
 using ModelContextProtocol.Protocol;
