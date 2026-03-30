@@ -78,9 +78,9 @@ internal sealed class StreamableHttpRequestHandler(
             bool responseWritten;
             if (message is JsonRpcRequest { Method: SemanticConventions.Methods.Initialize })
             {
-                var transportContext = McpActivitySource.CaptureCurrentContext();
+                var transportContext = McpInstrumentation.CaptureCurrentContext();
                 var requestContext = McpRequestTraceContext.FromHttpContext(context, sessionId: null);
-                using var scope = McpActivitySource.CreateSessionActivity(transportContext, requestContext);
+                using var scope = McpInstrumentation.CreateSessionActivity(transportContext, requestContext);
                 try
                 {
                     responseWritten = await session.Transport.HandlePostRequestAsync(message, context.Response.Body, context.RequestAborted);
@@ -89,7 +89,14 @@ internal sealed class StreamableHttpRequestHandler(
                 }
                 catch (Exception ex)
                 {
-                    scope.Activity?.SetExceptionStatus(ex);
+                    try
+                    {
+                        scope.Activity?.SetExceptionStatus(ex);
+                    }
+                    catch
+                    {
+                    }
+
                     throw;
                 }
             }
@@ -116,29 +123,30 @@ internal sealed class StreamableHttpRequestHandler(
         }
     }
 
-    private async Task HandleDeleteRequestAsync(HttpContext context)
+    private Task HandleDeleteRequestAsync(HttpContext context)
     {
         var encryptedSessionId = context.Request.Headers[McpSessionIdHeaderName].ToString();
 
         if (string.IsNullOrEmpty(encryptedSessionId))
         {
             context.Response.StatusCode = StatusCodes.Status400BadRequest;
-            return;
+            return Task.CompletedTask;
         }
 
         if (!ClientStateManager.TryParseUriState(encryptedSessionId, out var clientId, out _, mcpOptions.Value.EncryptClientState))
         {
             context.Response.StatusCode = StatusCodes.Status400BadRequest;
-            return;
+            return Task.CompletedTask;
         }
 
-        var transportContext = McpActivitySource.CaptureCurrentContext();
+        var transportContext = McpInstrumentation.CaptureCurrentContext();
         var requestContext = McpRequestTraceContext.FromHttpContext(context, clientId);
-        using var scope = McpActivitySource.CreateSessionEndActivity(transportContext, requestContext);
+        using var scope = McpInstrumentation.CreateSessionEndActivity(transportContext, requestContext);
 
         // Stateless sessions are disposed per-request, so there is no server-side
         // session state to clean up. Acknowledge the termination with 204.
         context.Response.StatusCode = StatusCodes.Status204NoContent;
+        return Task.CompletedTask;
     }
 
     private async Task<bool> PostHasValidMediaTypesAsync(HttpContext context)

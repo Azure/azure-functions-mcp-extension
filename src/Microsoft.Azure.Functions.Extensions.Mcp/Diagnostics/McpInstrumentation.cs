@@ -6,10 +6,10 @@ using System.Diagnostics;
 namespace Microsoft.Azure.Functions.Extensions.Mcp.Diagnostics;
 
 /// <summary>
-/// Central source for creating and managing Activity instances for MCP operations,
+/// Central instrumentation class for creating and managing Activity instances for MCP operations,
 /// following OpenTelemetry semantic conventions.
 /// </summary>
-internal static class McpActivitySource
+internal static class McpInstrumentation
 {
     private static readonly ActivitySource _source = new(
         McpDiagnosticsConstants.ActivitySourceName,
@@ -53,6 +53,19 @@ internal static class McpActivitySource
             transportContext,
             a => ConfigureSessionEndActivity(a, requestContext));
 
+    /// <summary>
+    /// Records a session-end span without throwing. Safe to call from exception handlers
+    /// where a telemetry failure must not replace or suppress the original control flow.
+    /// </summary>
+    public static void RecordSessionEnd(ActivityContext? transportContext, McpRequestTraceContext requestContext = default)
+    {
+        try
+        {
+            using var scope = CreateSessionEndActivity(transportContext, requestContext);
+        }
+        catch { }
+    }
+
     private static McpActivityScope StartServerActivity(
         string name,
         ActivityContext? parentContext,
@@ -86,10 +99,11 @@ internal static class McpActivitySource
             }
             catch
             {
-                // configure threw — clean up the started activity and restore context.
+                // Telemetry configuration failed — discard the span silently.
+                // A diagnostic failure must never affect request handling.
                 activity.Dispose();
                 Activity.Current = previous;
-                throw;
+                return new McpActivityScope(null, previous);
             }
         }
         else
@@ -180,7 +194,7 @@ internal readonly struct McpActivityScope : IDisposable
         }
         finally
         {
-            System.Diagnostics.Activity.Current = _previous;
+            Activity.Current = _previous;
         }
     }
 }

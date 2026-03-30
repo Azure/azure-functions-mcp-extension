@@ -90,10 +90,8 @@ internal sealed class SseRequestHandler(
         }
         catch (OperationCanceledException) when (context.RequestAborted.IsCancellationRequested)
         {
-            var transportContext = McpActivitySource.CaptureCurrentContext();
-            var requestContext = McpRequestTraceContext.FromHttpContext(context, clientId);
-            using var scope = McpActivitySource.CreateSessionEndActivity(transportContext, requestContext);
-            // Normal client disconnect behavior — span marks the session end.
+            // Normal client disconnect — record the session-end span.
+            McpInstrumentation.RecordSessionEnd(McpInstrumentation.CaptureCurrentContext(), McpRequestTraceContext.FromHttpContext(context, clientId));
         }
     }
 
@@ -125,16 +123,21 @@ internal sealed class SseRequestHandler(
         {
             if (message is JsonRpcRequest { Method: SemanticConventions.Methods.Initialize })
             {
-                var transportContext = McpActivitySource.CaptureCurrentContext();
+                var transportContext = McpInstrumentation.CaptureCurrentContext();
                 var requestContext = McpRequestTraceContext.FromHttpContext(context, clientId);
-                using var scope = McpActivitySource.CreateSessionActivity(transportContext, requestContext);
+                using var scope = McpInstrumentation.CreateSessionActivity(transportContext, requestContext);
                 try
                 {
                     await result.Session.HandleMessageAsync(message, context.RequestAborted);
                 }
                 catch (Exception ex)
                 {
-                    scope.Activity?.SetExceptionStatus(ex);
+                    try
+                    {
+                        scope.Activity?.SetExceptionStatus(ex);
+                    }
+                    catch { }
+
                     throw;
                 }
             }
