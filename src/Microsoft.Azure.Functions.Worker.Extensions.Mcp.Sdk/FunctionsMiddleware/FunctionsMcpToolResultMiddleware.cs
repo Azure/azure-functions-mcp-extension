@@ -68,7 +68,7 @@ internal class FunctionsMcpToolResultMiddleware : IFunctionsWorkerMiddleware
                 // Don't process CallToolResult - just serialize as-is
                 type = Constants.CallToolResultType;
                 content = JsonSerializer.Serialize(callToolResult, McpJsonUtilities.DefaultOptions);
-                structuredContent = callToolResult.StructuredContent?.ToJsonString();
+                structuredContent = callToolResult.StructuredContent?.GetRawText();
                 break;
 
             case ContentBlock block:
