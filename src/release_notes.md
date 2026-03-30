@@ -6,6 +6,7 @@
 
 ### Microsoft.Azure.Functions.Extensions <version>
 
+- Upgraded ModelContextProtocol SDK dependency from `0.4.0-preview.3` to `1.2.0`
 - Fixed typo in JSON property name `sessionId` on `Transport` class (#206)
 - Add support for resource templates (#200)
 
@@ -35,4 +36,9 @@
 
 ### Microsoft.Azure.Functions.Worker.Extensions.Mcp.Sdk <version>
 
-- <entry>
+#### Breaking Changes
+
+- Upgraded ModelContextProtocol SDK dependency from `0.4.0-preview.3` to `1.2.0`. This surfaces the following upstream breaking changes to user code:
+  - `ImageContentBlock.Data` and `AudioContentBlock.Data` changed from `string` to `ReadOnlyMemory<byte>`. Use `Encoding.UTF8.GetBytes(base64String)` when setting Data.
+  - `BlobResourceContents.Blob` changed from `string` to `ReadOnlyMemory<byte>`. Use `BlobResourceContents.FromBytes(rawBytes, uri, mimeType)` factory method for construction.
+  - `CallToolResult.StructuredContent` changed from `JsonNode?` to `JsonElement?`. Use `JsonSerializer.Deserialize<JsonElement>(json)` instead of `JsonNode.Parse(json)`.
