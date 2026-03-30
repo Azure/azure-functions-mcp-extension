@@ -178,7 +178,7 @@ public class CallToolTests(DefaultProjectFixture fixture, ITestOutputHelper test
 
         Assert.Contains(result.Content, block => block is TextContentBlock textBlock && textBlock.Text == "Here is an image for you!");
         Assert.Contains(result.Content, block => block is ResourceLinkBlock linkBlock && linkBlock.Uri == "https://www.example.com/");
-        Assert.Contains(result.Content, block => block is ImageContentBlock imageBlock && imageBlock.MimeType == "image/jpeg");
+        Assert.Contains(result.Content, block => block is ImageContentBlock imageBlock && imageBlock.MimeType == "image/jpeg" && Encoding.UTF8.GetString(imageBlock.Data.Span).StartsWith(data.Substring(0, 20)));
     }
 
     [Fact]
