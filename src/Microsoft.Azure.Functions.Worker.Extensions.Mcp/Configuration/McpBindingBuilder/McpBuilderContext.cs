@@ -7,8 +7,8 @@ using Microsoft.Extensions.Logging;
 namespace Microsoft.Azure.Functions.Worker.Extensions.Mcp.Configuration.Builders;
 
 /// <summary>
-/// Shared context passed to each <see cref="IBindingTransformStep"/>.
-/// Holds the parsed bindings, function metadata, and cross-step shared state.
+/// Shared context passed between MCP binding-builder extension methods.
+/// Holds the parsed bindings, function metadata, logger, and shared state used across the transformation pipeline.
 /// </summary>
 internal sealed class McpBuilderContext
 {
@@ -26,8 +26,8 @@ internal sealed class McpBuilderContext
     public ILogger Logger { get; }
 
     /// <summary>
-    /// Tool properties resolved by <see cref="AddToolPropertiesStep"/>,
-    /// consumed by <see cref="PatchPropertyBindingsStep"/>.
+    /// Tool properties resolved by <see cref="AddToolPropertiesExtension"/>,
+    /// consumed by <see cref="PatchPropertyBindingsExtension"/>.
     /// </summary>
     public List<ToolProperty>? ResolvedToolProperties { get; set; }
 }
