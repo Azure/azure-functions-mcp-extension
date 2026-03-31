@@ -3,6 +3,7 @@
 
 using Microsoft.Azure.Functions.Worker.Mcp.E2ETests.Fixtures;
 using Microsoft.Azure.Functions.Worker.Mcp.E2ETests.ProtocolTests;
+using ModelContextProtocol;
 using ModelContextProtocol.Client;
 using ModelContextProtocol.Protocol;
 
@@ -44,21 +45,14 @@ public class GetPromptTests(DefaultProjectFixture fixture, ITestOutputHelper tes
     [InlineData(HttpTransportMode.Sse)]
     [InlineData(HttpTransportMode.AutoDetect)]
     [InlineData(HttpTransportMode.StreamableHttp)]
-    public async Task GetPrompt_CodeReview_WithoutArguments_UsesDefaults(HttpTransportMode mode)
+    public async Task GetPrompt_CodeReview_WithoutRequiredArguments_ThrowsError(HttpTransportMode mode)
     {
         var client = await Fixture.CreateClientAsync(mode);
 
-        var result = await client.GetPromptAsync(
-            "code_review",
-            cancellationToken: TestContext.Current.CancellationToken);
-
-        Assert.NotNull(result);
-        Assert.Single(result.Messages);
-
-        var textContent = Assert.IsType<TextContentBlock>(result.Messages[0].Content);
-        Assert.Contains("// no code provided", textContent.Text);
-
-        TestOutputHelper.WriteLine($"Default result: {textContent.Text}");
+        await Assert.ThrowsAsync<McpProtocolException>(async () =>
+            await client.GetPromptAsync(
+                "code_review",
+                cancellationToken: TestContext.Current.CancellationToken));
     }
 
     [Theory]
