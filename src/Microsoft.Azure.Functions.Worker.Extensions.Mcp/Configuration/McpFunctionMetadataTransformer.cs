@@ -23,7 +23,8 @@ internal sealed class McpFunctionMetadataTransformer(
 
     public void Transform(IList<IFunctionMetadata> original)
     {
-        List<DefaultFunctionMetadata>? syntheticFunctions = null;
+        var syntheticFunctions = new List<DefaultFunctionMetadata>();
+        var emittedAppTools = new HashSet<string>();
 
         foreach (var function in original)
         {
@@ -71,7 +72,7 @@ internal sealed class McpFunctionMetadataTransformer(
                         }
 
                         // Merge MCP App UI metadata and emit synthetic resource functions
-                        MergeAppUiMetadata(jsonObject, toolNameNode?.ToString(), ref syntheticFunctions);
+                        MergeAppUiMetadata(jsonObject, toolNameNode?.ToString(), syntheticFunctions, emittedAppTools);
 
                         function.RawBindings[i] = jsonObject.ToJsonString();
                         break;
@@ -109,12 +110,9 @@ internal sealed class McpFunctionMetadataTransformer(
         }
 
         // Add synthetic functions after iteration to avoid modifying collection during enumeration
-        if (syntheticFunctions is not null)
+        foreach (var synthetic in syntheticFunctions)
         {
-            foreach (var synthetic in syntheticFunctions)
-            {
-                original.Add(synthetic);
-            }
+            original.Add(synthetic);
         }
     }
 
@@ -227,7 +225,7 @@ internal sealed class McpFunctionMetadataTransformer(
 
     private record ToolPropertyBinding(int Index, JsonObject Binding);
 
-    private void MergeAppUiMetadata(JsonObject jsonObject, string? toolName, ref List<DefaultFunctionMetadata>? syntheticFunctions)
+    private void MergeAppUiMetadata(JsonObject jsonObject, string? toolName, List<DefaultFunctionMetadata> syntheticFunctions, HashSet<string> emittedAppTools)
     {
         if (string.IsNullOrWhiteSpace(toolName))
         {
@@ -274,10 +272,12 @@ internal sealed class McpFunctionMetadataTransformer(
         metaObj["ui"] = uiNode;
         jsonObject["metadata"] = metaObj.ToJsonString();
 
-        // Emit synthetic resource function for view serving
-        syntheticFunctions ??= [];
-        syntheticFunctions.Add(McpAppFunctionMetadataFactory.CreateViewResourceFunction(toolName));
-        _logger.LogDebug("Added synthetic MCP App resource function for tool '{ToolName}'.", toolName);
+        // Emit synthetic resource function for view serving (once per tool name)
+        if (emittedAppTools.Add(toolName))
+        {
+            syntheticFunctions.Add(McpAppFunctionMetadataFactory.CreateViewResourceFunction(toolName));
+            _logger.LogDebug("Added synthetic MCP App resource function for tool '{ToolName}'.", toolName);
+        }
     }
 
     /// <summary>

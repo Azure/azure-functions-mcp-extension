@@ -715,6 +715,43 @@ public class McpFunctionMetadataTransformerTests
         Assert.Single(list);
     }
 
+    [Fact]
+    public void Transform_DuplicateToolNames_EmitsSingleSyntheticFunction()
+    {
+        var appOptions = new AppOptions();
+        appOptions.View = new ViewOptions
+        {
+            Source = McpViewSource.FromFile("ui/app.html")
+        };
+
+        var toolOptions = new ToolOptions
+        {
+            Properties = [],
+            AppOptions = appOptions
+        };
+
+        var options = new Mock<IOptionsMonitor<ToolOptions>>();
+        options.Setup(o => o.Get("DupeTool")).Returns(toolOptions);
+        options.Setup(o => o.Get(It.Is<string>(s => s != "DupeTool")))
+               .Returns(new ToolOptions { Properties = [] });
+        var resourceOptions = new Mock<IOptionsMonitor<ResourceOptions>>();
+        resourceOptions.Setup(o => o.Get(It.IsAny<string>())).Returns(new ResourceOptions());
+
+        var transformer = new McpFunctionMetadataTransformer(options.Object, resourceOptions.Object, NullLogger<McpFunctionMetadataTransformer>.Instance);
+
+        var fn1 = CreateFunctionMetadata(null, null, "Func1",
+            ["{\"type\":\"mcpToolTrigger\",\"toolName\":\"DupeTool\"}"]);
+        var fn2 = CreateFunctionMetadata(null, null, "Func2",
+            ["{\"type\":\"mcpToolTrigger\",\"toolName\":\"DupeTool\"}"]);
+
+        var list = new List<IFunctionMetadata> { fn1.Object, fn2.Object };
+        transformer.Transform(list);
+
+        // Should have 2 original functions + only 1 synthetic (deduplicated)
+        Assert.Equal(3, list.Count);
+        Assert.Single(list.Where(f => f.Name == "functions--mcpapp-DupeTool"));
+    }
+
     private static McpFunctionMetadataTransformer CreateTransformer(List<ToolProperty>? configured = null)
     {
         var options =  new Mock<IOptionsMonitor<ToolOptions>>();
