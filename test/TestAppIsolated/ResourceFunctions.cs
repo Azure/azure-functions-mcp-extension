@@ -55,8 +55,51 @@ public class ResourceFunctions
         return File.ReadAllBytes(filePath);
     }
 
+    /// <summary>
+    /// Example using FileResourceContents for text files.
+    /// The framework reads the file and creates TextResourceContents automatically.
+    /// Relative paths are resolved against AppContext.BaseDirectory.
+    /// </summary>
+    [Function(nameof(GetTextResourceFromFile))]
+    public FileResourceContents GetTextResourceFromFile(
+        [McpResourceTrigger(
+            "file://readme-v2.md",
+            "readme-v2",
+            Title = "Readme (FileResourceContents)",
+            Description = "Application readme served via FileResourceContents",
+            MimeType = "text/plain")]
+        ResourceInvocationContext context)
+    {
+        _logger.LogInformation("Serving text resource via FileResourceContents");
+        return new FileResourceContents
+        {
+            Path = Path.Combine("assets", "readme.md")
+        };
+    }
+
+    /// <summary>
+    /// Example using FileResourceContents for binary files.
+    /// The framework reads the file and creates BlobResourceContents (base64) automatically,
+    /// using the MimeType from the trigger attribute to determine binary vs text encoding.
+    /// </summary>
+    [Function(nameof(GetImageResourceFromFile))]
+    public FileResourceContents GetImageResourceFromFile(
+        [McpResourceTrigger(
+            "file://logo-v2.png",
+            "logo-v2",
+            Description = "Azure Functions logo served via FileResourceContents",
+            MimeType = "image/png")]
+        ResourceInvocationContext context)
+    {
+        _logger.LogInformation("Serving image resource via FileResourceContents");
+        return new FileResourceContents
+        {
+            Path = "assets/logo.png"
+        };
+    }
+
     [Function(nameof(UserProfileResourceTemplate))]
-    public string UserProfileResourceTemplate(
+    public FileResourceContents UserProfileResourceTemplate(
         [McpResourceTrigger(
             "user://profile/{name}",
             "userProfile",
@@ -64,8 +107,10 @@ public class ResourceFunctions
             MimeType = "application/json")] ResourceInvocationContext context, string name)
     {
         _logger.LogInformation("Reading user profile template for {Name}", name);
-        var file = Path.Combine(AppContext.BaseDirectory, "assets", $"{name}.md");
-        return File.ReadAllText(file);
+        return new FileResourceContents
+        {
+            Path = Path.Combine("assets", $"{name}.md")
+        };
     }
 
     [Function(nameof(CatalogItemResource))]

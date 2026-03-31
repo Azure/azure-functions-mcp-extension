@@ -55,6 +55,7 @@ public static class McpHostBuilderExtensions
         builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IFunctionMetadataTransformer, McpFunctionMetadataTransformer>());
 
         builder.UseMiddleware<FunctionsMcpContextMiddleware>();
+        builder.UseMiddleware<FunctionsMcpResourceResultMiddleware>();
 
         builder.Services.Configure<WorkerOptions>(static (workerOption) =>
         {
