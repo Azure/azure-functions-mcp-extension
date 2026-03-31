@@ -13,7 +13,7 @@ namespace Microsoft.Azure.Functions.Extensions.Mcp.Tests;
 public static class CallToolExecutionContextHelper
 {
     internal static CallToolExecutionContext CreateExecutionContext(string toolName = "MyTool",
-                                                                   IReadOnlyDictionary<string, JsonElement>? args = null,
+                                                                   IDictionary<string, JsonElement>? args = null,
                                                                    string? sessionId = "session-123",
                                                                    Implementation? clientInfo = null,
                                                                    IHttpContextAccessor? httpContextAccessor = null)
@@ -39,15 +39,19 @@ public static class CallToolExecutionContextHelper
             services.AddSingleton(httpContextAccessor);
         }
 
+#pragma warning disable MCPEXP002 // Type is for evaluation purposes only and is subject to change or removal in future updates.
         var mockServer = new Mock<McpServer>();
+#pragma warning restore MCPEXP002
         mockServer.Setup(s=> s.SessionId).Returns(sessionId);
         mockServer.Setup(s => s.ClientInfo).Returns(clientInfo);
 
+#pragma warning disable MCP9003 // Use the constructor overload that accepts a parameters argument.
         RequestContext<CallToolRequestParams> requestContext = new(mockServer.Object, new JsonRpcRequest() { Method = RequestMethods.ToolsCall})
         {
             Params = requestParams,
             Services = services.BuildServiceProvider()
         };
+#pragma warning restore MCP9003
 
         CallToolExecutionContext executionContext = new(requestContext);
 

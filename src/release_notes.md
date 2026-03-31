@@ -8,6 +8,9 @@
 
 - Added `UseResultSchema` to `McpPromptTriggerAttribute`. When set by the worker, the host unwraps the `McpPromptResult` envelope produced by the worker instead of inferring the shape from the JSON. (#212)
 - Advertise `Prompts` in `ServerCapabilities` so spec-compliant MCP clients invoke `prompts/list`.
+- Upgraded MCP C# SDK dependency from 0.4.0-preview.3 to 1.4.0
+- Fixed typo in JSON property name `sessionId` on `Transport` class (#206)
+- Add support for resource templates (#200)
 
 ### Microsoft.Azure.Functions.Worker.Extensions.Mcp 1.5.1
 

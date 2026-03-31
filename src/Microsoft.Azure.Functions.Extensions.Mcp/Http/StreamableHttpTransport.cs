@@ -1,15 +1,29 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-using System.IO.Pipelines;
 using Microsoft.Azure.Functions.Extensions.Mcp;
 using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 
-internal sealed class StreamableHttpTransport(bool flowExecutionContext = false)
-    : McpExtensionTransport<StreamableHttpServerTransport>(new StreamableHttpServerTransport() { FlowExecutionContextFromRequests = flowExecutionContext })
+internal sealed class StreamableHttpTransport : McpExtensionTransport<StreamableHttpServerTransport>
 {
-    private Func<StreamableHttpTransport, InitializeRequestParams?, ValueTask>? _onInitRequestReceived;
+    private string? _sessionId;
+
+    public StreamableHttpTransport(
+        string? sessionId = null,
+        bool stateless = false,
+        bool flowExecutionContext = false,
+        Func<InitializeRequestParams, CancellationToken, ValueTask>? onSessionInitialized = null)
+        : base(new StreamableHttpServerTransport()
+        {
+            SessionId = sessionId,
+            Stateless = stateless,
+            FlowExecutionContextFromRequests = flowExecutionContext,
+            OnSessionInitialized = onSessionInitialized,
+        })
+    {
+        _sessionId = sessionId;
+    }
 
     public override Task HandleMessageAsync(JsonRpcMessage message, CancellationToken cancellationToken)
     {
@@ -18,8 +32,8 @@ internal sealed class StreamableHttpTransport(bool flowExecutionContext = false)
 
     public override string? SessionId
     {
-        get => Transport.SessionId;
-        set => Transport.SessionId = value;
+        get => _sessionId;
+        set => _sessionId = value;
     }
 
     public Task HandleGetRequestAsync(Stream sseResponseStream, CancellationToken cancellationToken)
@@ -29,15 +43,4 @@ internal sealed class StreamableHttpTransport(bool flowExecutionContext = false)
         => Transport.HandlePostRequestAsync(message, responseStream, cancellationToken);
 
     public bool FlowExecutionContextFromRequests => Transport.FlowExecutionContextFromRequests;
-
-    public Func<StreamableHttpTransport, InitializeRequestParams?, ValueTask>? OnInitRequestReceived
-    {
-        get => _onInitRequestReceived;
-        set
-        {
-            _onInitRequestReceived = value;
-            Transport.OnInitRequestReceived = requestParams
-                => _onInitRequestReceived?.Invoke(this, requestParams) ?? ValueTask.CompletedTask;
-        }
-    }
 }
