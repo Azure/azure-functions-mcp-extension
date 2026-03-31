@@ -6,6 +6,7 @@
 
 ### Microsoft.Azure.Functions.Extensions <version>
 
+- Upgraded MCP C# SDK dependency from 0.4.0-preview.3 to 1.2.0 (#222)
 - Fixed typo in JSON property name `sessionId` on `Transport` class (#206)
 - Add support for resource templates (#200)
 

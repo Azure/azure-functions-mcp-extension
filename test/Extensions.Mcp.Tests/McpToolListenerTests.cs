@@ -25,13 +25,17 @@ public class McpToolListenerTests
     private static RequestContext<CallToolRequestParams> CreateRequest(params (string key, JsonElement value)[] args)
     {
         var dict = args?.ToDictionary(x => x.key, x => x.value) ?? new Dictionary<string, JsonElement>();
+#pragma warning disable MCPEXP002
         var server = new Mock<McpServer>().Object;
+#pragma warning restore MCPEXP002
         var parameters = new CallToolRequestParams { Name = "params", Arguments = dict };
 
+#pragma warning disable MCP9003
         return new RequestContext<CallToolRequestParams>(server, new JsonRpcRequest() { Method = RequestMethods.ToolsCall })
         {
             Params = parameters
         };
+#pragma warning restore MCP9003
     }
 
     private static CallToolRequestParams CreateRequestParams(params (string key, JsonElement value)[] args)
