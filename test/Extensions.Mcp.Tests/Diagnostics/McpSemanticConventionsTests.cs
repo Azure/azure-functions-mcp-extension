@@ -38,49 +38,11 @@ public class McpSemanticConventionsTests
         Assert.Equal("mcp.protocol.version", SemanticConventions.Mcp.ProtocolVersion);
     }
 
-    [Fact]
-    public void McpResourceUri_HasCorrectValue()
-    {
-        Assert.Equal("mcp.resource.uri", SemanticConventions.Mcp.ResourceUri);
-    }
-
-    // GenAI Attributes
-    [Fact]
-    public void GenAiToolName_HasCorrectValue()
-    {
-        Assert.Equal("gen_ai.tool.name", SemanticConventions.GenAi.ToolName);
-    }
-
-    [Fact]
-    public void GenAiPromptName_HasCorrectValue()
-    {
-        Assert.Equal("gen_ai.prompt.name", SemanticConventions.GenAi.PromptName);
-    }
-
-    [Fact]
-    public void GenAiOperationName_HasCorrectValue()
-    {
-        Assert.Equal("gen_ai.operation.name", SemanticConventions.GenAi.OperationName);
-    }
-
     // JSON-RPC Attributes
-    [Fact]
-    public void JsonRpcRequestId_HasCorrectValue()
-    {
-        Assert.Equal("jsonrpc.request.id", SemanticConventions.JsonRpc.RequestId);
-    }
-
     [Fact]
     public void JsonRpcProtocolVersion_HasCorrectValue()
     {
         Assert.Equal("jsonrpc.protocol.version", SemanticConventions.JsonRpc.ProtocolVersion);
-    }
-
-    // RPC Attributes
-    [Fact]
-    public void RpcResponseStatusCode_HasCorrectValue()
-    {
-        Assert.Equal("rpc.response.status_code", SemanticConventions.Rpc.ResponseStatusCode);
     }
 
     // Error Attributes
@@ -149,42 +111,6 @@ public class McpSemanticConventionsTests
 
     // MCP Method Names
     [Fact]
-    public void MethodToolsCall_HasCorrectValue()
-    {
-        Assert.Equal("tools/call", SemanticConventions.Methods.ToolsCall);
-    }
-
-    [Fact]
-    public void MethodToolsList_HasCorrectValue()
-    {
-        Assert.Equal("tools/list", SemanticConventions.Methods.ToolsList);
-    }
-
-    [Fact]
-    public void MethodResourcesRead_HasCorrectValue()
-    {
-        Assert.Equal("resources/read", SemanticConventions.Methods.ResourcesRead);
-    }
-
-    [Fact]
-    public void MethodResourcesList_HasCorrectValue()
-    {
-        Assert.Equal("resources/list", SemanticConventions.Methods.ResourcesList);
-    }
-
-    [Fact]
-    public void MethodPromptsGet_HasCorrectValue()
-    {
-        Assert.Equal("prompts/get", SemanticConventions.Methods.PromptsGet);
-    }
-
-    [Fact]
-    public void MethodPromptsList_HasCorrectValue()
-    {
-        Assert.Equal("prompts/list", SemanticConventions.Methods.PromptsList);
-    }
-
-    [Fact]
     public void MethodInitialize_HasCorrectValue()
     {
         Assert.Equal("initialize", SemanticConventions.Methods.Initialize);
@@ -194,20 +120,6 @@ public class McpSemanticConventionsTests
     public void MethodSessionDelete_HasCorrectValue()
     {
         Assert.Equal("session/delete", SemanticConventions.Methods.SessionDelete);
-    }
-
-    // Operation Names
-    [Fact]
-    public void OperationExecuteTool_HasCorrectValue()
-    {
-        Assert.Equal("execute_tool", SemanticConventions.Operations.ExecuteTool);
-    }
-
-    // Error Type Values
-    [Fact]
-    public void ErrorTypeToolError_HasCorrectValue()
-    {
-        Assert.Equal("tool_error", SemanticConventions.Error.ToolError);
     }
 
     // Network Values

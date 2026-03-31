@@ -43,12 +43,10 @@ internal static class McpInstrumentation
         Action<Activity>? configure = null)
     {
         // Save and clear Activity.Current before starting the MCP activity.
-        // This prevents StartActivity from automatically adopting the transport
-        // span as parent (when no explicit MCP parent is provided).
+        // This prevents StartActivity from automatically adopting the transport span as parent.
         // The transport relationship is captured via a link instead, per MCP semantic conventions.
-        // After creation, Activity.Current = the new activity so customer code
-        // runs inside this span. McpActivityScope.Dispose() stops the activity and restores
-        // Activity.Current to previous.
+        // After creation, Activity.Current = the new activity so customer code runs inside this span.
+        // McpActivityScope.Dispose() stops the activity and restores Activity.Current to previous.
         var previous = Activity.Current;
         ActivityLink[]? links = previous is not null
             ? [new ActivityLink(previous.Context)]
@@ -67,7 +65,6 @@ internal static class McpInstrumentation
             catch
             {
                 // Telemetry configuration failed — discard the span silently.
-                // A diagnostic failure must never affect request handling.
                 activity.Dispose();
                 Activity.Current = previous;
                 return new McpActivityScope(null, previous);

@@ -19,5 +19,4 @@ internal static class McpDiagnosticsConstants
     /// Update when the instrumentation schema (span names, attribute names/types) changes in a breaking way.
     /// </summary>
     public const string ActivitySourceVersion = "2.0.0";
-
 }
