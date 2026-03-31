@@ -59,6 +59,7 @@ public static class McpHostBuilderExtensions
 
         builder.UseMiddleware<FunctionsMcpContextMiddleware>();
         builder.UseMiddleware<FunctionsMcpAppMiddleware>();
+        builder.UseMiddleware<FunctionsMcpResourceResultMiddleware>();
 
         builder.Services.Configure<WorkerOptions>(static (workerOption) =>
         {
