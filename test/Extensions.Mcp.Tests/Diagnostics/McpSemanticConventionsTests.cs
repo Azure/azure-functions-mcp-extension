@@ -190,6 +190,12 @@ public class McpSemanticConventionsTests
         Assert.Equal("initialize", SemanticConventions.Methods.Initialize);
     }
 
+    [Fact]
+    public void MethodSessionDelete_HasCorrectValue()
+    {
+        Assert.Equal("session/delete", SemanticConventions.Methods.SessionDelete);
+    }
+
     // Operation Names
     [Fact]
     public void OperationExecuteTool_HasCorrectValue()

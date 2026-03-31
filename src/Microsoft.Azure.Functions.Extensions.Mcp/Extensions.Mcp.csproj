@@ -6,10 +6,6 @@
     <Description>Model Context Protocol (MCP) extensions for Azure Functions</Description>
   </PropertyGroup>
 
-  <PropertyGroup Condition="'$(Configuration)' == 'Release' AND '$(CI)' != 'true'">
-    <Optimize>false</Optimize>
-  </PropertyGroup>
-
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
   </ItemGroup>
