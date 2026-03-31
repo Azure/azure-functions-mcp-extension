@@ -84,11 +84,11 @@ internal sealed class StreamableHttpRequestHandler(
                 {
                     responseWritten = await session.Transport.HandlePostRequestAsync(message, context.Response.Body, context.RequestAborted);
                     // Session ID is set by OnInitRequestReceived callback during HandlePostRequestAsync
-                    scope.Activity?.SetTag(SemanticConventions.Mcp.SessionId, session.Transport.SessionId);
+                    scope.ScopeActivity?.SetTag(SemanticConventions.Mcp.SessionId, session.Transport.SessionId);
                 }
                 catch (Exception ex)
                 {
-                    scope.Activity?.SetExceptionStatus(ex);
+                    scope.ScopeActivity?.SetExceptionStatus(ex);
                     throw;
                 }
             }

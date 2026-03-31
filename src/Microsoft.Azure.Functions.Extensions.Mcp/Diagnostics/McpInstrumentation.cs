@@ -24,7 +24,7 @@ internal static class McpInstrumentation
         McpRequestTraceContext requestContext = default)
         => StartServerActivity(
             SemanticConventions.Methods.Initialize,
-            a => ConfigureSessionActivity(a, requestContext));
+            a => ConfigureActivity(a, requestContext));
 
     /// <summary>
     /// Creates an activity for an MCP session termination — either an explicit DELETE request
@@ -36,8 +36,12 @@ internal static class McpInstrumentation
         McpRequestTraceContext requestContext = default)
         => StartServerActivity(
             SemanticConventions.Methods.SessionDelete,
-            a => ConfigureSessionEndActivity(a, requestContext));
+            a => ConfigureActivity(a, requestContext));
 
+    /// <summary>
+    /// Creates a session span, executes <paramref name="action"/>, and records any exception on
+    /// the span before rethrowing. Centralises the instrumentation pattern shared by both transports.
+    /// </summary>
     private static McpActivityScope StartServerActivity(
         string name,
         Action<Activity>? configure = null)
@@ -79,16 +83,10 @@ internal static class McpInstrumentation
         return new McpActivityScope(activity, previous);
     }
 
-    private static void ConfigureSessionActivity(Activity activity, McpRequestTraceContext context)
+    private static void ConfigureActivity(Activity activity, McpRequestTraceContext context)
     {
-        activity.SetTag(SemanticConventions.Mcp.MethodName, SemanticConventions.Methods.Initialize);
-        ApplyTransportDefaults(activity);
-        ApplyRequestContext(activity, context);
-    }
-
-    private static void ConfigureSessionEndActivity(Activity activity, McpRequestTraceContext context)
-    {
-        activity.SetTag(SemanticConventions.Mcp.MethodName, SemanticConventions.Methods.SessionDelete);
+        // OperationName is the span name passed to StartActivity — same as the MCP method name.
+        activity.SetTag(SemanticConventions.Mcp.MethodName, activity.OperationName);
         ApplyTransportDefaults(activity);
         ApplyRequestContext(activity, context);
     }
@@ -129,7 +127,6 @@ internal static class McpInstrumentation
             activity.SetTag(SemanticConventions.Client.Port, context.ClientPort.Value);
         }
     }
-
 }
 
 /// <summary>
@@ -143,18 +140,18 @@ internal readonly struct McpActivityScope : IDisposable
 
     internal McpActivityScope(Activity? activity, Activity? previous)
     {
-        Activity = activity;
+        ScopeActivity = activity;
         _previous = previous;
     }
 
     /// <summary>The MCP activity span, or null if no listeners are registered.</summary>
-    internal Activity? Activity { get; }
+    internal Activity? ScopeActivity { get; }
 
     public void Dispose()
     {
         try
         {
-            Activity?.Dispose();
+            ScopeActivity?.Dispose();
         }
         finally
         {

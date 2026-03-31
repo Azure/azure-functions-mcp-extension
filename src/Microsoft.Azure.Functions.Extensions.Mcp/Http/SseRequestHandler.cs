@@ -90,6 +90,8 @@ internal sealed class SseRequestHandler(
         }
         catch (OperationCanceledException) when (context.RequestAborted.IsCancellationRequested)
         {
+            // Session-end span is intentionally a point-in-time marker — its near-zero duration
+            // records when the disconnect was detected, not the lifetime of the session.
             using var scope = McpInstrumentation.CreateSessionEndActivity(McpRequestTraceContext.FromHttpContext(context, clientId));
         }
     }
@@ -130,7 +132,7 @@ internal sealed class SseRequestHandler(
                 }
                 catch (Exception ex)
                 {
-                    scope.Activity?.SetExceptionStatus(ex);
+                    scope.ScopeActivity?.SetExceptionStatus(ex);
                     throw;
                 }
             }
