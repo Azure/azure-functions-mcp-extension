@@ -8,6 +8,7 @@
 
 - Fixed typo in JSON property name `sessionId` on `Transport` class (#206)
 - Add support for resource templates (#200)
+- Add support for prompts (#210)
 
 ### Microsoft.Azure.Functions.Worker.Extensions.Mcp <version>
 
@@ -32,6 +33,8 @@
         .WithProperty("name", McpToolPropertyType.String, "Name of the user", required: true)
         .WithMetadata("ui", new { resourceUri = "ui://index.html" });
     ```
+
+- Added MCP prompt support for the worker extension — `McpPromptTriggerAttribute`, `McpPromptArgumentAttribute`, `PromptInvocationContext`, and fluent `ConfigureMcpPrompt` / `WithArgument` APIs (#211)
 
 ### Microsoft.Azure.Functions.Worker.Extensions.Mcp.Sdk <version>
 
