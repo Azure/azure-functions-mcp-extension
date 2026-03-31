@@ -16,79 +16,46 @@ internal static class McpInstrumentation
         McpDiagnosticsConstants.ActivitySourceVersion);
 
     /// <summary>
-    /// Captures the current ambient activity context (typically the transport/HTTP span).
-    /// Call this before creating a new activity to preserve the link.
-    /// </summary>
-    public static ActivityContext? CaptureCurrentContext()
-        => Activity.Current?.Context;
-
-    /// <summary>
     /// Creates an activity for an MCP session initialization operation.
     /// </summary>
-    /// <param name="transportContext">The transport span context to link to.</param>
     /// <param name="requestContext">The request context with client and protocol info.</param>
     /// <returns>The created McpActivityScope.</returns>
     public static McpActivityScope CreateSessionActivity(
-        ActivityContext? transportContext,
         McpRequestTraceContext requestContext = default)
         => StartServerActivity(
             SemanticConventions.Methods.Initialize,
-            parentContext: null,
-            transportContext,
             a => ConfigureSessionActivity(a, requestContext));
 
     /// <summary>
     /// Creates an activity for an MCP session termination — either an explicit DELETE request
     /// (streamable HTTP) or an implicit SSE connection close.
     /// </summary>
-    /// <param name="transportContext">The transport span context to link to.</param>
     /// <param name="requestContext">The request context with session and client info.</param>
     /// <returns>The created McpActivityScope.</returns>
     public static McpActivityScope CreateSessionEndActivity(
-        ActivityContext? transportContext,
         McpRequestTraceContext requestContext = default)
         => StartServerActivity(
             SemanticConventions.Methods.SessionDelete,
-            parentContext: null,
-            transportContext,
             a => ConfigureSessionEndActivity(a, requestContext));
-
-    /// <summary>
-    /// Records a session-end span without throwing. Safe to call from exception handlers
-    /// where a telemetry failure must not replace or suppress the original control flow.
-    /// </summary>
-    public static void RecordSessionEnd(ActivityContext? transportContext, McpRequestTraceContext requestContext = default)
-    {
-        try
-        {
-            using var scope = CreateSessionEndActivity(transportContext, requestContext);
-        }
-        catch { }
-    }
 
     private static McpActivityScope StartServerActivity(
         string name,
-        ActivityContext? parentContext,
-        ActivityContext? transportContext,
         Action<Activity>? configure = null)
     {
-        ActivityLink[]? links = transportContext.HasValue
-            ? [new ActivityLink(transportContext.Value)]
-            : null;
-
         // Save and clear Activity.Current before starting the MCP activity.
         // This prevents StartActivity from automatically adopting the transport
         // span as parent (when no explicit MCP parent is provided).
         // The transport relationship is captured via a link instead, per MCP semantic conventions.
-        // After creation, Activity.Current = the new tool/resource activity so customer code
+        // After creation, Activity.Current = the new activity so customer code
         // runs inside this span. McpActivityScope.Dispose() stops the activity and restores
         // Activity.Current to previous.
         var previous = Activity.Current;
+        ActivityLink[]? links = previous is not null
+            ? [new ActivityLink(previous.Context)]
+            : null;
         Activity.Current = null;
 
-        var activity = parentContext.HasValue
-            ? _source.StartActivity(name, ActivityKind.Server, parentContext.Value, links: links)
-            : _source.StartActivity(name, ActivityKind.Server, parentContext: default, links: links);
+        var activity = _source.StartActivity(name, ActivityKind.Server, parentContext: default, links: links);
 
         if (activity is not null)
         {

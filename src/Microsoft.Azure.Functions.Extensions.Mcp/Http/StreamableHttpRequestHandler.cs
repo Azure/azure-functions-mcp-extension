@@ -78,9 +78,8 @@ internal sealed class StreamableHttpRequestHandler(
             bool responseWritten;
             if (message is JsonRpcRequest { Method: SemanticConventions.Methods.Initialize })
             {
-                var transportContext = McpInstrumentation.CaptureCurrentContext();
                 var requestContext = McpRequestTraceContext.FromHttpContext(context, sessionId: null);
-                using var scope = McpInstrumentation.CreateSessionActivity(transportContext, requestContext);
+                using var scope = McpInstrumentation.CreateSessionActivity(requestContext);
                 try
                 {
                     responseWritten = await session.Transport.HandlePostRequestAsync(message, context.Response.Body, context.RequestAborted);
@@ -89,14 +88,7 @@ internal sealed class StreamableHttpRequestHandler(
                 }
                 catch (Exception ex)
                 {
-                    try
-                    {
-                        scope.Activity?.SetExceptionStatus(ex);
-                    }
-                    catch
-                    {
-                    }
-
+                    scope.Activity?.SetExceptionStatus(ex);
                     throw;
                 }
             }
@@ -139,9 +131,8 @@ internal sealed class StreamableHttpRequestHandler(
             return Task.CompletedTask;
         }
 
-        var transportContext = McpInstrumentation.CaptureCurrentContext();
         var requestContext = McpRequestTraceContext.FromHttpContext(context, clientId);
-        using var scope = McpInstrumentation.CreateSessionEndActivity(transportContext, requestContext);
+        using var scope = McpInstrumentation.CreateSessionEndActivity(requestContext);
 
         // Stateless sessions are disposed per-request, so there is no server-side
         // session state to clean up. Acknowledge the termination with 204.

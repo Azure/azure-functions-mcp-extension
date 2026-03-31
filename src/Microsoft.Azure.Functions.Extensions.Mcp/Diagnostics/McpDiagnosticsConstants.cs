@@ -20,15 +20,4 @@ internal static class McpDiagnosticsConstants
     /// </summary>
     public const string ActivitySourceVersion = "2.0.0";
 
-    public static class Metrics
-    {
-        public const string ServerOperationDuration = "mcp.server.operation.duration";
-        public const string ServerOperationDurationUnit = "s";
-    }
-
-    public static class TraceContext
-    {
-        public const string TraceparentKey = "traceparent";
-        public const string TracestateKey = "tracestate";
-    }
 }
