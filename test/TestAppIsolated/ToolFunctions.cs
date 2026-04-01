@@ -156,7 +156,7 @@ public class TestFunction
             { 
                 // REQUIRED: TextContent block with serialized structured content (for backwards compatibility)
                 new TextContentBlock { Text = metadataJson },
-                new ImageContentBlock { Data = Encoding.UTF8.GetBytes(Convert.ToBase64String(imageBytes)), MimeType = "image/png" }
+                ImageContentBlock.FromBytes(imageBytes, "image/png")
             },
             // Structured content for clients that support it
             StructuredContent = JsonSerializer.Deserialize<JsonElement>(metadataJson)
