@@ -11,7 +11,7 @@ public class PromptOptions : McpBuilderOptions
     /// <summary>
     /// Gets the collection of argument definitions for the prompt.
     /// </summary>
-    public List<PromptArgumentDefinition> Arguments { get; set; } = [];
+    public List<PromptArgumentDefinition> Arguments { get; } = [];
 
     /// <summary>
     /// Adds a new argument definition to the prompt.
