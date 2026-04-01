@@ -12,26 +12,15 @@ namespace Microsoft.Azure.Functions.Worker.Builder;
 public interface IMcpAppBuilder
 {
     /// <summary>
-    /// Adds a default (unnamed) view with the specified content source.
+    /// Sets the view with the specified content source.
     /// </summary>
     IMcpViewBuilder WithView(McpViewSource source);
 
     /// <summary>
-    /// Adds a named view with the specified content source.
-    /// </summary>
-    IMcpViewBuilder WithView(string viewName, McpViewSource source);
-
-    /// <summary>
-    /// Adds a default (unnamed) view backed by a file.
+    /// Sets the view backed by a file.
     /// Shorthand for <c>WithView(McpViewSource.FromFile(filePath))</c>.
     /// </summary>
     IMcpViewBuilder WithView(string filePath);
-
-    /// <summary>
-    /// Adds a named view backed by a file.
-    /// Shorthand for <c>WithView(viewName, McpViewSource.FromFile(filePath))</c>.
-    /// </summary>
-    IMcpViewBuilder WithView(string viewName, string filePath);
 
     /// <summary>
     /// Configures the directory from which static assets are served.

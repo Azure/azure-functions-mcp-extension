@@ -16,25 +16,18 @@ internal sealed class ToolOptionsValidator : IValidateOptions<ToolOptions>
 
         var appOptions = options.AppOptions;
 
-        if (appOptions.Views.Count == 0)
+        if (appOptions.View is null)
         {
             return ValidateOptionsResult.Fail(
-                $"MCP App tool '{name}' has no views configured. " +
+                $"MCP App tool '{name}' has no view configured. " +
                 $"Call WithView() with a McpViewSource or file path.");
         }
 
-        foreach (var (viewName, view) in appOptions.Views)
+        if (appOptions.View.Source is null)
         {
-            if (view.Source is null)
-            {
-                var displayName = string.IsNullOrEmpty(viewName)
-                    ? "the default view"
-                    : $"view '{viewName}'";
-
-                return ValidateOptionsResult.Fail(
-                    $"MCP App tool '{name}' has {displayName} with no view source configured. " +
-                    $"Call WithView() with a McpViewSource or file path.");
-            }
+            return ValidateOptionsResult.Fail(
+                $"MCP App tool '{name}' has a view with no source configured. " +
+                $"Call WithView() with a McpViewSource or file path.");
         }
 
         if (appOptions.StaticAssetsDirectory is not null
