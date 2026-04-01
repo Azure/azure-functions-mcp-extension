@@ -102,4 +102,41 @@ public class McpInstrumentationTests : IDisposable
 
         Assert.Same(parent, Activity.Current);
     }
+
+    // --- Concurrent scope isolation ---
+
+    [Fact]
+    public async Task ConcurrentScopes_OnSeparateTasks_DoNotInterfere()
+    {
+        // Activity.Current is [AsyncLocal] — each Task gets its own copy.
+        // Two concurrent MCP scopes must neither see nor corrupt each other's current activity.
+        var scope2Started = new TaskCompletionSource();
+        var scope1CanFinish = new TaskCompletionSource();
+
+        Activity? activity1 = null;
+        Activity? activity2 = null;
+
+        var task1 = Task.Run(async () =>
+        {
+            using var scope = McpInstrumentation.CreateSessionActivity();
+            activity1 = scope.ScopeActivity;
+            scope2Started.SetResult();
+            await scope1CanFinish.Task;
+            Assert.Same(activity1, Activity.Current);
+        });
+
+        var task2 = Task.Run(async () =>
+        {
+            await scope2Started.Task;
+            using var scope = McpInstrumentation.CreateSessionActivity();
+            activity2 = scope.ScopeActivity;
+            scope1CanFinish.SetResult();
+        });
+
+        await Task.WhenAll(task1, task2);
+
+        Assert.NotNull(activity1);
+        Assert.NotNull(activity2);
+        Assert.NotSame(activity1, activity2);
+    }
 }
