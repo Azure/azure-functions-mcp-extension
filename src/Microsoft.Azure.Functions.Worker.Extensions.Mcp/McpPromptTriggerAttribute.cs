@@ -15,32 +15,34 @@ namespace Microsoft.Azure.Functions.Worker.Extensions.Mcp;
 public sealed class McpPromptTriggerAttribute(string promptName) : TriggerBindingAttribute, IMcpBindingAttribute
 {
     /// <summary>
-    /// Gets or sets the name of the MCP prompt.
+    /// Gets the name of the MCP prompt.
     /// </summary>
-    public string PromptName { get; set; } = promptName;
+    public string PromptName { get; } = !string.IsNullOrEmpty(promptName)
+        ? promptName
+        : throw new ArgumentException("Prompt name cannot be null or empty.", nameof(promptName));
 
     /// <summary>
-    /// Gets or sets an optional human-readable title for display purposes.
+    /// Gets an optional human-readable title for display purposes.
     /// </summary>
     public string? Title { get; init; }
 
     /// <summary>
-    /// Gets or sets the description of the MCP prompt.
+    /// Gets the description of the MCP prompt.
     /// </summary>
     public string? Description { get; init; }
 
     /// <summary>
-    /// Gets or sets the JSON representation of the prompt arguments schema.
+    /// Gets the JSON representation of the prompt arguments schema.
     /// </summary>
     public string? PromptArguments { get; init; }
 
     /// <summary>
-    /// Gets or sets the JSON-serialized metadata for the MCP prompt.
+    /// Gets the JSON-serialized metadata for the MCP prompt.
     /// </summary>
     public string? Metadata { get; init; }
 
     /// <summary>
-    /// Gets or sets the JSON representation of the prompt icons.
+    /// Gets the JSON representation of the prompt icons.
     /// </summary>
     public string? Icons { get; init; }
 

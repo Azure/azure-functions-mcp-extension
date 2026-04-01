@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
+using System.Diagnostics;
 using System.Text.Json.Serialization;
 
 namespace Microsoft.Azure.Functions.Worker.Extensions.Mcp;
@@ -8,7 +9,8 @@ namespace Microsoft.Azure.Functions.Worker.Extensions.Mcp;
 /// <summary>
 /// The context for the prompt invocation.
 /// </summary>
-public class PromptInvocationContext
+[DebuggerDisplay("Name={Name}, SessionId={SessionId}")]
+public sealed class PromptInvocationContext
 {
     /// <summary>
     /// Gets the name of the prompt.

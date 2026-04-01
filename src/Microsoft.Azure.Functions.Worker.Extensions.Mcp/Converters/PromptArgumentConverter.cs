@@ -7,7 +7,7 @@ using Microsoft.Azure.Functions.Worker.Extensions.Abstractions;
 
 namespace Microsoft.Azure.Functions.Worker.Extensions.Mcp.Converters;
 
-internal class PromptArgumentConverter : IInputConverter
+internal sealed class PromptArgumentConverter : IInputConverter
 {
     public ValueTask<ConversionResult> ConvertAsync(ConverterContext context)
     {

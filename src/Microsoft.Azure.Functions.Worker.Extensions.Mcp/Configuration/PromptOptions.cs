@@ -18,8 +18,7 @@ public class PromptOptions : McpBuilderOptions
     /// </summary>
     public void AddArgument(string name, string? description = null, bool required = false)
     {
-        ArgumentException.ThrowIfNullOrEmpty(name, nameof(name));
+        ArgumentException.ThrowIfNullOrEmpty(name);
         Arguments.Add(new PromptArgumentDefinition(name, description, required));
     }
-
 }

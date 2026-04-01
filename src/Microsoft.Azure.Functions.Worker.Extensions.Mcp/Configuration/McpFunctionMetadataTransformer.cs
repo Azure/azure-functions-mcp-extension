@@ -94,7 +94,7 @@ internal sealed class McpFunctionMetadataTransformer(
                         {
                             promptName = promptNameNode?.ToString();
 
-                            if (GetPromptArguments(promptName, function, out var promptArguments))
+                            if (TryGetPromptArguments(promptName, function, out var promptArguments))
                             {
                                 jsonObject["promptArguments"] = PromptArgumentParser.GetArgumentsJson(promptArguments);
                             }
@@ -166,7 +166,10 @@ internal sealed class McpFunctionMetadataTransformer(
         return ToolPropertyParser.TryGetPropertiesFromAttributes(functionMetadata, out toolProperties);
     }
 
-    private bool GetPromptArguments(string? promptName, IFunctionMetadata functionMetadata, [NotNullWhen(true)] out List<PromptArgumentDefinition>? promptArguments)
+    private bool TryGetPromptArguments(
+        string? promptName,
+        IFunctionMetadata functionMetadata,
+        [NotNullWhen(true)] out List<PromptArgumentDefinition>? promptArguments)
     {
         promptArguments = null;
 

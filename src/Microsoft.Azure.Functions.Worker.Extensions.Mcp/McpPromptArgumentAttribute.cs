@@ -12,7 +12,11 @@ namespace Microsoft.Azure.Functions.Worker.Extensions.Mcp;
 /// </summary>
 [InputConverter(typeof(PromptArgumentConverter))]
 [ConverterFallbackBehavior(ConverterFallbackBehavior.Disallow)]
-public sealed class McpPromptArgumentAttribute(string argumentName, string? description = null, bool isRequired = false) : InputBindingAttribute, IMcpBindingAttribute
+public sealed class McpPromptArgumentAttribute(
+    string argumentName,
+    string? description = null,
+    bool isRequired = false)
+    : InputBindingAttribute, IMcpBindingAttribute
 {
     public McpPromptArgumentAttribute()
         : this(string.Empty)

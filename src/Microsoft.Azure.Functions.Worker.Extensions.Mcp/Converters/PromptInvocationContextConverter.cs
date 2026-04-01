@@ -5,7 +5,7 @@ using Microsoft.Azure.Functions.Worker.Converters;
 
 namespace Microsoft.Azure.Functions.Worker.Extensions.Mcp.Converters;
 
-internal class PromptInvocationContextConverter : IInputConverter
+internal sealed class PromptInvocationContextConverter : IInputConverter
 {
     public ValueTask<ConversionResult> ConvertAsync(ConverterContext context)
     {
