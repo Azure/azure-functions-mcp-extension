@@ -66,7 +66,7 @@ internal class FunctionsMcpToolResultMiddleware : IFunctionsWorkerMiddleware
                 }
 
                 // Don't process CallToolResult - just serialize as-is
-                type = Constants.CallToolResultType;
+                type = Sdk.Constants.CallToolResultType;
                 content = JsonSerializer.Serialize(callToolResult, McpJsonUtilities.DefaultOptions);
                 structuredContent = callToolResult.StructuredContent?.GetRawText();
                 break;
@@ -103,7 +103,7 @@ internal class FunctionsMcpToolResultMiddleware : IFunctionsWorkerMiddleware
 
     private static (string Type, string Content) ProcessContentBlockList(IList<ContentBlock> blocks)
     {
-        var type = Constants.MultiContentResult;
+        var type = Sdk.Constants.MultiContentResult;
         var content = JsonSerializer.Serialize(blocks, McpJsonUtilities.DefaultOptions);
         return (type, content);
     }
@@ -126,7 +126,7 @@ internal class FunctionsMcpToolResultMiddleware : IFunctionsWorkerMiddleware
         }
 
         // Common for both paths: create TextContent
-        var type = Constants.TextContextResult;
+        var type = Sdk.Constants.TextContextResult;
         var content = JsonSerializer.Serialize(new TextContentBlock
             {
                 Text = text
@@ -137,7 +137,7 @@ internal class FunctionsMcpToolResultMiddleware : IFunctionsWorkerMiddleware
 
     private static bool IsMcpToolInvocation(FunctionContext context)
     {
-        return context.Items.ContainsKey(Constants.ToolInvocationContextKey);
+        return context.Items.ContainsKey(Sdk.Constants.ToolInvocationContextKey);
     }
 
     private static bool HasOutputBindings(FunctionContext context)

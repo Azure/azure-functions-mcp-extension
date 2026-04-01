@@ -7,6 +7,7 @@ using System.Text.Json;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Extensions.Mcp;
 using Microsoft.Azure.Functions.Worker.Extensions.Mcp.Sdk;
+using Constants = Microsoft.Azure.Functions.Worker.Extensions.Mcp.Sdk.Constants;
 using ModelContextProtocol;
 using ModelContextProtocol.Protocol;
 using Moq;

@@ -7,29 +7,11 @@ namespace Microsoft.Azure.Functions.Worker.Extensions.Mcp;
 
 internal class FunctionsMcpResourceResultMiddleware : IFunctionsWorkerMiddleware
 {
-    private readonly Func<FunctionContext, object?> _getResult;
-    private readonly Action<FunctionContext, object?> _setResult;
+    private readonly IFunctionResultAccessor _resultAccessor;
 
-    public FunctionsMcpResourceResultMiddleware()
+    public FunctionsMcpResourceResultMiddleware(IFunctionResultAccessor? resultAccessor = null)
     {
-        _getResult = static ctx => ctx.GetInvocationResult()?.Value;
-        _setResult = static (ctx, value) =>
-        {
-            var result = ctx.GetInvocationResult();
-            if (result is not null)
-            {
-                result.Value = value;
-            }
-        };
-    }
-
-    // Test constructor
-    internal FunctionsMcpResourceResultMiddleware(
-        Func<FunctionContext, object?> getResult,
-        Action<FunctionContext, object?> setResult)
-    {
-        _getResult = getResult;
-        _setResult = setResult;
+        _resultAccessor = resultAccessor ?? new DefaultFunctionResultAccessor();
     }
 
     public async Task Invoke(FunctionContext context, FunctionExecutionDelegate next)
@@ -43,7 +25,7 @@ internal class FunctionsMcpResourceResultMiddleware : IFunctionsWorkerMiddleware
             return;
         }
 
-        if (_getResult(context) is not FileResourceContents fileResult)
+        if (_resultAccessor.GetResult(context) is not FileResourceContents fileResult)
         {
             return;
         }
@@ -51,7 +33,7 @@ internal class FunctionsMcpResourceResultMiddleware : IFunctionsWorkerMiddleware
         string resolvedPath = ResolvePath(fileResult.Path);
         string? mimeType = GetMimeTypeFromContext(context);
 
-        _setResult(context, await ReadFileAsync(resolvedPath, mimeType));
+        _resultAccessor.SetResult(context, await ReadFileAsync(resolvedPath, mimeType));
     }
 
     internal static string ResolvePath(string path)

@@ -11,14 +11,20 @@ namespace Worker.Extensions.Mcp.Tests;
 public class FunctionsMcpResourceResultMiddlewareTests : IDisposable
 {
     private object? _currentResult;
+    private readonly Mock<IFunctionResultAccessor> _resultAccessorMock;
     private readonly FunctionsMcpResourceResultMiddleware _middleware;
     private readonly string _tempDir;
 
     public FunctionsMcpResourceResultMiddlewareTests()
     {
-        _middleware = new FunctionsMcpResourceResultMiddleware(
-            getResult: _ => _currentResult,
-            setResult: (_, value) => _currentResult = value);
+        _resultAccessorMock = new Mock<IFunctionResultAccessor>();
+        _resultAccessorMock
+            .Setup(a => a.GetResult(It.IsAny<FunctionContext>()))
+            .Returns(() => _currentResult);
+        _resultAccessorMock
+            .Setup(a => a.SetResult(It.IsAny<FunctionContext>(), It.IsAny<object?>()))
+            .Callback<FunctionContext, object?>((_, value) => _currentResult = value);
+        _middleware = new FunctionsMcpResourceResultMiddleware(_resultAccessorMock.Object);
         _tempDir = Path.Combine(Path.GetTempPath(), $"mcp-test-{Guid.NewGuid():N}");
         Directory.CreateDirectory(_tempDir);
     }

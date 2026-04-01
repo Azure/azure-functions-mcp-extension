@@ -18,21 +18,21 @@ internal class FunctionsMcpContextMiddleware : IFunctionsWorkerMiddleware
             context,
             (out string? name) => context.TryGetMcpToolTriggerName(out name),
             Constants.ToolInvocationContextKey,
-            McpJsonContext.Default.ToolInvocationContext);
+            WorkerMcpJsonContext.Default.ToolInvocationContext);
 
         // Get the resource invocation context via the name of the trigger binding
         TryAddInvocationContext(
             context,
             (out string? name) => context.TryGetMcpResourceTriggerName(out name),
             Constants.ResourceInvocationContextKey,
-            McpJsonContext.Default.ResourceInvocationContext);
+            WorkerMcpJsonContext.Default.ResourceInvocationContext);
 
         // Get the prompt invocation context via the name of the trigger binding
         TryAddInvocationContext(
             context,
             (out string? name) => context.TryGetMcpPromptTriggerName(out name),
             Constants.PromptInvocationContextKey,
-            McpJsonContext.Default.PromptInvocationContext);
+            WorkerMcpJsonContext.Default.PromptInvocationContext);
 
         await next(context);
     }
