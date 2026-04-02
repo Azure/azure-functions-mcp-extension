@@ -4,37 +4,40 @@
 - My change description (#PR/#issue)
 -->
 
-### Microsoft.Azure.Functions.Extensions 1.4.0
+### Microsoft.Azure.Functions.Extensions <version>
 
-- Fixed typo in JSON property name `sessionId` on `Transport` class (#206)
-- Add support for resource templates (#200)
-- Add support for prompts (#210)
+- <entry>
 
-### Microsoft.Azure.Functions.Worker.Extensions.Mcp 1.4.0
-
-#### Breaking Changes
-
-- `McpFunctionMetadataTransformer` is now an internal class (#195)
+### Microsoft.Azure.Functions.Worker.Extensions.Mcp 1.5.0-preview.1
 
 #### Changes
 
-- Added fluent configuration APIs (`ConfigureMcpResource` and `WithMetadata`) to configure MCP tool and resource metadata at startup (#195)
+- Implement fluent API for building MCP Apps (#226)
+
+    This feature introduces first-class support for MCP App tools in the MCP extension, enabling tools to be configured as apps with UI views, static assets, and visibility controls. It adds a new configuration model for MCP Apps, emits synthetic resource functions for app views, and includes robust validation and security features for app configuration and static asset serving.
 
     ```csharp
-    // Configure MCP resource metadata using the fluent API
-    builder
-        .ConfigureMcpResource("ui://my/welcomepage.html")
-        .WithMetadata("ui", new { prefersBorder = true });
+    // 1. Define an MCP tool function
+    [Function(nameof(HelloApp))]
+        public string HelloApp(
+            [McpToolTrigger("HelloApp", "A simple MCP App that says hello.")] ToolInvocationContext context)
+        {
+            _logger.LogInformation("HelloApp tool invoked.");
+            return "Hello from app";
+        }
 
-
-    // Configure MCP tool metadata using the fluent API
-    builder
-        .ConfigureMcpTool("sayhello")
-        .WithProperty("name", McpToolPropertyType.String, "Name of the user", required: true)
-        .WithMetadata("ui", new { resourceUri = "ui://index.html" });
+    // 2. Configure the tool as an app in Program.cs
+    builder.ConfigureMcpTool("HelloApp")
+        .AsMcpApp(app => app
+            .WithView("assets/hello-app.html")
+            .WithTitle("Hello App")
+            .WithPermissions(McpAppPermissions.ClipboardWrite | McpAppPermissions.ClipboardRead)
+            .WithCsp(csp =>
+            {
+                csp.AllowBaseUri("https://www.microsoft.com")
+                .ConnectTo("https://www.microsoft.com");
+            }));
     ```
-
-- Added MCP prompt support for the worker extension — `McpPromptTriggerAttribute`, `McpPromptArgumentAttribute`, `PromptInvocationContext`, and fluent `ConfigureMcpPrompt` / `WithArgument` APIs (#211)
 
 ### Microsoft.Azure.Functions.Worker.Extensions.Mcp.Sdk <version>
 
