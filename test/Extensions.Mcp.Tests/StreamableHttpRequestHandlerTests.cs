@@ -48,5 +48,5 @@ public class StreamableHttpRequestHandlerTests
         await _handler.HandleRequestAsync(context);
 
         Assert.Equal(StatusCodes.Status405MethodNotAllowed, context.Response.StatusCode);
-    }    
+    }
 }

@@ -35,7 +35,7 @@ internal sealed class StreamableHttpRequestHandler(
             context.Items[McpTransportName] = "http-streamable";
             return HandlePostRequestAsync(context);
         }
-        
+
         context.Response.StatusCode = StatusCodes.Status405MethodNotAllowed;
         return Task.CompletedTask;
     }
