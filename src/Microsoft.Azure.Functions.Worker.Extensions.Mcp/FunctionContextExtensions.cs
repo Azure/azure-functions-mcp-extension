@@ -55,6 +55,28 @@ internal static class FunctionContextExtensions
     }
 
     /// <summary>
+    /// Gets the <see cref="PromptInvocationContext"/> for the <see cref="FunctionContext"/>.
+    /// </summary>
+    /// <param name="context">The <see cref="FunctionContext"/>.</param>
+    /// <param name="promptContext">The <see cref="PromptInvocationContext"/> for the context.</param>
+    /// <returns>true if the prompt context was found; otherwise, false.</returns>
+    internal static bool TryGetPromptInvocationContext(this FunctionContext context, [NotNullWhen(true)] out PromptInvocationContext? promptContext)
+    {
+        return TryGetTypedContextItem(context, Constants.PromptInvocationContextKey, out promptContext);
+    }
+
+    /// <summary>
+    /// Gets the name of the trigger binding with the <see cref="McpPromptTriggerAttribute"/> from the <see cref="FunctionContext"/>.
+    /// </summary>
+    /// <param name="context">The <see cref="FunctionContext"/>.</param>
+    /// <param name="triggerName">The name of the MCP prompt trigger.</param>
+    /// <returns>true if the trigger name was found; otherwise, false.</returns>
+    internal static bool TryGetMcpPromptTriggerName(this FunctionContext context, [NotNullWhen(true)] out string? triggerName)
+    {
+        return TryGetMcpTriggerName<McpPromptTriggerAttribute>(context, Constants.McpPromptTriggerBindingType, out triggerName);
+    }
+
+    /// <summary>
     /// Gets a typed item from the <see cref="FunctionContext"/> items dictionary.
     /// </summary>
     /// <typeparam name="T">The type of the item to retrieve.</typeparam>
