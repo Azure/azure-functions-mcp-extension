@@ -4,13 +4,13 @@
 - My change description (#PR/#issue)
 -->
 
-### Microsoft.Azure.Functions.Extensions <version>
+### Microsoft.Azure.Functions.Extensions 1.4.0
 
 - Fixed typo in JSON property name `sessionId` on `Transport` class (#206)
 - Add support for resource templates (#200)
 - Add support for prompts (#210)
 
-### Microsoft.Azure.Functions.Worker.Extensions.Mcp <version>
+### Microsoft.Azure.Functions.Worker.Extensions.Mcp 1.4.0
 
 #### Breaking Changes
 
