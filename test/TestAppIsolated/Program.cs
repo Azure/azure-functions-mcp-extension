@@ -1,14 +1,27 @@
+using Azure.Monitor.OpenTelemetry.Exporter;
 using Microsoft.Azure.Functions.Worker.Builder;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using OpenTelemetry.Trace;
 
 var builder = FunctionsApplication.CreateBuilder(args);
 
 builder.ConfigureFunctionsWebApplication();
 
-// Application Insights isn't enabled by default. See https://aka.ms/AAt8mw4.
-// builder.Services
-//     .AddApplicationInsightsTelemetryWorkerService()
-//     .ConfigureFunctionsApplicationInsights();
+// Configure OpenTelemetry tracing with the MCP SDK ActivitySource.
+// "Experimental.ModelContextProtocol" is the ActivitySource published by the MCP SDK (>=1.2.0).
+// Requires host.json "telemetryMode": "OpenTelemetry" and APPLICATIONINSIGHTS_CONNECTION_STRING env var.
+builder.Services.AddOpenTelemetry()
+    .WithTracing(tracing =>
+    {
+        tracing.AddSource("Experimental.ModelContextProtocol");
+
+        var connectionString = Environment.GetEnvironmentVariable("APPLICATIONINSIGHTS_CONNECTION_STRING");
+        if (!string.IsNullOrEmpty(connectionString))
+        {
+            tracing.AddAzureMonitorTraceExporter(o => o.ConnectionString = connectionString);
+        }
+    });
 
 builder.ConfigureMcpResource("file://logo.png")
         .WithMetadata("ui", new { prefersBorder = true });
