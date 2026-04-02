@@ -38,4 +38,4 @@
 
 ### Microsoft.Azure.Functions.Worker.Extensions.Mcp.Sdk <version>
 
-- <entry>
+- Upgraded MCP C# SDK dependency from 0.4.0-preview.3 to 1.2.0 (#222)

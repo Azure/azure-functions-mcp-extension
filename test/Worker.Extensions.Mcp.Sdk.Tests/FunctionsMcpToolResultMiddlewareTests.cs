@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 using System.Collections.Immutable;
+using System.Text;
 using System.Text.Json;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Extensions.Mcp;
@@ -155,7 +156,7 @@ public class FunctionsMcpToolResultMiddlewareTests
         var context = CreateMcpFunctionContext();
         var contentBlock = new ImageContentBlock
         {
-            Data = "base64data",
+            Data = Encoding.UTF8.GetBytes("base64data"),
             MimeType = "image/png"
         };
 
@@ -174,9 +175,9 @@ public class FunctionsMcpToolResultMiddlewareTests
         Assert.NotNull(mcpToolResult);
         Assert.Equal("image", mcpToolResult.Type);
 
-        var deserializedBlock = JsonSerializer.Deserialize<ImageContentBlock>(mcpToolResult.Content!, McpJsonUtilities.DefaultOptions);
+        var deserializedBlock = JsonSerializer.Deserialize<ContentBlock>(mcpToolResult.Content!, McpJsonUtilities.DefaultOptions) as ImageContentBlock;
         Assert.NotNull(deserializedBlock);
-        Assert.Equal("base64data", deserializedBlock.Data);
+        Assert.Equal("base64data", Encoding.UTF8.GetString(deserializedBlock!.Data.Span));
         Assert.Equal("image/png", deserializedBlock.MimeType);
     }
 
@@ -246,7 +247,7 @@ public class FunctionsMcpToolResultMiddlewareTests
         var blocks = new List<ContentBlock>
         {
             new TextContentBlock { Text = "Text content" },
-            new ImageContentBlock { Data = "imagedata", MimeType = "image/jpeg" }
+            new ImageContentBlock { Data = Encoding.UTF8.GetBytes("imagedata"), MimeType = "image/jpeg" }
         };
 
         // Act
@@ -757,9 +758,9 @@ public class FunctionsMcpToolResultMiddlewareTests
             Content = new List<ContentBlock>
             {
                 new TextContentBlock { Text = metadataJson },
-                new ImageContentBlock { Data = "imagedata", MimeType = "image/jpeg" }
+                new ImageContentBlock { Data = Encoding.UTF8.GetBytes("imagedata"), MimeType = "image/jpeg" }
             },
-            StructuredContent = System.Text.Json.Nodes.JsonNode.Parse(metadataJson)
+            StructuredContent = JsonSerializer.Deserialize<JsonElement>(metadataJson)
         };
 
         // Act
@@ -798,9 +799,9 @@ public class FunctionsMcpToolResultMiddlewareTests
             Content = new List<ContentBlock>
             {
                 new TextContentBlock { Text = metadataJson },
-                new ImageContentBlock { Data = "imagedata", MimeType = "image/jpeg" }
+                new ImageContentBlock { Data = Encoding.UTF8.GetBytes("imagedata"), MimeType = "image/jpeg" }
             },
-            StructuredContent = System.Text.Json.Nodes.JsonNode.Parse(metadataJson)
+            StructuredContent = JsonSerializer.Deserialize<JsonElement>(metadataJson)
         };
 
         // Act
@@ -836,7 +837,7 @@ public class FunctionsMcpToolResultMiddlewareTests
             Content = new List<ContentBlock>
             {
                 new TextContentBlock { Text = "Simple message" },
-                new ImageContentBlock { Data = "imagedata", MimeType = "image/png" }
+                new ImageContentBlock { Data = Encoding.UTF8.GetBytes("imagedata"), MimeType = "image/png" }
             }
             // No StructuredContent - this is fine
         };
@@ -878,7 +879,7 @@ public class FunctionsMcpToolResultMiddlewareTests
             {
                 new TextContentBlock { Text = structuredJson }
             },
-            StructuredContent = System.Text.Json.Nodes.JsonNode.Parse(structuredJson)
+            StructuredContent = JsonSerializer.Deserialize<JsonElement>(structuredJson)
         };
 
         // Act
@@ -1496,9 +1497,9 @@ public class FunctionsMcpToolResultMiddlewareTests
             {
                 Content = new List<ContentBlock>
                 {
-                    new ImageContentBlock { Data = "base64data", MimeType = "image/png" } // No text content
+                    new ImageContentBlock { Data = Encoding.UTF8.GetBytes("base64data"), MimeType = "image/png" } // No text content
                 },
-                StructuredContent = System.Text.Json.Nodes.JsonNode.Parse(JsonSerializer.Serialize(structuredData))
+                StructuredContent = JsonSerializer.Deserialize<JsonElement>(JsonSerializer.Serialize(structuredData))
             };
 
             // Act & Assert
@@ -1529,9 +1530,9 @@ public class FunctionsMcpToolResultMiddlewareTests
                 Content = new List<ContentBlock>
                 {
                     new TextContentBlock { Text = structuredJson }, // Text content for backwards compatibility
-                    new ImageContentBlock { Data = "base64data", MimeType = "image/png" }
+                    new ImageContentBlock { Data = Encoding.UTF8.GetBytes("base64data"), MimeType = "image/png" }
                 },
-                StructuredContent = System.Text.Json.Nodes.JsonNode.Parse(structuredJson)
+                StructuredContent = JsonSerializer.Deserialize<JsonElement>(structuredJson)
             };
 
             // Act - should not throw
@@ -1572,7 +1573,7 @@ public class FunctionsMcpToolResultMiddlewareTests
                 {
                     new TextContentBlock { Text = structuredJson }
                 },
-                StructuredContent = System.Text.Json.Nodes.JsonNode.Parse(structuredJson)
+                StructuredContent = JsonSerializer.Deserialize<JsonElement>(structuredJson)
             };
 
             // Act - should not throw
@@ -1602,7 +1603,7 @@ public class FunctionsMcpToolResultMiddlewareTests
             var callToolResult = new CallToolResult
             {
                 Content = new List<ContentBlock>(), // Empty - no TextContentBlock
-                StructuredContent = System.Text.Json.Nodes.JsonNode.Parse(JsonSerializer.Serialize(structuredData))
+                StructuredContent = JsonSerializer.Deserialize<JsonElement>(JsonSerializer.Serialize(structuredData))
             };
 
             // Act & Assert
