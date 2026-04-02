@@ -583,7 +583,7 @@ public class McpFunctionMetadataTransformerTests
         var resourceOptions = new Mock<IOptionsMonitor<ResourceOptions>>();
         resourceOptions.Setup(o => o.Get(It.IsAny<string>())).Returns(new ResourceOptions());
 
-        var transformer = new McpFunctionMetadataTransformer(options.Object, resourceOptions.Object, NullLogger<McpFunctionMetadataTransformer>.Instance);
+        var transformer = new McpFunctionMetadataTransformer(options.Object, resourceOptions.Object, new Mock<IOptionsMonitor<PromptOptions>>().Object, NullLogger<McpFunctionMetadataTransformer>.Instance);
 
         var fn = CreateFunctionMetadata(null, null, "Func",
             ["{\"type\":\"mcpToolTrigger\",\"toolName\":\"UiTool\"}"]);
@@ -627,7 +627,7 @@ public class McpFunctionMetadataTransformerTests
         var resourceOptions = new Mock<IOptionsMonitor<ResourceOptions>>();
         resourceOptions.Setup(o => o.Get(It.IsAny<string>())).Returns(new ResourceOptions());
 
-        var transformer = new McpFunctionMetadataTransformer(options.Object, resourceOptions.Object, NullLogger<McpFunctionMetadataTransformer>.Instance);
+        var transformer = new McpFunctionMetadataTransformer(options.Object, resourceOptions.Object, new Mock<IOptionsMonitor<PromptOptions>>().Object, NullLogger<McpFunctionMetadataTransformer>.Instance);
 
         // Binding already has metadata with "author" key (from [McpMetadata])
         var fn = CreateFunctionMetadata(null, null, "Func",
@@ -668,7 +668,7 @@ public class McpFunctionMetadataTransformerTests
         var resourceOptions = new Mock<IOptionsMonitor<ResourceOptions>>();
         resourceOptions.Setup(o => o.Get(It.IsAny<string>())).Returns(new ResourceOptions());
 
-        var transformer = new McpFunctionMetadataTransformer(options.Object, resourceOptions.Object, NullLogger<McpFunctionMetadataTransformer>.Instance);
+        var transformer = new McpFunctionMetadataTransformer(options.Object, resourceOptions.Object, new Mock<IOptionsMonitor<PromptOptions>>().Object, NullLogger<McpFunctionMetadataTransformer>.Instance);
 
         var fn = CreateFunctionMetadata(null, null, "Func",
             ["{\"type\":\"mcpToolTrigger\",\"toolName\":\"MyAppTool\"}"]);
@@ -709,7 +709,7 @@ public class McpFunctionMetadataTransformerTests
         var resourceOptions = new Mock<IOptionsMonitor<ResourceOptions>>();
         resourceOptions.Setup(o => o.Get(It.IsAny<string>())).Returns(new ResourceOptions());
 
-        var transformer = new McpFunctionMetadataTransformer(options.Object, resourceOptions.Object, NullLogger<McpFunctionMetadataTransformer>.Instance);
+        var transformer = new McpFunctionMetadataTransformer(options.Object, resourceOptions.Object, new Mock<IOptionsMonitor<PromptOptions>>().Object, NullLogger<McpFunctionMetadataTransformer>.Instance);
 
         var fn = CreateFunctionMetadata(null, null, "Func",
             ["{\"type\":\"mcpToolTrigger\",\"toolName\":\"AssetTool\"}"]);
@@ -736,7 +736,7 @@ public class McpFunctionMetadataTransformerTests
         var resourceOptions = new Mock<IOptionsMonitor<ResourceOptions>>();
         resourceOptions.Setup(o => o.Get(It.IsAny<string>())).Returns(new ResourceOptions());
 
-        var transformer = new McpFunctionMetadataTransformer(options.Object, resourceOptions.Object, NullLogger<McpFunctionMetadataTransformer>.Instance);
+        var transformer = new McpFunctionMetadataTransformer(options.Object, resourceOptions.Object, new Mock<IOptionsMonitor<PromptOptions>>().Object, NullLogger<McpFunctionMetadataTransformer>.Instance);
 
         var fn = CreateFunctionMetadata(null, null, "Func",
             ["{\"type\":\"mcpToolTrigger\",\"toolName\":\"RegularTool\"}"]);
@@ -769,7 +769,7 @@ public class McpFunctionMetadataTransformerTests
         var resourceOptions = new Mock<IOptionsMonitor<ResourceOptions>>();
         resourceOptions.Setup(o => o.Get(It.IsAny<string>())).Returns(new ResourceOptions());
 
-        var transformer = new McpFunctionMetadataTransformer(options.Object, resourceOptions.Object, NullLogger<McpFunctionMetadataTransformer>.Instance);
+        var transformer = new McpFunctionMetadataTransformer(options.Object, resourceOptions.Object, new Mock<IOptionsMonitor<PromptOptions>>().Object, NullLogger<McpFunctionMetadataTransformer>.Instance);
 
         var fn1 = CreateFunctionMetadata(null, null, "Func1",
             ["{\"type\":\"mcpToolTrigger\",\"toolName\":\"DupeTool\"}"]);
@@ -781,7 +781,7 @@ public class McpFunctionMetadataTransformerTests
 
         // Should have 2 original functions + only 1 synthetic (deduplicated)
         Assert.Equal(3, list.Count);
-        Assert.Single(list.Where(f => f.Name == "functions--mcpapp-DupeTool"));
+        Assert.Single(list, f => f.Name == "functions--mcpapp-DupeTool");
     }
 
     private static McpFunctionMetadataTransformer CreateTransformer(List<ToolProperty>? configured = null)
