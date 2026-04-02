@@ -3,7 +3,6 @@
 
 using Microsoft.AspNetCore.Http;
 using Microsoft.Azure.Functions.Extensions.Mcp.Configuration;
-using Microsoft.Azure.Functions.Extensions.Mcp.Diagnostics;
 using Microsoft.Azure.Functions.Extensions.Mcp.Http;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -35,12 +34,6 @@ internal sealed class StreamableHttpRequestHandler(
         {
             context.Items[McpTransportName] = "http-streamable";
             return HandlePostRequestAsync(context);
-        }
-
-        if (HttpMethods.IsDelete(context.Request.Method))
-        {
-            context.Items[McpTransportName] = "http-streamable";
-            return HandleDeleteRequestAsync(context);
         }
 
         context.Response.StatusCode = StatusCodes.Status405MethodNotAllowed;
@@ -75,27 +68,7 @@ internal sealed class StreamableHttpRequestHandler(
 
             McpHttpUtility.SetSseContext(context);
 
-            bool responseWritten;
-            if (message is JsonRpcRequest { Method: SemanticConventions.Methods.Initialize })
-            {
-                var requestContext = McpRequestTraceContext.FromHttpContext(context, sessionId: null);
-                using var scope = McpInstrumentation.CreateSessionActivity(requestContext);
-                try
-                {
-                    responseWritten = await session.Transport.HandlePostRequestAsync(message, context.Response.Body, context.RequestAborted);
-                    // Session ID is set by OnInitRequestReceived callback during HandlePostRequestAsync
-                    scope.ScopeActivity?.SetTag(SemanticConventions.Mcp.SessionId, session.Transport.SessionId);
-                }
-                catch (Exception ex)
-                {
-                    scope.ScopeActivity?.SetExceptionStatus(ex);
-                    throw;
-                }
-            }
-            else
-            {
-                responseWritten = await session.Transport.HandlePostRequestAsync(message, context.Response.Body, context.RequestAborted);
-            }
+            var responseWritten = await session.Transport.HandlePostRequestAsync(message, context.Response.Body, context.RequestAborted);
 
             if (!responseWritten)
             {
@@ -113,31 +86,6 @@ internal sealed class StreamableHttpRequestHandler(
                 await session.DisposeAsync();
             }
         }
-    }
-
-    private Task HandleDeleteRequestAsync(HttpContext context)
-    {
-        var encryptedSessionId = context.Request.Headers[McpSessionIdHeaderName].ToString();
-
-        if (string.IsNullOrEmpty(encryptedSessionId))
-        {
-            context.Response.StatusCode = StatusCodes.Status400BadRequest;
-            return Task.CompletedTask;
-        }
-
-        if (!ClientStateManager.TryParseUriState(encryptedSessionId, out var clientId, out _, mcpOptions.Value.EncryptClientState))
-        {
-            context.Response.StatusCode = StatusCodes.Status400BadRequest;
-            return Task.CompletedTask;
-        }
-
-        var requestContext = McpRequestTraceContext.FromHttpContext(context, clientId);
-        using var scope = McpInstrumentation.CreateSessionEndActivity(requestContext);
-
-        // Stateless sessions are disposed per-request, so there is no server-side
-        // session state to clean up. Acknowledge the termination with 204.
-        context.Response.StatusCode = StatusCodes.Status204NoContent;
-        return Task.CompletedTask;
     }
 
     private async Task<bool> PostHasValidMediaTypesAsync(HttpContext context)
