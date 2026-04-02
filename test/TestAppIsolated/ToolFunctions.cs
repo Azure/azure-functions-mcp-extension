@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation. All rights reserved.
+// Licensed under the MIT License.
+
 using System.Collections;
 using System.ComponentModel;
 using System.Globalization;
@@ -199,4 +202,11 @@ public class TestFunction
         Unemployed
     }
 
+    [Function(nameof(HelloApp))]
+    public string HelloApp(
+        [McpToolTrigger("HelloApp", "A simple MCP App that says hello.")] ToolInvocationContext context)
+    {
+        _logger.LogInformation("HelloApp tool invoked.");
+        return "Hello from app";
+    }
 }

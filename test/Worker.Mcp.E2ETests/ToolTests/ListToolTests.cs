@@ -20,7 +20,7 @@ public class ListToolTests(DefaultProjectFixture fixture, ITestOutputHelper test
         var client = await Fixture.CreateClientAsync(mode);
         var tools = await client.ListToolsAsync(cancellationToken: TestContext.Current.CancellationToken);
 
-        Assert.Equal(11, tools.Count);
+        Assert.Equal(12, tools.Count);
     }
 
     [Theory]
