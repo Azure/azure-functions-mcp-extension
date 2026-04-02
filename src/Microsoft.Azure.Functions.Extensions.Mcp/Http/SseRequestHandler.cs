@@ -3,6 +3,7 @@
 
 using Microsoft.AspNetCore.Http;
 using Microsoft.Azure.Functions.Extensions.Mcp.Backplane;
+using Microsoft.Azure.Functions.Extensions.Mcp.Diagnostics;
 using Microsoft.Azure.Functions.Extensions.Mcp.Configuration;
 using Microsoft.Azure.Functions.Extensions.Mcp.Http;
 using Microsoft.Azure.Functions.Extensions.Mcp.Serialization;
@@ -89,7 +90,9 @@ internal sealed class SseRequestHandler(
         }
         catch (OperationCanceledException) when (context.RequestAborted.IsCancellationRequested)
         {
-            // Nothing to do. Normal client disconnect behavior...
+            // Session-end span is intentionally a point-in-time marker — its near-zero duration
+            // records when the disconnect was detected, not the lifetime of the session.
+            using var scope = McpInstrumentation.CreateSessionEndActivity(McpRequestTraceContext.FromHttpContext(context, clientId));
         }
     }
 
@@ -119,7 +122,24 @@ internal sealed class SseRequestHandler(
 
         if (result.Succeeded)
         {
-            await result.Session.HandleMessageAsync(message, context.RequestAborted);
+            if (message is JsonRpcRequest { Method: SemanticConventions.Methods.Initialize })
+            {
+                var requestContext = McpRequestTraceContext.FromHttpContext(context, clientId);
+                using var scope = McpInstrumentation.CreateSessionActivity(requestContext);
+                try
+                {
+                    await result.Session.HandleMessageAsync(message, context.RequestAborted);
+                }
+                catch (Exception ex)
+                {
+                    scope.ScopeActivity?.SetExceptionStatus(ex);
+                    throw;
+                }
+            }
+            else
+            {
+                await result.Session.HandleMessageAsync(message, context.RequestAborted);
+            }
         }
         else
         {

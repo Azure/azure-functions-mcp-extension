@@ -1,14 +1,23 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
 using System.Diagnostics;
 
 namespace Microsoft.Azure.Functions.Extensions.Mcp.Diagnostics;
 
+/// <summary>
+/// Extension methods for Activity to support MCP semantic conventions.
+/// </summary>
 internal static class ActivityExtensions
 {
-    public static Activity SetExceptionStatus(this Activity activity, Exception? exception, DateTimeOffset timestamp = default)
-    {        
+    /// <summary>
+    /// Sets the activity status to Error and records exception details.
+    /// </summary>
+    /// <param name="activity">The activity to update.</param>
+    /// <param name="exception">The exception that occurred.</param>
+    /// <returns>The activity for chaining.</returns>
+    public static Activity SetExceptionStatus(this Activity activity, Exception? exception)
+    {
         ArgumentNullException.ThrowIfNull(activity);
 
         if (exception is null)
@@ -16,21 +25,27 @@ internal static class ActivityExtensions
             return activity;
         }
 
-        activity.SetStatus(ActivityStatusCode.Error, exception.Message);
+        SetErrorStatus(activity, exception.GetType().FullName, exception.Message);
 
-        if (activity.Events.Any(e => string.Equals(e.Name, TraceConstants.ExceptionEventNameAttribute, StringComparison.Ordinal)))
+        // Add exception event if one hasn't already been recorded
+        if (!activity.Events.Any(e => string.Equals(e.Name, SemanticConventions.Exception.EventName, StringComparison.Ordinal)))
         {
-            return activity;
+            var exceptionTags = new ActivityTagsCollection
+            {
+                { SemanticConventions.Exception.Message, exception.Message },
+                { SemanticConventions.Exception.Stacktrace, exception.ToString() },
+                { SemanticConventions.Exception.Type, exception.GetType().FullName }
+            };
+
+            activity.AddEvent(new ActivityEvent(SemanticConventions.Exception.EventName, DateTimeOffset.UtcNow, exceptionTags));
         }
 
-        var exceptionTags = new ActivityTagsCollection
-        {
-            { TraceConstants.ExceptionMessageAttribute, exception.Message },
-            { TraceConstants.ExceptionStacktraceAttribute, exception.ToString() },
-            { TraceConstants.ExceptionTypeAttribute, exception.GetType().ToString() }
-        };
+        return activity;
+    }
 
-        return activity.AddEvent(new ActivityEvent(TraceConstants.ExceptionEventNameAttribute, timestamp, exceptionTags));
+    private static void SetErrorStatus(Activity activity, string? errorType, string statusDescription)
+    {
+        activity.SetTag(SemanticConventions.Error.Type, errorType);
+        activity.SetStatus(ActivityStatusCode.Error, statusDescription);
     }
 }
-
