@@ -3,6 +3,7 @@
 
 using Microsoft.Azure.Functions.Worker.Extensions.Mcp;
 using Microsoft.Azure.Functions.Worker.Extensions.Mcp.Configuration;
+using Microsoft.Azure.Functions.Worker.Extensions.Mcp.Configuration.Builders.Steps;
 using Microsoft.Azure.Functions.Worker.Extensions.Mcp.McpApp;
 
 namespace Worker.Extensions.Mcp.Tests;
@@ -14,7 +15,7 @@ public class AppMetadataSerializationTests
     {
         var appOptions = CreateMinimalAppOptions();
 
-        var result = McpFunctionMetadataTransformer.BuildToolUiMetadata("myTool", appOptions);
+        var result = AddAppUiMetadataExtension.BuildToolUiMetadata("myTool", appOptions);
 
         Assert.Equal("ui://myTool/view", result["resourceUri"]!.GetValue<string>());
     }
@@ -25,7 +26,7 @@ public class AppMetadataSerializationTests
         var appOptions = CreateMinimalAppOptions();
         appOptions.Visibility = McpVisibility.Model | McpVisibility.App;
 
-        var result = McpFunctionMetadataTransformer.BuildToolUiMetadata("myTool", appOptions);
+        var result = AddAppUiMetadataExtension.BuildToolUiMetadata("myTool", appOptions);
 
         var visibility = result["visibility"]!.AsArray();
         Assert.Equal(2, visibility.Count);
@@ -39,7 +40,7 @@ public class AppMetadataSerializationTests
         var appOptions = CreateMinimalAppOptions();
         appOptions.Visibility = McpVisibility.Model;
 
-        var result = McpFunctionMetadataTransformer.BuildToolUiMetadata("myTool", appOptions);
+        var result = AddAppUiMetadataExtension.BuildToolUiMetadata("myTool", appOptions);
 
         var visibility = result["visibility"]!.AsArray();
         Assert.Single(visibility);
@@ -51,7 +52,7 @@ public class AppMetadataSerializationTests
     {
         var appOptions = CreateMinimalAppOptions();
 
-        var result = McpFunctionMetadataTransformer.BuildToolUiMetadata("myTool", appOptions);
+        var result = AddAppUiMetadataExtension.BuildToolUiMetadata("myTool", appOptions);
 
         // Per spec, CSP/permissions/border go on the resource response, not the tool metadata
         Assert.False(result.ContainsKey("csp"));
