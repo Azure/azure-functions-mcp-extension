@@ -7,8 +7,6 @@ using ModelContextProtocol.Server;
 
 internal sealed class StreamableHttpTransport : McpExtensionTransport<StreamableHttpServerTransport>
 {
-    private string? _sessionId;
-
     public StreamableHttpTransport(
         string? sessionId = null,
         bool stateless = false,
@@ -22,7 +20,6 @@ internal sealed class StreamableHttpTransport : McpExtensionTransport<Streamable
             OnSessionInitialized = onSessionInitialized,
         })
     {
-        _sessionId = sessionId;
     }
 
     public override Task HandleMessageAsync(JsonRpcMessage message, CancellationToken cancellationToken)
@@ -30,10 +27,12 @@ internal sealed class StreamableHttpTransport : McpExtensionTransport<Streamable
         throw new NotSupportedException();
     }
 
+    // SessionId is init-only on StreamableHttpServerTransport (SDK 1.2.0),
+    // so we delegate the getter to the SDK transport and reject post-construction mutation.
     public override string? SessionId
     {
-        get => _sessionId;
-        set => _sessionId = value;
+        get => Transport.SessionId;
+        set => throw new NotSupportedException("SessionId is immutable after transport construction.");
     }
 
     public Task HandleGetRequestAsync(Stream sseResponseStream, CancellationToken cancellationToken)
