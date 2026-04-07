@@ -11,6 +11,6 @@ namespace Microsoft.Azure.Functions.Worker.Extensions.Mcp;
 [JsonSerializable(typeof(PromptInvocationContext))]
 [JsonSerializable(typeof(McpAppResourceResult))]
 [JsonSerializable(typeof(McpAppResourceContent))]
-internal sealed partial class WorkerMcpJsonContext : JsonSerializerContext
+internal sealed partial class McpJsonContext : JsonSerializerContext
 {
 }

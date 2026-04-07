@@ -76,9 +76,9 @@ internal sealed class FunctionsMcpAppMiddleware : IFunctionsWorkerMiddleware
 
         // Serialize as McpResourceResult so the host's ResourceReturnValueBinder
         // picks up the full content including _meta.
-        var contentJson = JsonSerializer.Serialize(resourceContent, WorkerMcpJsonContext.Default.McpAppResourceContent);
+        var contentJson = JsonSerializer.Serialize(resourceContent, McpJsonContext.Default.McpAppResourceContent);
         var result = new McpAppResourceResult { Content = contentJson };
-        var resultJson = JsonSerializer.Serialize(result, WorkerMcpJsonContext.Default.McpAppResourceResult);
+        var resultJson = JsonSerializer.Serialize(result, McpJsonContext.Default.McpAppResourceResult);
 
         var invocationResult = context.GetInvocationResult();
         invocationResult.Value = resultJson;

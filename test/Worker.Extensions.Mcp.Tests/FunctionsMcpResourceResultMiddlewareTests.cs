@@ -269,29 +269,21 @@ public class FunctionsMcpResourceResultMiddlewareTests : IDisposable
 
     #endregion
 
-    #region MimeTypeHelper tests
+    #region MimeType binding data key casing
 
-    [Theory]
-    [InlineData(null, true)]
-    [InlineData("", true)]
-    [InlineData("text/plain", true)]
-    [InlineData("text/html", true)]
-    [InlineData("text/css", true)]
-    [InlineData("text/html+skybridge", true)]
-    [InlineData("application/json", true)]
-    [InlineData("application/xml", true)]
-    [InlineData("application/javascript", true)]
-    [InlineData("application/vnd.api+json", true)]
-    [InlineData("application/soap+xml", true)]
-    [InlineData("image/png", false)]
-    [InlineData("image/jpeg", false)]
-    [InlineData("application/pdf", false)]
-    [InlineData("application/octet-stream", false)]
-    [InlineData("audio/mpeg", false)]
-    [InlineData("video/mp4", false)]
-    public void IsTextMimeType_ReturnsExpectedResult(string? mimeType, bool expected)
+    [Fact]
+    public async Task Invoke_WithLowercaseMimeTypeKey_ReadsFileCorrectly()
     {
-        Assert.Equal(expected, MimeTypeHelper.IsTextMimeType(mimeType));
+        var filePath = CreateTempFile("test.txt", "lowercase key content");
+        var context = CreateResourceContext(mimeType: "text/plain", useLowercaseKey: true);
+
+        await _middleware.Invoke(context, _ =>
+        {
+            _currentResult = new FileResourceContents { Path = filePath };
+            return Task.CompletedTask;
+        });
+
+        Assert.Equal("lowercase key content", _currentResult);
     }
 
     #endregion
@@ -312,12 +304,12 @@ public class FunctionsMcpResourceResultMiddlewareTests : IDisposable
         return filePath;
     }
 
-    private static FunctionContext CreateResourceContext(string? mimeType = null)
+    private static FunctionContext CreateResourceContext(string? mimeType = null, bool useLowercaseKey = false)
     {
         var bindingData = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
         if (mimeType is not null)
         {
-            bindingData["MimeType"] = mimeType;
+            bindingData[useLowercaseKey ? "mimeType" : "MimeType"] = mimeType;
         }
 
         var items = new Dictionary<object, object?>

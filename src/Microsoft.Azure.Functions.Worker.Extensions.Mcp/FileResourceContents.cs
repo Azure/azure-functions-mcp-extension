@@ -37,7 +37,7 @@ namespace Microsoft.Azure.Functions.Worker.Extensions.Mcp;
 /// }
 /// </code>
 /// </example>
-public class FileResourceContents
+public sealed class FileResourceContents
 {
     /// <summary>
     /// Gets or sets the file path to read. Relative paths are resolved against
