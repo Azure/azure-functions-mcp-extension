@@ -133,13 +133,14 @@ internal sealed class StreamableHttpRequestHandler(
 
         string clientId = Utility.EmptyId;
         var sessionId = Utility.CreateId();
-        var clientState = ClientStateManager.FormatUriState(sessionId, instanceIdProvider.InstanceId, mcpOptions.Value.EncryptClientState);
 
         StreamableHttpTransport transport = new(
             sessionId: sessionId,
             stateless: true,
             onSessionInitialized: (initParams, ct) =>
                 {
+                    // Persist the session ID in the response header after receiving the initialize request.
+                    var clientState = ClientStateManager.FormatUriState(sessionId, instanceIdProvider.InstanceId, mcpOptions.Value.EncryptClientState);
                     context.Response.Headers[McpSessionIdHeaderName] = clientState;
                     return ValueTask.CompletedTask;
                 })
