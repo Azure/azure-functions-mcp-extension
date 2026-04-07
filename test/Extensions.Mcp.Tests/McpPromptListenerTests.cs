@@ -19,10 +19,7 @@ public class McpPromptListenerTests
         var server = new Mock<McpServer>().Object;
         var parameters = new GetPromptRequestParams { Name = name, Arguments = arguments };
 
-        return new RequestContext<GetPromptRequestParams>(server, new JsonRpcRequest() { Method = RequestMethods.PromptsGet })
-        {
-            Params = parameters
-        };
+        return new RequestContext<GetPromptRequestParams>(server, new JsonRpcRequest() { Method = RequestMethods.PromptsGet }, parameters);
     }
 
     private static JsonElement Json(string raw) => JsonDocument.Parse(raw).RootElement;

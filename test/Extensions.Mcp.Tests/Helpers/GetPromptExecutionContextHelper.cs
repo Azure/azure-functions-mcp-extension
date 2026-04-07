@@ -40,9 +40,9 @@ public static class GetPromptExecutionContextHelper
 
         var requestContext = new RequestContext<GetPromptRequestParams>(
             mockServer.Object,
-            new JsonRpcRequest() { Method = RequestMethods.PromptsGet })
+            new JsonRpcRequest() { Method = RequestMethods.PromptsGet },
+            requestParams)
         {
-            Params = requestParams,
             Services = services.BuildServiceProvider()
         };
 
