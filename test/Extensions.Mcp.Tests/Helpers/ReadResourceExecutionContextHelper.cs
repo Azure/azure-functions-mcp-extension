@@ -37,15 +37,13 @@ public static class ReadResourceExecutionContextHelper
         mockServer.Setup(s => s.SessionId).Returns(sessionId);
         mockServer.Setup(s => s.ClientInfo).Returns(clientInfo);
 
-#pragma warning disable MCP9003 // Use the constructor overload that accepts a parameters argument.
         var requestContext = new RequestContext<ReadResourceRequestParams>(
             mockServer.Object,
-            new JsonRpcRequest() { Method = RequestMethods.ResourcesRead })
+            new JsonRpcRequest() { Method = RequestMethods.ResourcesRead },
+            requestParams)
         {
-            Params = requestParams,
             Services = services.BuildServiceProvider()
         };
-#pragma warning restore MCP9003
 
         var executionContext = new ReadResourceExecutionContext(requestContext);
 

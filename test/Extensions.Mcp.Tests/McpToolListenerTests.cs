@@ -30,12 +30,7 @@ public class McpToolListenerTests
 #pragma warning restore MCPEXP002
         var parameters = new CallToolRequestParams { Name = "params", Arguments = dict };
 
-#pragma warning disable MCP9003
-        return new RequestContext<CallToolRequestParams>(server, new JsonRpcRequest() { Method = RequestMethods.ToolsCall })
-        {
-            Params = parameters
-        };
-#pragma warning restore MCP9003
+        return new RequestContext<CallToolRequestParams>(server, new JsonRpcRequest() { Method = RequestMethods.ToolsCall }, parameters);
     }
 
     private static CallToolRequestParams CreateRequestParams(params (string key, JsonElement value)[] args)

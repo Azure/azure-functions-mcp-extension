@@ -17,12 +17,7 @@ public class McpResourceListenerTests
 #pragma warning restore MCPEXP002
         var parameters = new ReadResourceRequestParams { Uri = uri };
 
-#pragma warning disable MCP9003
-        return new RequestContext<ReadResourceRequestParams>(server, new JsonRpcRequest() { Method = RequestMethods.ResourcesRead })
-        {
-            Params = parameters
-        };
-#pragma warning restore MCP9003
+        return new RequestContext<ReadResourceRequestParams>(server, new JsonRpcRequest() { Method = RequestMethods.ResourcesRead }, parameters);
     }
 
     [Fact]

@@ -89,7 +89,10 @@ internal sealed class ToolReturnValueBinder(CallToolExecutionContext executionCo
     {
         if (!string.IsNullOrEmpty(result.StructuredContent))
         {
-            return JsonSerializer.Deserialize<JsonElement>(result.StructuredContent!, McpJsonUtilities.DefaultOptions);
+            var element = JsonSerializer.Deserialize<JsonElement>(result.StructuredContent!, McpJsonUtilities.DefaultOptions);
+            return element.ValueKind != JsonValueKind.Null
+                ? element
+                : throw new InvalidOperationException("Failed to deserialize structured content.");
         }
 
         return null;

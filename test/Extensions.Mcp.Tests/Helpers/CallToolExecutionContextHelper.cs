@@ -45,13 +45,10 @@ public static class CallToolExecutionContextHelper
         mockServer.Setup(s=> s.SessionId).Returns(sessionId);
         mockServer.Setup(s => s.ClientInfo).Returns(clientInfo);
 
-#pragma warning disable MCP9003 // Use the constructor overload that accepts a parameters argument.
-        RequestContext<CallToolRequestParams> requestContext = new(mockServer.Object, new JsonRpcRequest() { Method = RequestMethods.ToolsCall})
+        RequestContext<CallToolRequestParams> requestContext = new(mockServer.Object, new JsonRpcRequest() { Method = RequestMethods.ToolsCall}, requestParams)
         {
-            Params = requestParams,
             Services = services.BuildServiceProvider()
         };
-#pragma warning restore MCP9003
 
         CallToolExecutionContext executionContext = new(requestContext);
 
