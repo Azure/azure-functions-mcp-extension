@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-namespace Microsoft.Azure.Functions.Worker.Extensions.Mcp.Sdk;
+namespace Microsoft.Azure.Functions.Worker.Extensions.Mcp;
 
 /// <summary>
 /// Default implementation of IFunctionResultAccessor that uses the extension methods.

@@ -19,8 +19,8 @@ public class McpJsonContextTests
         };
 
         // Act
-        var json = JsonSerializer.Serialize(original, McpJsonContext.Default.McpToolResult);
-        var deserialized = JsonSerializer.Deserialize<McpToolResult>(json, McpJsonContext.Default.McpToolResult);
+        var json = JsonSerializer.Serialize(original, McpSdkJsonContext.Default.McpToolResult);
+        var deserialized = JsonSerializer.Deserialize<McpToolResult>(json, McpSdkJsonContext.Default.McpToolResult);
 
         // Assert
         Assert.NotNull(deserialized);
@@ -39,8 +39,8 @@ public class McpJsonContextTests
         };
 
         // Act
-        var json = JsonSerializer.Serialize(original, McpJsonContext.Default.McpToolResult);
-        var deserialized = JsonSerializer.Deserialize<McpToolResult>(json, McpJsonContext.Default.McpToolResult);
+        var json = JsonSerializer.Serialize(original, McpSdkJsonContext.Default.McpToolResult);
+        var deserialized = JsonSerializer.Deserialize<McpToolResult>(json, McpSdkJsonContext.Default.McpToolResult);
 
         // Assert
         Assert.NotNull(deserialized);
@@ -59,7 +59,7 @@ public class McpJsonContextTests
         };
 
         // Act
-        var json = JsonSerializer.Serialize(toolResult, McpJsonContext.Default.McpToolResult);
+        var json = JsonSerializer.Serialize(toolResult, McpSdkJsonContext.Default.McpToolResult);
 
         // Assert
         Assert.Contains("\"type\":", json);
@@ -76,8 +76,8 @@ public class McpJsonContextTests
         var jsonWithLowerCase = "{\"type\":\"text\",\"content\":\"value\"}";
 
         // Act
-        var fromUpperCase = JsonSerializer.Deserialize<McpToolResult>(jsonWithUpperCase, McpJsonContext.Default.McpToolResult);
-        var fromLowerCase = JsonSerializer.Deserialize<McpToolResult>(jsonWithLowerCase, McpJsonContext.Default.McpToolResult);
+        var fromUpperCase = JsonSerializer.Deserialize<McpToolResult>(jsonWithUpperCase, McpSdkJsonContext.Default.McpToolResult);
+        var fromLowerCase = JsonSerializer.Deserialize<McpToolResult>(jsonWithLowerCase, McpSdkJsonContext.Default.McpToolResult);
 
         // Assert
         Assert.NotNull(fromUpperCase);
@@ -98,8 +98,8 @@ public class McpJsonContextTests
         };
 
         // Act
-        var json = JsonSerializer.Serialize(toolResult, McpJsonContext.Default.McpToolResult);
-        var deserialized = JsonSerializer.Deserialize<McpToolResult>(json, McpJsonContext.Default.McpToolResult);
+        var json = JsonSerializer.Serialize(toolResult, McpSdkJsonContext.Default.McpToolResult);
+        var deserialized = JsonSerializer.Deserialize<McpToolResult>(json, McpSdkJsonContext.Default.McpToolResult);
 
         // Assert
         Assert.NotNull(deserialized);
@@ -118,8 +118,8 @@ public class McpJsonContextTests
         };
 
         // Act
-        var json = JsonSerializer.Serialize(toolResult, McpJsonContext.Default.McpToolResult);
-        var deserialized = JsonSerializer.Deserialize<McpToolResult>(json, McpJsonContext.Default.McpToolResult);
+        var json = JsonSerializer.Serialize(toolResult, McpSdkJsonContext.Default.McpToolResult);
+        var deserialized = JsonSerializer.Deserialize<McpToolResult>(json, McpSdkJsonContext.Default.McpToolResult);
 
         // Assert
         Assert.NotNull(deserialized);

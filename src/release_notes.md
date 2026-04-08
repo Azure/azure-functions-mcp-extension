@@ -39,6 +39,17 @@
             }));
     ```
 
+- Added `FileResourceContents` type for file-based resource results with automatic text/binary detection and base directory resolution (#225)
+
+    ```csharp
+    [Function(nameof(GetCompanyLogo))]
+    public FileResourceContents GetCompanyLogo(
+        [McpResourceTrigger("file://logo.png", "logo", MimeType = "image/png")] ResourceInvocationContext context)
+    {
+        return new FileResourceContents { Path = "assets/logo.png" };
+    }
+    ```
+
 ### Microsoft.Azure.Functions.Worker.Extensions.Mcp.Sdk <version>
 
 - Upgraded MCP C# SDK dependency from 0.4.0-preview.3 to 1.2.0 (#222)
