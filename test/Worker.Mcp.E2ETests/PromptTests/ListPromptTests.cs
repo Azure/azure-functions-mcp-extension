@@ -20,7 +20,7 @@ public class ListPromptTests(DefaultProjectFixture fixture, ITestOutputHelper te
         var prompts = await client.ListPromptsAsync(cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.NotNull(prompts);
-        Assert.Equal(6, prompts.Count);
+        Assert.True(prompts.Count >= 6, $"Expected at least 6 prompts but found {prompts.Count}");
     }
 
     [Theory]

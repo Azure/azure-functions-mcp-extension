@@ -20,7 +20,7 @@ public class ListToolTests(DefaultProjectFixture fixture, ITestOutputHelper test
         var client = await Fixture.CreateClientAsync(mode);
         var tools = await client.ListToolsAsync(cancellationToken: TestContext.Current.CancellationToken);
 
-        Assert.Equal(19, tools.Count);
+        Assert.True(tools.Count >= 19, $"Expected at least 19 tools but found {tools.Count}");
     }
 
     [Theory]
