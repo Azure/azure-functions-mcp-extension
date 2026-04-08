@@ -10,6 +10,9 @@ var builder = FunctionsApplication.CreateBuilder(args);
 
 builder.ConfigureFunctionsWebApplication();
 
+// ── MCP Apps ────────────────────────────────────────────────────────────────
+
+// Full MCP App: view + title + permissions + CSP
 builder.ConfigureMcpTool("HelloApp")
     .AsMcpApp(app => app
         .WithView("assets/hello-app.html")
@@ -21,11 +24,47 @@ builder.ConfigureMcpTool("HelloApp")
             .ConnectTo("https://www.microsoft.com");
         }));
 
-builder.ConfigureMcpResource("file://logo.png")
-        .WithMetadata("ui", new { prefersBorder = true });
+// Minimal MCP App: view only, no permissions/CSP/visibility
+builder.ConfigureMcpTool("MinimalApp")
+    .AsMcpApp(app => app
+        .WithView("assets/minimal-app.html")
+        .WithTitle("Minimal App"));
 
-builder.ConfigureMcpTool("RenderImage")
-        .WithMetadata("imageVersion", "1.0")
-        .WithMetadata("source", "google");
+// MCP App with visibility configuration
+builder.ConfigureMcpTool("VisibilityApp")
+    .AsMcpApp(app => app
+        .WithVisibility(McpVisibility.App)
+        .WithView("assets/minimal-app.html")
+        .WithTitle("Visibility App"));
+
+// ── Tool fluent API ─────────────────────────────────────────────────────────
+
+// Tool with metadata defined entirely via fluent builder (no [McpMetadata] attribute)
+builder.ConfigureMcpTool("FluentMetadataTool")
+    .WithMetadata("imageVersion", "1.0")
+    .WithMetadata("source", "builder");
+
+// Tool with properties defined entirely via fluent builder (no [McpToolProperty] attributes)
+builder.ConfigureMcpTool("FluentDefinedTool")
+    .WithProperty("city", McpToolPropertyType.String, "The city name.", required: true)
+    .WithProperty("zipCode", McpToolPropertyType.String, "The ZIP code.", required: false);
+
+// ── Resource fluent API ─────────────────────────────────────────────────────
+
+// Additional metadata on an attribute-defined resource
+builder.ConfigureMcpResource("file://notes.txt")
+    .WithMetadata("category", "documentation")
+    .WithMetadata("priority", 1);
+
+// ── Prompt fluent API ───────────────────────────────────────────────────────
+
+// Prompt with arguments and metadata defined via fluent builder
+builder.ConfigureMcpPrompt("fluent_prompt")
+    .WithArgument("query", "The search query to process", required: true)
+    .WithMetadata("source", "fluent-api");
+
+// Additional metadata on an attribute-defined prompt
+builder.ConfigureMcpPrompt("metadata_prompt")
+    .WithMetadata("environment", "test");
 
 builder.Build().Run();

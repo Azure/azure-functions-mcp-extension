@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
+using System.Text.Json.Nodes;
 using Microsoft.Azure.Functions.Worker.Mcp.E2ETests.Fixtures;
 using Microsoft.Azure.Functions.Worker.Mcp.E2ETests.ProtocolTests;
 using ModelContextProtocol.Client;
@@ -14,52 +15,48 @@ public class ListResourceTests(DefaultProjectFixture fixture, ITestOutputHelper 
     [InlineData(HttpTransportMode.Sse)]
     [InlineData(HttpTransportMode.AutoDetect)]
     [InlineData(HttpTransportMode.StreamableHttp)]
-    public async Task DefaultListResources_ReturnsAllResources(HttpTransportMode mode)
+    public async Task ListResources_ReturnsExpectedCount(HttpTransportMode mode)
     {
         var client = await Fixture.CreateClientAsync(mode);
         var resources = await client.ListResourcesAsync(cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.NotNull(resources);
-        Assert.True(resources.Count > 0, "Expected at least one resource to be returned");
-        TestOutputHelper.WriteLine($"Found {resources.Count} resources");
+        // 4 static resources (readme, logo, minimal, notes) — templates are excluded
+        Assert.Equal(4, resources.Count);
     }
 
     [Theory]
     [InlineData(HttpTransportMode.Sse)]
     [InlineData(HttpTransportMode.AutoDetect)]
     [InlineData(HttpTransportMode.StreamableHttp)]
-    public async Task DefaultListResources_ReturnsExpectedResources(HttpTransportMode mode)
+    public async Task ListResources_ContainsExpectedResources(HttpTransportMode mode)
     {
         var client = await Fixture.CreateClientAsync(mode);
         var resources = await client.ListResourcesAsync(cancellationToken: TestContext.Current.CancellationToken);
 
-        Assert.NotNull(resources);
-        // Default server (TestAppIsolated) has these resources registered:
         Assert.Contains(resources, r => r.Uri == "file://readme.md");
         Assert.Contains(resources, r => r.Uri == "file://logo.png");
-
-        TestOutputHelper.WriteLine($"Resources: {string.Join(", ", resources.Select(r => r.Uri))}");;
+        Assert.Contains(resources, r => r.Uri == "file://minimal.txt");
+        Assert.Contains(resources, r => r.Uri == "file://notes.txt");
     }
 
     [Theory]
     [InlineData(HttpTransportMode.Sse)]
     [InlineData(HttpTransportMode.AutoDetect)]
     [InlineData(HttpTransportMode.StreamableHttp)]
-    public async Task DefaultListResources_ContainsMetadata(HttpTransportMode mode)
+    public async Task ListResources_TextResource_ContainsFullMetadata(HttpTransportMode mode)
     {
         var client = await Fixture.CreateClientAsync(mode);
         var resources = await client.ListResourcesAsync(cancellationToken: TestContext.Current.CancellationToken);
 
-        Assert.NotNull(resources);
         var readmeResource = resources.FirstOrDefault(r => r.Uri == "file://readme.md");
-
         Assert.NotNull(readmeResource);
         Assert.Equal("readme", readmeResource.Name);
         Assert.Equal("Application Readme", readmeResource.Title);
         Assert.Equal("Application readme file", readmeResource.Description);
         Assert.Equal("text/plain", readmeResource.MimeType);
 
-        // Verify custom McpMetadata attributes are included in _meta
+        // Verify [McpMetadata] attribute metadata
         var meta = readmeResource.ProtocolResource.Meta;
         Assert.NotNull(meta);
 
@@ -78,37 +75,61 @@ public class ListResourceTests(DefaultProjectFixture fixture, ITestOutputHelper 
         Assert.Equal("list", exampleArray[0]!.ToString());
         Assert.Equal("of", exampleArray[1]!.ToString());
         Assert.Equal("values", exampleArray[2]!.ToString());
-
-        TestOutputHelper.WriteLine($"Resource: Name={readmeResource.Name}, Title={readmeResource.Title}, Description={readmeResource.Description}, MimeType={readmeResource.MimeType}");
-        TestOutputHelper.WriteLine($"Metadata: author={meta["author"]}, file.version={fileNode["version"]}, file.releaseDate={fileNode["releaseDate"]}, test.example=[{string.Join(", ", exampleArray)}]");
     }
 
     [Theory]
     [InlineData(HttpTransportMode.Sse)]
     [InlineData(HttpTransportMode.AutoDetect)]
     [InlineData(HttpTransportMode.StreamableHttp)]
-    public async Task DefaultListResources_BinaryResourceHasFluentApiMetadata(HttpTransportMode mode)
+    public async Task ListResources_BinaryResource_HasExpectedProperties(HttpTransportMode mode)
     {
         var client = await Fixture.CreateClientAsync(mode);
         var resources = await client.ListResourcesAsync(cancellationToken: TestContext.Current.CancellationToken);
 
-        Assert.NotNull(resources);
         var logoResource = resources.FirstOrDefault(r => r.Uri == "file://logo.png");
-
         Assert.NotNull(logoResource);
         Assert.Equal("logo", logoResource.Name);
         Assert.Equal("Azure Functions logo", logoResource.Description);
         Assert.Equal("image/png", logoResource.MimeType);
+    }
 
-        // Verify fluent API metadata is included in _meta
-        var meta = logoResource.ProtocolResource.Meta;
+    [Theory]
+    [InlineData(HttpTransportMode.Sse)]
+    [InlineData(HttpTransportMode.AutoDetect)]
+    [InlineData(HttpTransportMode.StreamableHttp)]
+    public async Task ListResources_MinimalResource_HasNoOptionalProperties(HttpTransportMode mode)
+    {
+        var client = await Fixture.CreateClientAsync(mode);
+        var resources = await client.ListResourcesAsync(cancellationToken: TestContext.Current.CancellationToken);
+
+        var minimalResource = resources.FirstOrDefault(r => r.Uri == "file://minimal.txt");
+        Assert.NotNull(minimalResource);
+        Assert.Equal("minimal", minimalResource.Name);
+
+        // Minimal resource has no Title, Description, or MimeType set
+        Assert.Null(minimalResource.Title);
+        Assert.Null(minimalResource.Description);
+        Assert.Null(minimalResource.MimeType);
+    }
+
+    [Theory]
+    [InlineData(HttpTransportMode.Sse)]
+    [InlineData(HttpTransportMode.AutoDetect)]
+    [InlineData(HttpTransportMode.StreamableHttp)]
+    public async Task ListResources_NotesResource_ContainsFluentMetadata(HttpTransportMode mode)
+    {
+        var client = await Fixture.CreateClientAsync(mode);
+        var resources = await client.ListResourcesAsync(cancellationToken: TestContext.Current.CancellationToken);
+
+        var notesResource = resources.FirstOrDefault(r => r.Uri == "file://notes.txt");
+        Assert.NotNull(notesResource);
+        Assert.Equal("notes", notesResource.Name);
+
+        var meta = notesResource.ProtocolResource.Meta;
         Assert.NotNull(meta);
-
-        Assert.True(meta.ContainsKey("ui"));
-        var uiNode = meta["ui"]!.AsObject();
-        Assert.True(uiNode["prefersBorder"]!.GetValue<bool>());
-
-        TestOutputHelper.WriteLine($"Resource: Name={logoResource.Name}, Description={logoResource.Description}, MimeType={logoResource.MimeType}");
-        TestOutputHelper.WriteLine($"Metadata: ui.prefersBorder={uiNode["prefersBorder"]}");
+        Assert.True(meta.ContainsKey("category"));
+        Assert.Equal("documentation", ((JsonNode)meta["category"]!).GetValue<string>());
+        Assert.True(meta.ContainsKey("priority"));
+        Assert.Equal(1, ((JsonNode)meta["priority"]!).GetValue<int>());
     }
 }

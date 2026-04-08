@@ -59,31 +59,4 @@ public static class CallToolHelper
             }
         };
     }
-
-    /// <summary>
-    /// Creates SaveSnippet arguments for the default server
-    /// </summary>
-    public static object CreateSaveSnippetArguments(string name, string content)
-    {
-        // Default server expects POCO with Name and Content properties
-        return new { Name = name, Content = content };
-    }
-
-    /// <summary>
-    /// Creates GetSnippets arguments for the default server
-    /// </summary>
-    public static object CreateGetSnippetArguments(string snippetName)
-    {
-        // Default server uses the same parameter name for getting snippets
-        return new { snippetname = snippetName };
-    }
-
-    /// <summary>
-    /// Creates SearchSnippets arguments for the default server
-    /// </summary>
-    public static object CreateSearchSnippetsArguments(string pattern, bool caseSensitive = false)
-    {
-        // Default server expects POCO with Pattern and CaseSensitive properties
-        return new { Pattern = pattern, CaseSensitive = caseSensitive };
-    }
 }
