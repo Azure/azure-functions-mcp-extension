@@ -126,5 +126,12 @@ public class ReadResourceTests(DefaultProjectFixture fixture, ITestOutputHelper 
         var response = await ResourceHelper.MakeResourceRequest(AppRootEndpoint, request, TestOutputHelper);
 
         Assert.NotNull(response);
+        var jsonString = ResourceHelper.ExtractJsonFromSSE(response);
+        var jsonResponse = JsonDocument.Parse(jsonString);
+        var root = jsonResponse.RootElement;
+
+        Assert.True(root.TryGetProperty("jsonrpc", out _));
+        Assert.True(root.TryGetProperty("error", out var errorElement), "Expected error response for non-existent resource");
+        Assert.True(errorElement.TryGetProperty("message", out _), "Error should contain a message");
     }
 }
