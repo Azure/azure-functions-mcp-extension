@@ -91,7 +91,7 @@ internal class FunctionsMcpToolResultMiddleware : IFunctionsWorkerMiddleware
             StructuredContent = structuredContent
         };
 
-        _resultAccessor.SetResult(context, JsonSerializer.Serialize(mcpToolResult, McpJsonContext.Default.McpToolResult));
+        _resultAccessor.SetResult(context, JsonSerializer.Serialize(mcpToolResult, McpSdkJsonContext.Default.McpToolResult));
     }
 
     private static (string Type, string Content) ProcessContentBlock(ContentBlock block)

@@ -86,7 +86,7 @@ public class FunctionsMcpToolResultMiddlewareTests
         var result = _currentResult as string;
         Assert.NotNull(result);
 
-        McpToolResult? mcpToolResult = JsonSerializer.Deserialize(result, McpJsonContext.Default.McpToolResult);
+        McpToolResult? mcpToolResult = JsonSerializer.Deserialize(result, McpSdkJsonContext.Default.McpToolResult);
         Assert.NotNull(mcpToolResult);
         Assert.Equal(Constants.TextContextResult, mcpToolResult.Type);
 
@@ -113,7 +113,7 @@ public class FunctionsMcpToolResultMiddlewareTests
         var result = _currentResult as string;
         Assert.NotNull(result);
 
-        McpToolResult? mcpToolResult = JsonSerializer.Deserialize(result, McpJsonContext.Default.McpToolResult);
+        McpToolResult? mcpToolResult = JsonSerializer.Deserialize(result, McpSdkJsonContext.Default.McpToolResult);
         Assert.NotNull(mcpToolResult);
         Assert.Equal(Constants.TextContextResult, mcpToolResult.Type);
 
@@ -141,7 +141,7 @@ public class FunctionsMcpToolResultMiddlewareTests
         var result = _currentResult as string;
         Assert.NotNull(result);
 
-        McpToolResult? mcpToolResult = JsonSerializer.Deserialize(result, McpJsonContext.Default.McpToolResult);
+        McpToolResult? mcpToolResult = JsonSerializer.Deserialize(result, McpSdkJsonContext.Default.McpToolResult);
         Assert.NotNull(mcpToolResult);
         Assert.Equal("text", mcpToolResult.Type);
 
@@ -172,7 +172,7 @@ public class FunctionsMcpToolResultMiddlewareTests
         var result = _currentResult as string;
         Assert.NotNull(result);
 
-        McpToolResult? mcpToolResult = JsonSerializer.Deserialize(result, McpJsonContext.Default.McpToolResult);
+        McpToolResult? mcpToolResult = JsonSerializer.Deserialize(result, McpSdkJsonContext.Default.McpToolResult);
         Assert.NotNull(mcpToolResult);
         Assert.Equal("image", mcpToolResult.Type);
 
@@ -204,7 +204,7 @@ public class FunctionsMcpToolResultMiddlewareTests
         var result = _currentResult as string;
         Assert.NotNull(result);
 
-        McpToolResult? mcpToolResult = JsonSerializer.Deserialize(result, McpJsonContext.Default.McpToolResult);
+        McpToolResult? mcpToolResult = JsonSerializer.Deserialize(result, McpSdkJsonContext.Default.McpToolResult);
         Assert.NotNull(mcpToolResult);
         Assert.Equal(Constants.MultiContentResult, mcpToolResult.Type);
 
@@ -231,7 +231,7 @@ public class FunctionsMcpToolResultMiddlewareTests
         var result = _currentResult as string;
         Assert.NotNull(result);
 
-        McpToolResult? mcpToolResult = JsonSerializer.Deserialize(result, McpJsonContext.Default.McpToolResult);
+        McpToolResult? mcpToolResult = JsonSerializer.Deserialize(result, McpSdkJsonContext.Default.McpToolResult);
         Assert.NotNull(mcpToolResult);
         Assert.Equal(Constants.MultiContentResult, mcpToolResult.Type);
 
@@ -262,7 +262,7 @@ public class FunctionsMcpToolResultMiddlewareTests
         var result = _currentResult as string;
         Assert.NotNull(result);
 
-        McpToolResult? mcpToolResult = JsonSerializer.Deserialize(result, McpJsonContext.Default.McpToolResult);
+        McpToolResult? mcpToolResult = JsonSerializer.Deserialize(result, McpSdkJsonContext.Default.McpToolResult);
         Assert.NotNull(mcpToolResult);
         Assert.Equal(Constants.MultiContentResult, mcpToolResult.Type);
         Assert.NotNull(mcpToolResult.Content);
@@ -286,7 +286,7 @@ public class FunctionsMcpToolResultMiddlewareTests
         var result = _currentResult as string;
         Assert.NotNull(result);
 
-        McpToolResult? mcpToolResult = JsonSerializer.Deserialize(result, McpJsonContext.Default.McpToolResult);
+        McpToolResult? mcpToolResult = JsonSerializer.Deserialize(result, McpSdkJsonContext.Default.McpToolResult);
         Assert.NotNull(mcpToolResult);
 
         var textBlock = JsonSerializer.Deserialize<TextContentBlock>(mcpToolResult.Content!, McpJsonUtilities.DefaultOptions);
@@ -335,8 +335,8 @@ public class FunctionsMcpToolResultMiddlewareTests
         };
 
         // Act - simulate what the middleware does
-        var resultJson = JsonSerializer.Serialize(mcpToolResult, McpJsonContext.Default.McpToolResult);
-        var deserializedResult = JsonSerializer.Deserialize<McpToolResult>(resultJson, McpJsonContext.Default.McpToolResult);
+        var resultJson = JsonSerializer.Serialize(mcpToolResult, McpSdkJsonContext.Default.McpToolResult);
+        var deserializedResult = JsonSerializer.Deserialize<McpToolResult>(resultJson, McpSdkJsonContext.Default.McpToolResult);
 
         // Assert
         Assert.NotNull(deserializedResult);
@@ -406,8 +406,8 @@ public class FunctionsMcpToolResultMiddlewareTests
         };
 
         // Act
-        var json = JsonSerializer.Serialize(originalResult, McpJsonContext.Default.McpToolResult);
-        var deserializedResult = JsonSerializer.Deserialize<McpToolResult>(json, McpJsonContext.Default.McpToolResult);
+        var json = JsonSerializer.Serialize(originalResult, McpSdkJsonContext.Default.McpToolResult);
+        var deserializedResult = JsonSerializer.Deserialize<McpToolResult>(json, McpSdkJsonContext.Default.McpToolResult);
 
         // Assert
         Assert.NotNull(deserializedResult);
@@ -428,8 +428,8 @@ public class FunctionsMcpToolResultMiddlewareTests
         };
 
         // Act
-        var json = JsonSerializer.Serialize(originalResult, McpJsonContext.Default.McpToolResult);
-        var deserializedResult = JsonSerializer.Deserialize<McpToolResult>(json, McpJsonContext.Default.McpToolResult);
+        var json = JsonSerializer.Serialize(originalResult, McpSdkJsonContext.Default.McpToolResult);
+        var deserializedResult = JsonSerializer.Deserialize<McpToolResult>(json, McpSdkJsonContext.Default.McpToolResult);
 
         // Assert
         Assert.NotNull(deserializedResult);
@@ -492,7 +492,7 @@ public class FunctionsMcpToolResultMiddlewareTests
         var result = _currentResult as string;
         Assert.NotNull(result);
 
-        McpToolResult? mcpToolResult = JsonSerializer.Deserialize(result, McpJsonContext.Default.McpToolResult);
+        McpToolResult? mcpToolResult = JsonSerializer.Deserialize(result, McpSdkJsonContext.Default.McpToolResult);
         Assert.NotNull(mcpToolResult);
         Assert.Equal(Constants.TextContextResult, mcpToolResult.Type);
 
@@ -527,7 +527,7 @@ public class FunctionsMcpToolResultMiddlewareTests
         var result = _currentResult as string;
         Assert.NotNull(result);
 
-        McpToolResult? mcpToolResult = JsonSerializer.Deserialize(result, McpJsonContext.Default.McpToolResult);
+        McpToolResult? mcpToolResult = JsonSerializer.Deserialize(result, McpSdkJsonContext.Default.McpToolResult);
         Assert.NotNull(mcpToolResult);
         Assert.Equal(Constants.TextContextResult, mcpToolResult.Type);
 
@@ -563,7 +563,7 @@ public class FunctionsMcpToolResultMiddlewareTests
         var result = _currentResult as string;
         Assert.NotNull(result);
 
-        McpToolResult? mcpToolResult = JsonSerializer.Deserialize(result, McpJsonContext.Default.McpToolResult);
+        McpToolResult? mcpToolResult = JsonSerializer.Deserialize(result, McpSdkJsonContext.Default.McpToolResult);
         Assert.NotNull(mcpToolResult);
         Assert.Equal(Constants.TextContextResult, mcpToolResult.Type);
 
@@ -599,7 +599,7 @@ public class FunctionsMcpToolResultMiddlewareTests
         var result = _currentResult as string;
         Assert.NotNull(result);
 
-        McpToolResult? mcpToolResult = JsonSerializer.Deserialize(result, McpJsonContext.Default.McpToolResult);
+        McpToolResult? mcpToolResult = JsonSerializer.Deserialize(result, McpSdkJsonContext.Default.McpToolResult);
         Assert.NotNull(mcpToolResult);
         Assert.Equal(Constants.TextContextResult, mcpToolResult.Type);
 
@@ -635,7 +635,7 @@ public class FunctionsMcpToolResultMiddlewareTests
         var result = _currentResult as string;
         Assert.NotNull(result);
 
-        McpToolResult? mcpToolResult = JsonSerializer.Deserialize(result, McpJsonContext.Default.McpToolResult);
+        McpToolResult? mcpToolResult = JsonSerializer.Deserialize(result, McpSdkJsonContext.Default.McpToolResult);
         Assert.NotNull(mcpToolResult);
         Assert.Equal(Constants.TextContextResult, mcpToolResult.Type);
 
@@ -667,7 +667,7 @@ public class FunctionsMcpToolResultMiddlewareTests
         var result = _currentResult as string;
         Assert.NotNull(result);
 
-        McpToolResult? mcpToolResult = JsonSerializer.Deserialize(result, McpJsonContext.Default.McpToolResult);
+        McpToolResult? mcpToolResult = JsonSerializer.Deserialize(result, McpSdkJsonContext.Default.McpToolResult);
         Assert.NotNull(mcpToolResult);
         Assert.Equal(Constants.TextContextResult, mcpToolResult.Type);
         Assert.Null(mcpToolResult.StructuredContent); // Primitives don't get structured content
@@ -695,7 +695,7 @@ public class FunctionsMcpToolResultMiddlewareTests
         var result = _currentResult as string;
         Assert.NotNull(result);
 
-        McpToolResult? mcpToolResult = JsonSerializer.Deserialize(result, McpJsonContext.Default.McpToolResult);
+        McpToolResult? mcpToolResult = JsonSerializer.Deserialize(result, McpSdkJsonContext.Default.McpToolResult);
         Assert.NotNull(mcpToolResult);
         Assert.Null(mcpToolResult.StructuredContent); // DateTime is excluded from POCO detection
     }
@@ -718,7 +718,7 @@ public class FunctionsMcpToolResultMiddlewareTests
         var result = _currentResult as string;
         Assert.NotNull(result);
 
-        McpToolResult? mcpToolResult = JsonSerializer.Deserialize(result, McpJsonContext.Default.McpToolResult);
+        McpToolResult? mcpToolResult = JsonSerializer.Deserialize(result, McpSdkJsonContext.Default.McpToolResult);
         Assert.NotNull(mcpToolResult);
         Assert.Null(mcpToolResult.StructuredContent); // Guid is excluded from POCO detection
     }
@@ -741,7 +741,7 @@ public class FunctionsMcpToolResultMiddlewareTests
         var result = _currentResult as string;
         Assert.NotNull(result);
 
-        McpToolResult? mcpToolResult = JsonSerializer.Deserialize(result, McpJsonContext.Default.McpToolResult);
+        McpToolResult? mcpToolResult = JsonSerializer.Deserialize(result, McpSdkJsonContext.Default.McpToolResult);
         Assert.NotNull(mcpToolResult);
         Assert.Null(mcpToolResult.StructuredContent); // Collections are excluded from POCO detection
     }
@@ -775,7 +775,7 @@ public class FunctionsMcpToolResultMiddlewareTests
         var result = _currentResult as string;
         Assert.NotNull(result);
 
-        McpToolResult? mcpToolResult = JsonSerializer.Deserialize(result, McpJsonContext.Default.McpToolResult);
+        McpToolResult? mcpToolResult = JsonSerializer.Deserialize(result, McpSdkJsonContext.Default.McpToolResult);
         Assert.NotNull(mcpToolResult);
         Assert.Equal(Constants.CallToolResultType, mcpToolResult.Type);
         Assert.NotNull(mcpToolResult.StructuredContent); // StructuredContent is propagated to wrapper
@@ -816,7 +816,7 @@ public class FunctionsMcpToolResultMiddlewareTests
         var result = _currentResult as string;
         Assert.NotNull(result);
 
-        McpToolResult? mcpToolResult = JsonSerializer.Deserialize(result, McpJsonContext.Default.McpToolResult);
+        McpToolResult? mcpToolResult = JsonSerializer.Deserialize(result, McpSdkJsonContext.Default.McpToolResult);
         Assert.NotNull(mcpToolResult);
         Assert.Equal(Constants.CallToolResultType, mcpToolResult.Type);
         Assert.NotNull(mcpToolResult.StructuredContent); // StructuredContent is propagated to wrapper
@@ -854,7 +854,7 @@ public class FunctionsMcpToolResultMiddlewareTests
         var result = _currentResult as string;
         Assert.NotNull(result);
 
-        McpToolResult? mcpToolResult = JsonSerializer.Deserialize(result, McpJsonContext.Default.McpToolResult);
+        McpToolResult? mcpToolResult = JsonSerializer.Deserialize(result, McpSdkJsonContext.Default.McpToolResult);
         Assert.NotNull(mcpToolResult);
         Assert.Equal(Constants.CallToolResultType, mcpToolResult.Type);
         Assert.Null(mcpToolResult.StructuredContent);
@@ -894,7 +894,7 @@ public class FunctionsMcpToolResultMiddlewareTests
         var result = _currentResult as string;
         Assert.NotNull(result);
 
-        McpToolResult? mcpToolResult = JsonSerializer.Deserialize(result, McpJsonContext.Default.McpToolResult);
+        McpToolResult? mcpToolResult = JsonSerializer.Deserialize(result, McpSdkJsonContext.Default.McpToolResult);
         Assert.NotNull(mcpToolResult);
         Assert.Equal(Constants.CallToolResultType, mcpToolResult.Type);
 
@@ -930,7 +930,7 @@ public class FunctionsMcpToolResultMiddlewareTests
         var result = _currentResult as string;
         Assert.NotNull(result);
 
-        McpToolResult? mcpToolResult = JsonSerializer.Deserialize(result, McpJsonContext.Default.McpToolResult);
+        McpToolResult? mcpToolResult = JsonSerializer.Deserialize(result, McpSdkJsonContext.Default.McpToolResult);
         Assert.NotNull(mcpToolResult);
         Assert.Equal(Constants.CallToolResultType, mcpToolResult.Type);
 
@@ -964,7 +964,7 @@ public class FunctionsMcpToolResultMiddlewareTests
         var result = _currentResult as string;
         Assert.NotNull(result);
 
-        McpToolResult? mcpToolResult = JsonSerializer.Deserialize(result, McpJsonContext.Default.McpToolResult);
+        McpToolResult? mcpToolResult = JsonSerializer.Deserialize(result, McpSdkJsonContext.Default.McpToolResult);
         Assert.NotNull(mcpToolResult);
         Assert.Equal(Constants.CallToolResultType, mcpToolResult.Type); // Should use call_tool_result type
 
@@ -1045,7 +1045,7 @@ public class FunctionsMcpToolResultMiddlewareTests
 
         var result = _currentResult as string;
         Assert.NotNull(result);
-        var mcpToolResult = JsonSerializer.Deserialize(result, McpJsonContext.Default.McpToolResult);
+        var mcpToolResult = JsonSerializer.Deserialize(result, McpSdkJsonContext.Default.McpToolResult);
         Assert.NotNull(mcpToolResult);
         Assert.NotNull(mcpToolResult.StructuredContent);
     }
@@ -1064,7 +1064,7 @@ public class FunctionsMcpToolResultMiddlewareTests
 
         var result = _currentResult as string;
         Assert.NotNull(result);
-        var mcpToolResult = JsonSerializer.Deserialize(result, McpJsonContext.Default.McpToolResult);
+        var mcpToolResult = JsonSerializer.Deserialize(result, McpSdkJsonContext.Default.McpToolResult);
         Assert.NotNull(mcpToolResult);
         Assert.NotNull(mcpToolResult.StructuredContent);
     }
@@ -1083,7 +1083,7 @@ public class FunctionsMcpToolResultMiddlewareTests
 
         var result = _currentResult as string;
         Assert.NotNull(result);
-        var mcpToolResult = JsonSerializer.Deserialize(result, McpJsonContext.Default.McpToolResult);
+        var mcpToolResult = JsonSerializer.Deserialize(result, McpSdkJsonContext.Default.McpToolResult);
         Assert.NotNull(mcpToolResult);
         Assert.NotNull(mcpToolResult.StructuredContent);
     }
@@ -1106,7 +1106,7 @@ public class FunctionsMcpToolResultMiddlewareTests
 
         var result = _currentResult as string;
         Assert.NotNull(result);
-        var mcpToolResult = JsonSerializer.Deserialize(result, McpJsonContext.Default.McpToolResult);
+        var mcpToolResult = JsonSerializer.Deserialize(result, McpSdkJsonContext.Default.McpToolResult);
         Assert.NotNull(mcpToolResult);
         Assert.Null(mcpToolResult.StructuredContent);
     }
@@ -1133,7 +1133,7 @@ public class FunctionsMcpToolResultMiddlewareTests
 
         var result = _currentResult as string;
         Assert.NotNull(result);
-        var mcpToolResult = JsonSerializer.Deserialize(result, McpJsonContext.Default.McpToolResult);
+        var mcpToolResult = JsonSerializer.Deserialize(result, McpSdkJsonContext.Default.McpToolResult);
         Assert.NotNull(mcpToolResult);
         // Arrays don't automatically get structured content - users must create a wrapper type with [McpContent]
         Assert.Null(mcpToolResult.StructuredContent);
@@ -1157,7 +1157,7 @@ public class FunctionsMcpToolResultMiddlewareTests
 
         var result = _currentResult as string;
         Assert.NotNull(result);
-        var mcpToolResult = JsonSerializer.Deserialize(result, McpJsonContext.Default.McpToolResult);
+        var mcpToolResult = JsonSerializer.Deserialize(result, McpSdkJsonContext.Default.McpToolResult);
         Assert.NotNull(mcpToolResult);
         // Lists don't automatically get structured content - users must create a wrapper type with [McpContent]
         Assert.Null(mcpToolResult.StructuredContent);
@@ -1180,7 +1180,7 @@ public class FunctionsMcpToolResultMiddlewareTests
 
         var result = _currentResult as string;
         Assert.NotNull(result);
-        var mcpToolResult = JsonSerializer.Deserialize(result, McpJsonContext.Default.McpToolResult);
+        var mcpToolResult = JsonSerializer.Deserialize(result, McpSdkJsonContext.Default.McpToolResult);
         Assert.NotNull(mcpToolResult);
         // IEnumerable doesn't automatically get structured content - users must create a wrapper type with [McpContent]
         Assert.Null(mcpToolResult.StructuredContent);
@@ -1204,7 +1204,7 @@ public class FunctionsMcpToolResultMiddlewareTests
 
         var result = _currentResult as string;
         Assert.NotNull(result);
-        var mcpToolResult = JsonSerializer.Deserialize(result, McpJsonContext.Default.McpToolResult);
+        var mcpToolResult = JsonSerializer.Deserialize(result, McpSdkJsonContext.Default.McpToolResult);
         Assert.NotNull(mcpToolResult);
         Assert.Null(mcpToolResult.StructuredContent);
     }
@@ -1237,7 +1237,7 @@ public class FunctionsMcpToolResultMiddlewareTests
 
         var result = _currentResult as string;
         Assert.NotNull(result);
-        var mcpToolResult = JsonSerializer.Deserialize(result, McpJsonContext.Default.McpToolResult);
+        var mcpToolResult = JsonSerializer.Deserialize(result, McpSdkJsonContext.Default.McpToolResult);
         Assert.NotNull(mcpToolResult);
         // Nested collections don't automatically get structured content
         Assert.Null(mcpToolResult.StructuredContent);
@@ -1261,7 +1261,7 @@ public class FunctionsMcpToolResultMiddlewareTests
 
         var result = _currentResult as string;
         Assert.NotNull(result);
-        var mcpToolResult = JsonSerializer.Deserialize(result, McpJsonContext.Default.McpToolResult);
+        var mcpToolResult = JsonSerializer.Deserialize(result, McpSdkJsonContext.Default.McpToolResult);
         Assert.NotNull(mcpToolResult);
         // Jagged arrays don't automatically get structured content
         Assert.Null(mcpToolResult.StructuredContent);
@@ -1285,7 +1285,7 @@ public class FunctionsMcpToolResultMiddlewareTests
 
         var result = _currentResult as string;
         Assert.NotNull(result);
-        var mcpToolResult = JsonSerializer.Deserialize(result, McpJsonContext.Default.McpToolResult);
+        var mcpToolResult = JsonSerializer.Deserialize(result, McpSdkJsonContext.Default.McpToolResult);
         Assert.NotNull(mcpToolResult);
         Assert.Null(mcpToolResult.StructuredContent);
     }
@@ -1304,7 +1304,7 @@ public class FunctionsMcpToolResultMiddlewareTests
 
         var result = _currentResult as string;
         Assert.NotNull(result);
-        var mcpToolResult = JsonSerializer.Deserialize(result, McpJsonContext.Default.McpToolResult);
+        var mcpToolResult = JsonSerializer.Deserialize(result, McpSdkJsonContext.Default.McpToolResult);
         Assert.NotNull(mcpToolResult);
         Assert.Null(mcpToolResult.StructuredContent);
     }
@@ -1323,7 +1323,7 @@ public class FunctionsMcpToolResultMiddlewareTests
 
         var result = _currentResult as string;
         Assert.NotNull(result);
-        var mcpToolResult = JsonSerializer.Deserialize(result, McpJsonContext.Default.McpToolResult);
+        var mcpToolResult = JsonSerializer.Deserialize(result, McpSdkJsonContext.Default.McpToolResult);
         Assert.NotNull(mcpToolResult);
         Assert.Null(mcpToolResult.StructuredContent);
     }
@@ -1345,7 +1345,7 @@ public class FunctionsMcpToolResultMiddlewareTests
 
         var result = _currentResult as string;
         Assert.NotNull(result);
-        var mcpToolResult = JsonSerializer.Deserialize(result, McpJsonContext.Default.McpToolResult);
+        var mcpToolResult = JsonSerializer.Deserialize(result, McpSdkJsonContext.Default.McpToolResult);
         Assert.NotNull(mcpToolResult);
         Assert.Null(mcpToolResult.StructuredContent);
     }
@@ -1367,7 +1367,7 @@ public class FunctionsMcpToolResultMiddlewareTests
 
         var result = _currentResult as string;
         Assert.NotNull(result);
-        var mcpToolResult = JsonSerializer.Deserialize(result, McpJsonContext.Default.McpToolResult);
+        var mcpToolResult = JsonSerializer.Deserialize(result, McpSdkJsonContext.Default.McpToolResult);
         Assert.NotNull(mcpToolResult);
         Assert.Null(mcpToolResult.StructuredContent);
     }
@@ -1389,7 +1389,7 @@ public class FunctionsMcpToolResultMiddlewareTests
 
         var result = _currentResult as string;
         Assert.NotNull(result);
-        var mcpToolResult = JsonSerializer.Deserialize(result, McpJsonContext.Default.McpToolResult);
+        var mcpToolResult = JsonSerializer.Deserialize(result, McpSdkJsonContext.Default.McpToolResult);
         Assert.NotNull(mcpToolResult);
         Assert.Null(mcpToolResult.StructuredContent);
     }
@@ -1407,7 +1407,7 @@ public class FunctionsMcpToolResultMiddlewareTests
 
         var result = _currentResult as string;
         Assert.NotNull(result);
-        var mcpToolResult = JsonSerializer.Deserialize(result, McpJsonContext.Default.McpToolResult);
+        var mcpToolResult = JsonSerializer.Deserialize(result, McpSdkJsonContext.Default.McpToolResult);
         Assert.NotNull(mcpToolResult);
         Assert.Null(mcpToolResult.StructuredContent);
     }
@@ -1425,7 +1425,7 @@ public class FunctionsMcpToolResultMiddlewareTests
 
         var result = _currentResult as string;
         Assert.NotNull(result);
-        var mcpToolResult = JsonSerializer.Deserialize(result, McpJsonContext.Default.McpToolResult);
+        var mcpToolResult = JsonSerializer.Deserialize(result, McpSdkJsonContext.Default.McpToolResult);
         Assert.NotNull(mcpToolResult);
         Assert.Null(mcpToolResult.StructuredContent);
     }
@@ -1443,7 +1443,7 @@ public class FunctionsMcpToolResultMiddlewareTests
 
         var result = _currentResult as string;
         Assert.NotNull(result);
-        var mcpToolResult = JsonSerializer.Deserialize(result, McpJsonContext.Default.McpToolResult);
+        var mcpToolResult = JsonSerializer.Deserialize(result, McpSdkJsonContext.Default.McpToolResult);
         Assert.NotNull(mcpToolResult);
         Assert.Null(mcpToolResult.StructuredContent);
     }
@@ -1462,7 +1462,7 @@ public class FunctionsMcpToolResultMiddlewareTests
 
         var result = _currentResult as string;
         Assert.NotNull(result);
-        var mcpToolResult = JsonSerializer.Deserialize(result, McpJsonContext.Default.McpToolResult);
+        var mcpToolResult = JsonSerializer.Deserialize(result, McpSdkJsonContext.Default.McpToolResult);
         Assert.NotNull(mcpToolResult);
         Assert.Null(mcpToolResult.StructuredContent);
     }
@@ -1481,7 +1481,7 @@ public class FunctionsMcpToolResultMiddlewareTests
 
             var result = _currentResult as string;
             Assert.NotNull(result);
-            var mcpToolResult = JsonSerializer.Deserialize(result, McpJsonContext.Default.McpToolResult);
+            var mcpToolResult = JsonSerializer.Deserialize(result, McpSdkJsonContext.Default.McpToolResult);
             Assert.NotNull(mcpToolResult);
             Assert.Null(mcpToolResult.StructuredContent);
         }
@@ -1547,7 +1547,7 @@ public class FunctionsMcpToolResultMiddlewareTests
             var result = _currentResult as string;
             Assert.NotNull(result);
 
-            McpToolResult? mcpToolResult = JsonSerializer.Deserialize(result, McpJsonContext.Default.McpToolResult);
+            McpToolResult? mcpToolResult = JsonSerializer.Deserialize(result, McpSdkJsonContext.Default.McpToolResult);
             Assert.NotNull(mcpToolResult);
             Assert.Equal(Constants.CallToolResultType, mcpToolResult.Type);
             Assert.NotNull(mcpToolResult.StructuredContent); // StructuredContent is propagated to wrapper
@@ -1588,7 +1588,7 @@ public class FunctionsMcpToolResultMiddlewareTests
             var result = _currentResult as string;
             Assert.NotNull(result);
 
-            McpToolResult? mcpToolResult = JsonSerializer.Deserialize(result, McpJsonContext.Default.McpToolResult);
+            McpToolResult? mcpToolResult = JsonSerializer.Deserialize(result, McpSdkJsonContext.Default.McpToolResult);
             Assert.NotNull(mcpToolResult);
             Assert.Equal(Constants.CallToolResultType, mcpToolResult.Type);
         }
