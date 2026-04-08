@@ -76,6 +76,18 @@ internal static class McpInputConversionHelper
             return ConvertToCollection(inputCollection, targetType);
         }
 
+        if (targetType == typeof(DateTime) && value is DateTimeOffset dto)
+        {
+            return dto.UtcDateTime;
+        }
+
+        if (targetType == typeof(DateTimeOffset) && value is DateTime dt)
+        {
+            return new DateTimeOffset(dt.Kind == DateTimeKind.Unspecified
+                ? DateTime.SpecifyKind(dt, DateTimeKind.Utc)
+                : dt);
+        }
+
         if (value is IConvertible)
         {
             try
