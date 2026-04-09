@@ -15,13 +15,13 @@ namespace Microsoft.Azure.Functions.Worker.Extensions.Mcp.Configuration.Builders
 /// </summary>
 internal sealed class McpBindingBuilder
 {
-    internal McpBuilderContext Context { get; }
-
     public McpBindingBuilder(IFunctionMetadata function, ILogger logger, HashSet<string>? sharedEmittedAppTools = null)
     {
         var bindings = ParseBindings(function);
         Context = new McpBuilderContext(function, bindings, logger, sharedEmittedAppTools);
     }
+
+    internal McpBuilderContext Context { get; }
 
     public bool HasBindings => Context.Bindings.Count > 0;
 
@@ -49,26 +49,19 @@ internal sealed class McpBindingBuilder
 
             var bindingType = bindingTypeNode?.ToString();
 
-            string? identifier;
-            switch (bindingType)
+            string? identifier = bindingType switch
             {
-                case McpToolTriggerBindingType:
-                    identifier = jsonObject["toolName"]?.ToString();
-                    break;
-                case McpResourceTriggerBindingType:
-                    identifier = jsonObject["uri"]?.ToString();
-                    break;
-                case McpPromptTriggerBindingType:
-                    identifier = jsonObject["promptName"]?.ToString();
-                    break;
-                case McpToolPropertyBindingType:
-                    identifier = jsonObject[McpToolPropertyName]?.ToString();
-                    break;
-                case McpPromptArgumentBindingType:
-                    identifier = jsonObject[McpPromptArgumentName]?.ToString();
-                    break;
-                default:
-                    continue;
+                McpToolTriggerBindingType => jsonObject["toolName"]?.ToString(),
+                McpResourceTriggerBindingType => jsonObject["uri"]?.ToString(),
+                McpPromptTriggerBindingType => jsonObject["promptName"]?.ToString(),
+                McpToolPropertyBindingType => jsonObject[McpToolPropertyName]?.ToString(),
+                McpPromptArgumentBindingType => jsonObject[McpPromptArgumentName]?.ToString(),
+                _ => null,
+            };
+
+            if (identifier is null)
+            {
+                continue;
             }
 
             bindings.Add(new McpParsedBinding(i, bindingType!, identifier, jsonObject));
