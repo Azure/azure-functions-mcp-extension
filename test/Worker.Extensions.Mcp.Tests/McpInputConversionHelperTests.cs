@@ -138,6 +138,41 @@ public class McpInputConversionHelperTests
         ];
     }
 
+    public static IEnumerable<object[]> DateTimeOffsetToDateTimeValues()
+    {
+        return [
+            [new DateTimeOffset(2026, 4, 8, 12, 0, 0, TimeSpan.Zero), new DateTime(2026, 4, 8, 12, 0, 0, DateTimeKind.Utc)],
+            [new DateTimeOffset(2026, 4, 8, 12, 0, 0, TimeSpan.FromHours(5)), new DateTime(2026, 4, 8, 7, 0, 0, DateTimeKind.Utc)],
+        ];
+    }
+
+    public static IEnumerable<object[]> DateTimeToDateTimeOffsetValues()
+    {
+        return [
+            [new DateTime(2026, 4, 8, 12, 0, 0, DateTimeKind.Utc), new DateTimeOffset(2026, 4, 8, 12, 0, 0, TimeSpan.Zero)],
+            [new DateTime(2026, 4, 8, 12, 0, 0, DateTimeKind.Unspecified), new DateTimeOffset(2026, 4, 8, 12, 0, 0, TimeSpan.Zero)],
+        ];
+    }
+
+    [Theory]
+    [MemberData(nameof(DateTimeOffsetToDateTimeValues))]
+    public void TryConvertToTargetType_DateTimeOffsetToDateTime_Success(DateTimeOffset input, DateTime expected)
+    {
+        var success = McpInputConversionHelper.TryConvertArgumentToTargetType(input, typeof(DateTime), out var result);
+        Assert.True(success);
+        Assert.Equal(expected, result);
+        Assert.Equal(DateTimeKind.Utc, ((DateTime)result!).Kind);
+    }
+
+    [Theory]
+    [MemberData(nameof(DateTimeToDateTimeOffsetValues))]
+    public void TryConvertToTargetType_DateTimeToDateTimeOffset_Success(DateTime input, DateTimeOffset expected)
+    {
+        var success = McpInputConversionHelper.TryConvertArgumentToTargetType(input, typeof(DateTimeOffset), out var result);
+        Assert.True(success);
+        Assert.Equal(expected, result);
+    }
+
     [TypeConverter(typeof(TestPocoConverter))]
     private class TestPoco
     {
