@@ -59,6 +59,12 @@ internal sealed class McpPromptListener(
         }
 
         var promptResult = await execution.ResultTask;
-        return promptResult;
+
+        if (promptResult is GetPromptResult getPromptResult)
+        {
+            return getPromptResult;
+        }
+
+        return new GetPromptResult { Messages = [] };
     }
 }

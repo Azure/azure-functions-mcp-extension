@@ -7,6 +7,7 @@ namespace Microsoft.Azure.Functions.Worker.Extensions.Mcp;
 
 [JsonSourceGenerationOptions(WriteIndented = false, PropertyNameCaseInsensitive = true)]
 [JsonSerializable(typeof(McpToolResult))]
+[JsonSerializable(typeof(McpPromptResult))]
 internal sealed partial class McpJsonContext : JsonSerializerContext
 {
 }
