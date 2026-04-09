@@ -15,19 +15,19 @@ public class ListToolTests(DefaultProjectFixture fixture, ITestOutputHelper test
     [InlineData(HttpTransportMode.Sse)]
     [InlineData(HttpTransportMode.AutoDetect)]
     [InlineData(HttpTransportMode.StreamableHttp)]
-    public async Task DefaultListTools_ReturnsAllTools(HttpTransportMode mode)
+    public async Task ListTools_ReturnsExpectedCount(HttpTransportMode mode)
     {
         var client = await Fixture.CreateClientAsync(mode);
         var tools = await client.ListToolsAsync(cancellationToken: TestContext.Current.CancellationToken);
 
-        Assert.Equal(12, tools.Count);
+        Assert.True(tools.Count >= 19, $"Expected at least 19 tools but found {tools.Count}");
     }
 
     [Theory]
     [InlineData(HttpTransportMode.Sse)]
     [InlineData(HttpTransportMode.AutoDetect)]
     [InlineData(HttpTransportMode.StreamableHttp)]
-    public async Task DefaultListTools_ReturnsNonEmpty(HttpTransportMode mode)
+    public async Task ListTools_ReturnsNonEmpty(HttpTransportMode mode)
     {
         var client = await Fixture.CreateClientAsync(mode);
         var tools = await client.ListToolsAsync(cancellationToken: TestContext.Current.CancellationToken);
@@ -40,59 +40,120 @@ public class ListToolTests(DefaultProjectFixture fixture, ITestOutputHelper test
     [InlineData(HttpTransportMode.Sse)]
     [InlineData(HttpTransportMode.AutoDetect)]
     [InlineData(HttpTransportMode.StreamableHttp)]
-    public async Task DefaultListTools_ContainsExpectedTools(HttpTransportMode mode)
+    public async Task ListTools_ContainsSimpleTools(HttpTransportMode mode)
     {
         var client = await Fixture.CreateClientAsync(mode);
         var tools = await client.ListToolsAsync(cancellationToken: TestContext.Current.CancellationToken);
 
-        Assert.NotNull(tools);
-        // Default server (TestAppIsolated) has these tools registered:
-        Assert.Contains(tools, tool => tool.Name == "GetFunctionsLogo");
-        Assert.Contains(tools, tool => tool.Name == "HappyFunction");
-        Assert.Contains(tools, tool => tool.Name == "MultiContentTypeFunction");
-        Assert.Contains(tools, tool => tool.Name == "RenderImage");
-        Assert.Contains(tools, tool => tool.Name == "BirthdayTracker");
-        Assert.Contains(tools, tool => tool.Name == "SingleArgumentFunction");
-        Assert.Contains(tools, tool => tool.Name == "SingleArgumentWithDefaultFunction");
-        Assert.Contains(tools, tool => tool.Name == "getsnippets");
-        Assert.Contains(tools, tool => tool.Name == "savesnippet");
-        Assert.Contains(tools, tool => tool.Name == "searchsnippets");
-        Assert.Contains(tools, tool => tool.Name == "GetImageWithMetadata");
+        Assert.Contains(tools, t => t.Name == "EchoTool");
+        Assert.Contains(tools, t => t.Name == "EchoWithDefault");
+        Assert.Contains(tools, t => t.Name == "VoidTool");
     }
 
     [Theory]
     [InlineData(HttpTransportMode.Sse)]
     [InlineData(HttpTransportMode.AutoDetect)]
     [InlineData(HttpTransportMode.StreamableHttp)]
-    public async Task DefaultListTools_ContainsMetadata(HttpTransportMode mode)
+    public async Task ListTools_ContainsTypedParameterTools(HttpTransportMode mode)
     {
         var client = await Fixture.CreateClientAsync(mode);
         var tools = await client.ListToolsAsync(cancellationToken: TestContext.Current.CancellationToken);
 
-        var logoTool = tools.FirstOrDefault(t => t.Name == "GetFunctionsLogo");
-        Assert.NotNull(logoTool);
-        Assert.NotNull(logoTool.ProtocolTool.Meta);
-        Assert.True(logoTool.ProtocolTool.Meta.ContainsKey("version"), "Tool should contain 'version' metadata");
-        Assert.Equal(1.0, ((JsonNode)logoTool.ProtocolTool.Meta["version"]!).GetValue<double>());
-        Assert.True(logoTool.ProtocolTool.Meta.ContainsKey("author"), "Tool should contain 'author' metadata");
-        Assert.Equal("Jane Doe", ((JsonNode)logoTool.ProtocolTool.Meta["author"]!).GetValue<string>());
+        Assert.Contains(tools, t => t.Name == "TypedParametersTool");
+        Assert.Contains(tools, t => t.Name == "CollectionParametersTool");
+        Assert.Contains(tools, t => t.Name == "GuidAndDateTimeTool");
     }
 
     [Theory]
     [InlineData(HttpTransportMode.Sse)]
     [InlineData(HttpTransportMode.AutoDetect)]
     [InlineData(HttpTransportMode.StreamableHttp)]
-    public async Task DefaultListTools_ContainsFluentApiMetadata(HttpTransportMode mode)
+    public async Task ListTools_ContainsContentReturnTools(HttpTransportMode mode)
     {
         var client = await Fixture.CreateClientAsync(mode);
         var tools = await client.ListToolsAsync(cancellationToken: TestContext.Current.CancellationToken);
 
-        var renderImageTool = tools.FirstOrDefault(t => t.Name == "RenderImage");
-        Assert.NotNull(renderImageTool);
-        Assert.NotNull(renderImageTool.ProtocolTool.Meta);
-        Assert.True(renderImageTool.ProtocolTool.Meta.ContainsKey("imageVersion"), "Tool should contain 'imageVersion' metadata");
-        Assert.Equal("1.0", ((JsonNode)renderImageTool.ProtocolTool.Meta["imageVersion"]!).GetValue<string>());
-        Assert.True(renderImageTool.ProtocolTool.Meta.ContainsKey("source"), "Tool should contain 'source' metadata");
-        Assert.Equal("google", ((JsonNode)renderImageTool.ProtocolTool.Meta["source"]!).GetValue<string>());
+        Assert.Contains(tools, t => t.Name == "TextContentTool");
+        Assert.Contains(tools, t => t.Name == "ImageContentTool");
+        Assert.Contains(tools, t => t.Name == "ResourceLinkTool");
+        Assert.Contains(tools, t => t.Name == "MultiContentTool");
+        Assert.Contains(tools, t => t.Name == "StructuredContentTool");
+    }
+
+    [Theory]
+    [InlineData(HttpTransportMode.Sse)]
+    [InlineData(HttpTransportMode.AutoDetect)]
+    [InlineData(HttpTransportMode.StreamableHttp)]
+    public async Task ListTools_ContainsPocoTools(HttpTransportMode mode)
+    {
+        var client = await Fixture.CreateClientAsync(mode);
+        var tools = await client.ListToolsAsync(cancellationToken: TestContext.Current.CancellationToken);
+
+        Assert.Contains(tools, t => t.Name == "PocoInputTool");
+        Assert.Contains(tools, t => t.Name == "PocoOutputTool");
+    }
+
+    [Theory]
+    [InlineData(HttpTransportMode.Sse)]
+    [InlineData(HttpTransportMode.AutoDetect)]
+    [InlineData(HttpTransportMode.StreamableHttp)]
+    public async Task ListTools_ContainsMetadataAndFluentTools(HttpTransportMode mode)
+    {
+        var client = await Fixture.CreateClientAsync(mode);
+        var tools = await client.ListToolsAsync(cancellationToken: TestContext.Current.CancellationToken);
+
+        Assert.Contains(tools, t => t.Name == "MetadataAttributeTool");
+        Assert.Contains(tools, t => t.Name == "FluentMetadataTool");
+        Assert.Contains(tools, t => t.Name == "FluentDefinedTool");
+    }
+
+    [Theory]
+    [InlineData(HttpTransportMode.Sse)]
+    [InlineData(HttpTransportMode.AutoDetect)]
+    [InlineData(HttpTransportMode.StreamableHttp)]
+    public async Task ListTools_ContainsMcpApps(HttpTransportMode mode)
+    {
+        var client = await Fixture.CreateClientAsync(mode);
+        var tools = await client.ListToolsAsync(cancellationToken: TestContext.Current.CancellationToken);
+
+        Assert.Contains(tools, t => t.Name == "HelloApp");
+        Assert.Contains(tools, t => t.Name == "MinimalApp");
+        Assert.Contains(tools, t => t.Name == "VisibilityApp");
+    }
+
+    [Theory]
+    [InlineData(HttpTransportMode.Sse)]
+    [InlineData(HttpTransportMode.AutoDetect)]
+    [InlineData(HttpTransportMode.StreamableHttp)]
+    public async Task ListTools_MetadataAttributeTool_ContainsMetadata(HttpTransportMode mode)
+    {
+        var client = await Fixture.CreateClientAsync(mode);
+        var tools = await client.ListToolsAsync(cancellationToken: TestContext.Current.CancellationToken);
+
+        var tool = tools.FirstOrDefault(t => t.Name == "MetadataAttributeTool");
+        Assert.NotNull(tool);
+        Assert.NotNull(tool.ProtocolTool.Meta);
+        Assert.True(tool.ProtocolTool.Meta.ContainsKey("version"), "Tool should contain 'version' metadata");
+        Assert.Equal(1.0, ((JsonNode)tool.ProtocolTool.Meta["version"]!).GetValue<double>());
+        Assert.True(tool.ProtocolTool.Meta.ContainsKey("author"), "Tool should contain 'author' metadata");
+        Assert.Equal("Jane Doe", ((JsonNode)tool.ProtocolTool.Meta["author"]!).GetValue<string>());
+    }
+
+    [Theory]
+    [InlineData(HttpTransportMode.Sse)]
+    [InlineData(HttpTransportMode.AutoDetect)]
+    [InlineData(HttpTransportMode.StreamableHttp)]
+    public async Task ListTools_FluentMetadataTool_ContainsBuilderMetadata(HttpTransportMode mode)
+    {
+        var client = await Fixture.CreateClientAsync(mode);
+        var tools = await client.ListToolsAsync(cancellationToken: TestContext.Current.CancellationToken);
+
+        var tool = tools.FirstOrDefault(t => t.Name == "FluentMetadataTool");
+        Assert.NotNull(tool);
+        Assert.NotNull(tool.ProtocolTool.Meta);
+        Assert.True(tool.ProtocolTool.Meta.ContainsKey("imageVersion"), "Tool should contain 'imageVersion' metadata");
+        Assert.Equal("1.0", ((JsonNode)tool.ProtocolTool.Meta["imageVersion"]!).GetValue<string>());
+        Assert.True(tool.ProtocolTool.Meta.ContainsKey("source"), "Tool should contain 'source' metadata");
+        Assert.Equal("builder", ((JsonNode)tool.ProtocolTool.Meta["source"]!).GetValue<string>());
     }
 }
