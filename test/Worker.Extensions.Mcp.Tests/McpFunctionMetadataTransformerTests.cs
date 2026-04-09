@@ -496,7 +496,7 @@ public class McpFunctionMetadataTransformerTests
     [Fact]
     public void MergeMetadata_BothNull_ReturnsEmptyObject()
     {
-        var result = McpFunctionMetadataTransformer.MergeMetadata(null, null, out var overlapping);
+        var result = MetadataMerger.MergeMetadata(null, null, out var overlapping);
         Assert.Equal("{}", result);
         Assert.Empty(overlapping);
     }
@@ -505,7 +505,7 @@ public class McpFunctionMetadataTransformerTests
     public void MergeMetadata_FluentOnly_ReturnsFluent()
     {
         var fluent = """{"key1":"value1"}""";
-        var result = McpFunctionMetadataTransformer.MergeMetadata(fluent, null, out var overlapping);
+        var result = MetadataMerger.MergeMetadata(fluent, null, out var overlapping);
         var node = JsonNode.Parse(result)!.AsObject();
         Assert.Equal("value1", node["key1"]!.GetValue<string>());
         Assert.Empty(overlapping);
@@ -515,7 +515,7 @@ public class McpFunctionMetadataTransformerTests
     public void MergeMetadata_AttributedOnly_ReturnsAttributed()
     {
         var attributed = """{"key1":"value1"}""";
-        var result = McpFunctionMetadataTransformer.MergeMetadata(null, attributed, out var overlapping);
+        var result = MetadataMerger.MergeMetadata(null, attributed, out var overlapping);
         var node = JsonNode.Parse(result)!.AsObject();
         Assert.Equal("value1", node["key1"]!.GetValue<string>());
         Assert.Empty(overlapping);
@@ -526,7 +526,7 @@ public class McpFunctionMetadataTransformerTests
     {
         var fluent = """{"fluentKey":"fluentValue"}""";
         var attributed = """{"attrKey":"attrValue"}""";
-        var result = McpFunctionMetadataTransformer.MergeMetadata(fluent, attributed, out var overlapping);
+        var result = MetadataMerger.MergeMetadata(fluent, attributed, out var overlapping);
         var node = JsonNode.Parse(result)!.AsObject();
         Assert.Equal("fluentValue", node["fluentKey"]!.GetValue<string>());
         Assert.Equal("attrValue", node["attrKey"]!.GetValue<string>());
@@ -538,7 +538,7 @@ public class McpFunctionMetadataTransformerTests
     {
         var fluent = """{"shared":"fromFluent","onlyFluent":"kept"}""";
         var attributed = """{"shared":"fromAttributed","onlyAttr":"also"}""";
-        var result = McpFunctionMetadataTransformer.MergeMetadata(fluent, attributed, out var overlapping);
+        var result = MetadataMerger.MergeMetadata(fluent, attributed, out var overlapping);
         var node = JsonNode.Parse(result)!.AsObject();
         Assert.Equal("fromAttributed", node["shared"]!.GetValue<string>());
         Assert.Equal("kept", node["onlyFluent"]!.GetValue<string>());
@@ -552,7 +552,7 @@ public class McpFunctionMetadataTransformerTests
     {
         var fluent = """{"a":"1","b":"2","c":"3"}""";
         var attributed = """{"a":"x","b":"y"}""";
-        var result = McpFunctionMetadataTransformer.MergeMetadata(fluent, attributed, out var overlapping);
+        var result = MetadataMerger.MergeMetadata(fluent, attributed, out var overlapping);
         var node = JsonNode.Parse(result)!.AsObject();
         Assert.Equal("x", node["a"]!.GetValue<string>());
         Assert.Equal("y", node["b"]!.GetValue<string>());
