@@ -7,8 +7,15 @@ using static Worker.Extensions.Mcp.Tests.Helpers.BuilderTestHelper;
 
 namespace Worker.Extensions.Mcp.Tests.Configuration;
 
-public class AddMetadataExtensionTests
+public class AddMetadataExtensionTests : IDisposable
 {
+    private const string FunctionsApplicationDirectoryKey = "FUNCTIONS_APPLICATION_DIRECTORY";
+
+    public void Dispose()
+    {
+        Environment.SetEnvironmentVariable(FunctionsApplicationDirectoryKey, null);
+    }
+
     [Fact]
     public void AddMetadata_FluentMetadataAppliedToToolTrigger()
     {

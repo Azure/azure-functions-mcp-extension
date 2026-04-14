@@ -1,12 +1,18 @@
-using Microsoft.Azure.Functions.Worker.Extensions.Mcp;
 using Microsoft.Azure.Functions.Worker.Extensions.Mcp.Configuration;
 using Microsoft.Azure.Functions.Worker.Extensions.Mcp.Configuration.Builders.Steps;
 using static Worker.Extensions.Mcp.Tests.Helpers.BuilderTestHelper;
 
 namespace Worker.Extensions.Mcp.Tests.Configuration;
 
-public class AddToolPropertiesExtensionTests
+public class AddToolPropertiesExtensionTests : IDisposable
 {
+    private const string FunctionsApplicationDirectoryKey = "FUNCTIONS_APPLICATION_DIRECTORY";
+
+    public void Dispose()
+    {
+        Environment.SetEnvironmentVariable(FunctionsApplicationDirectoryKey, null);
+    }
+
     [Fact]
     public void AddToolProperties_WithConfiguredOptions_SetsToolProperties()
     {

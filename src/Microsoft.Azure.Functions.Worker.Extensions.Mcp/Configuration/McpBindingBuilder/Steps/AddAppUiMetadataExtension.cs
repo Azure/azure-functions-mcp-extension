@@ -57,7 +57,10 @@ internal static class AddAppUiMetadataExtension
         if (binding.JsonObject.TryGetPropertyValue("metadata", out var existingMetaNode)
             && existingMetaNode is not null)
         {
-            var metaStr = existingMetaNode.GetValue<string>();
+            var metaStr = existingMetaNode is JsonValue jsonValue
+                ? jsonValue.GetValue<string>()
+                : existingMetaNode.ToJsonString();
+
             metaObj = JsonNode.Parse(metaStr) as JsonObject ?? new JsonObject();
 
             if (metaObj.ContainsKey("ui"))
