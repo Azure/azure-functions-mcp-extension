@@ -21,7 +21,7 @@ public class PatchPropertyBindingsExtensionTests
 
         builder.PatchPropertyBindings();
 
-        Assert.Equal("integer", builder.Context.Bindings[1].JsonObject["propertyType"]?.ToString());
+        Assert.Equal("integer", builder.Context.Bindings[1].PropertyType);
     }
 
     [Fact]
@@ -38,7 +38,7 @@ public class PatchPropertyBindingsExtensionTests
 
         builder.PatchPropertyBindings();
 
-        Assert.Null(builder.Context.Bindings[1].JsonObject["propertyType"]);
+        Assert.Null(builder.Context.Bindings[1].PropertyType);
     }
 
     [Fact]
@@ -48,7 +48,7 @@ public class PatchPropertyBindingsExtensionTests
 
         builder.PatchPropertyBindings();
 
-        Assert.Null(builder.Context.Bindings[0].JsonObject["propertyType"]);
+        Assert.Null(builder.Context.Bindings[0].PropertyType);
     }
 
     [Fact]
@@ -59,7 +59,7 @@ public class PatchPropertyBindingsExtensionTests
 
         builder.PatchPropertyBindings();
 
-        Assert.Null(builder.Context.Bindings[0].JsonObject["propertyType"]);
+        Assert.Null(builder.Context.Bindings[0].PropertyType);
     }
 
     [Fact]
@@ -79,9 +79,9 @@ public class PatchPropertyBindingsExtensionTests
 
         builder.PatchPropertyBindings();
 
-        Assert.Equal("string", builder.Context.Bindings[1].JsonObject["propertyType"]?.ToString());
-        Assert.Equal("integer", builder.Context.Bindings[2].JsonObject["propertyType"]?.ToString());
-        Assert.Null(builder.Context.Bindings[3].JsonObject["propertyType"]);
+        Assert.Equal("string", builder.Context.Bindings[1].PropertyType);
+        Assert.Equal("integer", builder.Context.Bindings[2].PropertyType);
+        Assert.Null(builder.Context.Bindings[3].PropertyType);
     }
 
     [Fact]
@@ -99,8 +99,8 @@ public class PatchPropertyBindingsExtensionTests
 
         builder.PatchPropertyBindings();
 
-        Assert.Null(builder.Context.Bindings[0].JsonObject["propertyType"]);
-        Assert.Equal("string", builder.Context.Bindings[1].JsonObject["propertyType"]?.ToString());
+        Assert.Null(builder.Context.Bindings[0].PropertyType);
+        Assert.Equal("string", builder.Context.Bindings[1].PropertyType);
     }
 
     [Fact]

@@ -25,7 +25,7 @@ internal static class AddToolPropertiesExtension
 
             if (TryResolveToolProperties(context, binding.Identifier, toolOptions, out var toolProperties))
             {
-                binding.JsonObject["toolProperties"] = ToolPropertyParser.GetPropertiesJson(toolProperties);
+                binding.ToolProperties = ToolPropertyParser.GetPropertiesJson(toolProperties);
                 context.ResolvedToolProperties = toolProperties;
             }
         }

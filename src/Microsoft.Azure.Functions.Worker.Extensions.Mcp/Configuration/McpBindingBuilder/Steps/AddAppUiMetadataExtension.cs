@@ -52,33 +52,18 @@ internal static class AddAppUiMetadataExtension
 
     private static void MergeUiIntoMetadata(McpBuilderContext context, McpParsedBinding binding, JsonObject uiNode)
     {
-        JsonObject metaObj;
+        binding.Metadata ??= new JsonObject();
 
-        if (binding.JsonObject.TryGetPropertyValue("metadata", out var existingMetaNode)
-            && existingMetaNode is not null)
+        if (binding.Metadata.ContainsKey("ui"))
         {
-            var metaStr = existingMetaNode is JsonValue jsonValue
-                ? jsonValue.GetValue<string>()
-                : existingMetaNode.ToJsonString();
-
-            metaObj = JsonNode.Parse(metaStr) as JsonObject ?? new JsonObject();
-
-            if (metaObj.ContainsKey("ui"))
-            {
-                context.Logger.LogWarning(
-                    "Tool '{ToolName}' defines _meta.ui via McpMetadataAttribute, but the " +
-                    "fluent API also configures UI metadata. The fluent API configuration " +
-                    "will take precedence.",
-                    binding.Identifier);
-            }
-        }
-        else
-        {
-            metaObj = new JsonObject();
+            context.Logger.LogWarning(
+                "Tool '{ToolName}' defines _meta.ui via McpMetadataAttribute, but the " +
+                "fluent API also configures UI metadata. The fluent API configuration " +
+                "will take precedence.",
+                binding.Identifier);
         }
 
-        metaObj["ui"] = uiNode;
-        binding.JsonObject["metadata"] = metaObj.ToJsonString();
+        binding.Metadata["ui"] = uiNode;
     }
 
     /// <summary>

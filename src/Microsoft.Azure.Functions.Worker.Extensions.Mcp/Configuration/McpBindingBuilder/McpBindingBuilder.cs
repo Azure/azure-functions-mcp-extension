@@ -29,6 +29,26 @@ internal sealed class McpBindingBuilder
     {
         foreach (var binding in Context.Bindings)
         {
+            if (binding.ToolProperties is not null)
+            {
+                binding.JsonObject["toolProperties"] = binding.ToolProperties;
+            }
+
+            if (binding.PromptArguments is not null)
+            {
+                binding.JsonObject["promptArguments"] = binding.PromptArguments;
+            }
+
+            if (binding.Metadata is not null)
+            {
+                binding.JsonObject["metadata"] = binding.Metadata.ToJsonString();
+            }
+
+            if (binding.PropertyType is not null)
+            {
+                binding.JsonObject[McpToolPropertyType] = binding.PropertyType;
+            }
+
             Context.Function.RawBindings![binding.Index] = binding.JsonObject.ToJsonString();
         }
     }
@@ -64,9 +84,27 @@ internal sealed class McpBindingBuilder
                 continue;
             }
 
-            bindings.Add(new McpParsedBinding(i, bindingType!, identifier, jsonObject));
+            bindings.Add(new McpParsedBinding(i, bindingType!, identifier, jsonObject)
+            {
+                Metadata = TryParseExistingMetadata(jsonObject)
+            });
         }
 
         return bindings;
+    }
+
+    /// <summary>
+    /// Extracts any pre-existing metadata from the raw binding JSON into a JsonObject
+    /// so that steps can work with the structured model rather than the serialized string.
+    /// </summary>
+    private static JsonObject? TryParseExistingMetadata(JsonObject jsonObject)
+    {
+        if (jsonObject.TryGetPropertyValue("metadata", out var metaNode) && metaNode is not null)
+        {
+            var metaStr = metaNode.GetValue<string>();
+            return JsonNode.Parse(metaStr)?.AsObject();
+        }
+
+        return null;
     }
 }

@@ -36,7 +36,7 @@ internal static class PatchPropertyBindingsExtension
             {
                 if (propertyBindings.TryGetValue(property.Name, out var binding))
                 {
-                    binding.JsonObject[McpToolPropertyType] = property.Type;
+                    binding.PropertyType = property.Type;
                 }
             }
         }

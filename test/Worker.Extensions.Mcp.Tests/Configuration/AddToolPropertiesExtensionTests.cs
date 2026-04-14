@@ -21,7 +21,7 @@ public class AddToolPropertiesExtensionTests : IDisposable
 
         builder.AddToolProperties(toolOptions);
 
-        var tp = builder.Context.Bindings[0].JsonObject["toolProperties"]?.ToString();
+        var tp = builder.Context.Bindings[0].ToolProperties?.ToString();
         Assert.NotNull(tp);
         Assert.Contains("\"propertyName\":\"x\"", tp);
     }
@@ -48,7 +48,7 @@ public class AddToolPropertiesExtensionTests : IDisposable
 
         builder.AddToolProperties(toolOptions);
 
-        Assert.False(builder.Context.Bindings[0].JsonObject.ContainsKey("toolProperties"));
+        Assert.Null(builder.Context.Bindings[0].ToolProperties);
         Assert.Null(builder.Context.ResolvedToolProperties);
     }
 
@@ -60,7 +60,7 @@ public class AddToolPropertiesExtensionTests : IDisposable
 
         builder.AddToolProperties(toolOptions);
 
-        Assert.False(builder.Context.Bindings[0].JsonObject.ContainsKey("toolProperties"));
+        Assert.Null(builder.Context.Bindings[0].ToolProperties);
     }
 
     [Fact]
@@ -71,7 +71,7 @@ public class AddToolPropertiesExtensionTests : IDisposable
 
         builder.AddToolProperties(toolOptions);
 
-        Assert.False(builder.Context.Bindings[0].JsonObject.ContainsKey("toolProperties"));
+        Assert.Null(builder.Context.Bindings[0].ToolProperties);
     }
 
     [Fact]

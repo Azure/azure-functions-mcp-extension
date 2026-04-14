@@ -25,7 +25,7 @@ internal static class AddPromptArgumentsExtension
 
             if (TryResolvePromptArguments(context, binding.Identifier, promptOptions, out var promptArguments))
             {
-                binding.JsonObject["promptArguments"] = PromptArgumentParser.GetArgumentsJson(promptArguments);
+                binding.PromptArguments = PromptArgumentParser.GetArgumentsJson(promptArguments);
                 context.ResolvedPromptArguments = promptArguments;
             }
         }

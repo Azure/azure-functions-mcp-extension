@@ -24,9 +24,9 @@ public class AddMetadataExtensionTests : IDisposable
 
         builder.AddMetadata(toolOptions, CreateResourceOptions(), CreatePromptOptions());
 
-        var metadata = builder.Context.Bindings[0].JsonObject["metadata"]?.ToString();
+        var metadata = builder.Context.Bindings[0].Metadata;
         Assert.NotNull(metadata);
-        Assert.Contains("author", metadata);
+        Assert.Contains("author", metadata.ToJsonString());
     }
 
     [Fact]
@@ -37,9 +37,9 @@ public class AddMetadataExtensionTests : IDisposable
 
         builder.AddMetadata(CreateToolOptions(), resourceOptions, CreatePromptOptions());
 
-        var metadata = builder.Context.Bindings[0].JsonObject["metadata"]?.ToString();
+        var metadata = builder.Context.Bindings[0].Metadata;
         Assert.NotNull(metadata);
-        Assert.Contains("source", metadata);
+        Assert.Contains("source", metadata.ToJsonString());
     }
 
     [Fact]
@@ -50,9 +50,9 @@ public class AddMetadataExtensionTests : IDisposable
 
         builder.AddMetadata(CreateToolOptions(), CreateResourceOptions(), promptOptions);
 
-        var metadata = builder.Context.Bindings[0].JsonObject["metadata"]?.ToString();
+        var metadata = builder.Context.Bindings[0].Metadata;
         Assert.NotNull(metadata);
-        Assert.Contains("version", metadata);
+        Assert.Contains("version", metadata.ToJsonString());
     }
 
     [Fact]
@@ -62,7 +62,7 @@ public class AddMetadataExtensionTests : IDisposable
 
         builder.AddMetadata(CreateToolOptions(), CreateResourceOptions(), CreatePromptOptions());
 
-        Assert.False(builder.Context.Bindings[0].JsonObject.ContainsKey("metadata"));
+        Assert.Null(builder.Context.Bindings[0].Metadata);
     }
 
     [Fact]
@@ -72,7 +72,7 @@ public class AddMetadataExtensionTests : IDisposable
 
         builder.AddMetadata(CreateToolOptions(), CreateResourceOptions(), CreatePromptOptions());
 
-        Assert.False(builder.Context.Bindings[0].JsonObject.ContainsKey("metadata"));
+        Assert.Null(builder.Context.Bindings[0].Metadata);
     }
 
     [Fact]
@@ -91,9 +91,9 @@ public class AddMetadataExtensionTests : IDisposable
 
         builder.AddMetadata(CreateToolOptions(), CreateResourceOptions(), CreatePromptOptions());
 
-        var metadata = builder.Context.Bindings[0].JsonObject["metadata"]?.ToString();
+        var metadata = builder.Context.Bindings[0].Metadata;
         Assert.NotNull(metadata);
-        Assert.Contains("author", metadata);
+        Assert.Contains("author", metadata.ToJsonString());
     }
 
     [Fact]

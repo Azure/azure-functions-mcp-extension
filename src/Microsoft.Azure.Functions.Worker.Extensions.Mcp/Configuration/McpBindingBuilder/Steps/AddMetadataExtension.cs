@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using static Microsoft.Azure.Functions.Worker.Extensions.Mcp.Constants;
@@ -66,16 +67,21 @@ internal static class AddMetadataExtension
 
         if (options.Metadata.Count > 0)
         {
-            binding.JsonObject["metadata"] = JsonSerializer.Serialize(options.Metadata);
+            binding.Metadata ??= new JsonObject();
+            foreach (var kvp in options.Metadata)
+            {
+                binding.Metadata[kvp.Key] = JsonValue.Create(kvp.Value);
+            }
         }
     }
 
     private static void ApplyOrMergeAttributedMetadata(McpBuilderContext context, McpParsedBinding binding, string attributedMetadataJson, string type)
     {
-        if (binding.JsonObject.ContainsKey("metadata"))
+        if (binding.Metadata is not null)
         {
-            binding.JsonObject["metadata"] = MetadataMerger.MergeMetadata(
-                binding.JsonObject["metadata"]?.GetValue<string>(), attributedMetadataJson, out var overlappingKeys);
+            var fluentJson = binding.Metadata.ToJsonString();
+            var merged = MetadataMerger.MergeMetadata(fluentJson, attributedMetadataJson, out var overlappingKeys);
+            binding.Metadata = JsonNode.Parse(merged)?.AsObject() ?? new JsonObject();
 
             context.Logger.LogTrace("{Type} '{Identifier}' has metadata defined using both the fluent API and [McpMetadata] attributes. Metadata from both sources has been merged.", type, binding.Identifier);
 
@@ -86,7 +92,7 @@ internal static class AddMetadataExtension
         }
         else
         {
-            binding.JsonObject["metadata"] = attributedMetadataJson;
+            binding.Metadata = JsonNode.Parse(attributedMetadataJson)?.AsObject() ?? new JsonObject();
         }
     }
 }

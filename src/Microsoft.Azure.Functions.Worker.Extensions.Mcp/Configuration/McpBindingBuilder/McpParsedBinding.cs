@@ -7,6 +7,8 @@ namespace Microsoft.Azure.Functions.Worker.Extensions.Mcp.Configuration.Builders
 
 /// <summary>
 /// Represents a single parsed MCP binding within a function.
+/// Steps collect resolved data on this model; <see cref="McpBindingBuilder.Build"/>
+/// serializes it all onto <see cref="JsonObject"/> in a single pass.
 /// </summary>
 internal sealed class McpParsedBinding(int index, string bindingType, string? identifier, JsonObject jsonObject)
 {
@@ -26,7 +28,30 @@ internal sealed class McpParsedBinding(int index, string bindingType, string? id
     public string? Identifier { get; } = identifier;
 
     /// <summary>
-    /// The parsed JSON object for this binding.
+    /// The parsed JSON object for this binding. Steps should avoid writing to this directly;
+    /// use the pending-change properties below and let <see cref="McpBindingBuilder.Build"/> apply them.
     /// </summary>
     public JsonObject JsonObject { get; } = jsonObject;
+
+    // ── Pending changes: populated by steps, applied by Build() ──
+
+    /// <summary>
+    /// Serialized tool properties JSON, set by AddToolProperties step.
+    /// </summary>
+    public JsonNode? ToolProperties { get; set; }
+
+    /// <summary>
+    /// Serialized prompt arguments JSON, set by AddPromptArguments step.
+    /// </summary>
+    public JsonNode? PromptArguments { get; set; }
+
+    /// <summary>
+    /// Final merged metadata object, assembled by AddMetadata and AddAppUiMetadata steps.
+    /// </summary>
+    public JsonObject? Metadata { get; set; }
+
+    /// <summary>
+    /// Property type string, set by PatchPropertyBindings step for mcpToolProperty bindings.
+    /// </summary>
+    public string? PropertyType { get; set; }
 }
