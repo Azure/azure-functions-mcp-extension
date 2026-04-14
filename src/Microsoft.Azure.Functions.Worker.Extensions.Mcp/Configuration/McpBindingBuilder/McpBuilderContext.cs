@@ -47,5 +47,5 @@ internal sealed class McpBuilderContext
     /// Tracks tool names for which synthetic app functions have already been emitted,
     /// preventing duplicate generation.
     /// </summary>
-    public HashSet<string> EmittedAppTools { get; } = [];
+    public HashSet<string> EmittedAppTools { get; }
 }

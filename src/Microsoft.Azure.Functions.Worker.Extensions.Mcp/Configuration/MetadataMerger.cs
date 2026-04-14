@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
+using System.Text.Json;
 using System.Text.Json.Nodes;
 
 namespace Microsoft.Azure.Functions.Worker.Extensions.Mcp.Configuration;
@@ -18,12 +19,8 @@ internal static class MetadataMerger
     /// </summary>
     internal static string MergeMetadata(string? fluentJson, string? attributedJson, out List<string> overlappingKeys)
     {
-        var fluentNode = string.IsNullOrWhiteSpace(fluentJson)
-            ? []
-            : JsonNode.Parse(fluentJson)?.AsObject() ?? throw new InvalidOperationException($"Failed to parse fluent API metadata as JSON object: {fluentJson}");
-        var attributedNode = string.IsNullOrWhiteSpace(attributedJson)
-            ? []
-            : JsonNode.Parse(attributedJson)?.AsObject() ?? throw new InvalidOperationException($"Failed to parse attributed metadata as JSON object: {attributedJson}");
+        var fluentNode = ParseAsJsonObject(fluentJson, "fluent API metadata");
+        var attributedNode = ParseAsJsonObject(attributedJson, "attributed metadata");
 
         overlappingKeys = [];
 
@@ -38,5 +35,26 @@ internal static class MetadataMerger
         }
 
         return fluentNode.ToJsonString();
+    }
+
+    private static JsonObject ParseAsJsonObject(string? json, string context)
+    {
+        if (string.IsNullOrWhiteSpace(json))
+        {
+            return [];
+        }
+
+        JsonNode? node;
+        try
+        {
+            node = JsonNode.Parse(json);
+        }
+        catch (JsonException ex)
+        {
+            throw new InvalidOperationException($"Failed to parse {context} as JSON: {json}", ex);
+        }
+
+        return node as JsonObject
+            ?? throw new InvalidOperationException($"Expected {context} to be a JSON object, but got: {json}");
     }
 }

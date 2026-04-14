@@ -13,9 +13,14 @@ using Moq;
 
 namespace Worker.Extensions.Mcp.Tests;
 
-public class McpFunctionMetadataTransformerTests
+public class McpFunctionMetadataTransformerTests : IDisposable
 {
     private const string FunctionsApplicationDirectoryKey = "FUNCTIONS_APPLICATION_DIRECTORY";
+
+    public void Dispose()
+    {
+        Environment.SetEnvironmentVariable(FunctionsApplicationDirectoryKey, null);
+    }
 
     [Fact]
     public void Transform_NoRawBindings_DoesNothing()
@@ -158,6 +163,8 @@ public class McpFunctionMetadataTransformerTests
     [Fact]
     public void Transform_InvalidEntryPoint_NoChange()
     {
+        Environment.SetEnvironmentVariable(FunctionsApplicationDirectoryKey, Path.GetDirectoryName(typeof(McpFunctionMetadataTransformerTests).Assembly.Location));
+
         var options = new Mock<IOptionsMonitor<ToolOptions>>();
         options.Setup(o => o.Get(It.IsAny<string>())).Returns(new ToolOptions { Properties = [] });
         var resourceOptions = new Mock<IOptionsMonitor<ResourceOptions>>();
@@ -649,6 +656,8 @@ public class McpFunctionMetadataTransformerTests
     [Fact]
     public void Transform_ToolWithAppOptions_EmitsSyntheticResourceFunction()
     {
+        Environment.SetEnvironmentVariable(FunctionsApplicationDirectoryKey, Path.GetDirectoryName(typeof(McpFunctionMetadataTransformerTests).Assembly.Location));
+
         var appOptions = new AppOptions();
         appOptions.View = new ViewOptions
         {
@@ -689,6 +698,8 @@ public class McpFunctionMetadataTransformerTests
     [Fact]
     public void Transform_ToolWithStaticAssets_EmitsSingleResourceFunction()
     {
+        Environment.SetEnvironmentVariable(FunctionsApplicationDirectoryKey, Path.GetDirectoryName(typeof(McpFunctionMetadataTransformerTests).Assembly.Location));
+
         var appOptions = new AppOptions();
         appOptions.View = new ViewOptions
         {
@@ -750,6 +761,8 @@ public class McpFunctionMetadataTransformerTests
     [Fact]
     public void Transform_DuplicateToolNames_EmitsSingleSyntheticFunction()
     {
+        Environment.SetEnvironmentVariable(FunctionsApplicationDirectoryKey, Path.GetDirectoryName(typeof(McpFunctionMetadataTransformerTests).Assembly.Location));
+
         var appOptions = new AppOptions();
         appOptions.View = new ViewOptions
         {
