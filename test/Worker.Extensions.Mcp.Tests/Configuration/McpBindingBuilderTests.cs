@@ -121,7 +121,7 @@ public class McpBindingBuilderTests
     {
         var httpBinding = "{\"type\":\"httpTrigger\",\"direction\":\"in\"}";
         var fn = CreateFunctionMetadata(bindings: new List<string> { httpBinding, "{\"type\":\"mcpToolTrigger\",\"toolName\":\"Tool\"}" });
-        var builder = new McpBindingBuilder(fn.Object, NullLogger.Instance);
+        var builder = new McpBindingBuilder(fn.Object, NullLogger.Instance, CreateToolOptions(), CreateResourceOptions(), CreatePromptOptions());
 
         builder.Build();
 

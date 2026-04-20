@@ -1,11 +1,9 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using static Microsoft.Azure.Functions.Worker.Extensions.Mcp.Constants;
 
 namespace Microsoft.Azure.Functions.Worker.Extensions.Mcp.Configuration.Builders.Steps;
 
@@ -14,41 +12,34 @@ namespace Microsoft.Azure.Functions.Worker.Extensions.Mcp.Configuration.Builders
 /// </summary>
 internal static class AddMetadataExtension
 {
-    public static McpBindingBuilder AddMetadata(
-        this McpBindingBuilder builder,
-        IOptionsMonitor<ToolOptions> toolOptions,
-        IOptionsMonitor<ResourceOptions> resourceOptions,
-        IOptionsMonitor<PromptOptions> promptOptions)
+    public static McpBindingBuilder AddMetadata(this McpBindingBuilder builder)
     {
         var context = builder.Context;
 
-        foreach (var binding in context.Bindings)
+        foreach (var binding in context.ToolTriggerBindings)
         {
-            switch (binding.BindingType)
+            ApplyFluentMetadata(binding, context.ToolOptions);
+            if (MetadataParser.TryGetToolMetadata(context.Function, out var toolMetadataJson))
             {
-                case McpToolTriggerBindingType:
-                    ApplyFluentMetadata(binding, toolOptions);
-                    if (MetadataParser.TryGetToolMetadata(context.Function, out var toolMetadataJson))
-                    {
-                        ApplyOrMergeAttributedMetadata(context, binding, toolMetadataJson, "Tool");
-                    }
-                    break;
+                ApplyOrMergeAttributedMetadata(context, binding, toolMetadataJson, "Tool");
+            }
+        }
 
-                case McpResourceTriggerBindingType:
-                    ApplyFluentMetadata(binding, resourceOptions);
-                    if (MetadataParser.TryGetResourceMetadata(context.Function, out var resourceMetadataJson))
-                    {
-                        ApplyOrMergeAttributedMetadata(context, binding, resourceMetadataJson, "Resource");
-                    }
-                    break;
+        foreach (var binding in context.ResourceTriggerBindings)
+        {
+            ApplyFluentMetadata(binding, context.ResourceOptions);
+            if (MetadataParser.TryGetResourceMetadata(context.Function, out var resourceMetadataJson))
+            {
+                ApplyOrMergeAttributedMetadata(context, binding, resourceMetadataJson, "Resource");
+            }
+        }
 
-                case McpPromptTriggerBindingType:
-                    ApplyFluentMetadata(binding, promptOptions);
-                    if (MetadataParser.TryGetPromptMetadata(context.Function, out var promptMetadataJson))
-                    {
-                        ApplyOrMergeAttributedMetadata(context, binding, promptMetadataJson, "Prompt");
-                    }
-                    break;
+        foreach (var binding in context.PromptTriggerBindings)
+        {
+            ApplyFluentMetadata(binding, context.PromptOptions);
+            if (MetadataParser.TryGetPromptMetadata(context.Function, out var promptMetadataJson))
+            {
+                ApplyOrMergeAttributedMetadata(context, binding, promptMetadataJson, "Prompt");
             }
         }
 

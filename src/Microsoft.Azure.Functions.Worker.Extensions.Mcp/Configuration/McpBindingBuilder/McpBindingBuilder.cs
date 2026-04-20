@@ -4,6 +4,7 @@
 using System.Text.Json.Nodes;
 using Microsoft.Azure.Functions.Worker.Core.FunctionMetadata;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using static Microsoft.Azure.Functions.Worker.Extensions.Mcp.Constants;
 
 namespace Microsoft.Azure.Functions.Worker.Extensions.Mcp.Configuration.Builders;
@@ -15,10 +16,16 @@ namespace Microsoft.Azure.Functions.Worker.Extensions.Mcp.Configuration.Builders
 /// </summary>
 internal sealed class McpBindingBuilder
 {
-    public McpBindingBuilder(IFunctionMetadata function, ILogger logger, HashSet<string>? sharedEmittedAppTools = null)
+    public McpBindingBuilder(
+        IFunctionMetadata function,
+        ILogger logger,
+        IOptionsMonitor<ToolOptions> toolOptions,
+        IOptionsMonitor<ResourceOptions> resourceOptions,
+        IOptionsMonitor<PromptOptions> promptOptions,
+        HashSet<string>? sharedEmittedAppTools = null)
     {
         var bindings = ParseBindings(function);
-        Context = new McpBuilderContext(function, bindings, logger, sharedEmittedAppTools);
+        Context = new McpBuilderContext(function, bindings, logger, toolOptions, resourceOptions, promptOptions, sharedEmittedAppTools);
     }
 
     internal McpBuilderContext Context { get; }
@@ -99,10 +106,17 @@ internal sealed class McpBindingBuilder
     /// </summary>
     private static JsonObject? TryParseExistingMetadata(JsonObject jsonObject)
     {
-        if (jsonObject.TryGetPropertyValue("metadata", out var metaNode) && metaNode is not null)
+        try
         {
-            var metaStr = metaNode.GetValue<string>();
-            return JsonNode.Parse(metaStr)?.AsObject();
+            if (jsonObject.TryGetPropertyValue("metadata", out var metaNode) && metaNode is not null)
+            {
+                var metaStr = metaNode.GetValue<string>();
+                return JsonNode.Parse(metaStr)?.AsObject();
+            }
+        }
+        catch
+        {
+            // Malformed metadata is silently ignored; the binding proceeds without it.
         }
 
         return null;

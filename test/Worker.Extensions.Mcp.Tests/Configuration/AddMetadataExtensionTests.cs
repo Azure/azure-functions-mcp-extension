@@ -19,10 +19,10 @@ public class AddMetadataExtensionTests : IDisposable
     [Fact]
     public void AddMetadata_FluentMetadataAppliedToToolTrigger()
     {
-        var builder = CreateBuilder("{\"type\":\"mcpToolTrigger\",\"toolName\":\"MyTool\"}");
         var toolOptions = CreateToolOptions("MyTool", metadata: new Dictionary<string, object> { ["author"] = "Jane" });
+        var builder = CreateBuilder(toolOptions, CreateResourceOptions(), CreatePromptOptions(), "{\"type\":\"mcpToolTrigger\",\"toolName\":\"MyTool\"}");
 
-        builder.AddMetadata(toolOptions, CreateResourceOptions(), CreatePromptOptions());
+        builder.AddMetadata();
 
         var metadata = builder.Context.Bindings[0].Metadata;
         Assert.NotNull(metadata);
@@ -32,10 +32,10 @@ public class AddMetadataExtensionTests : IDisposable
     [Fact]
     public void AddMetadata_FluentMetadataAppliedToResourceTrigger()
     {
-        var builder = CreateBuilder("{\"type\":\"mcpResourceTrigger\",\"uri\":\"file://test\"}");
         var resourceOptions = CreateResourceOptions("file://test", new Dictionary<string, object> { ["source"] = "local" });
+        var builder = CreateBuilder(CreateToolOptions(), resourceOptions, CreatePromptOptions(), "{\"type\":\"mcpResourceTrigger\",\"uri\":\"file://test\"}");
 
-        builder.AddMetadata(CreateToolOptions(), resourceOptions, CreatePromptOptions());
+        builder.AddMetadata();
 
         var metadata = builder.Context.Bindings[0].Metadata;
         Assert.NotNull(metadata);
@@ -45,10 +45,10 @@ public class AddMetadataExtensionTests : IDisposable
     [Fact]
     public void AddMetadata_FluentMetadataAppliedToPromptTrigger()
     {
-        var builder = CreateBuilder("{\"type\":\"mcpPromptTrigger\",\"promptName\":\"MyPrompt\"}");
         var promptOptions = CreatePromptOptions("MyPrompt", metadata: new Dictionary<string, object> { ["version"] = "1.0" });
+        var builder = CreateBuilder(CreateToolOptions(), CreateResourceOptions(), promptOptions, "{\"type\":\"mcpPromptTrigger\",\"promptName\":\"MyPrompt\"}");
 
-        builder.AddMetadata(CreateToolOptions(), CreateResourceOptions(), promptOptions);
+        builder.AddMetadata();
 
         var metadata = builder.Context.Bindings[0].Metadata;
         Assert.NotNull(metadata);
@@ -60,7 +60,7 @@ public class AddMetadataExtensionTests : IDisposable
     {
         var builder = CreateBuilder("{\"type\":\"mcpToolProperty\",\"propertyName\":\"name\"}");
 
-        builder.AddMetadata(CreateToolOptions(), CreateResourceOptions(), CreatePromptOptions());
+        builder.AddMetadata();
 
         Assert.Null(builder.Context.Bindings[0].Metadata);
     }
@@ -70,7 +70,7 @@ public class AddMetadataExtensionTests : IDisposable
     {
         var builder = CreateBuilder("{\"type\":\"mcpToolTrigger\",\"toolName\":\"MyTool\"}");
 
-        builder.AddMetadata(CreateToolOptions(), CreateResourceOptions(), CreatePromptOptions());
+        builder.AddMetadata();
 
         Assert.Null(builder.Context.Bindings[0].Metadata);
     }
@@ -87,9 +87,9 @@ public class AddMetadataExtensionTests : IDisposable
             name: "Func",
             bindings: new List<string> { "{\"type\":\"mcpToolTrigger\",\"toolName\":\"WithToolMetadata\"}" });
 
-        var builder = new McpBindingBuilder(fn.Object, NullLogger.Instance);
+        var builder = new McpBindingBuilder(fn.Object, NullLogger.Instance, CreateToolOptions(), CreateResourceOptions(), CreatePromptOptions());
 
-        builder.AddMetadata(CreateToolOptions(), CreateResourceOptions(), CreatePromptOptions());
+        builder.AddMetadata();
 
         var metadata = builder.Context.Bindings[0].Metadata;
         Assert.NotNull(metadata);
@@ -101,7 +101,7 @@ public class AddMetadataExtensionTests : IDisposable
     {
         var builder = CreateBuilder("{\"type\":\"mcpToolTrigger\",\"toolName\":\"MyTool\"}");
 
-        var result = builder.AddMetadata(CreateToolOptions(), CreateResourceOptions(), CreatePromptOptions());
+        var result = builder.AddMetadata();
 
         Assert.Same(builder, result);
     }

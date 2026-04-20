@@ -16,7 +16,17 @@ internal static class BuilderTestHelper
     public static McpBindingBuilder CreateBuilder(params string[] bindings)
     {
         var fn = CreateFunctionMetadata(bindings: bindings);
-        return new McpBindingBuilder(fn.Object, NullLogger.Instance);
+        return new McpBindingBuilder(fn.Object, NullLogger.Instance, CreateToolOptions(), CreateResourceOptions(), CreatePromptOptions());
+    }
+
+    public static McpBindingBuilder CreateBuilder(
+        IOptionsMonitor<ToolOptions> toolOptions,
+        IOptionsMonitor<ResourceOptions> resourceOptions,
+        IOptionsMonitor<PromptOptions> promptOptions,
+        params string[] bindings)
+    {
+        var fn = CreateFunctionMetadata(bindings: bindings);
+        return new McpBindingBuilder(fn.Object, NullLogger.Instance, toolOptions, resourceOptions, promptOptions);
     }
 
     public static Mock<IFunctionMetadata> CreateFunctionMetadata(

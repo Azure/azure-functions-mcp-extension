@@ -32,7 +32,7 @@ internal sealed class McpFunctionMetadataTransformer(
                 continue;
             }
 
-            var builder = new McpBindingBuilder(function, _logger, emittedAppTools);
+            var builder = new McpBindingBuilder(function, _logger, toolOptionsMonitor, resourceOptionsMonitor, promptOptionsMonitor, emittedAppTools);
 
             if (!builder.HasBindings)
             {
@@ -40,10 +40,10 @@ internal sealed class McpFunctionMetadataTransformer(
             }
 
             builder
-                .AddToolProperties(toolOptionsMonitor)
-                .AddPromptArguments(promptOptionsMonitor)
-                .AddMetadata(toolOptionsMonitor, resourceOptionsMonitor, promptOptionsMonitor)
-                .AddAppUiMetadata(toolOptionsMonitor)
+                .AddToolProperties()
+                .AddPromptArguments()
+                .AddMetadata()
+                .AddAppUiMetadata()
                 .PatchPropertyBindings()
                 .Build();
 
