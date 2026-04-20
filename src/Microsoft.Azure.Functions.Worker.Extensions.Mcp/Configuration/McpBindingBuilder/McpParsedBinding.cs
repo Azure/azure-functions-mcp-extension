@@ -41,6 +41,16 @@ internal sealed class McpParsedBinding(int index, string bindingType, string? id
     public JsonNode? ToolProperties { get; set; }
 
     /// <summary>
+    /// Serialized input schema JSON string, set during Build().
+    /// </summary>
+    public string? InputSchema { get; set; }
+
+    /// <summary>
+    /// Whether the worker-generated input schema flag should be set, set during Build().
+    /// </summary>
+    public bool UseWorkerInputSchema { get; set; }
+
+    /// <summary>
     /// Serialized prompt arguments JSON, set by AddPromptArguments step.
     /// </summary>
     public JsonNode? PromptArguments { get; set; }

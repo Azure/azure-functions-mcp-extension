@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
+using System.Text.Json.Nodes;
 using Microsoft.Azure.Functions.Worker.Core.FunctionMetadata;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -66,8 +67,14 @@ internal sealed class McpBuilderContext
     public IOptionsMonitor<PromptOptions> PromptOptions { get; }
 
     /// <summary>
-    /// Tool properties resolved by the AddToolProperties step,
+    /// Input schema resolved by the AddInputSchema step,
     /// consumed by the PatchPropertyBindings step.
+    /// </summary>
+    public JsonNode? ResolvedInputSchema { get; set; }
+
+    /// <summary>
+    /// Tool properties resolved by the AddToolProperties step,
+    /// consumed by the AddInputSchema and PatchPropertyBindings steps.
     /// </summary>
     public List<ToolProperty>? ResolvedToolProperties { get; set; }
 

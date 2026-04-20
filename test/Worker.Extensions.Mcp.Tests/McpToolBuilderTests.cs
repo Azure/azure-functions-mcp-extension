@@ -1,6 +1,8 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
+using System.Text.Json;
+using System.Text.Json.Nodes;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Builder;
 using Microsoft.Azure.Functions.Worker.Extensions.Mcp.Configuration;
@@ -249,5 +251,158 @@ public class McpToolBuilderTests
             new KeyValuePair<string, object?>("key2", "value2"));
 
         Assert.Same(builder, result);
+    }
+
+    [Fact]
+    public void WithInputSchema_String_SetsInputSchemaOption()
+    {
+        var toolName = "schemaTool";
+        var builder = CreateBuilder(toolName, out var services);
+        var schema = """{"type":"object","properties":{"x":{"type":"string"}},"required":["x"]}""";
+
+        builder.WithInputSchema(schema);
+
+        using var sp = services.BuildServiceProvider();
+        var options = sp.GetRequiredService<IOptionsMonitor<ToolOptions>>().Get(toolName);
+
+        Assert.NotNull(options.InputSchema);
+        var expected = JsonNode.Parse(schema)!;
+        var actual = JsonNode.Parse(options.InputSchema!)!;
+        Assert.Equal(expected.ToJsonString(), actual.ToJsonString());
+    }
+
+    [Fact]
+    public void WithInputSchema_JsonNode_SetsInputSchemaOption()
+    {
+        var toolName = "schemaTool";
+        var builder = CreateBuilder(toolName, out var services);
+        var schemaNode = new JsonObject
+        {
+            ["type"] = "object",
+            ["properties"] = new JsonObject { ["x"] = new JsonObject { ["type"] = "string" } },
+            ["required"] = new JsonArray("x")
+        };
+
+        builder.WithInputSchema(schemaNode);
+
+        using var sp = services.BuildServiceProvider();
+        var options = sp.GetRequiredService<IOptionsMonitor<ToolOptions>>().Get(toolName);
+
+        Assert.NotNull(options.InputSchema);
+        var parsed = JsonNode.Parse(options.InputSchema!)!.AsObject();
+        Assert.Equal("object", parsed["type"]?.ToString());
+    }
+
+    [Fact]
+    public void WithInputSchema_Type_SetsInputSchemaFromClrType()
+    {
+        var toolName = "typeSchemaTool";
+        var builder = CreateBuilder(toolName, out var services);
+
+        builder.WithInputSchema<TestInputModel>();
+
+        using var sp = services.BuildServiceProvider();
+        var options = sp.GetRequiredService<IOptionsMonitor<ToolOptions>>().Get(toolName);
+
+        Assert.NotNull(options.InputSchema);
+        var schema = JsonNode.Parse(options.InputSchema!)!.AsObject();
+        Assert.Equal("object", schema["type"]?.ToString());
+        Assert.NotNull(schema["properties"]);
+    }
+
+    [Fact]
+    public void WithInputSchema_InvalidJson_Throws()
+    {
+        var builder = CreateBuilder("tool", out _);
+
+        Assert.ThrowsAny<JsonException>(() => builder.WithInputSchema("not valid json{"));
+    }
+
+    [Fact]
+    public void WithInputSchema_NonObjectType_Throws()
+    {
+        var builder = CreateBuilder("tool", out _);
+        var schema = """{"type":"string"}""";
+
+        Assert.Throws<ArgumentException>(() => builder.WithInputSchema(schema));
+    }
+
+    [Fact]
+    public void WithInputSchema_PrimitiveType_Throws()
+    {
+        var builder = CreateBuilder("tool", out _);
+
+        Assert.Throws<ArgumentException>(() => builder.WithInputSchema(typeof(int)));
+    }
+
+    [Fact]
+    public void WithInputSchema_StringType_Throws()
+    {
+        var builder = CreateBuilder("tool", out _);
+
+        Assert.Throws<ArgumentException>(() => builder.WithInputSchema(typeof(string)));
+    }
+
+    [Fact]
+    public void WithInputSchema_AfterWithProperty_Throws()
+    {
+        var builder = CreateBuilder("tool", out _);
+        builder.WithProperty("name", McpToolPropertyType.String, "desc");
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            builder.WithInputSchema("""{"type":"object","properties":{},"required":[]}"""));
+
+        Assert.Contains("mutually exclusive", ex.Message);
+    }
+
+    [Fact]
+    public void WithProperty_AfterWithInputSchema_Throws()
+    {
+        var builder = CreateBuilder("tool", out _);
+        builder.WithInputSchema("""{"type":"object","properties":{},"required":[]}""");
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            builder.WithProperty("name", McpToolPropertyType.String, "desc"));
+
+        Assert.Contains("mutually exclusive", ex.Message);
+    }
+
+    [Fact]
+    public void WithInputSchema_ReturnsSameBuilderInstance()
+    {
+        var builder = CreateBuilder("tool", out _);
+        var result = builder.WithInputSchema("""{"type":"object","properties":{},"required":[]}""");
+
+        Assert.Same(builder, result);
+    }
+
+    [Fact]
+    public void WithInputSchema_NullString_Throws()
+    {
+        var builder = CreateBuilder("tool", out _);
+
+        Assert.Throws<ArgumentNullException>(() => builder.WithInputSchema((string)null!));
+    }
+
+    [Fact]
+    public void WithInputSchema_NullNode_Throws()
+    {
+        var builder = CreateBuilder("tool", out _);
+
+        Assert.Throws<ArgumentNullException>(() => builder.WithInputSchema((JsonNode)null!));
+    }
+
+    [Fact]
+    public void WithInputSchema_NullType_Throws()
+    {
+        var builder = CreateBuilder("tool", out _);
+
+        Assert.Throws<ArgumentNullException>(() => builder.WithInputSchema((Type)null!));
+    }
+
+    private class TestInputModel
+    {
+        public string? Name { get; set; }
+        public int Age { get; set; }
     }
 }

@@ -12,4 +12,10 @@ public abstract class McpBuilderOptions
     /// Gets the metadata associated with the options.
     /// </summary>
     public IDictionary<string, object?> Metadata { get; } = new Dictionary<string, object?>();
+
+    /// <summary>
+    /// Gets or sets an explicit JSON input schema.
+    /// When set, this takes priority over schema generated from other sources (e.g., properties or reflection).
+    /// </summary>
+    public string? InputSchema { get; set; }
 }

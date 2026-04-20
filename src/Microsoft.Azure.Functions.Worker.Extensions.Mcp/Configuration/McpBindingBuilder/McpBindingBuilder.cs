@@ -34,11 +34,24 @@ internal sealed class McpBindingBuilder
 
     public void Build()
     {
+        ResolveInputSchemas();
+        PatchPropertyBindings();
+
         foreach (var binding in Context.Bindings)
         {
             if (binding.ToolProperties is not null)
             {
                 binding.JsonObject["toolProperties"] = binding.ToolProperties;
+            }
+
+            if (binding.UseWorkerInputSchema)
+            {
+                binding.JsonObject["useWorkerInputSchema"] = true;
+            }
+
+            if (binding.InputSchema is not null)
+            {
+                binding.JsonObject["inputSchema"] = binding.InputSchema;
             }
 
             if (binding.PromptArguments is not null)
@@ -57,6 +70,155 @@ internal sealed class McpBindingBuilder
             }
 
             Context.Function.RawBindings![binding.Index] = binding.JsonObject.ToJsonString();
+        }
+    }
+
+    private void ResolveInputSchemas()
+    {
+        foreach (var binding in Context.Bindings)
+        {
+            if (string.IsNullOrWhiteSpace(binding.Identifier))
+            {
+                continue;
+            }
+
+            JsonNode? inputSchema = binding.BindingType switch
+            {
+                McpToolTriggerBindingType => ResolveToolInputSchema(binding.Identifier),
+                McpPromptTriggerBindingType => ResolvePromptInputSchema(binding.Identifier),
+                McpResourceTriggerBindingType => ResolveResourceInputSchema(binding.Identifier),
+                _ => null,
+            };
+
+            if (inputSchema is null)
+            {
+                if (binding.BindingType == McpToolTriggerBindingType)
+                {
+                    binding.UseWorkerInputSchema = true;
+
+                    Context.Logger.LogWarning(
+                        "Failed to generate input schema for tool '{ToolName}' in function '{FunctionName}'. " +
+                        "You can provide a custom input schema using the fluent API: " +
+                        "builder.ConfigureMcpTool(\"{ToolName2}\").WithInputSchema(...).",
+                        binding.Identifier, Context.Function.Name, binding.Identifier);
+                }
+
+                continue;
+            }
+
+            binding.InputSchema = inputSchema.ToJsonString();
+            binding.UseWorkerInputSchema = true;
+
+            if (binding.BindingType == McpToolTriggerBindingType)
+            {
+                Context.ResolvedInputSchema = inputSchema;
+            }
+        }
+    }
+
+    private JsonNode? ResolveToolInputSchema(string toolName)
+    {
+        var options = Context.ToolOptions.Get(toolName);
+
+        // Priority 1: Explicit input schema (WithInputSchema)
+        if (TryParseExplicitSchema(options.InputSchema, toolName, out var inputSchema))
+        {
+            return inputSchema;
+        }
+
+        // Priority 2: Property-based (from resolved tool properties)
+        if (Context.ResolvedToolProperties is not null && Context.ResolvedToolProperties.Count > 0)
+        {
+            return InputSchemaGenerator.GenerateFromToolProperties(Context.ResolvedToolProperties);
+        }
+
+        // Priority 3: Reflection-based
+        if (InputSchemaGenerator.TryGenerateFromToolFunction(Context.Function, out inputSchema) && inputSchema is not null)
+        {
+            return inputSchema;
+        }
+
+        return null;
+    }
+
+    private JsonNode? ResolvePromptInputSchema(string promptName)
+    {
+        var options = Context.PromptOptions.Get(promptName);
+
+        // Priority 1: Explicit input schema (WithInputSchema)
+        if (TryParseExplicitSchema(options.InputSchema, promptName, out var inputSchema))
+        {
+            return inputSchema;
+        }
+
+        // Priority 2: Argument-based (from resolved prompt arguments)
+        if (Context.ResolvedPromptArguments is not null && Context.ResolvedPromptArguments.Count > 0)
+        {
+            return InputSchemaGenerator.GenerateFromPromptArguments(Context.ResolvedPromptArguments);
+        }
+
+        // Priority 3: Reflection-based
+        if (InputSchemaGenerator.TryGenerateFromPromptFunction(Context.Function, out inputSchema) && inputSchema is not null)
+        {
+            return inputSchema;
+        }
+
+        return null;
+    }
+
+    private JsonNode? ResolveResourceInputSchema(string resourceUri)
+    {
+        var options = Context.ResourceOptions.Get(resourceUri);
+
+        // Explicit input schema only — resource parameters come from URI templates
+        if (TryParseExplicitSchema(options.InputSchema, resourceUri, out var inputSchema))
+        {
+            return inputSchema;
+        }
+
+        return null;
+    }
+
+    private bool TryParseExplicitSchema(string? schemaJson, string identifier, out JsonNode? inputSchema)
+    {
+        inputSchema = null;
+
+        if (string.IsNullOrWhiteSpace(schemaJson))
+        {
+            return false;
+        }
+
+        try
+        {
+            inputSchema = JsonNode.Parse(schemaJson);
+            return inputSchema is not null;
+        }
+        catch (System.Text.Json.JsonException ex)
+        {
+            Context.Logger.LogWarning(ex,
+                "The explicit input schema for '{Identifier}' is not valid JSON. " +
+                "Falling back to other schema resolution strategies.",
+                identifier);
+            return false;
+        }
+    }
+
+    private void PatchPropertyBindings()
+    {
+        Dictionary<string, McpParsedBinding>? propertyBindings = null;
+
+        foreach (var binding in Context.Bindings)
+        {
+            if (binding.BindingType == McpToolPropertyBindingType && binding.Identifier is not null)
+            {
+                propertyBindings ??= [];
+                propertyBindings.TryAdd(binding.Identifier, binding);
+            }
+        }
+
+        if (propertyBindings is not null && Context.ResolvedInputSchema is not null)
+        {
+            BindingTypeResolver.ResolveAndApplyTypes(Context.ResolvedInputSchema, propertyBindings);
         }
     }
 

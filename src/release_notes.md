@@ -10,6 +10,26 @@
 
 ### Microsoft.Azure.Functions.Worker.Extensions.Mcp 1.5.0-preview.1
 
+#### New Features
+
+- Support for worker-generated input schema (#237)
+
+    Tools now generate a JSON Schema `inputSchema` at build time instead of emitting `toolProperties`. Schema resolution follows a 3-tier priority:
+
+    1. **Explicit schema** via `WithInputSchema(...)` — pass a raw JSON string, `JsonNode`, or CLR type.
+    2. **Property-based** via `WithProperty(...)` — existing fluent API properties are converted to a schema.
+    3. **Reflection-based** — schema is auto-generated from function method parameters and attributes.
+
+    ```csharp
+    // Explicit JSON schema
+    builder.ConfigureMcpTool("MyTool")
+        .WithInputSchema("""{"type":"object","properties":{"name":{"type":"string"}},"required":["name"]}""");
+
+    // Schema from a CLR type
+    builder.ConfigureMcpTool("MyTool")
+        .WithInputSchema<MyInputModel>();
+    ```
+
 #### Bug Fixes
 
 - Fixed `DateTime` tool parameters failing to bind when the JSON input contains an ISO 8601 date string. The `DictionaryStringObjectJsonConverter` was deserializing date strings as `DateTimeOffset`, which had no conversion path to `DateTime`. Added explicit `DateTimeOffset` ↔ `DateTime` conversions in `McpInputConversionHelper`.

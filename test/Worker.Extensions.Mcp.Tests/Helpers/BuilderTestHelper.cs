@@ -46,14 +46,15 @@ internal static class BuilderTestHelper
     public static IOptionsMonitor<ToolOptions> CreateToolOptions(
         string? toolName = null,
         List<ToolProperty>? properties = null,
-        Dictionary<string, object>? metadata = null)
+        Dictionary<string, object>? metadata = null,
+        string? inputSchema = null)
     {
         var mock = new Mock<IOptionsMonitor<ToolOptions>>();
         var defaultOptions = new ToolOptions { Properties = [] };
 
         if (toolName is not null)
         {
-            var namedOptions = new ToolOptions { Properties = properties ?? [] };
+            var namedOptions = new ToolOptions { Properties = properties ?? [], InputSchema = inputSchema };
             PopulateMetadata(namedOptions, metadata);
             mock.Setup(o => o.Get(toolName)).Returns(namedOptions);
             mock.Setup(o => o.Get(It.Is<string>(s => s != toolName))).Returns(defaultOptions);
@@ -68,14 +69,15 @@ internal static class BuilderTestHelper
 
     public static IOptionsMonitor<ResourceOptions> CreateResourceOptions(
         string? name = null,
-        Dictionary<string, object>? metadata = null)
+        Dictionary<string, object>? metadata = null,
+        string? inputSchema = null)
     {
         var mock = new Mock<IOptionsMonitor<ResourceOptions>>();
         var defaultOptions = new ResourceOptions();
 
         if (name is not null)
         {
-            var namedOptions = new ResourceOptions();
+            var namedOptions = new ResourceOptions { InputSchema = inputSchema };
             PopulateMetadata(namedOptions, metadata);
             mock.Setup(o => o.Get(name)).Returns(namedOptions);
             mock.Setup(o => o.Get(It.Is<string>(s => s != name))).Returns(defaultOptions);
@@ -91,14 +93,15 @@ internal static class BuilderTestHelper
     public static IOptionsMonitor<PromptOptions> CreatePromptOptions(
         string? promptName = null,
         List<PromptArgumentDefinition>? arguments = null,
-        Dictionary<string, object>? metadata = null)
+        Dictionary<string, object>? metadata = null,
+        string? inputSchema = null)
     {
         var mock = new Mock<IOptionsMonitor<PromptOptions>>();
         var defaultOptions = new PromptOptions();
 
         if (promptName is not null)
         {
-            var namedOptions = new PromptOptions();
+            var namedOptions = new PromptOptions { InputSchema = inputSchema };
             if (arguments is not null)
             {
                 foreach (var arg in arguments)

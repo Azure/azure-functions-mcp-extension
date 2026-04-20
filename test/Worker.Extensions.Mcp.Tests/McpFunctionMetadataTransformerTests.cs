@@ -79,9 +79,11 @@ public class McpFunctionMetadataTransformerTests : IDisposable
 
             var binding = fn.Object.RawBindings![0];
             var json = JsonNode.Parse(binding)!.AsObject();
-            var tp = json["toolProperties"]!.GetValue<string>();
 
-            Assert.Equal("[]", tp);
+            Assert.Equal("true", json["useWorkerInputSchema"]?.ToString());
+            var schema = JsonNode.Parse(json["inputSchema"]!.GetValue<string>())!.AsObject();
+            Assert.Equal("object", schema["type"]?.ToString());
+            Assert.Empty(schema["properties"]!.AsObject());
     }
 
     [Fact]
@@ -109,9 +111,10 @@ public class McpFunctionMetadataTransformerTests : IDisposable
 
         transformer.Transform([fn.Object]);
         var json = JsonNode.Parse(fn.Object.RawBindings![0])!.AsObject();
-        var tp = json["toolProperties"]!.GetValue<string>();
 
-        Assert.Contains("\"propertyName\":\"x\"", tp);
+        Assert.Equal("true", json["useWorkerInputSchema"]?.ToString());
+        var schema = JsonNode.Parse(json["inputSchema"]!.GetValue<string>())!.AsObject();
+        Assert.True(schema["properties"]!.AsObject().ContainsKey("x"));
     }
 
     [Fact]
@@ -132,9 +135,14 @@ public class McpFunctionMetadataTransformerTests : IDisposable
 
             transformer.Transform([fn.Object]);
             var json = JsonNode.Parse(fn.Object.RawBindings![0])!.AsObject();
-            var tp = json["toolProperties"]!.GetValue<string>();
 
-            Assert.Equal("[{\"propertyName\":\"name\",\"propertyType\":\"string\",\"description\":\"Name value\",\"isRequired\":true,\"isArray\":false,\"enumValues\":[]}]", tp);
+            Assert.Equal("true", json["useWorkerInputSchema"]?.ToString());
+            var schema = JsonNode.Parse(json["inputSchema"]!.GetValue<string>())!.AsObject();
+            var props = schema["properties"]!.AsObject();
+            Assert.True(props.ContainsKey("name"));
+            Assert.Equal("string", props["name"]!["type"]?.ToString());
+            Assert.Equal("Name value", props["name"]!["description"]?.ToString());
+            Assert.Contains("name", schema["required"]!.AsArray().Select(r => r!.ToString()));
     }
 
     [Fact]
@@ -155,9 +163,12 @@ public class McpFunctionMetadataTransformerTests : IDisposable
 
             transformer.Transform([fn.Object]);
             var json = JsonNode.Parse(fn.Object.RawBindings![0])!.AsObject();
-            var tp = json["toolProperties"]!.GetValue<string>();
-            Assert.Contains("\"propertyName\":\"Content\"", tp);
-            Assert.Contains("\"propertyName\":\"Title\"", tp);
+
+            Assert.Equal("true", json["useWorkerInputSchema"]?.ToString());
+            var schema = JsonNode.Parse(json["inputSchema"]!.GetValue<string>())!.AsObject();
+            var props = schema["properties"]!.AsObject();
+            Assert.True(props.ContainsKey("Content"));
+            Assert.True(props.ContainsKey("Title"));
         }
 
     [Fact]
@@ -244,11 +255,14 @@ public class McpFunctionMetadataTransformerTests : IDisposable
         var fn = CreateFunctionMetadata(entryPoint, scriptFile, "Func", ["{\"type\":\"mcpToolTrigger\",\"toolName\":\"WithContextAndPoco\"}"]);
         transformer.Transform([fn.Object]);
         var json = JsonNode.Parse(fn.Object.RawBindings![0])!.AsObject();
-        var tp = json["toolProperties"]!.GetValue<string>();
 
-        // Should have only the property from the POCO, not the context parameter
-        Assert.DoesNotContain("mcptoolcontext", tp, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("\"propertyName\":\"Name\"", tp);
+        Assert.Equal("true", json["useWorkerInputSchema"]?.ToString());
+        var schema = JsonNode.Parse(json["inputSchema"]!.GetValue<string>())!.AsObject();
+        var props = schema["properties"]!.AsObject();
+
+        // Should have only the property from the McpToolProperty attribute, not the context parameter
+        Assert.False(props.ContainsKey("context"));
+        Assert.True(props.ContainsKey("Name"));
     }
 
     [Fact]
