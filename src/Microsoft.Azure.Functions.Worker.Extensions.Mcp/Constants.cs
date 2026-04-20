@@ -11,6 +11,8 @@ internal static class Constants
     public const string McpToolPropertyBindingType = "mcpToolProperty";
     public const string McpToolPropertyType = "propertyType";
     public const string McpToolPropertyName = "propertyName";
+    public const string McpToolName = "toolName";
+    public const string McpToolProperties = "toolProperties";
 
     // Resource constants
     public const string ResourceInvocationContextKey = "ResourceInvocationContext";
@@ -21,4 +23,16 @@ internal static class Constants
     public const string McpPromptTriggerBindingType = "mcpPromptTrigger";
     public const string McpPromptArgumentBindingType = "mcpPromptArgument";
     public const string McpPromptArgumentName = "argumentName";
+    public const string McpPromptName = "promptName";
+    public const string McpPromptArguments = "promptArguments";
+
+    // Binding JSON property keys
+    public const string BindingType = "type";
+    public const string McpUri = "uri";
+    public const string McpMetadata = "metadata";
+
+    // UI metadata keys
+    public const string McpMetadataUi = "ui";
+    public const string McpUiResourceUri = "resourceUri";
+    public const string McpUiVisibility = "visibility";
 }
