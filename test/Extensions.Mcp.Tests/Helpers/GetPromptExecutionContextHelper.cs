@@ -14,7 +14,7 @@ public static class GetPromptExecutionContextHelper
 {
     internal static GetPromptExecutionContext CreateExecutionContext(
         string promptName = "TestPrompt",
-        IReadOnlyDictionary<string, JsonElement>? args = null,
+        IDictionary<string, JsonElement>? args = null,
         string? sessionId = "session-123",
         Implementation? clientInfo = null,
         IHttpContextAccessor? httpContextAccessor = null)
@@ -40,9 +40,9 @@ public static class GetPromptExecutionContextHelper
 
         var requestContext = new RequestContext<GetPromptRequestParams>(
             mockServer.Object,
-            new JsonRpcRequest() { Method = RequestMethods.PromptsGet })
+            new JsonRpcRequest() { Method = RequestMethods.PromptsGet },
+            requestParams)
         {
-            Params = requestParams,
             Services = services.BuildServiceProvider()
         };
 
