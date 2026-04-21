@@ -24,6 +24,71 @@ public class ResolveToolInputSchemaExtensionTests
     }
 
     [Fact]
+    public void ResolveToolInputSchema_ResolvedToolProperties_GeneratesSchemaAndSetsFlag()
+    {
+        var props = new List<Microsoft.Azure.Functions.Worker.Extensions.Mcp.Configuration.ToolProperty>
+        {
+            new("city", "string", "city name", isRequired: true),
+        };
+        var builder = CreateBuilder(CreateToolOptions("MyTool", props), CreateResourceOptions(), CreatePromptOptions(), ToolBinding);
+
+        // Simulate AddToolProperties having populated the context.
+        builder.Context.ResolvedToolProperties = props;
+
+        builder.ResolveToolInputSchema();
+
+        var binding = builder.Context.Bindings[0];
+        Assert.NotNull(binding.InputSchema);
+        Assert.True(binding.UseWorkerInputSchema);
+        Assert.Contains("\"city\"", binding.InputSchema);
+        Assert.Contains("\"required\":[\"city\"]", binding.InputSchema);
+    }
+
+    [Fact]
+    public void ResolveToolInputSchema_ExplicitSchemaWins_OverProperties()
+    {
+        var props = new List<Microsoft.Azure.Functions.Worker.Extensions.Mcp.Configuration.ToolProperty>
+        {
+            new("city", "string", "city name", isRequired: true),
+        };
+        var toolOptions = CreateToolOptions("MyTool", props, inputSchema: ValidSchema);
+        var builder = CreateBuilder(toolOptions, CreateResourceOptions(), CreatePromptOptions(), ToolBinding);
+        builder.Context.ResolvedToolProperties = props;
+
+        builder.ResolveToolInputSchema();
+
+        var binding = builder.Context.Bindings[0];
+        Assert.Equal(ValidSchema, binding.InputSchema);
+        Assert.True(binding.UseWorkerInputSchema);
+    }
+
+    [Fact]
+    public void ResolveToolInputSchema_NoPropertiesAndNoExplicit_NoOp()
+    {
+        var builder = CreateBuilder(CreateToolOptions("MyTool"), CreateResourceOptions(), CreatePromptOptions(), ToolBinding);
+        // ResolvedToolProperties intentionally null.
+
+        builder.ResolveToolInputSchema();
+
+        var binding = builder.Context.Bindings[0];
+        Assert.Null(binding.InputSchema);
+        Assert.False(binding.UseWorkerInputSchema);
+    }
+
+    [Fact]
+    public void ResolveToolInputSchema_EmptyResolvedToolProperties_NoOp()
+    {
+        var builder = CreateBuilder(CreateToolOptions("MyTool"), CreateResourceOptions(), CreatePromptOptions(), ToolBinding);
+        builder.Context.ResolvedToolProperties = [];
+
+        builder.ResolveToolInputSchema();
+
+        var binding = builder.Context.Bindings[0];
+        Assert.Null(binding.InputSchema);
+        Assert.False(binding.UseWorkerInputSchema);
+    }
+
+    [Fact]
     public void ResolveToolInputSchema_ExplicitSchema_AppliesSchemaAndFlag()
     {
         var toolOptions = CreateToolOptions("MyTool", inputSchema: ValidSchema);
