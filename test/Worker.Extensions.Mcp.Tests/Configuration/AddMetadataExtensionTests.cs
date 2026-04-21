@@ -106,6 +106,46 @@ public class AddMetadataExtensionTests : IDisposable
         Assert.Same(builder, result);
     }
 
+    [Fact]
+    public void AddMetadata_FluentMetadata_SerializesNestedDictionary()
+    {
+        var nested = new Dictionary<string, object>
+        {
+            ["key1"] = "val1",
+            ["key2"] = 42
+        };
+        var toolOptions = CreateToolOptions("MyTool", metadata: new Dictionary<string, object> { ["nested"] = nested });
+        var builder = CreateBuilder(toolOptions, CreateResourceOptions(), CreatePromptOptions(), "{\"type\":\"mcpToolTrigger\",\"toolName\":\"MyTool\"}");
+
+        builder.AddMetadata();
+
+        var metadata = builder.Context.Bindings[0].Metadata;
+        Assert.NotNull(metadata);
+        var nestedNode = metadata["nested"];
+        Assert.NotNull(nestedNode);
+        // Should be a proper JSON object, not a ToString() representation
+        Assert.Equal("val1", nestedNode["key1"]?.GetValue<string>());
+        Assert.Equal(42, nestedNode["key2"]?.GetValue<int>());
+    }
+
+    [Fact]
+    public void AddMetadata_FluentMetadata_SerializesList()
+    {
+        var list = new List<string> { "a", "b", "c" };
+        var toolOptions = CreateToolOptions("MyTool", metadata: new Dictionary<string, object> { ["tags"] = list });
+        var builder = CreateBuilder(toolOptions, CreateResourceOptions(), CreatePromptOptions(), "{\"type\":\"mcpToolTrigger\",\"toolName\":\"MyTool\"}");
+
+        builder.AddMetadata();
+
+        var metadata = builder.Context.Bindings[0].Metadata;
+        Assert.NotNull(metadata);
+        var tagsNode = metadata["tags"];
+        Assert.NotNull(tagsNode);
+        var arr = tagsNode.AsArray();
+        Assert.Equal(3, arr.Count);
+        Assert.Equal("a", arr[0]?.GetValue<string>());
+    }
+
     internal class TestFunctions
     {
         public void WithToolMetadata(

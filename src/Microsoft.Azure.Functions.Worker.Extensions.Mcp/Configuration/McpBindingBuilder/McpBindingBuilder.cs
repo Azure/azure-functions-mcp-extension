@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
+using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.Azure.Functions.Worker.Core.FunctionMetadata;
 using Microsoft.Extensions.Logging;
@@ -106,19 +107,23 @@ internal sealed class McpBindingBuilder
     /// </summary>
     private static JsonObject? TryParseExistingMetadata(JsonObject jsonObject)
     {
-        try
+        if (!jsonObject.TryGetPropertyValue(McpMetadata, out var metaNode) || metaNode is null)
         {
-            if (jsonObject.TryGetPropertyValue("metadata", out var metaNode) && metaNode is not null)
-            {
-                var metaStr = metaNode.GetValue<string>();
-                return JsonNode.Parse(metaStr)?.AsObject();
-            }
-        }
-        catch
-        {
-            // Malformed metadata is silently ignored; the binding proceeds without it.
+            return null;
         }
 
-        return null;
+        try
+        {
+            var metaStr = metaNode is JsonValue jv
+                ? jv.GetValue<string>()
+                : metaNode.ToJsonString();
+
+            return JsonNode.Parse(metaStr)?.AsObject();
+        }
+        catch (Exception ex) when (ex is JsonException or InvalidOperationException)
+        {
+            // Malformed metadata is silently ignored; the binding proceeds without it.
+            return null;
+        }
     }
 }

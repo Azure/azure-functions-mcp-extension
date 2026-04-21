@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
+using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -61,7 +62,7 @@ internal static class AddMetadataExtension
             binding.Metadata ??= new JsonObject();
             foreach (var kvp in options.Metadata)
             {
-                binding.Metadata[kvp.Key] = JsonValue.Create(kvp.Value);
+                binding.Metadata[kvp.Key] = JsonSerializer.SerializeToNode(kvp.Value);
             }
         }
     }
