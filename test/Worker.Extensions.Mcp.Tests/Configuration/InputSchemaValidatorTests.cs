@@ -77,4 +77,44 @@ public class InputSchemaValidatorTests
     {
         Assert.Throws<ArgumentNullException>(() => InputSchemaValidator.Validate(null!, "schema"));
     }
+
+    [Fact]
+    public void ValidateAndParse_PropertiesJsonNull_Throws()
+    {
+        Assert.Throws<ArgumentException>(() =>
+            InputSchemaValidator.ValidateAndParse("""{"type":"object","properties":null}""", "schema"));
+    }
+
+    [Fact]
+    public void ValidateAndParse_RequiredJsonNull_Throws()
+    {
+        Assert.Throws<ArgumentException>(() =>
+            InputSchemaValidator.ValidateAndParse("""{"type":"object","required":null}""", "schema"));
+    }
+
+    // Pins current behavior: element types within "required" are not validated by the worker.
+    // The host silently drops non-string elements in GetRequiredProperties, so these schemas pass
+    // structural validation but the non-string entries will be ignored at runtime.
+    [Theory]
+    [InlineData("""{"type":"object","required":[1,2]}""")]
+    [InlineData("""{"type":"object","required":[true]}""")]
+    [InlineData("""{"type":"object","required":[null]}""")]
+    [InlineData("""{"type":"object","required":[{}]}""")]
+    public void ValidateAndParse_RequiredWithNonStringElements_CurrentlyAllowed(string json)
+    {
+        var node = InputSchemaValidator.ValidateAndParse(json, "schema");
+        Assert.NotNull(node);
+    }
+
+    [Theory]
+    [InlineData("""{"type":null}""")]
+    [InlineData("""{"type":5}""")]
+    [InlineData("""{"type":"Object"}""")]
+    [InlineData("""{"type":["object"]}""")]
+    [InlineData("""{"type":true}""")]
+    [InlineData("""{"type":{}}""")]
+    public void ValidateAndParse_TypeVariants_Throws(string json)
+    {
+        Assert.Throws<ArgumentException>(() => InputSchemaValidator.ValidateAndParse(json, "schema"));
+    }
 }

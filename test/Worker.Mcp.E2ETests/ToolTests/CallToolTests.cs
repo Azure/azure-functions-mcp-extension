@@ -326,6 +326,16 @@ public class CallToolTests(DefaultProjectFixture fixture, ITestOutputHelper test
         Assert.Contains("celsius", response);
     }
 
+    [Fact]
+    public async Task InputSchemaTool_WithoutRequiredLocation_ReturnsError()
+    {
+        var request = CallToolHelper.CreateToolCallRequest(1, "InputSchemaTool", new { units = "fahrenheit" });
+        var response = await CallToolHelper.MakeToolCallRequest(AppRootEndpoint, request, TestOutputHelper);
+
+        Assert.Contains("error", response);
+        Assert.Contains("location", response);
+    }
+
     // ── Edge cases ──────────────────────────────────────────────────────────
 
     [Fact]

@@ -331,4 +331,22 @@ public class McpToolBuilderTests
         Assert.Single(options.Properties);
         Assert.NotNull(options.InputSchema);
     }
+
+    [Fact]
+    public void WithInputSchema_CalledTwice_LastWriteWins()
+    {
+        var builder = CreateBuilder("tool", out var services);
+        var first = """{"type":"object","properties":{"a":{"type":"string"}}}""";
+        var second = """{"type":"object","properties":{"b":{"type":"integer"}},"required":["b"]}""";
+
+        builder.WithInputSchema(first);
+        builder.WithInputSchema(second);
+
+        using var sp = services.BuildServiceProvider();
+        var options = sp.GetRequiredService<IOptionsMonitor<ToolOptions>>().Get("tool");
+
+        Assert.NotNull(options.InputSchema);
+        Assert.Contains("\"b\"", options.InputSchema);
+        Assert.DoesNotContain("\"a\"", options.InputSchema);
+    }
 }

@@ -53,14 +53,12 @@ internal static class InputSchemaValidator
         }
 
         if (root.TryGetPropertyValue("properties", out var propsNode)
-            && propsNode is not null
             && propsNode is not JsonObject)
         {
             throw new ArgumentException("Input schema \"properties\" must be a JSON object when present.", paramName);
         }
 
         if (root.TryGetPropertyValue("required", out var requiredNode)
-            && requiredNode is not null
             && requiredNode is not JsonArray)
         {
             throw new ArgumentException("Input schema \"required\" must be a JSON array when present.", paramName);
