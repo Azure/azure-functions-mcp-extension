@@ -1,8 +1,6 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-using static Microsoft.Azure.Functions.Worker.Extensions.Mcp.Constants;
-
 namespace Microsoft.Azure.Functions.Worker.Extensions.Mcp.Configuration.Builders.Steps;
 
 /// <summary>
@@ -19,24 +17,15 @@ internal static class PatchPropertyBindingsExtension
             return builder;
         }
 
-        Dictionary<string, McpParsedBinding>? propertyBindings = null;
-
-        foreach (var binding in context.Bindings)
+        if (context.ToolPropertyBindings.Count > 0)
         {
-            if (binding.BindingType == McpToolPropertyBindingType && binding.Identifier is not null)
-            {
-                propertyBindings ??= [];
-                propertyBindings.TryAdd(binding.Identifier, binding);
-            }
-        }
+            var propertyBindings = context.ToolPropertyBindings.ToDictionary(b => b.Identifier!, b => b);
 
-        if (propertyBindings is not null)
-        {
             foreach (var property in context.ResolvedToolProperties)
             {
                 if (propertyBindings.TryGetValue(property.Name, out var binding))
                 {
-                    binding.JsonObject[McpToolPropertyType] = property.Type;
+                    binding.PropertyType = property.Type;
                 }
             }
         }

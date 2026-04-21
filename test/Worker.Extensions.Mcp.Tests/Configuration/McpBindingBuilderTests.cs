@@ -121,10 +121,23 @@ public class McpBindingBuilderTests
     {
         var httpBinding = "{\"type\":\"httpTrigger\",\"direction\":\"in\"}";
         var fn = CreateFunctionMetadata(bindings: new List<string> { httpBinding, "{\"type\":\"mcpToolTrigger\",\"toolName\":\"Tool\"}" });
-        var builder = new McpBindingBuilder(fn.Object, NullLogger.Instance);
+        var builder = new McpBindingBuilder(fn.Object, NullLogger.Instance, CreateToolOptions(), CreateResourceOptions(), CreatePromptOptions());
 
         builder.Build();
 
         Assert.Equal(httpBinding, fn.Object.RawBindings![0]);
+    }
+
+    [Fact]
+    public void ParseBindings_HandlesStructuredMetadataObject()
+    {
+        var raw = "{\"type\":\"mcpToolTrigger\",\"toolName\":\"MyTool\"," +
+                  "\"metadata\":{\"category\":\"search\"}}";
+        var builder = CreateBuilder(raw);
+
+        Assert.Single(builder.Context.Bindings);
+        var metadata = builder.Context.Bindings[0].Metadata;
+        Assert.NotNull(metadata);
+        Assert.Equal("search", metadata["category"]?.GetValue<string>());
     }
 }

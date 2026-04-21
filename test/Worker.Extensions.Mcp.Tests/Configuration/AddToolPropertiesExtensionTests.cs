@@ -16,12 +16,12 @@ public class AddToolPropertiesExtensionTests : IDisposable
     [Fact]
     public void AddToolProperties_WithConfiguredOptions_SetsToolProperties()
     {
-        var builder = CreateBuilder("{\"type\":\"mcpToolTrigger\",\"toolName\":\"MyTool\"}");
         var toolOptions = CreateToolOptions("MyTool", [new ToolProperty("x", "string", "desc", true)]);
+        var builder = CreateBuilder(toolOptions, CreateResourceOptions(), CreatePromptOptions(), "{\"type\":\"mcpToolTrigger\",\"toolName\":\"MyTool\"}");
 
-        builder.AddToolProperties(toolOptions);
+        builder.AddToolProperties();
 
-        var tp = builder.Context.Bindings[0].JsonObject["toolProperties"]?.ToString();
+        var tp = builder.Context.Bindings[0].ToolProperties?.ToString();
         Assert.NotNull(tp);
         Assert.Contains("\"propertyName\":\"x\"", tp);
     }
@@ -29,10 +29,10 @@ public class AddToolPropertiesExtensionTests : IDisposable
     [Fact]
     public void AddToolProperties_SetsResolvedToolPropertiesOnContext()
     {
-        var builder = CreateBuilder("{\"type\":\"mcpToolTrigger\",\"toolName\":\"MyTool\"}");
         var toolOptions = CreateToolOptions("MyTool", [new ToolProperty("x", "string", "desc", true)]);
+        var builder = CreateBuilder(toolOptions, CreateResourceOptions(), CreatePromptOptions(), "{\"type\":\"mcpToolTrigger\",\"toolName\":\"MyTool\"}");
 
-        builder.AddToolProperties(toolOptions);
+        builder.AddToolProperties();
 
         Assert.NotNull(builder.Context.ResolvedToolProperties);
         Assert.Single(builder.Context.ResolvedToolProperties);
@@ -43,35 +43,35 @@ public class AddToolPropertiesExtensionTests : IDisposable
     public void AddToolProperties_NoOptionsOrAttributes_DoesNotSetToolProperties()
     {
         Environment.SetEnvironmentVariable("FUNCTIONS_APPLICATION_DIRECTORY", Path.GetDirectoryName(typeof(AddToolPropertiesExtensionTests).Assembly.Location));
-        var builder = CreateBuilder("{\"type\":\"mcpToolTrigger\",\"toolName\":\"MyTool\"}");
         var toolOptions = CreateToolOptions("MyTool");
+        var builder = CreateBuilder(toolOptions, CreateResourceOptions(), CreatePromptOptions(), "{\"type\":\"mcpToolTrigger\",\"toolName\":\"MyTool\"}");
 
-        builder.AddToolProperties(toolOptions);
+        builder.AddToolProperties();
 
-        Assert.False(builder.Context.Bindings[0].JsonObject.ContainsKey("toolProperties"));
+        Assert.Null(builder.Context.Bindings[0].ToolProperties);
         Assert.Null(builder.Context.ResolvedToolProperties);
     }
 
     [Fact]
     public void AddToolProperties_SkipsNonToolTriggerBindings()
     {
-        var builder = CreateBuilder("{\"type\":\"mcpResourceTrigger\",\"uri\":\"file://test\"}");
         var toolOptions = CreateToolOptions("file://test", [new ToolProperty("x", "string", "desc", true)]);
+        var builder = CreateBuilder(toolOptions, CreateResourceOptions(), CreatePromptOptions(), "{\"type\":\"mcpResourceTrigger\",\"uri\":\"file://test\"}");
 
-        builder.AddToolProperties(toolOptions);
+        builder.AddToolProperties();
 
-        Assert.False(builder.Context.Bindings[0].JsonObject.ContainsKey("toolProperties"));
+        Assert.Null(builder.Context.Bindings[0].ToolProperties);
     }
 
     [Fact]
     public void AddToolProperties_SkipsToolTriggerWithBlankIdentifier()
     {
-        var builder = CreateBuilder("{\"type\":\"mcpToolTrigger\",\"toolName\":\" \"}");
         var toolOptions = CreateToolOptions(" ", [new ToolProperty("x", "string", "desc", true)]);
+        var builder = CreateBuilder(toolOptions, CreateResourceOptions(), CreatePromptOptions(), "{\"type\":\"mcpToolTrigger\",\"toolName\":\" \"}");
 
-        builder.AddToolProperties(toolOptions);
+        builder.AddToolProperties();
 
-        Assert.False(builder.Context.Bindings[0].JsonObject.ContainsKey("toolProperties"));
+        Assert.Null(builder.Context.Bindings[0].ToolProperties);
     }
 
     [Fact]
@@ -80,7 +80,7 @@ public class AddToolPropertiesExtensionTests : IDisposable
         Environment.SetEnvironmentVariable("FUNCTIONS_APPLICATION_DIRECTORY", Path.GetDirectoryName(typeof(AddToolPropertiesExtensionTests).Assembly.Location));
         var builder = CreateBuilder("{\"type\":\"mcpToolTrigger\",\"toolName\":\"MyTool\"}");
 
-        var result = builder.AddToolProperties(CreateToolOptions());
+        var result = builder.AddToolProperties();
 
         Assert.Same(builder, result);
     }

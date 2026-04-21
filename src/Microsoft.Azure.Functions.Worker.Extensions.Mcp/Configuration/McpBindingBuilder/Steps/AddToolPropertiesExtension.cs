@@ -2,7 +2,6 @@
 // Licensed under the MIT License.
 
 using Microsoft.Extensions.Options;
-using static Microsoft.Azure.Functions.Worker.Extensions.Mcp.Constants;
 
 namespace Microsoft.Azure.Functions.Worker.Extensions.Mcp.Configuration.Builders.Steps;
 
@@ -11,21 +10,15 @@ namespace Microsoft.Azure.Functions.Worker.Extensions.Mcp.Configuration.Builders
 /// </summary>
 internal static class AddToolPropertiesExtension
 {
-    public static McpBindingBuilder AddToolProperties(this McpBindingBuilder builder, IOptionsMonitor<ToolOptions> toolOptions)
+    public static McpBindingBuilder AddToolProperties(this McpBindingBuilder builder)
     {
         var context = builder.Context;
 
-        foreach (var binding in context.Bindings)
+        foreach (var binding in context.ToolTriggerBindings)
         {
-            if (binding.BindingType != McpToolTriggerBindingType
-                || string.IsNullOrWhiteSpace(binding.Identifier))
+            if (TryResolveToolProperties(context, binding.Identifier!, context.ToolOptions, out var toolProperties))
             {
-                continue;
-            }
-
-            if (TryResolveToolProperties(context, binding.Identifier, toolOptions, out var toolProperties))
-            {
-                binding.JsonObject["toolProperties"] = ToolPropertyParser.GetPropertiesJson(toolProperties);
+                binding.ToolProperties = ToolPropertyParser.GetPropertiesJson(toolProperties);
                 context.ResolvedToolProperties = toolProperties;
             }
         }

@@ -2,9 +2,9 @@
 // Licensed under the MIT License.
 
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using static Microsoft.Azure.Functions.Worker.Extensions.Mcp.Constants;
 
 namespace Microsoft.Azure.Functions.Worker.Extensions.Mcp.Configuration.Builders.Steps;
 
@@ -13,41 +13,34 @@ namespace Microsoft.Azure.Functions.Worker.Extensions.Mcp.Configuration.Builders
 /// </summary>
 internal static class AddMetadataExtension
 {
-    public static McpBindingBuilder AddMetadata(
-        this McpBindingBuilder builder,
-        IOptionsMonitor<ToolOptions> toolOptions,
-        IOptionsMonitor<ResourceOptions> resourceOptions,
-        IOptionsMonitor<PromptOptions> promptOptions)
+    public static McpBindingBuilder AddMetadata(this McpBindingBuilder builder)
     {
         var context = builder.Context;
 
-        foreach (var binding in context.Bindings)
+        foreach (var binding in context.ToolTriggerBindings)
         {
-            switch (binding.BindingType)
+            ApplyFluentMetadata(binding, context.ToolOptions);
+            if (MetadataParser.TryGetToolMetadata(context.Function, out var toolMetadataJson))
             {
-                case McpToolTriggerBindingType:
-                    ApplyFluentMetadata(binding, toolOptions);
-                    if (MetadataParser.TryGetToolMetadata(context.Function, out var toolMetadataJson))
-                    {
-                        ApplyOrMergeAttributedMetadata(context, binding, toolMetadataJson, "Tool");
-                    }
-                    break;
+                ApplyOrMergeAttributedMetadata(context, binding, toolMetadataJson, "Tool");
+            }
+        }
 
-                case McpResourceTriggerBindingType:
-                    ApplyFluentMetadata(binding, resourceOptions);
-                    if (MetadataParser.TryGetResourceMetadata(context.Function, out var resourceMetadataJson))
-                    {
-                        ApplyOrMergeAttributedMetadata(context, binding, resourceMetadataJson, "Resource");
-                    }
-                    break;
+        foreach (var binding in context.ResourceTriggerBindings)
+        {
+            ApplyFluentMetadata(binding, context.ResourceOptions);
+            if (MetadataParser.TryGetResourceMetadata(context.Function, out var resourceMetadataJson))
+            {
+                ApplyOrMergeAttributedMetadata(context, binding, resourceMetadataJson, "Resource");
+            }
+        }
 
-                case McpPromptTriggerBindingType:
-                    ApplyFluentMetadata(binding, promptOptions);
-                    if (MetadataParser.TryGetPromptMetadata(context.Function, out var promptMetadataJson))
-                    {
-                        ApplyOrMergeAttributedMetadata(context, binding, promptMetadataJson, "Prompt");
-                    }
-                    break;
+        foreach (var binding in context.PromptTriggerBindings)
+        {
+            ApplyFluentMetadata(binding, context.PromptOptions);
+            if (MetadataParser.TryGetPromptMetadata(context.Function, out var promptMetadataJson))
+            {
+                ApplyOrMergeAttributedMetadata(context, binding, promptMetadataJson, "Prompt");
             }
         }
 
@@ -66,16 +59,21 @@ internal static class AddMetadataExtension
 
         if (options.Metadata.Count > 0)
         {
-            binding.JsonObject["metadata"] = JsonSerializer.Serialize(options.Metadata);
+            binding.Metadata ??= new JsonObject();
+            foreach (var kvp in options.Metadata)
+            {
+                binding.Metadata[kvp.Key] = JsonSerializer.SerializeToNode(kvp.Value);
+            }
         }
     }
 
     private static void ApplyOrMergeAttributedMetadata(McpBuilderContext context, McpParsedBinding binding, string attributedMetadataJson, string type)
     {
-        if (binding.JsonObject.ContainsKey("metadata"))
+        if (binding.Metadata is not null)
         {
-            binding.JsonObject["metadata"] = MetadataMerger.MergeMetadata(
-                binding.JsonObject["metadata"]?.GetValue<string>(), attributedMetadataJson, out var overlappingKeys);
+            var fluentJson = binding.Metadata.ToJsonString();
+            var merged = MetadataMerger.MergeMetadata(fluentJson, attributedMetadataJson, out var overlappingKeys);
+            binding.Metadata = JsonNode.Parse(merged)?.AsObject() ?? new JsonObject();
 
             context.Logger.LogTrace("{Type} '{Identifier}' has metadata defined using both the fluent API and [McpMetadata] attributes. Metadata from both sources has been merged.", type, binding.Identifier);
 
@@ -86,7 +84,7 @@ internal static class AddMetadataExtension
         }
         else
         {
-            binding.JsonObject["metadata"] = attributedMetadataJson;
+            binding.Metadata = JsonNode.Parse(attributedMetadataJson)?.AsObject() ?? new JsonObject();
         }
     }
 }

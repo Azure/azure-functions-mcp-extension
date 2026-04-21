@@ -2,7 +2,6 @@
 // Licensed under the MIT License.
 
 using Microsoft.Extensions.Options;
-using static Microsoft.Azure.Functions.Worker.Extensions.Mcp.Constants;
 
 namespace Microsoft.Azure.Functions.Worker.Extensions.Mcp.Configuration.Builders.Steps;
 
@@ -11,21 +10,15 @@ namespace Microsoft.Azure.Functions.Worker.Extensions.Mcp.Configuration.Builders
 /// </summary>
 internal static class AddPromptArgumentsExtension
 {
-    public static McpBindingBuilder AddPromptArguments(this McpBindingBuilder builder, IOptionsMonitor<PromptOptions> promptOptions)
+    public static McpBindingBuilder AddPromptArguments(this McpBindingBuilder builder)
     {
         var context = builder.Context;
 
-        foreach (var binding in context.Bindings)
+        foreach (var binding in context.PromptTriggerBindings)
         {
-            if (binding.BindingType != McpPromptTriggerBindingType
-                || string.IsNullOrWhiteSpace(binding.Identifier))
+            if (TryResolvePromptArguments(context, binding.Identifier!, context.PromptOptions, out var promptArguments))
             {
-                continue;
-            }
-
-            if (TryResolvePromptArguments(context, binding.Identifier, promptOptions, out var promptArguments))
-            {
-                binding.JsonObject["promptArguments"] = PromptArgumentParser.GetArgumentsJson(promptArguments);
+                binding.PromptArguments = PromptArgumentParser.GetArgumentsJson(promptArguments);
                 context.ResolvedPromptArguments = promptArguments;
             }
         }
