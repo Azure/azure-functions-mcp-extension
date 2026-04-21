@@ -16,7 +16,8 @@ internal sealed class McpToolListener(ITriggeredFunctionExecutor executor,
                                       string toolName,
                                       string? toolDescription,
                                       ToolInputSchema requestHandler,
-                                      IReadOnlyDictionary<string, object?> metadata) : IListener, IMcpTool
+                                      IReadOnlyDictionary<string, object?> metadata,
+                                      JsonDocument? outputSchema = null) : IListener, IMcpTool
 {
     public ITriggeredFunctionExecutor Executor { get; } = executor;
 
@@ -30,6 +31,8 @@ internal sealed class McpToolListener(ITriggeredFunctionExecutor executor,
 
     public ToolInputSchema ToolInputSchema { get; } = requestHandler ?? throw new ArgumentNullException(nameof(requestHandler));
 
+    public JsonDocument? OutputSchema { get; } = outputSchema;
+
     public void Dispose()
     {
         // Dispose the validator if it implements IDisposable (e.g., JsonSchemaToolInputSchema)
@@ -37,6 +40,8 @@ internal sealed class McpToolListener(ITriggeredFunctionExecutor executor,
         {
             disposable.Dispose();
         }
+
+        OutputSchema?.Dispose();
     }
 
     public Task StartAsync(CancellationToken cancellationToken) => Task.CompletedTask;

@@ -44,6 +44,10 @@ builder.ConfigureMcpTool("FluentMetadataTool")
     .WithMetadata("imageVersion", "1.0")
     .WithMetadata("source", "builder");
 
+// Tool with output schema defined via fluent builder
+builder.ConfigureMcpTool("FluentOutputSchemaTool")
+    .WithOutputSchema("""{"type":"object","properties":{"results":{"type":"array","items":{"type":"string"}},"query":{"type":"string"}},"required":["results","query"]}""");
+
 // Tool with properties defined entirely via fluent builder (no [McpToolProperty] attributes)
 builder.ConfigureMcpTool("FluentDefinedTool")
     .WithProperty("city", McpToolPropertyType.String, "The city name.", required: true)

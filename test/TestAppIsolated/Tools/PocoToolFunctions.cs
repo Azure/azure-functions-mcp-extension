@@ -48,6 +48,27 @@ public class PocoToolFunctions(ILogger<PocoToolFunctions> logger)
         };
     }
 
+    /// <summary>
+    /// Tests [McpOutput]-decorated POCO return type via async Task&lt;T&gt;.
+    /// The output schema should be auto-generated from OrderResult.
+    /// Example: { "item": "Widget", "quantity": 5 }
+    /// </summary>
+    [Function(nameof(AsyncOutputSchemaTool))]
+    public Task<OrderResult> AsyncOutputSchemaTool(
+        [McpToolTrigger(nameof(AsyncOutputSchemaTool), "Returns an order result with auto-generated output schema.")] ToolInvocationContext context,
+        [McpToolProperty("item", "The item to order.", true)] string item,
+        [McpToolProperty("quantity", "The quantity to order.")] int quantity)
+    {
+        logger.LogInformation("AsyncOutputSchemaTool invoked for {Item}", item);
+        return Task.FromResult(new OrderResult
+        {
+            Item = item,
+            Quantity = quantity,
+            Total = quantity * 9.99m,
+            Status = "Confirmed"
+        });
+    }
+
     public class PersonRequest
     {
         [Description("The person's name")]
@@ -62,8 +83,10 @@ public class PocoToolFunctions(ILogger<PocoToolFunctions> logger)
 
     /// <summary>
     /// Decorated with [McpContent] to auto-generate text + structured content on return.
+    /// Also decorated with [McpOutput] to auto-generate an output schema.
     /// </summary>
     [McpContent]
+    [McpOutput]
     public class WeatherResult
     {
         [Description("The city name")]
@@ -74,5 +97,24 @@ public class PocoToolFunctions(ILogger<PocoToolFunctions> logger)
 
         [Description("Weather condition")]
         public string? Condition { get; set; }
+    }
+
+    /// <summary>
+    /// Decorated with [McpOutput] for auto-generated output schema.
+    /// </summary>
+    [McpOutput]
+    public class OrderResult
+    {
+        [Description("The ordered item")]
+        public required string Item { get; set; }
+
+        [Description("The quantity ordered")]
+        public int Quantity { get; set; }
+
+        [Description("The total price")]
+        public decimal Total { get; set; }
+
+        [Description("The order status")]
+        public string? Status { get; set; }
     }
 }

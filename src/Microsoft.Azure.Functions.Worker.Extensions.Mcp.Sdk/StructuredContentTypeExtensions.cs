@@ -18,4 +18,14 @@ internal static class StructuredContentTypeExtensions
         // Only check for direct attribution, not inherited
         return type.GetCustomAttributes(typeof(McpContentAttribute), inherit: false).Length > 0;
     }
+
+    /// <summary>
+    /// Checks if the type is decorated with <see cref="McpOutputAttribute"/>.
+    /// </summary>
+    /// <param name="type">The type to check.</param>
+    /// <returns>True if the type has the attribute; otherwise, false.</returns>
+    internal static bool HasMcpOutputAttribute(this Type type)
+    {
+        return type.GetCustomAttributes(typeof(McpOutputAttribute), inherit: true).Length > 0;
+    }
 }

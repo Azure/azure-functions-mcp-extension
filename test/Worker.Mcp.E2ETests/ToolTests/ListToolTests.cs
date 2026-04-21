@@ -21,7 +21,7 @@ public class ListToolTests(DefaultProjectFixture fixture, ITestOutputHelper test
         var client = await Fixture.CreateClientAsync(mode);
         var tools = await client.ListToolsAsync(cancellationToken: TestContext.Current.CancellationToken);
 
-        Assert.True(tools.Count >= 20, $"Expected at least 20 tools but found {tools.Count}");
+        Assert.True(tools.Count >= 22, $"Expected at least 22 tools but found {tools.Count}");
     }
 
     [Theory]
@@ -92,6 +92,7 @@ public class ListToolTests(DefaultProjectFixture fixture, ITestOutputHelper test
 
         Assert.Contains(tools, t => t.Name == "PocoInputTool");
         Assert.Contains(tools, t => t.Name == "PocoOutputTool");
+        Assert.Contains(tools, t => t.Name == "AsyncOutputSchemaTool");
     }
 
     [Theory]
@@ -106,6 +107,7 @@ public class ListToolTests(DefaultProjectFixture fixture, ITestOutputHelper test
         Assert.Contains(tools, t => t.Name == "MetadataAttributeTool");
         Assert.Contains(tools, t => t.Name == "FluentMetadataTool");
         Assert.Contains(tools, t => t.Name == "FluentDefinedTool");
+        Assert.Contains(tools, t => t.Name == "FluentOutputSchemaTool");
     }
 
     [Theory]

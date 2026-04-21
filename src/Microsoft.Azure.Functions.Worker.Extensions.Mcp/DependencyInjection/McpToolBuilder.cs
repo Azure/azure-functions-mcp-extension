@@ -4,7 +4,9 @@
 using Microsoft.Azure.Functions.Worker.Extensions.Mcp.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using System.ComponentModel;
+using System.Text.Json;
 using System.Text.Json.Nodes;
+using System.Text.Json.Schema;
 
 namespace Microsoft.Azure.Functions.Worker.Builder;
 
@@ -107,5 +109,76 @@ public sealed class McpToolBuilder(IFunctionsWorkerApplicationBuilder builder, s
         Builder.Services.Configure<ToolOptions>(Name, o => o.InputSchema = schemaJson);
 
         return this;
+    }
+
+    /// <summary>
+    /// Sets an explicit JSON output schema for this tool.
+    /// The output schema describes the structure of the tool's result.
+    /// </summary>
+    /// <param name="jsonSchema">A valid JSON schema string defining the tool's output structure.</param>
+    /// <returns>The current builder instance, enabling fluent configuration.</returns>
+    /// <exception cref="ArgumentException">Thrown when the schema is null/empty or is not valid JSON.</exception>
+    public McpToolBuilder WithOutputSchema(string jsonSchema)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(jsonSchema, nameof(jsonSchema));
+
+        _ = JsonNode.Parse(jsonSchema)
+            ?? throw new ArgumentException("The provided JSON schema could not be parsed.", nameof(jsonSchema));
+
+        Builder.Services.Configure<ToolOptions>(Name, o => o.OutputSchema = jsonSchema);
+
+        return this;
+    }
+
+    /// <summary>
+    /// Sets an explicit JSON output schema for this tool from a <see cref="JsonNode"/>.
+    /// </summary>
+    /// <param name="schemaNode">A <see cref="JsonNode"/> representing a valid JSON schema.</param>
+    /// <returns>The current builder instance, enabling fluent configuration.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="schemaNode"/> is null.</exception>
+    public McpToolBuilder WithOutputSchema(JsonNode schemaNode)
+    {
+        ArgumentNullException.ThrowIfNull(schemaNode, nameof(schemaNode));
+
+        var schemaJson = schemaNode.ToJsonString();
+        Builder.Services.Configure<ToolOptions>(Name, o => o.OutputSchema = schemaJson);
+
+        return this;
+    }
+
+    /// <summary>
+    /// Generates and sets a JSON output schema from the specified CLR type using <see cref="JsonSchemaExporter"/>.
+    /// </summary>
+    /// <param name="type">The CLR type to generate the JSON schema from.</param>
+    /// <param name="serializerOptions">Optional <see cref="JsonSerializerOptions"/> to control schema generation.
+    /// When null, <see cref="JsonSerializerOptions.Default"/> is used.</param>
+    /// <returns>The current builder instance, enabling fluent configuration.</returns>
+    public McpToolBuilder WithOutputSchema(Type type, JsonSerializerOptions? serializerOptions = null)
+    {
+        ArgumentNullException.ThrowIfNull(type, nameof(type));
+
+        var options = serializerOptions ?? JsonSerializerOptions.Default;
+        var schemaNode = options.GetJsonSchemaAsNode(type, new JsonSchemaExporterOptions
+        {
+            TreatNullObliviousAsNonNullable = true,
+        });
+
+        var schemaJson = schemaNode.ToJsonString();
+        Builder.Services.Configure<ToolOptions>(Name, o => o.OutputSchema = schemaJson);
+
+        return this;
+    }
+
+    /// <summary>
+    /// Generates and sets a JSON output schema from the specified CLR type <typeparamref name="T"/>
+    /// using <see cref="JsonSchemaExporter"/>.
+    /// </summary>
+    /// <typeparam name="T">The CLR type to generate the JSON schema from.</typeparam>
+    /// <param name="serializerOptions">Optional <see cref="JsonSerializerOptions"/> to control schema generation.
+    /// When null, <see cref="JsonSerializerOptions.Default"/> is used.</param>
+    /// <returns>The current builder instance, enabling fluent configuration.</returns>
+    public McpToolBuilder WithOutputSchema<T>(JsonSerializerOptions? serializerOptions = null)
+    {
+        return WithOutputSchema(typeof(T), serializerOptions);
     }
 }

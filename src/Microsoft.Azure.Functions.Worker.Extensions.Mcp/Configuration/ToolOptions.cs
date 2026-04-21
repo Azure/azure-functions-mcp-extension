@@ -52,4 +52,10 @@ public class ToolOptions : McpBuilderOptions
     /// generated from <see cref="Properties"/>.
     /// </summary>
     public string? InputSchema { get; set; }
+
+    /// <summary>
+    /// Gets or sets an explicit JSON output schema.
+    /// When set, this takes priority over schema generated from other sources (e.g., return type reflection).
+    /// </summary>
+    public string? OutputSchema { get; set; }
 }

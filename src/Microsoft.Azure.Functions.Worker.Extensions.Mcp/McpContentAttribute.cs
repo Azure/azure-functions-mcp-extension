@@ -11,8 +11,9 @@ namespace Microsoft.Azure.Functions.Worker.Extensions.Mcp;
 /// </summary>
 /// <remarks>
 /// This attribute can be applied to classes, structs, and record types.
+/// It supports inheritance: a derived type will inherit the attribute from its base type.
 /// </remarks>
-[AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct, AllowMultiple = false)]
-public sealed class McpContentAttribute : Attribute
+[AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct, AllowMultiple = false, Inherited = true)]
+public class McpContentAttribute : Attribute
 {
 }

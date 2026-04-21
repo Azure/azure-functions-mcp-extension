@@ -14,6 +14,19 @@ namespace TestAppIsolated.Tools;
 public class FluentToolFunctions(ILogger<FluentToolFunctions> logger)
 {
     /// <summary>
+    /// A tool whose output schema is defined via ConfigureMcpTool().WithOutputSchema() in Program.cs.
+    /// Tests the fluent output schema API.
+    /// </summary>
+    [Function(nameof(FluentOutputSchemaTool))]
+    public string FluentOutputSchemaTool(
+        [McpToolTrigger(nameof(FluentOutputSchemaTool), "A tool with an output schema defined via the fluent builder API.")] ToolInvocationContext context,
+        [McpToolProperty("query", "The search query.")] string query)
+    {
+        logger.LogInformation("FluentOutputSchemaTool invoked with query: {Query}", query);
+        return $"{{\"results\": [\"result1\", \"result2\"], \"query\": \"{query}\"}}";
+    }
+
+    /// <summary>
     /// A tool whose input properties are defined via ConfigureMcpTool().WithProperty() in Program.cs.
     /// Tests the fluent property definition API without attribute-based parameters.
     /// </summary>

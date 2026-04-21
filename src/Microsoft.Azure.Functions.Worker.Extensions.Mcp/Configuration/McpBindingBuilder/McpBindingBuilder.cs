@@ -62,6 +62,11 @@ internal sealed class McpBindingBuilder
                 binding.JsonObject[McpInputSchema] = binding.InputSchema;
             }
 
+            if (binding.OutputSchema is not null)
+            {
+                binding.JsonObject[McpOutputSchema] = binding.OutputSchema;
+            }
+
             if (binding.UseWorkerInputSchema)
             {
                 binding.JsonObject[McpUseWorkerInputSchema] = true;

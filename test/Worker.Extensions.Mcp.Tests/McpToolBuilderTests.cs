@@ -331,4 +331,117 @@ public class McpToolBuilderTests
         Assert.Single(options.Properties);
         Assert.NotNull(options.InputSchema);
     }
+
+    // ── WithOutputSchema ──
+
+    [Fact]
+    public void WithOutputSchema_String_StoresSchemaInOptions()
+    {
+        var builder = CreateBuilder("tool", out var services);
+        var schema = """{"type":"object","properties":{"x":{"type":"string"}},"required":["x"]}""";
+
+        builder.WithOutputSchema(schema);
+
+        using var sp = services.BuildServiceProvider();
+        var options = sp.GetRequiredService<IOptionsMonitor<ToolOptions>>().Get("tool");
+        Assert.Equal(schema, options.OutputSchema);
+    }
+
+    [Fact]
+    public void WithOutputSchema_JsonNode_StoresSchemaInOptions()
+    {
+        var builder = CreateBuilder("tool", out var services);
+        var node = JsonNode.Parse("""{"type":"object"}""")!;
+
+        builder.WithOutputSchema(node);
+
+        using var sp = services.BuildServiceProvider();
+        var options = sp.GetRequiredService<IOptionsMonitor<ToolOptions>>().Get("tool");
+        Assert.NotNull(options.OutputSchema);
+        Assert.Contains("\"type\":\"object\"", options.OutputSchema);
+    }
+
+    [Fact]
+    public void WithOutputSchema_Type_GeneratesAndStoresSchema()
+    {
+        var builder = CreateBuilder("tool", out var services);
+
+        builder.WithOutputSchema(typeof(TestOutputType));
+
+        using var sp = services.BuildServiceProvider();
+        var options = sp.GetRequiredService<IOptionsMonitor<ToolOptions>>().Get("tool");
+        Assert.NotNull(options.OutputSchema);
+        Assert.Contains("properties", options.OutputSchema);
+    }
+
+    [Fact]
+    public void WithOutputSchema_GenericType_GeneratesAndStoresSchema()
+    {
+        var builder = CreateBuilder("tool", out var services);
+
+        builder.WithOutputSchema<TestOutputType>();
+
+        using var sp = services.BuildServiceProvider();
+        var options = sp.GetRequiredService<IOptionsMonitor<ToolOptions>>().Get("tool");
+        Assert.NotNull(options.OutputSchema);
+        Assert.Contains("properties", options.OutputSchema);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    public void WithOutputSchema_String_NullOrEmpty_Throws(string? value)
+    {
+        var builder = CreateBuilder("tool", out _);
+        Assert.ThrowsAny<ArgumentException>(() => builder.WithOutputSchema(value!));
+    }
+
+    [Fact]
+    public void WithOutputSchema_String_InvalidJson_ThrowsArgumentException()
+    {
+        var builder = CreateBuilder("tool", out _);
+        Assert.ThrowsAny<Exception>(() => builder.WithOutputSchema("{not json"));
+    }
+
+    [Fact]
+    public void WithOutputSchema_JsonNode_Null_Throws()
+    {
+        var builder = CreateBuilder("tool", out _);
+        Assert.Throws<ArgumentNullException>(() => builder.WithOutputSchema((JsonNode)null!));
+    }
+
+    [Fact]
+    public void WithOutputSchema_Type_Null_Throws()
+    {
+        var builder = CreateBuilder("tool", out _);
+        Assert.Throws<ArgumentNullException>(() => builder.WithOutputSchema((Type)null!));
+    }
+
+    [Fact]
+    public void WithOutputSchema_String_ReturnsSameBuilder_ForChaining()
+    {
+        var builder = CreateBuilder("tool", out _);
+        var result = builder.WithOutputSchema("""{"type":"object"}""");
+        Assert.Same(builder, result);
+    }
+
+    [Fact]
+    public void WithOutputSchema_CombinedWithWithInputSchema_BothPersist()
+    {
+        var builder = CreateBuilder("tool", out var services);
+
+        builder.WithInputSchema("""{"type":"object"}""")
+               .WithOutputSchema("""{"type":"string"}""");
+
+        using var sp = services.BuildServiceProvider();
+        var options = sp.GetRequiredService<IOptionsMonitor<ToolOptions>>().Get("tool");
+        Assert.NotNull(options.InputSchema);
+        Assert.NotNull(options.OutputSchema);
+    }
+
+    private class TestOutputType
+    {
+        public string? Name { get; set; }
+        public int Value { get; set; }
+    }
 }
