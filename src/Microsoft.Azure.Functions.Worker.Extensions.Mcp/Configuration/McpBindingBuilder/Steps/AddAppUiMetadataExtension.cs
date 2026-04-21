@@ -3,6 +3,7 @@
 
 using System.Text.Json.Nodes;
 using Microsoft.Extensions.Logging;
+using static Microsoft.Azure.Functions.Worker.Extensions.Mcp.Constants;
 
 namespace Microsoft.Azure.Functions.Worker.Extensions.Mcp.Configuration.Builders.Steps;
 
@@ -46,7 +47,7 @@ internal static class AddAppUiMetadataExtension
     {
         binding.Metadata ??= new JsonObject();
 
-        if (binding.Metadata.ContainsKey("ui"))
+        if (binding.Metadata.ContainsKey(McpMetadataUi))
         {
             context.Logger.LogWarning(
                 "Tool '{ToolName}' defines _meta.ui via McpMetadataAttribute, but the " +
@@ -55,7 +56,7 @@ internal static class AddAppUiMetadataExtension
                 binding.Identifier);
         }
 
-        binding.Metadata["ui"] = uiNode;
+        binding.Metadata[McpMetadataUi] = uiNode;
     }
 
     /// <summary>
@@ -66,8 +67,8 @@ internal static class AddAppUiMetadataExtension
     {
         var ui = new JsonObject
         {
-            ["resourceUri"] = McpAppUtilities.ResourceUri(toolName),
-            ["visibility"] = SerializeVisibility(appOptions.Visibility)
+            [McpUiResourceUri] = McpAppUtilities.ResourceUri(toolName),
+            [McpUiVisibility] = SerializeVisibility(appOptions.Visibility)
         };
 
         return ui;

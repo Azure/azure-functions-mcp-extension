@@ -3,6 +3,7 @@
 
 using System.Text.Json.Nodes;
 using Microsoft.Azure.Functions.Worker.Core.FunctionMetadata;
+using static Microsoft.Azure.Functions.Worker.Extensions.Mcp.Sdk.Constants;
 
 namespace Microsoft.Azure.Functions.Worker.Extensions.Mcp.Configuration;
 
@@ -44,7 +45,7 @@ public sealed class McpUseResultSchemaTransformer : IFunctionMetadataTransformer
                 }
 
                 // Check binding type
-                if (jsonObject.TryGetPropertyValue("type", out var typeNode))
+                if (jsonObject.TryGetPropertyValue(BindingType, out var typeNode))
                 {
                     var bindingType = typeNode?.ToString();
                     if (string.Equals(bindingType, McpToolTriggerBindingType, StringComparison.OrdinalIgnoreCase))
@@ -78,10 +79,10 @@ public sealed class McpUseResultSchemaTransformer : IFunctionMetadataTransformer
             }
 
             // Check if direction is "out"
-            if (jsonObject.TryGetPropertyValue("direction", out var directionNode))
+            if (jsonObject.TryGetPropertyValue(BindingDirectionProperty, out var directionNode))
             {
                 var direction = directionNode?.ToString();
-                if (string.Equals(direction, "out", StringComparison.OrdinalIgnoreCase))
+                if (string.Equals(direction, BindingDirectionOut, StringComparison.OrdinalIgnoreCase))
                 {
                     return true;
                 }

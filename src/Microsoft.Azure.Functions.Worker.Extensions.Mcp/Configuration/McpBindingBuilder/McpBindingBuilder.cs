@@ -39,17 +39,17 @@ internal sealed class McpBindingBuilder
         {
             if (binding.ToolProperties is not null)
             {
-                binding.JsonObject["toolProperties"] = binding.ToolProperties;
+                binding.JsonObject[McpToolProperties] = binding.ToolProperties;
             }
 
             if (binding.PromptArguments is not null)
             {
-                binding.JsonObject["promptArguments"] = binding.PromptArguments;
+                binding.JsonObject[McpPromptArguments] = binding.PromptArguments;
             }
 
             if (binding.Metadata is not null)
             {
-                binding.JsonObject["metadata"] = binding.Metadata.ToJsonString();
+                binding.JsonObject[McpMetadata] = binding.Metadata.ToJsonString();
             }
 
             if (binding.PropertyType is not null)
@@ -70,7 +70,7 @@ internal sealed class McpBindingBuilder
             var node = JsonNode.Parse(function.RawBindings[i]);
 
             if (node is not JsonObject jsonObject
-                || !jsonObject.TryGetPropertyValue("type", out var bindingTypeNode))
+                || !jsonObject.TryGetPropertyValue(BindingType, out var bindingTypeNode))
             {
                 continue;
             }
@@ -79,9 +79,9 @@ internal sealed class McpBindingBuilder
 
             string? identifier = bindingType switch
             {
-                McpToolTriggerBindingType => jsonObject["toolName"]?.ToString(),
-                McpResourceTriggerBindingType => jsonObject["uri"]?.ToString(),
-                McpPromptTriggerBindingType => jsonObject["promptName"]?.ToString(),
+                McpToolTriggerBindingType => jsonObject[McpToolName]?.ToString(),
+                McpResourceTriggerBindingType => jsonObject[McpUri]?.ToString(),
+                McpPromptTriggerBindingType => jsonObject[McpPromptName]?.ToString(),
                 McpToolPropertyBindingType => jsonObject[McpToolPropertyName]?.ToString(),
                 McpPromptArgumentBindingType => jsonObject[McpPromptArgumentName]?.ToString(),
                 _ => null,

@@ -12,4 +12,9 @@ internal static class Constants
     public const string TextContextResult = "text";
 
     public const string CallToolResultType = "call_tool_result";
+
+    // Binding JSON property keys
+    public const string BindingType = "type";
+    public const string BindingDirectionProperty = "direction";
+    public const string BindingDirectionOut = "out";
 }
