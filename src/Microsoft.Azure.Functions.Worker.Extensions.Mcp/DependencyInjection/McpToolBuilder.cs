@@ -4,6 +4,7 @@
 using Microsoft.Azure.Functions.Worker.Extensions.Mcp.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using System.ComponentModel;
+using System.Text.Json.Nodes;
 
 namespace Microsoft.Azure.Functions.Worker.Builder;
 
@@ -59,6 +60,51 @@ public sealed class McpToolBuilder(IFunctionsWorkerApplicationBuilder builder, s
 
             configure(appBuilder);
         });
+
+        return this;
+    }
+
+    /// <summary>
+    /// Sets an explicit JSON input schema for this MCP tool. The schema is validated
+    /// to ensure it has root <c>"type": "object"</c> (and that <c>properties</c>/<c>required</c>
+    /// have the correct shapes when present). When set, the worker emits this schema and
+    /// signals the host (via <c>useWorkerInputSchema = true</c>) to use it instead of
+    /// generating one from <c>toolProperties</c>.
+    /// </summary>
+    /// <remarks>
+    /// <see cref="WithInputSchema(string)"/> may be combined with <see cref="WithProperty(string, McpToolPropertyType, string, bool)"/>;
+    /// the explicit schema takes precedence on hosts that understand it, while older hosts
+    /// continue to consume <c>toolProperties</c>.
+    /// </remarks>
+    /// <param name="jsonSchema">A valid JSON schema string defining the tool's input parameters.</param>
+    /// <returns>The current <see cref="McpToolBuilder"/> instance, enabling fluent configuration.</returns>
+    /// <exception cref="ArgumentException">Thrown when the schema is null/empty or does not conform to MCP requirements.</exception>
+    /// <exception cref="System.Text.Json.JsonException">Thrown when the schema string is not valid JSON.</exception>
+    public McpToolBuilder WithInputSchema(string jsonSchema)
+    {
+        InputSchemaValidator.ValidateAndParse(jsonSchema, nameof(jsonSchema));
+
+        Builder.Services.Configure<ToolOptions>(Name, o => o.InputSchema = jsonSchema);
+
+        return this;
+    }
+
+    /// <summary>
+    /// Sets an explicit JSON input schema for this MCP tool from a <see cref="JsonNode"/>.
+    /// See <see cref="WithInputSchema(string)"/> for details.
+    /// </summary>
+    /// <param name="schemaNode">A <see cref="JsonNode"/> representing a valid JSON schema.</param>
+    /// <returns>The current <see cref="McpToolBuilder"/> instance, enabling fluent configuration.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="schemaNode"/> is null.</exception>
+    /// <exception cref="ArgumentException">Thrown when the schema does not conform to MCP requirements.</exception>
+    public McpToolBuilder WithInputSchema(JsonNode schemaNode)
+    {
+        ArgumentNullException.ThrowIfNull(schemaNode, nameof(schemaNode));
+
+        InputSchemaValidator.Validate(schemaNode, nameof(schemaNode));
+
+        var schemaJson = schemaNode.ToJsonString();
+        Builder.Services.Configure<ToolOptions>(Name, o => o.InputSchema = schemaJson);
 
         return this;
     }

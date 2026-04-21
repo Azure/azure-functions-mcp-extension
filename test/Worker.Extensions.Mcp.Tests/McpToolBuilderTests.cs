@@ -1,6 +1,8 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
+using System.Text.Json;
+using System.Text.Json.Nodes;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Builder;
 using Microsoft.Azure.Functions.Worker.Extensions.Mcp.Configuration;
@@ -249,5 +251,84 @@ public class McpToolBuilderTests
             new KeyValuePair<string, object?>("key2", "value2"));
 
         Assert.Same(builder, result);
+    }
+
+    [Fact]
+    public void WithInputSchema_String_StoresSchemaInOptions()
+    {
+        var builder = CreateBuilder("tool", out var services);
+        var schema = """{"type":"object","properties":{"x":{"type":"string"}},"required":["x"]}""";
+
+        builder.WithInputSchema(schema);
+
+        using var sp = services.BuildServiceProvider();
+        var options = sp.GetRequiredService<IOptionsMonitor<ToolOptions>>().Get("tool");
+        Assert.Equal(schema, options.InputSchema);
+    }
+
+    [Fact]
+    public void WithInputSchema_JsonNode_StoresSchemaInOptions()
+    {
+        var builder = CreateBuilder("tool", out var services);
+        var node = JsonNode.Parse("""{"type":"object"}""")!;
+
+        builder.WithInputSchema(node);
+
+        using var sp = services.BuildServiceProvider();
+        var options = sp.GetRequiredService<IOptionsMonitor<ToolOptions>>().Get("tool");
+        Assert.NotNull(options.InputSchema);
+        Assert.Contains("\"type\":\"object\"", options.InputSchema);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    public void WithInputSchema_String_NullOrEmpty_Throws(string? value)
+    {
+        var builder = CreateBuilder("tool", out _);
+        Assert.ThrowsAny<ArgumentException>(() => builder.WithInputSchema(value!));
+    }
+
+    [Fact]
+    public void WithInputSchema_String_InvalidJson_ThrowsJsonException()
+    {
+        var builder = CreateBuilder("tool", out _);
+        Assert.ThrowsAny<JsonException>(() => builder.WithInputSchema("{not json"));
+    }
+
+    [Fact]
+    public void WithInputSchema_String_NotObjectSchema_Throws()
+    {
+        var builder = CreateBuilder("tool", out _);
+        Assert.Throws<ArgumentException>(() => builder.WithInputSchema("""{"type":"string"}"""));
+    }
+
+    [Fact]
+    public void WithInputSchema_JsonNode_Null_Throws()
+    {
+        var builder = CreateBuilder("tool", out _);
+        Assert.Throws<ArgumentNullException>(() => builder.WithInputSchema((JsonNode)null!));
+    }
+
+    [Fact]
+    public void WithInputSchema_String_ReturnsSameBuilder_ForChaining()
+    {
+        var builder = CreateBuilder("tool", out _);
+        var result = builder.WithInputSchema("""{"type":"object"}""");
+        Assert.Same(builder, result);
+    }
+
+    [Fact]
+    public void WithInputSchema_CombinedWithWithProperty_BothPersist()
+    {
+        var builder = CreateBuilder("tool", out var services);
+
+        builder.WithProperty("p", McpToolPropertyType.String, "desc")
+               .WithInputSchema("""{"type":"object"}""");
+
+        using var sp = services.BuildServiceProvider();
+        var options = sp.GetRequiredService<IOptionsMonitor<ToolOptions>>().Get("tool");
+        Assert.Single(options.Properties);
+        Assert.NotNull(options.InputSchema);
     }
 }
