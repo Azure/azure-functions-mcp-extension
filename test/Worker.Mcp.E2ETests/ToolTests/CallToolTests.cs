@@ -302,6 +302,30 @@ public class CallToolTests(DefaultProjectFixture fixture, ITestOutputHelper test
         Assert.Contains("MinimalApp", response);
     }
 
+    // ── Input schema tools ────────────────────────────────────────────────
+
+    [Fact]
+    public async Task InputSchemaTool_WithAllArguments_ReturnsExpectedResponse()
+    {
+        var request = CallToolHelper.CreateToolCallRequest(1, "InputSchemaTool", new { location = "Seattle, WA", units = "fahrenheit" });
+        var response = await CallToolHelper.MakeToolCallRequest(AppRootEndpoint, request, TestOutputHelper);
+
+        Assert.NotNull(response);
+        Assert.Contains("Seattle, WA", response);
+        Assert.Contains("fahrenheit", response);
+    }
+
+    [Fact]
+    public async Task InputSchemaTool_WithRequiredOnly_ReturnsDefaultUnits()
+    {
+        var request = CallToolHelper.CreateToolCallRequest(1, "InputSchemaTool", new { location = "Portland, OR" });
+        var response = await CallToolHelper.MakeToolCallRequest(AppRootEndpoint, request, TestOutputHelper);
+
+        Assert.NotNull(response);
+        Assert.Contains("Portland, OR", response);
+        Assert.Contains("celsius", response);
+    }
+
     // ── Edge cases ──────────────────────────────────────────────────────────
 
     [Fact]

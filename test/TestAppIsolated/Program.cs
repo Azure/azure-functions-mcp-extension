@@ -49,6 +49,28 @@ builder.ConfigureMcpTool("FluentDefinedTool")
     .WithProperty("city", McpToolPropertyType.String, "The city name.", required: true)
     .WithProperty("zipCode", McpToolPropertyType.String, "The ZIP code.", required: false);
 
+// ── Tool with explicit input schema ─────────────────────────────────────
+
+// Tool whose input schema is explicitly set via WithInputSchema (opt-in)
+builder.ConfigureMcpTool("InputSchemaTool")
+    .WithInputSchema("""
+        {
+            "type": "object",
+            "properties": {
+                "location": {
+                    "type": "string",
+                    "description": "The city and state, e.g. San Francisco, CA"
+                },
+                "units": {
+                    "type": "string",
+                    "description": "The unit system for temperature",
+                    "enum": ["celsius", "fahrenheit"]
+                }
+            },
+            "required": ["location"]
+        }
+        """);
+
 // ── Resource fluent API ─────────────────────────────────────────────────────
 
 // Additional metadata on an attribute-defined resource
