@@ -23,6 +23,24 @@
 
 #### Changes
 
+- Add `WithOutputSchema` fluent API for MCP tools (#246)
+
+    Lets users provide an explicit JSON output schema for an MCP tool via `McpToolBuilder.WithOutputSchema(string|JsonNode)`. The schema is validated at configuration time and advertised through the MCP protocol when tools are listed.
+
+    ```csharp
+    builder.ConfigureMcpTool("MyTool")
+        .WithOutputSchema("""
+        {
+            "type": "object",
+            "properties": {
+                "results": { "type": "array", "items": { "type": "string" } },
+                "query": { "type": "string" }
+            },
+            "required": ["results", "query"]
+        }
+        """);
+    ```
+
 - Add `WithInputSchema` fluent API for MCP tools (#243)
 
     Lets users provide an explicit JSON input schema for an MCP tool via `McpToolBuilder.WithInputSchema(string|JsonNode)`.
