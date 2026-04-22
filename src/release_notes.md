@@ -18,19 +18,23 @@
 
 - Add `WithInputSchema` fluent API for MCP tools (#243)
 
-    Lets users provide an explicit JSON input schema for an MCP tool via `McpToolBuilder.WithInputSchema(string|JsonNode)`. When set, the worker emits the schema and `useWorkerInputSchema=true` on the tool trigger binding, which the host uses instead of generating a schema from tool properties.
+    Lets users provide an explicit JSON input schema for an MCP tool via `McpToolBuilder.WithInputSchema(string|JsonNode)`.
 
     ```csharp
     builder.ConfigureMcpTool("MyTool")
-        .WithInputSchema("""
+        .WithInputSchema(new JsonObject
         {
-            "type": "object",
-            "properties": {
-                "name": { "type": "string", "description": "The user's name" }
+            ["type"] = "object",
+            ["properties"] = new JsonObject
+            {
+                ["name"] = new JsonObject
+                {
+                    ["type"] = "string",
+                    ["description"] = "The user's name"
+                }
             },
-            "required": ["name"]
-        }
-        """);
+            ["required"] = new JsonArray("name")
+        });
     ```
 
 - Implement fluent API for building MCP Apps (#226)

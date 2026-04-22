@@ -44,4 +44,9 @@ public sealed class McpInputSchema
     /// The canonical JSON representation of the schema.
     /// </summary>
     public string Json { get; }
+
+    /// <summary>
+    /// Returns the canonical JSON representation of the schema.
+    /// </summary>
+    public override string ToString() => Json;
 }
