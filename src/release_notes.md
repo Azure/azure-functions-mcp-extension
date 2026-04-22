@@ -6,7 +6,7 @@
 
 ### Microsoft.Azure.Functions.Extensions <version>
 
-- <entry>
+- Enforce required prompt arguments at the protocol boundary in `McpPromptListener` so all worker models (TypeScript / Python / Java / .NET) get the same validation that tools already have via `ToolInputSchema.Validate`. Previously, required prompt argument validation only ran for .NET parameters annotated with `[McpPromptArgument(IsRequired = true)]`. (#TBD)
 
 ### Microsoft.Azure.Functions.Worker.Extensions.Mcp 1.5.0-preview.1
 
