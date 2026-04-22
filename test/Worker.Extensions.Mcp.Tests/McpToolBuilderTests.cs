@@ -263,7 +263,8 @@ public class McpToolBuilderTests
 
         using var sp = services.BuildServiceProvider();
         var options = sp.GetRequiredService<IOptionsMonitor<ToolOptions>>().Get("tool");
-        Assert.Equal(schema, options.InputSchema);
+        Assert.NotNull(options.InputSchema);
+        Assert.Equal(schema, options.InputSchema!.Json);
     }
 
     [Fact]
@@ -277,7 +278,7 @@ public class McpToolBuilderTests
         using var sp = services.BuildServiceProvider();
         var options = sp.GetRequiredService<IOptionsMonitor<ToolOptions>>().Get("tool");
         Assert.NotNull(options.InputSchema);
-        Assert.Contains("\"type\":\"object\"", options.InputSchema);
+        Assert.Contains("\"type\":\"object\"", options.InputSchema!.Json);
     }
 
     [Theory]
@@ -346,7 +347,7 @@ public class McpToolBuilderTests
         var options = sp.GetRequiredService<IOptionsMonitor<ToolOptions>>().Get("tool");
 
         Assert.NotNull(options.InputSchema);
-        Assert.Contains("\"b\"", options.InputSchema);
-        Assert.DoesNotContain("\"a\"", options.InputSchema);
+        Assert.Contains("\"b\"", options.InputSchema!.Json);
+        Assert.DoesNotContain("\"a\"", options.InputSchema!.Json);
     }
 }

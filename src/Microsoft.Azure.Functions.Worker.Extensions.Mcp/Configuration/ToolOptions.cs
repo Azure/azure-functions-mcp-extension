@@ -51,5 +51,5 @@ public class ToolOptions : McpBuilderOptions
     /// on the tool trigger binding, taking precedence over any host-side schema
     /// generated from <see cref="Properties"/>.
     /// </summary>
-    public string? InputSchema { get; set; }
+    public McpInputSchema? InputSchema { get; set; }
 }

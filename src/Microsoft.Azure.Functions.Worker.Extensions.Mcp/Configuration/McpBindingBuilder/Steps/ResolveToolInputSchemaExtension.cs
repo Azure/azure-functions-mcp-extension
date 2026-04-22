@@ -1,9 +1,6 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-using System.Text.Json;
-using Microsoft.Extensions.Logging;
-
 namespace Microsoft.Azure.Functions.Worker.Extensions.Mcp.Configuration.Builders.Steps;
 
 /// <summary>
@@ -20,6 +17,8 @@ internal static class ResolveToolInputSchemaExtension
 {
     public static McpBindingBuilder ResolveToolInputSchema(this McpBindingBuilder builder)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+
         var context = builder.Context;
 
         foreach (var binding in context.ToolTriggerBindings)
@@ -27,27 +26,12 @@ internal static class ResolveToolInputSchemaExtension
             var toolName = binding.Identifier!;
             var options = context.ToolOptions.Get(toolName);
 
-            var explicitSchema = options.InputSchema;
-            if (string.IsNullOrWhiteSpace(explicitSchema))
+            if (options.InputSchema is null)
             {
                 continue;
             }
 
-            // The schema was already validated by McpToolBuilder.WithInputSchema.
-            // Re-validate defensively in case ToolOptions was mutated directly.
-            try
-            {
-                _ = InputSchemaValidator.ValidateAndParse(explicitSchema, nameof(ToolOptions.InputSchema));
-            }
-            catch (Exception ex) when (ex is ArgumentException or JsonException)
-            {
-                context.Logger.LogWarning(ex,
-                    "Explicit input schema for tool '{ToolName}' is invalid and will be ignored.",
-                    toolName);
-                continue;
-            }
-
-            binding.InputSchema = explicitSchema;
+            binding.InputSchema = options.InputSchema.Json;
             binding.UseWorkerInputSchema = true;
         }
 

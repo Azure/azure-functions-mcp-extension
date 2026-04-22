@@ -82,9 +82,9 @@ public sealed class McpToolBuilder(IFunctionsWorkerApplicationBuilder builder, s
     /// <exception cref="System.Text.Json.JsonException">Thrown when the schema string is not valid JSON.</exception>
     public McpToolBuilder WithInputSchema(string jsonSchema)
     {
-        InputSchemaValidator.ValidateAndParse(jsonSchema, nameof(jsonSchema));
+        var schema = new McpInputSchema(jsonSchema);
 
-        Builder.Services.Configure<ToolOptions>(Name, o => o.InputSchema = jsonSchema);
+        Builder.Services.Configure<ToolOptions>(Name, o => o.InputSchema = schema);
 
         return this;
     }
@@ -99,12 +99,9 @@ public sealed class McpToolBuilder(IFunctionsWorkerApplicationBuilder builder, s
     /// <exception cref="ArgumentException">Thrown when the schema does not conform to MCP requirements.</exception>
     public McpToolBuilder WithInputSchema(JsonNode schemaNode)
     {
-        ArgumentNullException.ThrowIfNull(schemaNode, nameof(schemaNode));
+        var schema = new McpInputSchema(schemaNode);
 
-        InputSchemaValidator.Validate(schemaNode, nameof(schemaNode));
-
-        var schemaJson = schemaNode.ToJsonString();
-        Builder.Services.Configure<ToolOptions>(Name, o => o.InputSchema = schemaJson);
+        Builder.Services.Configure<ToolOptions>(Name, o => o.InputSchema = schema);
 
         return this;
     }

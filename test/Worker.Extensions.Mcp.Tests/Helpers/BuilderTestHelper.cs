@@ -1,3 +1,4 @@
+using Microsoft.Azure.Functions.Worker.Builder;
 using Microsoft.Azure.Functions.Worker.Core.FunctionMetadata;
 using Microsoft.Azure.Functions.Worker.Extensions.Mcp;
 using Microsoft.Azure.Functions.Worker.Extensions.Mcp.Configuration;
@@ -54,7 +55,11 @@ internal static class BuilderTestHelper
 
         if (toolName is not null)
         {
-            var namedOptions = new ToolOptions { Properties = properties ?? [], InputSchema = inputSchema };
+            var namedOptions = new ToolOptions
+            {
+                Properties = properties ?? [],
+                InputSchema = inputSchema is null ? null : new McpInputSchema(inputSchema)
+            };
             PopulateMetadata(namedOptions, metadata);
             mock.Setup(o => o.Get(toolName)).Returns(namedOptions);
             mock.Setup(o => o.Get(It.Is<string>(s => s != toolName))).Returns(defaultOptions);

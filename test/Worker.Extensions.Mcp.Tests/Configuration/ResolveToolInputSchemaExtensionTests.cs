@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
+using Microsoft.Azure.Functions.Worker.Extensions.Mcp.Configuration.Builders;
 using Microsoft.Azure.Functions.Worker.Extensions.Mcp.Configuration.Builders.Steps;
 using static Worker.Extensions.Mcp.Tests.Helpers.BuilderTestHelper;
 
@@ -51,20 +52,6 @@ public class ResolveToolInputSchemaExtensionTests
     }
 
     [Fact]
-    public void ResolveToolInputSchema_InvalidSchemaInOptions_LogsAndSkips()
-    {
-        // Bypass builder validation by writing directly through the helper.
-        var toolOptions = CreateToolOptions("MyTool", inputSchema: """{"type":"string"}""");
-        var builder = CreateBuilder(toolOptions, CreateResourceOptions(), CreatePromptOptions(), ToolBinding);
-
-        builder.ResolveToolInputSchema();
-
-        var binding = builder.Context.Bindings[0];
-        Assert.Null(binding.InputSchema);
-        Assert.False(binding.UseWorkerInputSchema);
-    }
-
-    [Fact]
     public void ResolveToolInputSchema_NonToolBinding_Ignored()
     {
         var toolOptions = CreateToolOptions("MyTool", inputSchema: ValidSchema);
@@ -86,5 +73,12 @@ public class ResolveToolInputSchemaExtensionTests
         var result = builder.ResolveToolInputSchema();
 
         Assert.Same(builder, result);
+    }
+
+    [Fact]
+    public void ResolveToolInputSchema_NullBuilder_Throws()
+    {
+        McpBindingBuilder? builder = null;
+        Assert.Throws<ArgumentNullException>(() => builder!.ResolveToolInputSchema());
     }
 }
