@@ -691,4 +691,130 @@ public class McpToolTriggerBindingTests
         // Clean up
         result.Dispose();
     }
+
+    // ── GetOutputSchema ─────────────────────────────────────────────────────
+
+    [Fact]
+    public void GetOutputSchema_WithNullOutputSchema_ReturnsNull()
+    {
+        var attribute = new McpToolTriggerAttribute("TestTool", "Test Description")
+        {
+            OutputSchema = null
+        };
+
+        Assert.Null(McpToolTriggerBinding.GetOutputSchema(attribute));
+    }
+
+    [Fact]
+    public void GetOutputSchema_WithEmptyString_ReturnsNull()
+    {
+        var attribute = new McpToolTriggerAttribute("TestTool", "Test Description")
+        {
+            OutputSchema = ""
+        };
+
+        Assert.Null(McpToolTriggerBinding.GetOutputSchema(attribute));
+    }
+
+    [Fact]
+    public void GetOutputSchema_WithValidSchema_ReturnsJsonElement()
+    {
+        var validSchema = """
+            {
+                "type": "object",
+                "properties": {
+                    "result": { "type": "string" },
+                    "count":  { "type": "number" }
+                },
+                "required": ["result"]
+            }
+            """;
+
+        var attribute = new McpToolTriggerAttribute("TestTool", "Test Description")
+        {
+            OutputSchema = validSchema
+        };
+
+        var result = McpToolTriggerBinding.GetOutputSchema(attribute);
+
+        Assert.NotNull(result);
+        Assert.Equal("object", result.Value.GetProperty("type").GetString());
+        Assert.True(result.Value.TryGetProperty("properties", out var props));
+        Assert.Equal("string", props.GetProperty("result").GetProperty("type").GetString());
+    }
+
+    [Fact]
+    public void GetOutputSchema_WithInvalidJson_ThrowsInvalidOperationException()
+    {
+        var attribute = new McpToolTriggerAttribute("TestTool", "Test Description")
+        {
+            OutputSchema = """{ "type": "object", "properties": { "x": "string" """
+        };
+
+        var ex = Assert.Throws<InvalidOperationException>(() => McpToolTriggerBinding.GetOutputSchema(attribute));
+        Assert.Contains("Failed to parse OutputSchema for tool 'TestTool'", ex.Message);
+        Assert.IsAssignableFrom<System.Text.Json.JsonException>(ex.InnerException);
+    }
+
+    [Fact]
+    public void GetOutputSchema_WithNonObjectSchema_ThrowsArgumentException()
+    {
+        var attribute = new McpToolTriggerAttribute("TestTool", "Test Description")
+        {
+            OutputSchema = "[{\"type\":\"string\"}]"
+        };
+
+        var ex = Assert.Throws<ArgumentException>(() => McpToolTriggerBinding.GetOutputSchema(attribute));
+        Assert.Contains("not a valid MCP tool output JSON schema", ex.Message);
+    }
+
+    [Fact]
+    public void GetOutputSchema_WithTypeNotObject_ThrowsArgumentException()
+    {
+        var attribute = new McpToolTriggerAttribute("TestTool", "Test Description")
+        {
+            OutputSchema = """{ "type": "string" }"""
+        };
+
+        var ex = Assert.Throws<ArgumentException>(() => McpToolTriggerBinding.GetOutputSchema(attribute));
+        Assert.Contains("not a valid MCP tool output JSON schema", ex.Message);
+    }
+
+    [Fact]
+    public void GetOutputSchema_WithInvalidPropertiesType_ThrowsArgumentException()
+    {
+        var attribute = new McpToolTriggerAttribute("TestTool", "Test Description")
+        {
+            OutputSchema = """{ "type": "object", "properties": [] }"""
+        };
+
+        var ex = Assert.Throws<ArgumentException>(() => McpToolTriggerBinding.GetOutputSchema(attribute));
+        Assert.Contains("not a valid MCP tool output JSON schema", ex.Message);
+    }
+
+    [Fact]
+    public void GetOutputSchema_WithInvalidRequiredType_ThrowsArgumentException()
+    {
+        var attribute = new McpToolTriggerAttribute("TestTool", "Test Description")
+        {
+            OutputSchema = """{ "type": "object", "required": {} }"""
+        };
+
+        var ex = Assert.Throws<ArgumentException>(() => McpToolTriggerBinding.GetOutputSchema(attribute));
+        Assert.Contains("not a valid MCP tool output JSON schema", ex.Message);
+    }
+
+    [Fact]
+    public void GetOutputSchema_WithMinimalValidSchema_ReturnsJsonElement()
+    {
+        var attribute = new McpToolTriggerAttribute("TestTool", "Test Description")
+        {
+            OutputSchema = """{ "type": "object" }"""
+        };
+
+        var result = McpToolTriggerBinding.GetOutputSchema(attribute);
+
+        Assert.NotNull(result);
+        Assert.Equal("object", result.Value.GetProperty("type").GetString());
+    }
 }

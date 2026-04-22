@@ -114,7 +114,7 @@ internal sealed class McpToolTriggerBinding : ITriggerBinding
     public Task<IListener> CreateListenerAsync(ListenerFactoryContext context)
     {
         ToolInputSchema inputSchema = CreateToolInputSchema();
-        JsonElement? outputSchema = _toolAttribute.UseResultSchema ? GetOutputSchema(_toolAttribute) : null;
+        JsonElement? outputSchema = GetOutputSchema(_toolAttribute);
 
         var listener = new McpToolListener(
             context.Executor,
@@ -166,7 +166,7 @@ internal sealed class McpToolTriggerBinding : ITriggerBinding
             doc = JsonDocument.Parse(attribute.InputSchema);
 
             // Validate that the parsed schema is a valid MCP tool input schema
-            if (!McpInputSchemaJsonUtilities.IsValidMcpToolSchema(doc))
+            if (!McpInputSchemaJsonUtilities.IsValidMcpToolJsonSchema(doc))
             {
                 throw new ArgumentException(
                     "The specified document is not a valid MCP tool input JSON schema.",
@@ -201,7 +201,7 @@ internal sealed class McpToolTriggerBinding : ITriggerBinding
             doc = JsonDocument.Parse(attribute.OutputSchema);
 
             // Validate that the parsed schema is a valid MCP tool schema (object root)
-            if (!McpInputSchemaJsonUtilities.IsValidMcpToolSchema(doc))
+            if (!McpInputSchemaJsonUtilities.IsValidMcpToolJsonSchema(doc))
             {
                 throw new ArgumentException(
                     "The specified document is not a valid MCP tool output JSON schema.",

@@ -11,11 +11,12 @@ namespace Microsoft.Azure.Functions.Extensions.Mcp;
 public static class McpInputSchemaJsonUtilities
 {
     /// <summary>
-    /// Validates whether a JsonDocument represents a valid MCP tool input JSON schema.
+    /// Validates whether a JsonDocument represents a valid MCP tool JSON schema
+    /// (used for both input and output schemas).
     /// </summary>
     /// <param name="schema">The JsonDocument to validate.</param>
     /// <returns>true if the schema is valid; otherwise, false.</returns>
-    public static bool IsValidMcpToolSchema(JsonDocument schema)
+    public static bool IsValidMcpToolJsonSchema(JsonDocument schema)
     {
         ArgumentNullException.ThrowIfNull(schema);
         var rootElement = schema.RootElement;
