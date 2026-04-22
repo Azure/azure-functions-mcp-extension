@@ -61,6 +61,11 @@ internal sealed class McpParsedBinding(int index, string bindingType, string? id
     public string? InputSchema { get; set; }
 
     /// <summary>
+    /// Serialized JSON output schema, set by ResolveToolOutputSchema step for mcpToolTrigger bindings.
+    /// </summary>
+    public string? OutputSchema { get; set; }
+
+    /// <summary>
     /// When true, the worker has provided an explicit input schema and the host should use
     /// it instead of generating one from <c>toolProperties</c>. Set by ResolveToolInputSchema.
     /// </summary>

@@ -48,7 +48,8 @@ internal static class BuilderTestHelper
         string? toolName = null,
         List<ToolProperty>? properties = null,
         Dictionary<string, object>? metadata = null,
-        string? inputSchema = null)
+        string? inputSchema = null,
+        string? outputSchema = null)
     {
         var mock = new Mock<IOptionsMonitor<ToolOptions>>();
         var defaultOptions = new ToolOptions { Properties = [] };
@@ -58,7 +59,8 @@ internal static class BuilderTestHelper
             var namedOptions = new ToolOptions
             {
                 Properties = properties ?? [],
-                InputSchema = inputSchema is null ? null : new McpInputSchema(inputSchema)
+                InputSchema = inputSchema is null ? null : new McpInputSchema(inputSchema),
+                OutputSchema = outputSchema is null ? null : new McpOutputSchema(outputSchema)
             };
             PopulateMetadata(namedOptions, metadata);
             mock.Setup(o => o.Get(toolName)).Returns(namedOptions);

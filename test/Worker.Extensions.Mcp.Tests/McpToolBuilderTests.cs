@@ -350,4 +350,116 @@ public class McpToolBuilderTests
         Assert.Contains("\"b\"", options.InputSchema!.Json);
         Assert.DoesNotContain("\"a\"", options.InputSchema!.Json);
     }
+
+    // ── WithOutputSchema ──
+
+    [Fact]
+    public void WithOutputSchema_String_StoresSchemaInOptions()
+    {
+        var builder = CreateBuilder("tool", out var services);
+        var schema = """{"type":"object","properties":{"x":{"type":"string"}},"required":["x"]}""";
+
+        builder.WithOutputSchema(schema);
+
+        using var sp = services.BuildServiceProvider();
+        var options = sp.GetRequiredService<IOptionsMonitor<ToolOptions>>().Get("tool");
+        Assert.NotNull(options.OutputSchema);
+        Assert.Contains("\"x\"", options.OutputSchema!.Json);
+    }
+
+    [Fact]
+    public void WithOutputSchema_JsonNode_StoresSchemaInOptions()
+    {
+        var builder = CreateBuilder("tool", out var services);
+        var node = JsonNode.Parse("""{"type":"object"}""")!;
+
+        builder.WithOutputSchema(node);
+
+        using var sp = services.BuildServiceProvider();
+        var options = sp.GetRequiredService<IOptionsMonitor<ToolOptions>>().Get("tool");
+        Assert.NotNull(options.OutputSchema);
+        Assert.Contains("\"type\":\"object\"", options.OutputSchema!.Json);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    public void WithOutputSchema_String_NullOrWhitespace_Throws(string? value)
+    {
+        var builder = CreateBuilder("tool", out _);
+        Assert.ThrowsAny<ArgumentException>(() => builder.WithOutputSchema(value!));
+    }
+
+    [Fact]
+    public void WithOutputSchema_String_InvalidJson_ThrowsJsonException()
+    {
+        var builder = CreateBuilder("tool", out _);
+        Assert.ThrowsAny<JsonException>(() => builder.WithOutputSchema("{not json"));
+    }
+
+    [Fact]
+    public void WithOutputSchema_String_NotObjectSchema_Throws()
+    {
+        var builder = CreateBuilder("tool", out _);
+        Assert.Throws<ArgumentException>(() => builder.WithOutputSchema("""{"type":"string"}"""));
+        Assert.Throws<ArgumentException>(() => builder.WithOutputSchema("\"hello\""));
+        Assert.Throws<ArgumentException>(() => builder.WithOutputSchema("[]"));
+        Assert.Throws<ArgumentException>(() => builder.WithOutputSchema("{}"));
+    }
+
+    [Fact]
+    public void WithOutputSchema_JsonNode_Null_Throws()
+    {
+        var builder = CreateBuilder("tool", out _);
+        Assert.Throws<ArgumentNullException>(() => builder.WithOutputSchema((JsonNode)null!));
+    }
+
+    [Fact]
+    public void WithOutputSchema_JsonNode_NotObjectSchema_Throws()
+    {
+        var builder = CreateBuilder("tool", out _);
+        var node = JsonNode.Parse("""{"type":"string"}""")!;
+        Assert.Throws<ArgumentException>(() => builder.WithOutputSchema(node));
+    }
+
+    [Fact]
+    public void WithOutputSchema_String_ReturnsSameBuilder_ForChaining()
+    {
+        var builder = CreateBuilder("tool", out _);
+        var result = builder.WithOutputSchema("""{"type":"object"}""");
+        Assert.Same(builder, result);
+    }
+
+    [Fact]
+    public void WithOutputSchema_CombinedWithWithInputSchema_BothPersist()
+    {
+        var builder = CreateBuilder("tool", out var services);
+
+        builder.WithInputSchema("""{"type":"object"}""")
+               .WithOutputSchema("""{"type":"object"}""");
+
+        using var sp = services.BuildServiceProvider();
+        var options = sp.GetRequiredService<IOptionsMonitor<ToolOptions>>().Get("tool");
+        Assert.NotNull(options.InputSchema);
+        Assert.NotNull(options.OutputSchema);
+    }
+
+    [Fact]
+    public void WithOutputSchema_CalledTwice_LastWriteWins()
+    {
+        var builder = CreateBuilder("tool", out var services);
+        var first = """{"type":"object","properties":{"a":{"type":"string"}}}""";
+        var second = """{"type":"object","properties":{"b":{"type":"integer"}},"required":["b"]}""";
+
+        builder.WithOutputSchema(first);
+        builder.WithOutputSchema(second);
+
+        using var sp = services.BuildServiceProvider();
+        var options = sp.GetRequiredService<IOptionsMonitor<ToolOptions>>().Get("tool");
+
+        Assert.NotNull(options.OutputSchema);
+        Assert.Contains("\"b\"", options.OutputSchema!.Json);
+        Assert.DoesNotContain("\"a\"", options.OutputSchema!.Json);
+    }
 }

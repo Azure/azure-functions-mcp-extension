@@ -51,5 +51,17 @@ public class ToolOptions : McpBuilderOptions
     /// on the tool trigger binding, taking precedence over any host-side schema
     /// generated from <see cref="Properties"/>.
     /// </summary>
+    /// <summary>
+    /// Gets or sets an explicit JSON input schema for the tool.
+    /// When set, the worker emits this schema (and <c>useWorkerInputSchema = true</c>)
+    /// on the tool trigger binding, taking precedence over any host-side schema
+    /// generated from <see cref="Properties"/>.
+    /// </summary>
     public McpInputSchema? InputSchema { get; set; }
+
+    /// <summary>
+    /// Gets or sets an explicit JSON output schema for the tool.
+    /// When set, the worker emits this schema on the tool trigger binding.
+    /// </summary>
+    public McpOutputSchema? OutputSchema { get; set; }
 }
