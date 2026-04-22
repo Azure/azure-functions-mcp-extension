@@ -7,6 +7,7 @@
 ### Microsoft.Azure.Functions.Extensions <version>
 
 - Validate required prompt arguments (#244)
+- Added output schema support on the tool trigger. The `McpToolTriggerAttribute` now exposes an `OutputSchema` property, and `IMcpTool.OutputSchema` is surfaced as `JsonElement?` so the host can advertise a tool's structured result schema via the MCP protocol. Schema is validated at binding time and only applied when `UseResultSchema` is set. (#245)
 
 ### Microsoft.Azure.Functions.Worker.Extensions.Mcp 1.5.0-preview.1
 
