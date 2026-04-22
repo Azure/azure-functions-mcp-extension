@@ -8,7 +8,7 @@ namespace Microsoft.Azure.Functions.Extensions.Mcp;
 /// <summary>
 /// Utilities for working with MCP tool JSON schemas.
 /// </summary>
-public static class McpInputSchemaJsonUtilities
+internal static class McpInputSchemaJsonUtilities
 {
     /// <summary>
     /// Validates whether a JsonDocument represents a valid MCP tool JSON schema

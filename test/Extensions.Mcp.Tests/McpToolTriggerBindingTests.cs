@@ -817,4 +817,28 @@ public class McpToolTriggerBindingTests
         Assert.NotNull(result);
         Assert.Equal("object", result.Value.GetProperty("type").GetString());
     }
+
+    [Fact]
+    public void GetOutputSchema_ReturnedElement_IsSelfOwning_AfterGc()
+    {
+        // GetOutputSchema disposes the underlying JsonDocument in a finally and returns
+        // JsonElement via Clone(). The returned element must be self-owning so callers can
+        // hold it indefinitely without the backing document being collected out from under them.
+        var attribute = new McpToolTriggerAttribute("TestTool", "Test Description")
+        {
+            OutputSchema = """{ "type": "object", "properties": { "x": { "type": "string" } } }"""
+        };
+
+        var result = McpToolTriggerBinding.GetOutputSchema(attribute);
+        Assert.NotNull(result);
+
+        GC.Collect();
+        GC.WaitForPendingFinalizers();
+        GC.Collect();
+
+        // If the element still referenced an internal pooled buffer owned by a disposed
+        // JsonDocument, this would throw ObjectDisposedException or read garbage.
+        Assert.Equal("object", result.Value.GetProperty("type").GetString());
+        Assert.Equal("string", result.Value.GetProperty("properties").GetProperty("x").GetProperty("type").GetString());
+    }
 }
