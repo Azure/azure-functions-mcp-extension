@@ -260,6 +260,7 @@ public class McpPromptListenerTests
         var ex = await Assert.ThrowsAsync<McpProtocolException>(
             () => listener.GetAsync(CreateRequest("code_review"), CancellationToken.None));
 
+        Assert.Equal(McpErrorCode.InvalidParams, ex.ErrorCode);
         Assert.Contains("code", ex.Message);
         executor.VerifyNoOtherCalls();
     }
@@ -284,6 +285,7 @@ public class McpPromptListenerTests
         var ex = await Assert.ThrowsAsync<McpProtocolException>(
             () => listener.GetAsync(CreateRequest("code_review", args), CancellationToken.None));
 
+        Assert.Equal(McpErrorCode.InvalidParams, ex.ErrorCode);
         Assert.Contains("code", ex.Message);
         executor.VerifyNoOtherCalls();
     }
@@ -310,6 +312,7 @@ public class McpPromptListenerTests
         var ex = await Assert.ThrowsAsync<McpProtocolException>(
             () => listener.GetAsync(CreateRequest("p"), CancellationToken.None));
 
+        Assert.Equal(McpErrorCode.InvalidParams, ex.ErrorCode);
         Assert.Contains("a", ex.Message);
         Assert.Contains("b", ex.Message);
         Assert.DoesNotContain("c", ex.Message);
