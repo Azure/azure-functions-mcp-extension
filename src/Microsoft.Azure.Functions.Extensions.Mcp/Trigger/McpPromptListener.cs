@@ -88,7 +88,7 @@ internal sealed class McpPromptListener(
 
             if (provided is null
                 || !provided.TryGetValue(declared.Name, out var value)
-                || IsValueNullOrUndefined(value))
+                || value.IsNullOrUndefined())
             {
                 (missing ??= []).Add(declared.Name);
             }
@@ -101,12 +101,5 @@ internal sealed class McpPromptListener(
                 McpErrorCode.InvalidParams);
         }
     }
-
-    private static bool IsValueNullOrUndefined(JsonElement value) => value.ValueKind switch
-    {
-        JsonValueKind.Null => true,
-        JsonValueKind.Undefined => true,
-        _ => false,
-    };
 }
 
