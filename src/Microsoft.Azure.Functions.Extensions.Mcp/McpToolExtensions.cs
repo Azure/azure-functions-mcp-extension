@@ -12,4 +12,10 @@ internal static class McpToolExtensions
         ArgumentNullException.ThrowIfNull(tool);
         return tool.ToolInputSchema.GetSchemaElement();
     }
+
+    internal static JsonElement? GetOutputSchemaElement(this IMcpTool tool)
+    {
+        ArgumentNullException.ThrowIfNull(tool);
+        return tool.OutputSchema;
+    }
 }

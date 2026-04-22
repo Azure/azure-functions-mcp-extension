@@ -210,8 +210,10 @@ public class McpToolTriggerBindingTests
         };
 
         // Act & Assert
-        var ex = Assert.ThrowsAny<Exception>(() => McpToolTriggerBinding.GetInputSchema(attribute));
-        Assert.Contains("'/' is invalid after a value. Expected either ',', '}', or ']'. LineNumber: 3 | BytePositionInLine: 25.", ex.Message);
+        var ex = Assert.Throws<InvalidOperationException>(() => McpToolTriggerBinding.GetInputSchema(attribute));
+        Assert.Contains("Failed to parse InputSchema for tool 'TestTool'", ex.Message);
+        Assert.IsAssignableFrom<System.Text.Json.JsonException>(ex.InnerException);
+        Assert.Contains("'/' is invalid after a value. Expected either ',', '}', or ']'. LineNumber: 3 | BytePositionInLine: 25.", ex.InnerException!.Message);
     }
 
     [Fact]
@@ -235,8 +237,10 @@ public class McpToolTriggerBindingTests
         };
 
         // Act & Assert
-        var ex = Assert.ThrowsAny<Exception>(() => McpToolTriggerBinding.GetInputSchema(attribute));
-        Assert.Contains("',' is an invalid start of a property name. Expected a '\"'. LineNumber: 1 | BytePositionInLine: 21.", ex.Message);
+        var ex = Assert.Throws<InvalidOperationException>(() => McpToolTriggerBinding.GetInputSchema(attribute));
+        Assert.Contains("Failed to parse InputSchema for tool 'TestTool'", ex.Message);
+        Assert.IsAssignableFrom<System.Text.Json.JsonException>(ex.InnerException);
+        Assert.Contains("',' is an invalid start of a property name. Expected a '\"'. LineNumber: 1 | BytePositionInLine: 21.", ex.InnerException!.Message);
     }
 
     [Fact]
@@ -281,8 +285,10 @@ public class McpToolTriggerBindingTests
         };
 
         // Assert
-        var ex = Assert.ThrowsAny<Exception>(() => McpToolTriggerBinding.GetInputSchema(attribute));
-        Assert.Contains("The input does not contain any JSON tokens. Expected the input to start with a valid JSON token, when isFinalBlock is true. LineNumber: 1 | BytePositionInLine: 3.", ex.Message);
+        var ex = Assert.Throws<InvalidOperationException>(() => McpToolTriggerBinding.GetInputSchema(attribute));
+        Assert.Contains("Failed to parse InputSchema for tool 'TestTool'", ex.Message);
+        Assert.IsAssignableFrom<System.Text.Json.JsonException>(ex.InnerException);
+        Assert.Contains("The input does not contain any JSON tokens. Expected the input to start with a valid JSON token, when isFinalBlock is true. LineNumber: 1 | BytePositionInLine: 3.", ex.InnerException!.Message);
     }
 
     [Fact]
@@ -428,8 +434,9 @@ public class McpToolTriggerBindingTests
         };
 
         // Act & Assert
-        var ex = Assert.ThrowsAny<Exception>(() => McpToolTriggerBinding.GetInputSchema(attribute));
-        Assert.Contains("The JSON object contains a trailing comma at the end which is not supported in this mode. Change the reader options. LineNumber: 6 | BytePositionInLine: 4.", ex.Message);
+        var ex = Assert.Throws<InvalidOperationException>(() => McpToolTriggerBinding.GetInputSchema(attribute));
+        Assert.IsAssignableFrom<System.Text.Json.JsonException>(ex.InnerException);
+        Assert.Contains("The JSON object contains a trailing comma at the end which is not supported in this mode. Change the reader options. LineNumber: 6 | BytePositionInLine: 4.", ex.InnerException!.Message);
     }
 
     [Fact]
@@ -455,8 +462,9 @@ public class McpToolTriggerBindingTests
         };
 
         // Act & Assert
-        var ex = Assert.ThrowsAny<Exception>(() => McpToolTriggerBinding.GetInputSchema(attribute));
-        Assert.Contains("'/' is invalid after a value. Expected either ',', '}', or ']'. LineNumber: 1 | BytePositionInLine: 4.", ex.Message);
+        var ex = Assert.Throws<InvalidOperationException>(() => McpToolTriggerBinding.GetInputSchema(attribute));
+        Assert.IsAssignableFrom<System.Text.Json.JsonException>(ex.InnerException);
+        Assert.Contains("'/' is invalid after a value. Expected either ',', '}', or ']'. LineNumber: 1 | BytePositionInLine: 4.", ex.InnerException!.Message);
     }
 
     [Fact]
@@ -479,8 +487,9 @@ public class McpToolTriggerBindingTests
         };
 
         // Act & Assert
-        var ex = Assert.ThrowsAny<Exception>(() => McpToolTriggerBinding.GetInputSchema(attribute));
-        Assert.Contains("Expected depth to be zero at the end of the JSON payload. There is an open JSON object or array that should be closed. LineNumber: 6 | BytePositionInLine: 5.", ex.Message);
+        var ex = Assert.Throws<InvalidOperationException>(() => McpToolTriggerBinding.GetInputSchema(attribute));
+        Assert.IsAssignableFrom<System.Text.Json.JsonException>(ex.InnerException);
+        Assert.Contains("Expected depth to be zero at the end of the JSON payload. There is an open JSON object or array that should be closed. LineNumber: 6 | BytePositionInLine: 5.", ex.InnerException!.Message);
     }
 
     [Fact]

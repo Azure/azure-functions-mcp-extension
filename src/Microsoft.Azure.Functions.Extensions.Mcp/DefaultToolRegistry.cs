@@ -41,6 +41,7 @@ internal sealed class DefaultToolRegistry : IToolRegistry
                 Name = tool.Name,
                 Description = tool.Description,
                 InputSchema = tool.GetPropertiesInputSchema(),
+                OutputSchema = tool.GetOutputSchemaElement(),
                 Meta = MetadataParser.SerializeMetadata(tool.Metadata)
             }).ToList()
         };
