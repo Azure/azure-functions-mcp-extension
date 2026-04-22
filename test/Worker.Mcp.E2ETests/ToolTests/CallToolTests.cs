@@ -247,6 +247,28 @@ public class CallToolTests(DefaultProjectFixture fixture, ITestOutputHelper test
         Assert.Contains("Sunny", structured);
     }
 
+    [Fact]
+    public async Task FluentOutputSchemaTool_Invocation_ReturnsContentMatchingSchema()
+    {
+        var request = CallToolHelper.CreateToolCallRequest(1, "FluentOutputSchemaTool", new { query = "seattle" });
+        var response = await CallToolHelper.MakeToolCallRequest(AppRootEndpoint, request, TestOutputHelper);
+
+        Assert.NotNull(response);
+
+        var result = CallToolResultHelper.ParseSseToCallToolResult(response, McpJsonUtilities.DefaultOptions);
+        Assert.NotNull(result);
+        Assert.NotEqual(true, result.IsError);
+
+        var textBlock = Assert.IsType<TextContentBlock>(Assert.Single(result.Content));
+
+        // Body conforms to the tool's declared output schema (object with "results" array + "query" string).
+        using var doc = System.Text.Json.JsonDocument.Parse(textBlock.Text);
+        var root = doc.RootElement;
+        Assert.Equal(System.Text.Json.JsonValueKind.Object, root.ValueKind);
+        Assert.Equal("seattle", root.GetProperty("query").GetString());
+        Assert.Equal(System.Text.Json.JsonValueKind.Array, root.GetProperty("results").ValueKind);
+    }
+
     // ── Metadata & fluent tools ─────────────────────────────────────────────
 
     [Fact]
