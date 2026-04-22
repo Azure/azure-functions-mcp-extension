@@ -180,6 +180,7 @@ public class GetPromptTests(DefaultProjectFixture fixture, ITestOutputHelper tes
 
         var result = await client.GetPromptAsync(
             "fluent_prompt",
+            arguments: new Dictionary<string, object?> { ["query"] = "test" },
             cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.NotNull(result);

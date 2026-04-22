@@ -33,7 +33,7 @@ internal abstract class ToolInputSchema
         {
             if (args == null
                 || !args.TryGetValue(propertyName, out var value)
-                || IsValueNullOrUndefined(value))
+                || value.IsNullOrUndefined())
             {
                 missing.Add(propertyName);
             }
@@ -57,21 +57,6 @@ internal abstract class ToolInputSchema
     /// </summary>
     /// <returns>A collection of required property names.</returns>
     protected abstract IReadOnlyCollection<string> GetRequiredProperties();
-
-    /// <summary>
-    /// Checks if a JSON element represents a null or undefined value.
-    /// </summary>
-    /// <param name="value">The JSON element to check.</param>
-    /// <returns>True if the value is null or undefined; otherwise false.</returns>
-    protected static bool IsValueNullOrUndefined(JsonElement value)
-    {
-        return value.ValueKind switch
-        {
-            JsonValueKind.Null => true,
-            JsonValueKind.Undefined => true,
-            _ => false
-        };
-    }
 
     /// <summary>
     /// Creates a validation exception for missing required properties.

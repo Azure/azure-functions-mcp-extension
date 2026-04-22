@@ -6,7 +6,7 @@
 
 ### Microsoft.Azure.Functions.Extensions <version>
 
-- <entry>
+- Validate required prompt arguments (#244)
 
 ### Microsoft.Azure.Functions.Worker.Extensions.Mcp 1.5.0-preview.1
 

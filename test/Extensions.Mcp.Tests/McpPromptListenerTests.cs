@@ -2,24 +2,30 @@
 // Licensed under the MIT License.
 
 using Microsoft.Azure.WebJobs.Host.Executors;
+using ModelContextProtocol;
 using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 using Moq;
+using System.Text.Json;
 
 namespace Microsoft.Azure.Functions.Extensions.Mcp.Tests;
 
 public class McpPromptListenerTests
 {
-    private static RequestContext<GetPromptRequestParams> CreateRequest(string name = "TestPrompt")
+    private static RequestContext<GetPromptRequestParams> CreateRequest(
+        string name = "TestPrompt",
+        IReadOnlyDictionary<string, JsonElement>? arguments = null)
     {
         var server = new Mock<McpServer>().Object;
-        var parameters = new GetPromptRequestParams { Name = name };
+        var parameters = new GetPromptRequestParams { Name = name, Arguments = arguments };
 
         return new RequestContext<GetPromptRequestParams>(server, new JsonRpcRequest() { Method = RequestMethods.PromptsGet })
         {
             Params = parameters
         };
     }
+
+    private static JsonElement Json(string raw) => JsonDocument.Parse(raw).RootElement;
 
     [Fact]
     public void Constructor_SetsProperties()
@@ -232,5 +238,169 @@ public class McpPromptListenerTests
             null,
             null,
             new Dictionary<string, object?>());
+    }
+
+    // ── Required-argument validation ─────────────────────────────────────
+
+    [Fact]
+    public async Task GetAsync_RequiredArgumentMissing_ThrowsMcpProtocolException()
+    {
+        var executor = new Mock<ITriggeredFunctionExecutor>(MockBehavior.Strict);
+
+        var listener = new McpPromptListener(
+            executor.Object,
+            "MyFunction",
+            "code_review",
+            null,
+            null,
+            [new() { Name = "code", Required = true }],
+            null,
+            new Dictionary<string, object?>());
+
+        var ex = await Assert.ThrowsAsync<McpProtocolException>(
+            () => listener.GetAsync(CreateRequest("code_review"), CancellationToken.None));
+
+        Assert.Equal(McpErrorCode.InvalidParams, ex.ErrorCode);
+        Assert.Contains("code", ex.Message);
+        executor.VerifyNoOtherCalls();
+    }
+
+    [Fact]
+    public async Task GetAsync_RequiredArgumentNull_ThrowsMcpProtocolException()
+    {
+        var executor = new Mock<ITriggeredFunctionExecutor>(MockBehavior.Strict);
+
+        var listener = new McpPromptListener(
+            executor.Object,
+            "MyFunction",
+            "code_review",
+            null,
+            null,
+            [new() { Name = "code", Required = true }],
+            null,
+            new Dictionary<string, object?>());
+
+        var args = new Dictionary<string, JsonElement> { ["code"] = Json("null") };
+
+        var ex = await Assert.ThrowsAsync<McpProtocolException>(
+            () => listener.GetAsync(CreateRequest("code_review", args), CancellationToken.None));
+
+        Assert.Equal(McpErrorCode.InvalidParams, ex.ErrorCode);
+        Assert.Contains("code", ex.Message);
+        executor.VerifyNoOtherCalls();
+    }
+
+    [Fact]
+    public async Task GetAsync_MultipleRequiredArgumentsMissing_ListsAllInMessage()
+    {
+        var executor = new Mock<ITriggeredFunctionExecutor>(MockBehavior.Strict);
+
+        var listener = new McpPromptListener(
+            executor.Object,
+            "MyFunction",
+            "p",
+            null,
+            null,
+            [
+                new() { Name = "a", Required = true },
+                new() { Name = "b", Required = true },
+                new() { Name = "c", Required = false },
+            ],
+            null,
+            new Dictionary<string, object?>());
+
+        var ex = await Assert.ThrowsAsync<McpProtocolException>(
+            () => listener.GetAsync(CreateRequest("p"), CancellationToken.None));
+
+        Assert.Equal(McpErrorCode.InvalidParams, ex.ErrorCode);
+        Assert.Contains("a", ex.Message);
+        Assert.Contains("b", ex.Message);
+        Assert.DoesNotContain("c", ex.Message);
+    }
+
+    [Fact]
+    public async Task GetAsync_OptionalArgumentMissing_DoesNotThrow()
+    {
+        var executor = new Mock<ITriggeredFunctionExecutor>();
+        executor.Setup(e => e.TryExecuteAsync(It.IsAny<TriggeredFunctionData>(), It.IsAny<CancellationToken>()))
+            .Callback<TriggeredFunctionData, CancellationToken>((data, _) =>
+            {
+                var execCtx = (GetPromptExecutionContext)data.TriggerValue;
+                execCtx.SetResult(new GetPromptResult { Messages = [] });
+            })
+            .ReturnsAsync(new FunctionResult(true));
+
+        var listener = new McpPromptListener(
+            executor.Object,
+            "MyFunction",
+            "p",
+            null,
+            null,
+            [new() { Name = "optional_arg", Required = false }],
+            null,
+            new Dictionary<string, object?>());
+
+        var result = await listener.GetAsync(CreateRequest("p"), CancellationToken.None);
+
+        Assert.NotNull(result);
+        executor.VerifyAll();
+    }
+
+    [Fact]
+    public async Task GetAsync_RequiredArgumentProvided_DoesNotThrow()
+    {
+        var executor = new Mock<ITriggeredFunctionExecutor>();
+        executor.Setup(e => e.TryExecuteAsync(It.IsAny<TriggeredFunctionData>(), It.IsAny<CancellationToken>()))
+            .Callback<TriggeredFunctionData, CancellationToken>((data, _) =>
+            {
+                var execCtx = (GetPromptExecutionContext)data.TriggerValue;
+                execCtx.SetResult(new GetPromptResult { Messages = [] });
+            })
+            .ReturnsAsync(new FunctionResult(true));
+
+        var listener = new McpPromptListener(
+            executor.Object,
+            "MyFunction",
+            "code_review",
+            null,
+            null,
+            [new() { Name = "code", Required = true }],
+            null,
+            new Dictionary<string, object?>());
+
+        var args = new Dictionary<string, JsonElement> { ["code"] = Json("\"hello\"") };
+
+        var result = await listener.GetAsync(CreateRequest("code_review", args), CancellationToken.None);
+
+        Assert.NotNull(result);
+        executor.VerifyAll();
+    }
+
+    [Fact]
+    public async Task GetAsync_NoDeclaredArguments_DoesNotValidate()
+    {
+        var executor = new Mock<ITriggeredFunctionExecutor>();
+        executor.Setup(e => e.TryExecuteAsync(It.IsAny<TriggeredFunctionData>(), It.IsAny<CancellationToken>()))
+            .Callback<TriggeredFunctionData, CancellationToken>((data, _) =>
+            {
+                var execCtx = (GetPromptExecutionContext)data.TriggerValue;
+                execCtx.SetResult(new GetPromptResult { Messages = [] });
+            })
+            .ReturnsAsync(new FunctionResult(true));
+
+        var listener = new McpPromptListener(
+            executor.Object,
+            "MyFunction",
+            "p",
+            null,
+            null,
+            arguments: null,
+            null,
+            new Dictionary<string, object?>());
+
+        var result = await listener.GetAsync(CreateRequest("p"), CancellationToken.None);
+
+        Assert.NotNull(result);
+        executor.VerifyAll();
     }
 }
