@@ -170,7 +170,7 @@ internal sealed class McpToolTriggerBinding : ITriggerBinding
             {
                 throw new ArgumentException(
                     "The specified document is not a valid MCP tool input JSON schema.",
-                    nameof(attribute.InputSchema));
+                    nameof(attribute));
             }
 
             var result = doc;
@@ -204,7 +204,7 @@ internal sealed class McpToolTriggerBinding : ITriggerBinding
             {
                 throw new ArgumentException(
                     "The specified document is not a valid MCP tool output JSON schema.",
-                    nameof(attribute.OutputSchema));
+                    nameof(attribute));
             }
 
             return doc.RootElement.Clone();
