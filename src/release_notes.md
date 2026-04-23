@@ -6,10 +6,14 @@
 
 ### Microsoft.Azure.Functions.Extensions <version>
 
-- Validate required prompt arguments (#244)
-- Added output schema support on the tool trigger. (#245)
+#### Breaking Changes
 
-> ⚠️ **Breaking change**: `McpInputSchemaJsonUtilities` is now `internal` (was `public`). It was never intended as a public API. Consumers should not reference this type; if you have a use case, please file an issue. (#245)
+- `McpInputSchemaJsonUtilities` is now `internal` (was `public`). It was never intended as a public API. Consumers should not reference this type; if you have a use case, please file an issue. (#245)
+
+#### Changes
+
+- Validate required prompt arguments (#244)
+- Added output schema support on the tool trigger (#245)
 
 ### Microsoft.Azure.Functions.Worker.Extensions.Mcp 1.5.0-preview.1
 
