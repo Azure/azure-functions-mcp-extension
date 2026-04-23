@@ -114,6 +114,7 @@ internal sealed class McpToolTriggerBinding : ITriggerBinding
     public Task<IListener> CreateListenerAsync(ListenerFactoryContext context)
     {
         ToolInputSchema inputSchema = CreateToolInputSchema();
+        JsonElement? outputSchema = GetOutputSchema(_toolAttribute);
 
         var listener = new McpToolListener(
             context.Executor,
@@ -121,7 +122,8 @@ internal sealed class McpToolTriggerBinding : ITriggerBinding
             _toolAttribute.ToolName,
             _toolAttribute.Description,
             inputSchema,
-            _toolMetadata);
+            _toolMetadata,
+            outputSchema);
 
         _toolRegistry.Register(listener);
 
@@ -158,25 +160,59 @@ internal sealed class McpToolTriggerBinding : ITriggerBinding
             return null;
         }
 
-        var doc = JsonDocument.Parse(attribute.InputSchema);
+        JsonDocument? doc = null;
         try
         {
+            doc = JsonDocument.Parse(attribute.InputSchema);
+
             // Validate that the parsed schema is a valid MCP tool input schema
-            if (!McpInputSchemaJsonUtilities.IsValidMcpToolSchema(doc))
+            if (!McpInputSchemaJsonUtilities.IsValidMcpToolJsonSchema(doc))
             {
-                doc.Dispose();
                 throw new ArgumentException(
                     "The specified document is not a valid MCP tool input JSON schema.",
-                    nameof(attribute.InputSchema));
+                    nameof(attribute));
             }
 
-            return doc;
+            var result = doc;
+            doc = null;
+            return result;
         }
         catch (JsonException ex)
         {
-            doc?.Dispose();
             throw new InvalidOperationException(
                 $"Failed to parse InputSchema for tool '{attribute.ToolName}'. Schema must be valid JSON.", ex);
+        }
+        finally
+        {
+            doc?.Dispose();
+        }
+    }
+
+    internal static JsonElement? GetOutputSchema(McpToolTriggerAttribute attribute)
+    {
+        if (string.IsNullOrEmpty(attribute.OutputSchema))
+        {
+            return null;
+        }
+
+        try
+        {
+            using JsonDocument doc = JsonDocument.Parse(attribute.OutputSchema);
+
+            // Validate that the parsed schema is a valid MCP tool schema (object root)
+            if (!McpInputSchemaJsonUtilities.IsValidMcpToolJsonSchema(doc))
+            {
+                throw new ArgumentException(
+                    "The specified document is not a valid MCP tool output JSON schema.",
+                    nameof(attribute));
+            }
+
+            return doc.RootElement.Clone();
+        }
+        catch (JsonException ex)
+        {
+            throw new InvalidOperationException(
+                $"Failed to parse OutputSchema for tool '{attribute.ToolName}'. Schema must be valid JSON.", ex);
         }
     }
 

@@ -210,8 +210,10 @@ public class McpToolTriggerBindingTests
         };
 
         // Act & Assert
-        var ex = Assert.ThrowsAny<Exception>(() => McpToolTriggerBinding.GetInputSchema(attribute));
-        Assert.Contains("'/' is invalid after a value. Expected either ',', '}', or ']'. LineNumber: 3 | BytePositionInLine: 25.", ex.Message);
+        var ex = Assert.Throws<InvalidOperationException>(() => McpToolTriggerBinding.GetInputSchema(attribute));
+        Assert.Contains("Failed to parse InputSchema for tool 'TestTool'", ex.Message);
+        Assert.IsAssignableFrom<System.Text.Json.JsonException>(ex.InnerException);
+        Assert.Contains("'/' is invalid after a value. Expected either ',', '}', or ']'. LineNumber: 3 | BytePositionInLine: 25.", ex.InnerException!.Message);
     }
 
     [Fact]
@@ -235,8 +237,10 @@ public class McpToolTriggerBindingTests
         };
 
         // Act & Assert
-        var ex = Assert.ThrowsAny<Exception>(() => McpToolTriggerBinding.GetInputSchema(attribute));
-        Assert.Contains("',' is an invalid start of a property name. Expected a '\"'. LineNumber: 1 | BytePositionInLine: 21.", ex.Message);
+        var ex = Assert.Throws<InvalidOperationException>(() => McpToolTriggerBinding.GetInputSchema(attribute));
+        Assert.Contains("Failed to parse InputSchema for tool 'TestTool'", ex.Message);
+        Assert.IsAssignableFrom<System.Text.Json.JsonException>(ex.InnerException);
+        Assert.Contains("',' is an invalid start of a property name. Expected a '\"'. LineNumber: 1 | BytePositionInLine: 21.", ex.InnerException!.Message);
     }
 
     [Fact]
@@ -281,8 +285,10 @@ public class McpToolTriggerBindingTests
         };
 
         // Assert
-        var ex = Assert.ThrowsAny<Exception>(() => McpToolTriggerBinding.GetInputSchema(attribute));
-        Assert.Contains("The input does not contain any JSON tokens. Expected the input to start with a valid JSON token, when isFinalBlock is true. LineNumber: 1 | BytePositionInLine: 3.", ex.Message);
+        var ex = Assert.Throws<InvalidOperationException>(() => McpToolTriggerBinding.GetInputSchema(attribute));
+        Assert.Contains("Failed to parse InputSchema for tool 'TestTool'", ex.Message);
+        Assert.IsAssignableFrom<System.Text.Json.JsonException>(ex.InnerException);
+        Assert.Contains("The input does not contain any JSON tokens. Expected the input to start with a valid JSON token, when isFinalBlock is true. LineNumber: 1 | BytePositionInLine: 3.", ex.InnerException!.Message);
     }
 
     [Fact]
@@ -428,8 +434,9 @@ public class McpToolTriggerBindingTests
         };
 
         // Act & Assert
-        var ex = Assert.ThrowsAny<Exception>(() => McpToolTriggerBinding.GetInputSchema(attribute));
-        Assert.Contains("The JSON object contains a trailing comma at the end which is not supported in this mode. Change the reader options. LineNumber: 6 | BytePositionInLine: 4.", ex.Message);
+        var ex = Assert.Throws<InvalidOperationException>(() => McpToolTriggerBinding.GetInputSchema(attribute));
+        Assert.IsAssignableFrom<System.Text.Json.JsonException>(ex.InnerException);
+        Assert.Contains("The JSON object contains a trailing comma at the end which is not supported in this mode. Change the reader options. LineNumber: 6 | BytePositionInLine: 4.", ex.InnerException!.Message);
     }
 
     [Fact]
@@ -455,8 +462,9 @@ public class McpToolTriggerBindingTests
         };
 
         // Act & Assert
-        var ex = Assert.ThrowsAny<Exception>(() => McpToolTriggerBinding.GetInputSchema(attribute));
-        Assert.Contains("'/' is invalid after a value. Expected either ',', '}', or ']'. LineNumber: 1 | BytePositionInLine: 4.", ex.Message);
+        var ex = Assert.Throws<InvalidOperationException>(() => McpToolTriggerBinding.GetInputSchema(attribute));
+        Assert.IsAssignableFrom<System.Text.Json.JsonException>(ex.InnerException);
+        Assert.Contains("'/' is invalid after a value. Expected either ',', '}', or ']'. LineNumber: 1 | BytePositionInLine: 4.", ex.InnerException!.Message);
     }
 
     [Fact]
@@ -479,8 +487,9 @@ public class McpToolTriggerBindingTests
         };
 
         // Act & Assert
-        var ex = Assert.ThrowsAny<Exception>(() => McpToolTriggerBinding.GetInputSchema(attribute));
-        Assert.Contains("Expected depth to be zero at the end of the JSON payload. There is an open JSON object or array that should be closed. LineNumber: 6 | BytePositionInLine: 5.", ex.Message);
+        var ex = Assert.Throws<InvalidOperationException>(() => McpToolTriggerBinding.GetInputSchema(attribute));
+        Assert.IsAssignableFrom<System.Text.Json.JsonException>(ex.InnerException);
+        Assert.Contains("Expected depth to be zero at the end of the JSON payload. There is an open JSON object or array that should be closed. LineNumber: 6 | BytePositionInLine: 5.", ex.InnerException!.Message);
     }
 
     [Fact]
@@ -681,5 +690,155 @@ public class McpToolTriggerBindingTests
         
         // Clean up
         result.Dispose();
+    }
+
+    // ── GetOutputSchema ─────────────────────────────────────────────────────
+
+    [Fact]
+    public void GetOutputSchema_WithNullOutputSchema_ReturnsNull()
+    {
+        var attribute = new McpToolTriggerAttribute("TestTool", "Test Description")
+        {
+            OutputSchema = null
+        };
+
+        Assert.Null(McpToolTriggerBinding.GetOutputSchema(attribute));
+    }
+
+    [Fact]
+    public void GetOutputSchema_WithEmptyString_ReturnsNull()
+    {
+        var attribute = new McpToolTriggerAttribute("TestTool", "Test Description")
+        {
+            OutputSchema = ""
+        };
+
+        Assert.Null(McpToolTriggerBinding.GetOutputSchema(attribute));
+    }
+
+    [Fact]
+    public void GetOutputSchema_WithValidSchema_ReturnsJsonElement()
+    {
+        var validSchema = """
+            {
+                "type": "object",
+                "properties": {
+                    "result": { "type": "string" },
+                    "count":  { "type": "number" }
+                },
+                "required": ["result"]
+            }
+            """;
+
+        var attribute = new McpToolTriggerAttribute("TestTool", "Test Description")
+        {
+            OutputSchema = validSchema
+        };
+
+        var result = McpToolTriggerBinding.GetOutputSchema(attribute);
+
+        Assert.NotNull(result);
+        Assert.Equal("object", result.Value.GetProperty("type").GetString());
+        Assert.True(result.Value.TryGetProperty("properties", out var props));
+        Assert.Equal("string", props.GetProperty("result").GetProperty("type").GetString());
+    }
+
+    [Fact]
+    public void GetOutputSchema_WithInvalidJson_ThrowsInvalidOperationException()
+    {
+        var attribute = new McpToolTriggerAttribute("TestTool", "Test Description")
+        {
+            OutputSchema = """{ "type": "object", "properties": { "x": "string" """
+        };
+
+        var ex = Assert.Throws<InvalidOperationException>(() => McpToolTriggerBinding.GetOutputSchema(attribute));
+        Assert.Contains("Failed to parse OutputSchema for tool 'TestTool'", ex.Message);
+        Assert.IsAssignableFrom<System.Text.Json.JsonException>(ex.InnerException);
+    }
+
+    [Fact]
+    public void GetOutputSchema_WithNonObjectSchema_ThrowsArgumentException()
+    {
+        var attribute = new McpToolTriggerAttribute("TestTool", "Test Description")
+        {
+            OutputSchema = "[{\"type\":\"string\"}]"
+        };
+
+        var ex = Assert.Throws<ArgumentException>(() => McpToolTriggerBinding.GetOutputSchema(attribute));
+        Assert.Contains("not a valid MCP tool output JSON schema", ex.Message);
+    }
+
+    [Fact]
+    public void GetOutputSchema_WithTypeNotObject_ThrowsArgumentException()
+    {
+        var attribute = new McpToolTriggerAttribute("TestTool", "Test Description")
+        {
+            OutputSchema = """{ "type": "string" }"""
+        };
+
+        var ex = Assert.Throws<ArgumentException>(() => McpToolTriggerBinding.GetOutputSchema(attribute));
+        Assert.Contains("not a valid MCP tool output JSON schema", ex.Message);
+    }
+
+    [Fact]
+    public void GetOutputSchema_WithInvalidPropertiesType_ThrowsArgumentException()
+    {
+        var attribute = new McpToolTriggerAttribute("TestTool", "Test Description")
+        {
+            OutputSchema = """{ "type": "object", "properties": [] }"""
+        };
+
+        var ex = Assert.Throws<ArgumentException>(() => McpToolTriggerBinding.GetOutputSchema(attribute));
+        Assert.Contains("not a valid MCP tool output JSON schema", ex.Message);
+    }
+
+    [Fact]
+    public void GetOutputSchema_WithInvalidRequiredType_ThrowsArgumentException()
+    {
+        var attribute = new McpToolTriggerAttribute("TestTool", "Test Description")
+        {
+            OutputSchema = """{ "type": "object", "required": {} }"""
+        };
+
+        var ex = Assert.Throws<ArgumentException>(() => McpToolTriggerBinding.GetOutputSchema(attribute));
+        Assert.Contains("not a valid MCP tool output JSON schema", ex.Message);
+    }
+
+    [Fact]
+    public void GetOutputSchema_WithMinimalValidSchema_ReturnsJsonElement()
+    {
+        var attribute = new McpToolTriggerAttribute("TestTool", "Test Description")
+        {
+            OutputSchema = """{ "type": "object" }"""
+        };
+
+        var result = McpToolTriggerBinding.GetOutputSchema(attribute);
+
+        Assert.NotNull(result);
+        Assert.Equal("object", result.Value.GetProperty("type").GetString());
+    }
+
+    [Fact]
+    public void GetOutputSchema_ReturnedElement_IsSelfOwning_AfterGc()
+    {
+        // GetOutputSchema disposes the underlying JsonDocument in a finally and returns
+        // JsonElement via Clone(). The returned element must be self-owning so callers can
+        // hold it indefinitely without the backing document being collected out from under them.
+        var attribute = new McpToolTriggerAttribute("TestTool", "Test Description")
+        {
+            OutputSchema = """{ "type": "object", "properties": { "x": { "type": "string" } } }"""
+        };
+
+        var result = McpToolTriggerBinding.GetOutputSchema(attribute);
+        Assert.NotNull(result);
+
+        GC.Collect();
+        GC.WaitForPendingFinalizers();
+        GC.Collect();
+
+        // If the element still referenced an internal pooled buffer owned by a disposed
+        // JsonDocument, this would throw ObjectDisposedException or read garbage.
+        Assert.Equal("object", result.Value.GetProperty("type").GetString());
+        Assert.Equal("string", result.Value.GetProperty("properties").GetProperty("x").GetProperty("type").GetString());
     }
 }
