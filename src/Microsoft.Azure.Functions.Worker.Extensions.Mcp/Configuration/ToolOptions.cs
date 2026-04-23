@@ -44,4 +44,12 @@ public class ToolOptions : McpBuilderOptions
     /// MCP App configuration for this tool. Null if this tool is not an MCP App.
     /// </summary>
     public AppOptions? AppOptions { get; set; }
+
+    /// <summary>
+    /// Gets or sets an explicit JSON input schema for the tool.
+    /// When set, the worker emits this schema (and <c>useWorkerInputSchema = true</c>)
+    /// on the tool trigger binding, taking precedence over any host-side schema
+    /// generated from <see cref="Properties"/>.
+    /// </summary>
+    public McpInputSchema? InputSchema { get; set; }
 }

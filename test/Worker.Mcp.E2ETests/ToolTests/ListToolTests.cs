@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
+using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.Azure.Functions.Worker.Mcp.E2ETests.Fixtures;
 using Microsoft.Azure.Functions.Worker.Mcp.E2ETests.ProtocolTests;
@@ -20,7 +21,7 @@ public class ListToolTests(DefaultProjectFixture fixture, ITestOutputHelper test
         var client = await Fixture.CreateClientAsync(mode);
         var tools = await client.ListToolsAsync(cancellationToken: TestContext.Current.CancellationToken);
 
-        Assert.True(tools.Count >= 19, $"Expected at least 19 tools but found {tools.Count}");
+        Assert.True(tools.Count >= 20, $"Expected at least 20 tools but found {tools.Count}");
     }
 
     [Theory]
@@ -155,5 +156,59 @@ public class ListToolTests(DefaultProjectFixture fixture, ITestOutputHelper test
         Assert.Equal("1.0", ((JsonNode)tool.ProtocolTool.Meta["imageVersion"]!).GetValue<string>());
         Assert.True(tool.ProtocolTool.Meta.ContainsKey("source"), "Tool should contain 'source' metadata");
         Assert.Equal("builder", ((JsonNode)tool.ProtocolTool.Meta["source"]!).GetValue<string>());
+    }
+
+    [Theory]
+    [InlineData(HttpTransportMode.Sse)]
+    [InlineData(HttpTransportMode.AutoDetect)]
+    [InlineData(HttpTransportMode.StreamableHttp)]
+    public async Task ListTools_ContainsInputSchemaTool(HttpTransportMode mode)
+    {
+        var client = await Fixture.CreateClientAsync(mode);
+        var tools = await client.ListToolsAsync(cancellationToken: TestContext.Current.CancellationToken);
+
+        Assert.Contains(tools, t => t.Name == "InputSchemaTool");
+    }
+
+    [Theory]
+    [InlineData(HttpTransportMode.Sse)]
+    [InlineData(HttpTransportMode.AutoDetect)]
+    [InlineData(HttpTransportMode.StreamableHttp)]
+    public async Task ListTools_InputSchemaTool_HasExplicitInputSchema(HttpTransportMode mode)
+    {
+        var client = await Fixture.CreateClientAsync(mode);
+        var tools = await client.ListToolsAsync(cancellationToken: TestContext.Current.CancellationToken);
+
+        var tool = tools.FirstOrDefault(t => t.Name == "InputSchemaTool");
+        Assert.NotNull(tool);
+
+        var inputSchema = tool.ProtocolTool.InputSchema;
+        Assert.Equal(JsonValueKind.Object, inputSchema.ValueKind);
+
+        // Root must be "type": "object"
+        Assert.True(inputSchema.TryGetProperty("type", out var typeProp));
+        Assert.Equal("object", typeProp.GetString());
+
+        // "properties" must contain "location" and "units"
+        Assert.True(inputSchema.TryGetProperty("properties", out var properties));
+        Assert.True(properties.TryGetProperty("location", out var locationProp));
+        Assert.Equal("string", locationProp.GetProperty("type").GetString());
+        Assert.Equal("The city and state, e.g. San Francisco, CA", locationProp.GetProperty("description").GetString());
+
+        Assert.True(properties.TryGetProperty("units", out var unitsProp));
+        Assert.Equal("string", unitsProp.GetProperty("type").GetString());
+        Assert.Equal("The unit system for temperature", unitsProp.GetProperty("description").GetString());
+
+        // "units" should have an enum constraint
+        Assert.True(unitsProp.TryGetProperty("enum", out var enumProp));
+        var enumValues = enumProp.EnumerateArray().Select(e => e.GetString()).ToList();
+        Assert.Contains("celsius", enumValues);
+        Assert.Contains("fahrenheit", enumValues);
+
+        // "required" must contain only "location"
+        Assert.True(inputSchema.TryGetProperty("required", out var required));
+        var requiredValues = required.EnumerateArray().Select(e => e.GetString()).ToList();
+        Assert.Contains("location", requiredValues);
+        Assert.DoesNotContain("units", requiredValues);
     }
 }

@@ -13,6 +13,8 @@ internal static class Constants
     public const string McpToolPropertyName = "propertyName";
     public const string McpToolName = "toolName";
     public const string McpToolProperties = "toolProperties";
+    public const string McpInputSchema = "inputSchema";
+    public const string McpUseWorkerInputSchema = "useWorkerInputSchema";
 
     // Resource constants
     public const string ResourceInvocationContextKey = "ResourceInvocationContext";

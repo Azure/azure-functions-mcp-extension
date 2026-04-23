@@ -45,6 +45,7 @@ internal sealed class McpFunctionMetadataTransformer(
                 .AddMetadata()
                 .AddAppUiMetadata()
                 .PatchPropertyBindings()
+                .ResolveToolInputSchema()
                 .Build();
 
             syntheticFunctions.AddRange(builder.Context.SyntheticFunctions);

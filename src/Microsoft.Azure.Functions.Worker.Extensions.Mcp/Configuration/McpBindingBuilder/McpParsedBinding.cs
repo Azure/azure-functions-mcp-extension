@@ -54,4 +54,15 @@ internal sealed class McpParsedBinding(int index, string bindingType, string? id
     /// Property type string, set by PatchPropertyBindings step for mcpToolProperty bindings.
     /// </summary>
     public string? PropertyType { get; set; }
+
+    /// <summary>
+    /// Serialized JSON input schema, set by ResolveToolInputSchema step for mcpToolTrigger bindings.
+    /// </summary>
+    public string? InputSchema { get; set; }
+
+    /// <summary>
+    /// When true, the worker has provided an explicit input schema and the host should use
+    /// it instead of generating one from <c>toolProperties</c>. Set by ResolveToolInputSchema.
+    /// </summary>
+    public bool UseWorkerInputSchema { get; set; }
 }

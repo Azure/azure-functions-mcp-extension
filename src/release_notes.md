@@ -16,6 +16,27 @@
 
 #### Changes
 
+- Add `WithInputSchema` fluent API for MCP tools (#243)
+
+    Lets users provide an explicit JSON input schema for an MCP tool via `McpToolBuilder.WithInputSchema(string|JsonNode)`.
+
+    ```csharp
+    builder.ConfigureMcpTool("MyTool")
+        .WithInputSchema(new JsonObject
+        {
+            ["type"] = "object",
+            ["properties"] = new JsonObject
+            {
+                ["name"] = new JsonObject
+                {
+                    ["type"] = "string",
+                    ["description"] = "The user's name"
+                }
+            },
+            ["required"] = new JsonArray("name")
+        });
+    ```
+
 - Implement fluent API for building MCP Apps (#226)
 
     This feature introduces first-class support for MCP App tools in the MCP extension, enabling tools to be configured as apps with UI views, static assets, and visibility controls. It adds a new configuration model for MCP Apps, emits synthetic resource functions for app views, and includes robust validation and security features for app configuration and static asset serving.

@@ -57,6 +57,16 @@ internal sealed class McpBindingBuilder
                 binding.JsonObject[McpToolPropertyType] = binding.PropertyType;
             }
 
+            if (binding.InputSchema is not null)
+            {
+                binding.JsonObject[McpInputSchema] = binding.InputSchema;
+            }
+
+            if (binding.UseWorkerInputSchema)
+            {
+                binding.JsonObject[McpUseWorkerInputSchema] = true;
+            }
+
             Context.Function.RawBindings![binding.Index] = binding.JsonObject.ToJsonString();
         }
     }
