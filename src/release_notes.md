@@ -8,18 +8,27 @@
 
 #### Breaking Changes
 
-- `McpInputSchemaJsonUtilities` is now `internal` (was `public`). It was never intended as a public API. Consumers should not reference this type; if you have a use case, please file an issue. (#245)
-
-#### Changes
-
-- Validate required prompt arguments (#244)
-- Added output schema support on the tool trigger (#245)
-
-### Microsoft.Azure.Functions.Worker.Extensions.Mcp 1.5.0-preview.1
+- `McpInputSchemaJsonUtilities` is now `internal` (was `public`). It was never intended as a public API. (#245)
 
 #### Bug Fixes
 
-- Fixed `DateTime` tool parameters failing to bind when the JSON input contains an ISO 8601 date string. The `DictionaryStringObjectJsonConverter` was deserializing date strings as `DateTimeOffset`, which had no conversion path to `DateTime`. Added explicit `DateTimeOffset` ↔ `DateTime` conversions in `McpInputConversionHelper`.
+- Add missing validation for _required_ prompt arguments. (#244)
+
+    Host extension now validates required arguments declared on the prompt against the inbound `GetPromptRequestParams.Arguments` before invoking the function.
+    Missing required arguments now surface as an `McpProtocolException` with `InvalidParams`.
+
+#### Changes
+
+- Added output schema support on the tool trigger (#245)
+
+### Microsoft.Azure.Functions.Worker.Extensions.Mcp <version>
+
+#### Bug Fixes
+
+- Fixed `DateTime` tool parameters failing to bind when the JSON input contains an ISO 8601 date string.
+
+    The `DictionaryStringObjectJsonConverter` was deserializing date strings as `DateTimeOffset`, which had no
+    conversion path to `DateTime`. Added explicit `DateTimeOffset` ↔ `DateTime` conversions in `McpInputConversionHelper`.
 
 #### Changes
 
@@ -74,3 +83,4 @@
 ### Microsoft.Azure.Functions.Worker.Extensions.Mcp.Sdk <version>
 
 - Upgraded MCP C# SDK dependency from 0.4.0-preview.3 to 1.2.0 (#222)
+- Add support for strongly-typed prompt trigger return types such as `GetPromptResult` and `PromptMessages` (#212)

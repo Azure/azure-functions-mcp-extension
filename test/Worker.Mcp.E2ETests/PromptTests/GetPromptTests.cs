@@ -30,6 +30,7 @@ public class GetPromptTests(DefaultProjectFixture fixture, ITestOutputHelper tes
             cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.NotNull(result);
+        Assert.Equal("Code review prompt for python", result.Description);
         Assert.Single(result.Messages);
 
         var message = result.Messages[0];
@@ -189,6 +190,38 @@ public class GetPromptTests(DefaultProjectFixture fixture, ITestOutputHelper tes
         var message = result.Messages[0];
         var textContent = Assert.IsType<TextContentBlock>(message.Content);
         Assert.Contains("fluent builder API", textContent.Text);
+    }
+
+    [Theory]
+    [InlineData(HttpTransportMode.Sse)]
+    [InlineData(HttpTransportMode.AutoDetect)]
+    [InlineData(HttpTransportMode.StreamableHttp)]
+    public async Task GetPrompt_MultiTurn_ReturnsPromptMessageList(HttpTransportMode mode)
+    {
+        var client = await Fixture.CreateClientAsync(mode);
+
+        var result = await client.GetPromptAsync(
+            "multi_turn_prompt",
+            new Dictionary<string, object?>
+            {
+                ["topic"] = "compilers"
+            },
+            cancellationToken: TestContext.Current.CancellationToken);
+
+        Assert.NotNull(result);
+        Assert.Equal(3, result.Messages.Count);
+
+        Assert.Equal(Role.User, result.Messages[0].Role);
+        var firstUser = Assert.IsType<TextContentBlock>(result.Messages[0].Content);
+        Assert.Contains("compilers", firstUser.Text);
+
+        Assert.Equal(Role.Assistant, result.Messages[1].Role);
+        var assistant = Assert.IsType<TextContentBlock>(result.Messages[1].Content);
+        Assert.Contains("compilers", assistant.Text);
+
+        Assert.Equal(Role.User, result.Messages[2].Role);
+        var secondUser = Assert.IsType<TextContentBlock>(result.Messages[2].Content);
+        Assert.Contains("basics", secondUser.Text);
     }
 
     [Theory]
