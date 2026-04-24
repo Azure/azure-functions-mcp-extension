@@ -28,6 +28,7 @@ public static class McpSdkHostBuilderExtensions
         builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IFunctionMetadataTransformer, McpUseResultSchemaTransformer>());
 
         builder.UseMiddleware<FunctionsMcpToolResultMiddleware>();
+        builder.UseMiddleware<FunctionsMcpPromptResultMiddleware>();
 
         return builder;
     }

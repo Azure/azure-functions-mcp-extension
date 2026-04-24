@@ -75,3 +75,4 @@
 ### Microsoft.Azure.Functions.Worker.Extensions.Mcp.Sdk <version>
 
 - Upgraded MCP C# SDK dependency from 0.4.0-preview.3 to 1.2.0 (#222)
+- Add support for strongly-typed prompt trigger return types such as `GetPromptResult` and `PromptMessages` (#212)
