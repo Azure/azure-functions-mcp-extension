@@ -20,6 +20,7 @@
 #### Bug Fixes
 
 - Fixed `DateTime` tool parameters failing to bind when the JSON input contains an ISO 8601 date string. The `DictionaryStringObjectJsonConverter` was deserializing date strings as `DateTimeOffset`, which had no conversion path to `DateTime`. Added explicit `DateTimeOffset` ↔ `DateTime` conversions in `McpInputConversionHelper`.
+- Fixed MCP App `WithView(filePath)` / `McpViewSource.FromFile` failing in Azure with `DirectoryNotFoundException` (e.g., `/tmp/functions/standby/wwwroot/...`). Relative paths were resolved against `Environment.CurrentDirectory`, which on Linux Functions points to the placeholder/standby directory and is not updated after specialization. Relative paths are now resolved against `AppContext.BaseDirectory` (the deployed app's directory). `ToolOptionsValidator` now also fails fast at startup if the resolved file does not exist. Ensure view files are copied to the output directory (e.g., `<Content Include="..." CopyToOutputDirectory="PreserveNewest" />`).
 
 #### Changes
 
