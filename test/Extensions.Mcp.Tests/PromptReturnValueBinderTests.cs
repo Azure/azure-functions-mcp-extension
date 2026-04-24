@@ -89,14 +89,11 @@ public class PromptReturnValueBinderTests
     }
 
     [Fact]
-    public async Task SetValueAsync_WithJsonWithoutMessagesField_DeserializesAsEmptyPromptResult()
+    public async Task SetValueAsync_WithJsonHavingDescriptionOnly_DeserializesAsPromptResult()
     {
         var executionContext = GetPromptExecutionContextHelper.CreateExecutionContext();
         var binder = new PromptReturnValueBinder(executionContext);
 
-        // JSON that can deserialize to GetPromptResult but has no messages field.
-        // GetPromptResult initializes Messages to empty list by default,
-        // so this will successfully deserialize with empty messages.
         var json = """{"description": "some description"}""";
         await binder.SetValueAsync(json, CancellationToken.None);
 
@@ -105,6 +102,21 @@ public class PromptReturnValueBinderTests
         Assert.NotNull(result.Messages);
         Assert.Empty(result.Messages);
         Assert.Equal("some description", result.Description);
+    }
+
+    [Fact]
+    public async Task SetValueAsync_WithEmptyString_WrapsAsUserMessage()
+    {
+        var executionContext = GetPromptExecutionContextHelper.CreateExecutionContext();
+        var binder = new PromptReturnValueBinder(executionContext);
+
+        await binder.SetValueAsync("", CancellationToken.None);
+
+        var result = await executionContext.ResultTask;
+        Assert.NotNull(result);
+        Assert.Single(result.Messages);
+        var content = Assert.IsType<TextContentBlock>(result.Messages[0].Content);
+        Assert.Equal("", content.Text);
     }
 
     [Fact]
@@ -136,20 +148,5 @@ public class PromptReturnValueBinderTests
         var binder = new PromptReturnValueBinder(executionContext);
 
         Assert.Equal(string.Empty, binder.ToInvokeString());
-    }
-
-    [Fact]
-    public async Task SetValueAsync_WithEmptyString_WrapsAsUserMessage()
-    {
-        var executionContext = GetPromptExecutionContextHelper.CreateExecutionContext();
-        var binder = new PromptReturnValueBinder(executionContext);
-
-        await binder.SetValueAsync("", CancellationToken.None);
-
-        var result = await executionContext.ResultTask;
-        Assert.NotNull(result);
-        Assert.Single(result.Messages);
-        var content = Assert.IsType<TextContentBlock>(result.Messages[0].Content);
-        Assert.Equal("", content.Text);
     }
 }
