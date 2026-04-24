@@ -44,19 +44,15 @@ builder.ConfigureMcpTool("FluentMetadataTool")
     .WithMetadata("imageVersion", "1.0")
     .WithMetadata("source", "builder");
 
-// Tool with output schema defined via fluent builder
-builder.ConfigureMcpTool("FluentOutputSchemaTool")
-    .WithOutputSchema("""{"type":"object","properties":{"results":{"type":"array","items":{"type":"string"}},"query":{"type":"string"}},"required":["results","query"]}""");
-
 // Tool with properties defined entirely via fluent builder (no [McpToolProperty] attributes)
 builder.ConfigureMcpTool("FluentDefinedTool")
     .WithProperty("city", McpToolPropertyType.String, "The city name.", required: true)
     .WithProperty("zipCode", McpToolPropertyType.String, "The ZIP code.", required: false);
 
-// ── Tool with explicit input schema ─────────────────────────────────────
+// ── Tool with explicit input and output schemas ─────────────────────
 
-// Tool whose input schema is explicitly set via WithInputSchema (opt-in)
-builder.ConfigureMcpTool("InputSchemaTool")
+// Tool whose input and output schemas are explicitly set via fluent builder
+builder.ConfigureMcpTool("SchemaTool")
     .WithInputSchema("""
         {
             "type": "object",
@@ -72,6 +68,17 @@ builder.ConfigureMcpTool("InputSchemaTool")
                 }
             },
             "required": ["location"]
+        }
+        """)
+    .WithOutputSchema("""
+        {
+            "type": "object",
+            "properties": {
+                "location": { "type": "string" },
+                "units": { "type": "string" },
+                "forecast": { "type": "string" }
+            },
+            "required": ["location", "units", "forecast"]
         }
         """);
 

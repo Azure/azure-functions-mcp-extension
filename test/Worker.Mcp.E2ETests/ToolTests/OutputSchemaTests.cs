@@ -19,12 +19,12 @@ public class OutputSchemaTests(DefaultProjectFixture fixture, ITestOutputHelper 
     [InlineData(HttpTransportMode.Sse)]
     [InlineData(HttpTransportMode.AutoDetect)]
     [InlineData(HttpTransportMode.StreamableHttp)]
-    public async Task FluentOutputSchemaTool_HasOutputSchema_WithExpectedProperties(HttpTransportMode mode)
+    public async Task SchemaTool_HasOutputSchema_WithExpectedProperties(HttpTransportMode mode)
     {
         var client = await Fixture.CreateClientAsync(mode);
         var tools = await client.ListToolsAsync(cancellationToken: TestContext.Current.CancellationToken);
 
-        var tool = tools.FirstOrDefault(t => t.Name == "FluentOutputSchemaTool");
+        var tool = tools.FirstOrDefault(t => t.Name == "SchemaTool");
         Assert.NotNull(tool);
 
         var outputSchema = tool.ProtocolTool.OutputSchema;
@@ -34,16 +34,20 @@ public class OutputSchemaTests(DefaultProjectFixture fixture, ITestOutputHelper 
         Assert.Equal("object", typeNode.GetString());
 
         Assert.True(outputSchema.Value.TryGetProperty("properties", out var properties));
-        Assert.True(properties.TryGetProperty("results", out var resultsProp));
-        Assert.Equal("array", resultsProp.GetProperty("type").GetString());
+        Assert.True(properties.TryGetProperty("location", out var locationProp));
+        Assert.Equal("string", locationProp.GetProperty("type").GetString());
 
-        Assert.True(properties.TryGetProperty("query", out var queryProp));
-        Assert.Equal("string", queryProp.GetProperty("type").GetString());
+        Assert.True(properties.TryGetProperty("units", out var unitsProp));
+        Assert.Equal("string", unitsProp.GetProperty("type").GetString());
+
+        Assert.True(properties.TryGetProperty("forecast", out var forecastProp));
+        Assert.Equal("string", forecastProp.GetProperty("type").GetString());
 
         Assert.True(outputSchema.Value.TryGetProperty("required", out var required));
         var requiredNames = required.EnumerateArray().Select(e => e.GetString()).ToList();
-        Assert.Contains("results", requiredNames);
-        Assert.Contains("query", requiredNames);
+        Assert.Contains("location", requiredNames);
+        Assert.Contains("units", requiredNames);
+        Assert.Contains("forecast", requiredNames);
     }
 
     [Theory]
@@ -64,7 +68,7 @@ public class OutputSchemaTests(DefaultProjectFixture fixture, ITestOutputHelper 
             "TypedParametersTool",
             "FluentDefinedTool",
             "MetadataAttributeTool",
-            "PocoInputTool",
+            "PocoInputTool"
         };
 
         foreach (var toolName in toolsWithoutOutputSchema)

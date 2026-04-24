@@ -13,18 +13,18 @@ namespace Microsoft.Azure.Functions.Worker.Builder;
 /// shape expected by the host — once constructed, consumers can use <see cref="Json"/>
 /// without re-validating.
 /// </summary>
-public abstract class McpSchema
+public abstract class McpToolSchema
 {
-    private protected McpSchema(string json, string paramName)
+    private protected McpToolSchema(string json, string paramName)
     {
-        var node = SchemaValidator.ValidateAndParse(json, SchemaKind, paramName);
+        var node = McpToolSchemaValidator.ValidateAndParse(json, SchemaKind, paramName);
         Json = node.ToJsonString();
     }
 
-    private protected McpSchema(JsonNode schemaNode, string paramName)
+    private protected McpToolSchema(JsonNode schemaNode, string paramName)
     {
         ArgumentNullException.ThrowIfNull(schemaNode, paramName);
-        SchemaValidator.Validate(schemaNode, SchemaKind, paramName);
+        McpToolSchemaValidator.Validate(schemaNode, SchemaKind, paramName);
         Json = schemaNode.ToJsonString();
     }
 

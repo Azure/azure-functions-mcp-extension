@@ -1,4 +1,4 @@
-// Copyright(c) Microsoft Corporation. All rights reserved.
+// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
 using Microsoft.Azure.Functions.Worker.Mcp.E2ETests.Fixtures;
@@ -248,9 +248,9 @@ public class CallToolTests(DefaultProjectFixture fixture, ITestOutputHelper test
     }
 
     [Fact]
-    public async Task FluentOutputSchemaTool_Invocation_ReturnsContentMatchingSchema()
+    public async Task SchemaTool_Invocation_ReturnsContentMatchingOutputSchema()
     {
-        var request = CallToolHelper.CreateToolCallRequest(1, "FluentOutputSchemaTool", new { query = "seattle" });
+        var request = CallToolHelper.CreateToolCallRequest(1, "SchemaTool", new { location = "Seattle, WA", units = "fahrenheit" });
         var response = await CallToolHelper.MakeToolCallRequest(AppRootEndpoint, request, TestOutputHelper);
 
         Assert.NotNull(response);
@@ -261,12 +261,13 @@ public class CallToolTests(DefaultProjectFixture fixture, ITestOutputHelper test
 
         var textBlock = Assert.IsType<TextContentBlock>(Assert.Single(result.Content));
 
-        // Body conforms to the tool's declared output schema (object with "results" array + "query" string).
+        // Body conforms to the tool's declared output schema (object with location/units/forecast strings).
         using var doc = System.Text.Json.JsonDocument.Parse(textBlock.Text);
         var root = doc.RootElement;
         Assert.Equal(System.Text.Json.JsonValueKind.Object, root.ValueKind);
-        Assert.Equal("seattle", root.GetProperty("query").GetString());
-        Assert.Equal(System.Text.Json.JsonValueKind.Array, root.GetProperty("results").ValueKind);
+        Assert.Equal("Seattle, WA", root.GetProperty("location").GetString());
+        Assert.Equal("fahrenheit", root.GetProperty("units").GetString());
+        Assert.Equal(System.Text.Json.JsonValueKind.String, root.GetProperty("forecast").ValueKind);
     }
 
     // ── Metadata & fluent tools ─────────────────────────────────────────────
@@ -324,12 +325,12 @@ public class CallToolTests(DefaultProjectFixture fixture, ITestOutputHelper test
         Assert.Contains("MinimalApp", response);
     }
 
-    // ── Input schema tools ────────────────────────────────────────────────
+    // ── Schema tools ────────────────────────────────────────────────
 
     [Fact]
-    public async Task InputSchemaTool_WithAllArguments_ReturnsExpectedResponse()
+    public async Task SchemaTool_WithAllArguments_ReturnsExpectedResponse()
     {
-        var request = CallToolHelper.CreateToolCallRequest(1, "InputSchemaTool", new { location = "Seattle, WA", units = "fahrenheit" });
+        var request = CallToolHelper.CreateToolCallRequest(1, "SchemaTool", new { location = "Seattle, WA", units = "fahrenheit" });
         var response = await CallToolHelper.MakeToolCallRequest(AppRootEndpoint, request, TestOutputHelper);
 
         Assert.NotNull(response);
@@ -338,9 +339,9 @@ public class CallToolTests(DefaultProjectFixture fixture, ITestOutputHelper test
     }
 
     [Fact]
-    public async Task InputSchemaTool_WithRequiredOnly_ReturnsDefaultUnits()
+    public async Task SchemaTool_WithRequiredOnly_ReturnsDefaultUnits()
     {
-        var request = CallToolHelper.CreateToolCallRequest(1, "InputSchemaTool", new { location = "Portland, OR" });
+        var request = CallToolHelper.CreateToolCallRequest(1, "SchemaTool", new { location = "Portland, OR" });
         var response = await CallToolHelper.MakeToolCallRequest(AppRootEndpoint, request, TestOutputHelper);
 
         Assert.NotNull(response);
@@ -349,9 +350,9 @@ public class CallToolTests(DefaultProjectFixture fixture, ITestOutputHelper test
     }
 
     [Fact]
-    public async Task InputSchemaTool_WithoutRequiredLocation_ReturnsError()
+    public async Task SchemaTool_WithoutRequiredLocation_ReturnsError()
     {
-        var request = CallToolHelper.CreateToolCallRequest(1, "InputSchemaTool", new { units = "fahrenheit" });
+        var request = CallToolHelper.CreateToolCallRequest(1, "SchemaTool", new { units = "fahrenheit" });
         var response = await CallToolHelper.MakeToolCallRequest(AppRootEndpoint, request, TestOutputHelper);
 
         Assert.Contains("error", response);

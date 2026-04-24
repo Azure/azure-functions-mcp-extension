@@ -47,19 +47,18 @@
 
     ```csharp
     builder.ConfigureMcpTool("MyTool")
-        .WithInputSchema(new JsonObject
+        .WithInputSchema("""
         {
-            ["type"] = "object",
-            ["properties"] = new JsonObject
-            {
-                ["name"] = new JsonObject
-                {
-                    ["type"] = "string",
-                    ["description"] = "The user's name"
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "description": "The user's name"
                 }
             },
-            ["required"] = new JsonArray("name")
-        });
+            "required": ["name"]
+        }
+        """);
     ```
 
 - Implement fluent API for building MCP Apps (#226)

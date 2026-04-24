@@ -10,7 +10,7 @@ namespace Microsoft.Azure.Functions.Worker.Extensions.Mcp.Configuration;
 /// Validates that a JSON schema conforms to the MCP tool schema shape expected by
 /// the host. Shared by both input and output schema wrappers.
 /// </summary>
-internal static class SchemaValidator
+internal static class McpToolSchemaValidator
 {
     /// <summary>
     /// Parses <paramref name="jsonSchema"/> and validates its shape.

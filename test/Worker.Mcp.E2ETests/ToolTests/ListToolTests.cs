@@ -106,7 +106,6 @@ public class ListToolTests(DefaultProjectFixture fixture, ITestOutputHelper test
         Assert.Contains(tools, t => t.Name == "MetadataAttributeTool");
         Assert.Contains(tools, t => t.Name == "FluentMetadataTool");
         Assert.Contains(tools, t => t.Name == "FluentDefinedTool");
-        Assert.Contains(tools, t => t.Name == "FluentOutputSchemaTool");
     }
 
     [Theory]
@@ -163,24 +162,24 @@ public class ListToolTests(DefaultProjectFixture fixture, ITestOutputHelper test
     [InlineData(HttpTransportMode.Sse)]
     [InlineData(HttpTransportMode.AutoDetect)]
     [InlineData(HttpTransportMode.StreamableHttp)]
-    public async Task ListTools_ContainsInputSchemaTool(HttpTransportMode mode)
+    public async Task ListTools_ContainsSchemaTool(HttpTransportMode mode)
     {
         var client = await Fixture.CreateClientAsync(mode);
         var tools = await client.ListToolsAsync(cancellationToken: TestContext.Current.CancellationToken);
 
-        Assert.Contains(tools, t => t.Name == "InputSchemaTool");
+        Assert.Contains(tools, t => t.Name == "SchemaTool");
     }
 
     [Theory]
     [InlineData(HttpTransportMode.Sse)]
     [InlineData(HttpTransportMode.AutoDetect)]
     [InlineData(HttpTransportMode.StreamableHttp)]
-    public async Task ListTools_InputSchemaTool_HasExplicitInputSchema(HttpTransportMode mode)
+    public async Task ListTools_SchemaTool_HasExplicitInputSchema(HttpTransportMode mode)
     {
         var client = await Fixture.CreateClientAsync(mode);
         var tools = await client.ListToolsAsync(cancellationToken: TestContext.Current.CancellationToken);
 
-        var tool = tools.FirstOrDefault(t => t.Name == "InputSchemaTool");
+        var tool = tools.FirstOrDefault(t => t.Name == "SchemaTool");
         Assert.NotNull(tool);
 
         var inputSchema = tool.ProtocolTool.InputSchema;

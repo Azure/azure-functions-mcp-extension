@@ -10,9 +10,9 @@ namespace Microsoft.Azure.Functions.Worker.Builder;
 /// A strongly-typed, validated MCP tool input JSON schema.
 /// An <see cref="McpInputSchema"/> instance can only exist when the schema
 /// conforms to the MCP tool input-schema shape expected by the host — once constructed,
-/// consumers can use <see cref="McpSchema.Json"/> without re-validating.
+/// consumers can use <see cref="McpToolSchema.Json"/> without re-validating.
 /// </summary>
-public sealed class McpInputSchema : McpSchema
+public sealed class McpInputSchema : McpToolSchema
 {
     /// <summary>
     /// Initializes a new instance from a JSON schema string.
