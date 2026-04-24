@@ -55,6 +55,34 @@ public class ToolOptionsValidatorTests
     [Fact]
     public void Validate_ViewWithFileSource_ReturnsSuccess()
     {
+        var tempFile = Path.Combine(Path.GetTempPath(), $"mcp-view-{Guid.NewGuid():N}.html");
+        File.WriteAllText(tempFile, "<html></html>");
+        try
+        {
+            var options = new ToolOptions
+            {
+                Properties = [],
+                AppOptions = new AppOptions()
+            };
+            options.AppOptions.View = new ViewOptions
+            {
+                Source = McpViewSource.FromFile(tempFile)
+            };
+
+            var result = _validator.Validate("myTool", options);
+
+            Assert.True(result.Succeeded);
+        }
+        finally
+        {
+            File.Delete(tempFile);
+        }
+    }
+
+    [Fact]
+    public void Validate_ViewWithFileSource_MissingFile_ReturnsFail()
+    {
+        var missing = Path.Combine(Path.GetTempPath(), $"mcp-missing-{Guid.NewGuid():N}.html");
         var options = new ToolOptions
         {
             Properties = [],
@@ -62,12 +90,14 @@ public class ToolOptionsValidatorTests
         };
         options.AppOptions.View = new ViewOptions
         {
-            Source = McpViewSource.FromFile("ui/app.html")
+            Source = McpViewSource.FromFile(missing)
         };
 
         var result = _validator.Validate("myTool", options);
 
-        Assert.True(result.Succeeded);
+        Assert.True(result.Failed);
+        Assert.Contains("not found", result.FailureMessage);
+        Assert.Contains("CopyToOutputDirectory", result.FailureMessage);
     }
 
     [Fact]
@@ -91,21 +121,30 @@ public class ToolOptionsValidatorTests
     [Fact]
     public void Validate_EmptyStaticAssetsDirectory_ReturnsFail()
     {
-        var options = new ToolOptions
+        var tempFile = Path.Combine(Path.GetTempPath(), $"mcp-view-{Guid.NewGuid():N}.html");
+        File.WriteAllText(tempFile, "<html></html>");
+        try
         {
-            Properties = [],
-            AppOptions = new AppOptions()
-        };
-        options.AppOptions.View = new ViewOptions
+            var options = new ToolOptions
+            {
+                Properties = [],
+                AppOptions = new AppOptions()
+            };
+            options.AppOptions.View = new ViewOptions
+            {
+                Source = McpViewSource.FromFile(tempFile)
+            };
+            options.AppOptions.StaticAssetsDirectory = "   ";
+
+            var result = _validator.Validate("myTool", options);
+
+            Assert.True(result.Failed);
+            Assert.Contains("empty StaticAssetsDirectory", result.FailureMessage);
+        }
+        finally
         {
-            Source = McpViewSource.FromFile("ok.html")
-        };
-        options.AppOptions.StaticAssetsDirectory = "   ";
-
-        var result = _validator.Validate("myTool", options);
-
-        Assert.True(result.Failed);
-        Assert.Contains("empty StaticAssetsDirectory", result.FailureMessage);
+            File.Delete(tempFile);
+        }
     }
 
     [Fact]

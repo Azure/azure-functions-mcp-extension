@@ -20,6 +20,7 @@
 #### Bug Fixes
 
 - Fixed `DateTime` tool parameters failing to bind when the JSON input contains an ISO 8601 date string. The `DictionaryStringObjectJsonConverter` was deserializing date strings as `DateTimeOffset`, which had no conversion path to `DateTime`. Added explicit `DateTimeOffset` ↔ `DateTime` conversions in `McpInputConversionHelper`.
+- Fixed MCP App `WithView(filePath)` failing on Azure with `DirectoryNotFoundException` by resolving relative paths against `AppContext.BaseDirectory` instead of the process working directory.
 
 #### Changes
 

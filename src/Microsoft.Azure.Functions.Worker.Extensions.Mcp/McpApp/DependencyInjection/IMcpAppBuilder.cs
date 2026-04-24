@@ -19,6 +19,10 @@ public interface IMcpAppBuilder
     /// <summary>
     /// Sets the view backed by a file.
     /// Shorthand for <c>WithView(McpViewSource.FromFile(filePath))</c>.
+    /// Relative paths are resolved against the application's base directory
+    /// (publish/output directory). Ensure the file is copied to the output directory
+    /// (e.g., <c>&lt;Content Include="..." CopyToOutputDirectory="PreserveNewest" /&gt;</c>)
+    /// so it is present both locally and when deployed.
     /// </summary>
     IMcpViewBuilder WithView(string filePath);
 

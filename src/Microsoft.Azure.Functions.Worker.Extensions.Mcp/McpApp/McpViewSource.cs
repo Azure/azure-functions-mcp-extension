@@ -23,7 +23,11 @@ public abstract record McpViewSource
     /// Creates a view source backed by a file on disk.
     /// </summary>
     /// <param name="path">
-    /// The path to the HTML file, relative to the application root or absolute.
+    /// The path to the HTML file. If relative, it is resolved against the application's
+    /// base directory (<see cref="AppContext.BaseDirectory"/>) — i.e., the publish/output
+    /// directory — not the current working directory. Ensure the file is copied to the
+    /// output directory (e.g., <c>&lt;Content Include="..." CopyToOutputDirectory="PreserveNewest" /&gt;</c>
+    /// in your csproj) so it is present when running locally and when deployed.
     /// </param>
     public static McpViewSource FromFile(string path)
     {
