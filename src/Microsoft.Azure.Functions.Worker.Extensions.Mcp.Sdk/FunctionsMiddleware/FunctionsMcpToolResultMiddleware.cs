@@ -174,7 +174,7 @@ internal class FunctionsMcpToolResultMiddleware : IFunctionsWorkerMiddleware
         /// <returns>True if structured content should be created; otherwise, false.</returns>
         private static bool ShouldCreateStructuredContent(object obj)
         {
-            var type = obj.GetType();
-            return type.HasMcpContentAttribute();
+            // Only check for direct attribution, not inherited
+            return obj.GetType().GetCustomAttributes(typeof(McpContentAttribute), inherit: false).Length > 0;
         }
     }

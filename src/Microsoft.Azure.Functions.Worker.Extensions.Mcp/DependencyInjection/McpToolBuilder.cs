@@ -105,4 +105,40 @@ public sealed class McpToolBuilder(IFunctionsWorkerApplicationBuilder builder, s
 
         return this;
     }
+
+    /// <summary>
+    /// Sets an explicit JSON output schema for this MCP tool. The schema is validated
+    /// to ensure it has root <c>"type": "object"</c> (and that <c>properties</c>/<c>required</c>
+    /// have the correct shapes when present). When set, the worker emits this schema on
+    /// the tool trigger binding; the host advertises it on <c>tools/list</c>.
+    /// </summary>
+    /// <param name="jsonSchema">A valid JSON schema string defining the tool's output structure.</param>
+    /// <returns>The current <see cref="McpToolBuilder"/> instance, enabling fluent configuration.</returns>
+    /// <exception cref="ArgumentException">Thrown when the schema is null/whitespace or does not conform to MCP requirements.</exception>
+    /// <exception cref="System.Text.Json.JsonException">Thrown when the schema string is not valid JSON.</exception>
+    public McpToolBuilder WithOutputSchema(string jsonSchema)
+    {
+        var schema = new McpOutputSchema(jsonSchema);
+
+        Builder.Services.Configure<ToolOptions>(Name, o => o.OutputSchema = schema);
+
+        return this;
+    }
+
+    /// <summary>
+    /// Sets an explicit JSON output schema for this MCP tool from a <see cref="JsonNode"/>.
+    /// See <see cref="WithOutputSchema(string)"/> for details.
+    /// </summary>
+    /// <param name="schemaNode">A <see cref="JsonNode"/> representing a valid JSON schema.</param>
+    /// <returns>The current <see cref="McpToolBuilder"/> instance, enabling fluent configuration.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="schemaNode"/> is null.</exception>
+    /// <exception cref="ArgumentException">Thrown when the schema does not conform to MCP requirements.</exception>
+    public McpToolBuilder WithOutputSchema(JsonNode schemaNode)
+    {
+        var schema = new McpOutputSchema(schemaNode);
+
+        Builder.Services.Configure<ToolOptions>(Name, o => o.OutputSchema = schema);
+
+        return this;
+    }
 }

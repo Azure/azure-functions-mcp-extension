@@ -7,14 +7,14 @@ using Microsoft.Azure.Functions.Worker.Extensions.Mcp.Configuration;
 
 namespace Worker.Extensions.Mcp.Tests.Configuration;
 
-public class InputSchemaValidatorTests
+public class McpToolSchemaValidatorTests
 {
     [Fact]
     public void ValidateAndParse_ValidObjectSchema_ReturnsNode()
     {
         var json = """{"type":"object","properties":{"x":{"type":"string"}},"required":["x"]}""";
 
-        var node = InputSchemaValidator.ValidateAndParse(json, "schema");
+        var node = McpToolSchemaValidator.ValidateAndParse(json, "Input", "schema");
 
         Assert.NotNull(node);
         Assert.IsType<JsonObject>(node);
@@ -23,7 +23,7 @@ public class InputSchemaValidatorTests
     [Fact]
     public void ValidateAndParse_EmptyObjectSchema_Succeeds()
     {
-        var node = InputSchemaValidator.ValidateAndParse("""{"type":"object"}""", "schema");
+        var node = McpToolSchemaValidator.ValidateAndParse("""{"type":"object"}""", "Input", "schema");
         Assert.NotNull(node);
     }
 
@@ -33,63 +33,63 @@ public class InputSchemaValidatorTests
     [InlineData("   ")]
     public void ValidateAndParse_NullOrWhitespace_Throws(string? value)
     {
-        Assert.ThrowsAny<ArgumentException>(() => InputSchemaValidator.ValidateAndParse(value!, "schema"));
+        Assert.ThrowsAny<ArgumentException>(() => McpToolSchemaValidator.ValidateAndParse(value!, "Input", "schema"));
     }
 
     [Fact]
     public void ValidateAndParse_InvalidJson_ThrowsJsonException()
     {
-        Assert.ThrowsAny<JsonException>(() => InputSchemaValidator.ValidateAndParse("{not json", "schema"));
+        Assert.ThrowsAny<JsonException>(() => McpToolSchemaValidator.ValidateAndParse("{not json", "Input", "schema"));
     }
 
     [Fact]
     public void ValidateAndParse_NotAnObject_Throws()
     {
-        Assert.Throws<ArgumentException>(() => InputSchemaValidator.ValidateAndParse("[1,2,3]", "schema"));
+        Assert.Throws<ArgumentException>(() => McpToolSchemaValidator.ValidateAndParse("[1,2,3]", "Input", "schema"));
     }
 
     [Fact]
     public void ValidateAndParse_MissingType_Throws()
     {
-        Assert.Throws<ArgumentException>(() => InputSchemaValidator.ValidateAndParse("""{"properties":{}}""", "schema"));
+        Assert.Throws<ArgumentException>(() => McpToolSchemaValidator.ValidateAndParse("""{"properties":{}}""", "Input", "schema"));
     }
 
     [Fact]
     public void ValidateAndParse_TypeNotObject_Throws()
     {
-        Assert.Throws<ArgumentException>(() => InputSchemaValidator.ValidateAndParse("""{"type":"string"}""", "schema"));
+        Assert.Throws<ArgumentException>(() => McpToolSchemaValidator.ValidateAndParse("""{"type":"string"}""", "Input", "schema"));
     }
 
     [Fact]
     public void ValidateAndParse_PropertiesNotObject_Throws()
     {
-        Assert.Throws<ArgumentException>(() => InputSchemaValidator.ValidateAndParse("""{"type":"object","properties":[]}""", "schema"));
+        Assert.Throws<ArgumentException>(() => McpToolSchemaValidator.ValidateAndParse("""{"type":"object","properties":[]}""", "Input", "schema"));
     }
 
     [Fact]
     public void ValidateAndParse_RequiredNotArray_Throws()
     {
-        Assert.Throws<ArgumentException>(() => InputSchemaValidator.ValidateAndParse("""{"type":"object","required":"x"}""", "schema"));
+        Assert.Throws<ArgumentException>(() => McpToolSchemaValidator.ValidateAndParse("""{"type":"object","required":"x"}""", "Input", "schema"));
     }
 
     [Fact]
     public void Validate_NullNode_Throws()
     {
-        Assert.Throws<ArgumentNullException>(() => InputSchemaValidator.Validate(null!, "schema"));
+        Assert.Throws<ArgumentNullException>(() => McpToolSchemaValidator.Validate(null!, "Input", "schema"));
     }
 
     [Fact]
     public void ValidateAndParse_PropertiesJsonNull_Throws()
     {
         Assert.Throws<ArgumentException>(() =>
-            InputSchemaValidator.ValidateAndParse("""{"type":"object","properties":null}""", "schema"));
+            McpToolSchemaValidator.ValidateAndParse("""{"type":"object","properties":null}""", "Input", "schema"));
     }
 
     [Fact]
     public void ValidateAndParse_RequiredJsonNull_Throws()
     {
         Assert.Throws<ArgumentException>(() =>
-            InputSchemaValidator.ValidateAndParse("""{"type":"object","required":null}""", "schema"));
+            McpToolSchemaValidator.ValidateAndParse("""{"type":"object","required":null}""", "Input", "schema"));
     }
 
     // Pins current behavior: element types within "required" are not validated by the worker.
@@ -102,7 +102,7 @@ public class InputSchemaValidatorTests
     [InlineData("""{"type":"object","required":[{}]}""")]
     public void ValidateAndParse_RequiredWithNonStringElements_CurrentlyAllowed(string json)
     {
-        var node = InputSchemaValidator.ValidateAndParse(json, "schema");
+        var node = McpToolSchemaValidator.ValidateAndParse(json, "Input", "schema");
         Assert.NotNull(node);
     }
 
@@ -115,6 +115,13 @@ public class InputSchemaValidatorTests
     [InlineData("""{"type":{}}""")]
     public void ValidateAndParse_TypeVariants_Throws(string json)
     {
-        Assert.Throws<ArgumentException>(() => InputSchemaValidator.ValidateAndParse(json, "schema"));
+        Assert.Throws<ArgumentException>(() => McpToolSchemaValidator.ValidateAndParse(json, "Input", "schema"));
+    }
+
+    [Fact]
+    public void ValidateAndParse_OutputKind_UsesOutputInMessage()
+    {
+        var ex = Assert.Throws<ArgumentException>(() => McpToolSchemaValidator.ValidateAndParse("[]", "Output", "schema"));
+        Assert.Contains("Output schema", ex.Message);
     }
 }

@@ -21,7 +21,7 @@ public class ListToolTests(DefaultProjectFixture fixture, ITestOutputHelper test
         var client = await Fixture.CreateClientAsync(mode);
         var tools = await client.ListToolsAsync(cancellationToken: TestContext.Current.CancellationToken);
 
-        Assert.True(tools.Count >= 20, $"Expected at least 20 tools but found {tools.Count}");
+        Assert.True(tools.Count >= 21, $"Expected at least 21 tools but found {tools.Count}");
     }
 
     [Theory]
@@ -162,24 +162,24 @@ public class ListToolTests(DefaultProjectFixture fixture, ITestOutputHelper test
     [InlineData(HttpTransportMode.Sse)]
     [InlineData(HttpTransportMode.AutoDetect)]
     [InlineData(HttpTransportMode.StreamableHttp)]
-    public async Task ListTools_ContainsInputSchemaTool(HttpTransportMode mode)
+    public async Task ListTools_ContainsSchemaTool(HttpTransportMode mode)
     {
         var client = await Fixture.CreateClientAsync(mode);
         var tools = await client.ListToolsAsync(cancellationToken: TestContext.Current.CancellationToken);
 
-        Assert.Contains(tools, t => t.Name == "InputSchemaTool");
+        Assert.Contains(tools, t => t.Name == "SchemaTool");
     }
 
     [Theory]
     [InlineData(HttpTransportMode.Sse)]
     [InlineData(HttpTransportMode.AutoDetect)]
     [InlineData(HttpTransportMode.StreamableHttp)]
-    public async Task ListTools_InputSchemaTool_HasExplicitInputSchema(HttpTransportMode mode)
+    public async Task ListTools_SchemaTool_HasExplicitInputSchema(HttpTransportMode mode)
     {
         var client = await Fixture.CreateClientAsync(mode);
         var tools = await client.ListToolsAsync(cancellationToken: TestContext.Current.CancellationToken);
 
-        var tool = tools.FirstOrDefault(t => t.Name == "InputSchemaTool");
+        var tool = tools.FirstOrDefault(t => t.Name == "SchemaTool");
         Assert.NotNull(tool);
 
         var inputSchema = tool.ProtocolTool.InputSchema;
