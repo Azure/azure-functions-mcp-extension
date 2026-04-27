@@ -71,6 +71,11 @@ internal class FunctionsMcpPromptResultMiddleware : IFunctionsWorkerMiddleware
                 content = JsonSerializer.Serialize(messages, McpJsonUtilities.DefaultOptions);
                 break;
 
+            case IEnumerable<PromptMessage> messageSequence:
+                type = Constants.PromptMessagesType;
+                content = JsonSerializer.Serialize(messageSequence.ToList(), McpJsonUtilities.DefaultOptions);
+                break;
+
             default:
                 // Strings and other arbitrary types collapse into a single User text message.
                 string text = functionResult is string s

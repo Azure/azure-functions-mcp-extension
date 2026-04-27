@@ -153,10 +153,35 @@ public class FunctionsMcpPromptResultMiddlewareTests
             return Task.CompletedTask;
         });
 
+        Assert.Equal(Constants.PromptMessagesType, GetEnvelopeType());
         var promptResult = DeserializePromptResult();
         Assert.Equal(2, promptResult.Messages.Count);
         Assert.Equal(Role.User, promptResult.Messages[0].Role);
         Assert.Equal(Role.Assistant, promptResult.Messages[1].Role);
+    }
+
+    [Fact]
+    public async Task Invoke_WithPromptMessageEnumerable_WrapsInGetPromptResult()
+    {
+        var context = CreateMcpPromptFunctionContext();
+
+        static IEnumerable<PromptMessage> Iterator()
+        {
+            yield return new PromptMessage { Role = Role.User, Content = new TextContentBlock { Text = "First" } };
+            yield return new PromptMessage { Role = Role.Assistant, Content = new TextContentBlock { Text = "Second" } };
+        }
+
+        await _middleware.Invoke(context, ctx =>
+        {
+            SetInvocationResult(ctx, Iterator());
+            return Task.CompletedTask;
+        });
+
+        Assert.Equal(Constants.PromptMessagesType, GetEnvelopeType());
+        var promptResult = DeserializePromptResult();
+        Assert.Equal(2, promptResult.Messages.Count);
+        Assert.Equal("First", Assert.IsType<TextContentBlock>(promptResult.Messages[0].Content).Text);
+        Assert.Equal("Second", Assert.IsType<TextContentBlock>(promptResult.Messages[1].Content).Text);
     }
 
     [Fact]
