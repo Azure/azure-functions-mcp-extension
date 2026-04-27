@@ -4,11 +4,11 @@
 - My change description (#PR/#issue)
 -->
 
-### Microsoft.Azure.Functions.Extensions <version>
+### Microsoft.Azure.Functions.Extensions 1.5.0
 
 #### Breaking Changes
 
-- `McpInputSchemaJsonUtilities` is now `internal` (was `public`). It was never intended as a public API. Consumers should not reference this type; if you have a use case, please file an issue. (#245)
+- `McpInputSchemaJsonUtilities` is now `internal` (was `public`). It was never intended as a public API. (#245)
 
 #### Changes
 
