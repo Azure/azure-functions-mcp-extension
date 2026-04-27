@@ -10,14 +10,13 @@ using ModelContextProtocol.Protocol;
 namespace Microsoft.Azure.Functions.Worker.Extensions.Mcp;
 
 /// <summary>
-/// Normalizes the worker's prompt-function return value into a serialized
-/// <see cref="GetPromptResult"/> JSON string for the host binder to consume.
+/// Wraps the worker's prompt-function return value into an <see cref="McpPromptResult"/>
+/// envelope (Type + serialized Content) for the host binder to deserialize.
 /// </summary>
 /// <remarks>
-/// Unlike <see cref="FunctionsMcpToolResultMiddleware"/>, no envelope is needed:
-/// every supported prompt return type collapses without information loss into
-/// the MCP protocol's own <see cref="GetPromptResult"/> shape, which is also
-/// the natural cross-language wire contract.
+/// Mirrors <see cref="FunctionsMcpToolResultMiddleware"/>. The envelope's <c>Type</c>
+/// discriminator lets the host accept any successfully deserialized payload — including
+/// empty <c>GetPromptResult</c> values — without shape-sniffing the JSON.
 /// </remarks>
 internal class FunctionsMcpPromptResultMiddleware : IFunctionsWorkerMiddleware
 {
@@ -52,32 +51,56 @@ internal class FunctionsMcpPromptResultMiddleware : IFunctionsWorkerMiddleware
             return;
         }
 
-        GetPromptResult promptResult = functionResult switch
+        string type;
+        string content;
+
+        switch (functionResult)
         {
-            GetPromptResult result => result,
-            PromptMessage message => new GetPromptResult { Messages = [message] },
-            IList<PromptMessage> messages => new GetPromptResult { Messages = messages },
-            string text => new GetPromptResult
-            {
-                Messages = [new PromptMessage { Role = Role.User, Content = new TextContentBlock { Text = text } }]
-            },
-            _ => new GetPromptResult
-            {
-                Messages =
-                [
-                    new PromptMessage
+            case GetPromptResult getPromptResult:
+                type = Constants.GetPromptResultType;
+                content = JsonSerializer.Serialize(getPromptResult, McpJsonUtilities.DefaultOptions);
+                break;
+
+            case PromptMessage promptMessage:
+                type = Constants.PromptMessagesType;
+                content = JsonSerializer.Serialize(new[] { promptMessage }, McpJsonUtilities.DefaultOptions);
+                break;
+
+            case IList<PromptMessage> messages:
+                type = Constants.PromptMessagesType;
+                content = JsonSerializer.Serialize(messages, McpJsonUtilities.DefaultOptions);
+                break;
+
+            default:
+                // Strings and other arbitrary types collapse into a single User text message.
+                string text = functionResult is string s
+                    ? s
+                    : JsonSerializer.Serialize(functionResult, McpJsonUtilities.DefaultOptions);
+
+                type = Constants.GetPromptResultType;
+                content = JsonSerializer.Serialize(
+                    new GetPromptResult
                     {
-                        Role = Role.User,
-                        Content = new TextContentBlock
-                        {
-                            Text = JsonSerializer.Serialize(functionResult, McpJsonUtilities.DefaultOptions)
-                        }
-                    }
-                ]
-            }
+                        Messages =
+                        [
+                            new PromptMessage
+                            {
+                                Role = Role.User,
+                                Content = new TextContentBlock { Text = text }
+                            }
+                        ]
+                    },
+                    McpJsonUtilities.DefaultOptions);
+                break;
+        }
+
+        var envelope = new McpPromptResult
+        {
+            Type = type,
+            Content = content
         };
 
-        _resultAccessor.SetResult(context, JsonSerializer.Serialize(promptResult, McpJsonUtilities.DefaultOptions));
+        _resultAccessor.SetResult(context, JsonSerializer.Serialize(envelope, McpJsonContext.Default.McpPromptResult));
     }
 
     private static bool IsMcpPromptInvocation(FunctionContext context)

@@ -43,4 +43,13 @@ public sealed class McpPromptTriggerAttribute(string promptName) : Attribute
     /// Gets or sets the JSON representation of the prompt icons.
     /// </summary>
     public string? Icons { get; set; }
+
+    /// <summary>
+    /// Gets or sets whether the worker is wrapping prompt return values in the SDK's
+    /// <c>McpPromptResult</c> envelope. When true, the host expects an envelope and
+    /// uses <see cref="PromptReturnValueBinder"/> to unwrap it. When false (default),
+    /// the host treats the return value as a raw string via
+    /// <see cref="SimplePromptReturnValueBinder"/>.
+    /// </summary>
+    public bool UseResultSchema { get; set; } = false;
 }

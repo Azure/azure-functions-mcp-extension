@@ -11,6 +11,7 @@ public sealed class McpUseResultSchemaTransformer : IFunctionMetadataTransformer
 {
     public string Name => nameof(McpUseResultSchemaTransformer);
     private const string McpToolTriggerBindingType = "mcpToolTrigger";
+    private const string McpPromptTriggerBindingType = "mcpPromptTrigger";
     private const string UseResultSchemaFlag = "useResultSchema";
 
     public void Transform(IList<IFunctionMetadata> original)
@@ -44,21 +45,29 @@ public sealed class McpUseResultSchemaTransformer : IFunctionMetadataTransformer
                     continue;
                 }
 
-                // Check binding type
-                if (jsonObject.TryGetPropertyValue(BindingType, out var typeNode))
+                if (!jsonObject.TryGetPropertyValue(BindingType, out var typeNode))
                 {
-                    var bindingType = typeNode?.ToString();
-                    if (string.Equals(bindingType, McpToolTriggerBindingType, StringComparison.OrdinalIgnoreCase))
-                    {
-                        // Only set useResultSchema to true if there are NO output bindings
-                        // When output bindings exist, we want SimpleToolReturnValueBinder to handle the raw value
-                        if (!hasOutputBindings)
-                        {
-                            jsonObject[UseResultSchemaFlag] = true;
-                        }
-                        function.RawBindings[i] = jsonObject.ToJsonString();
-                    }
+                    continue;
                 }
+
+                var bindingType = typeNode?.ToString();
+                bool isMcpTrigger =
+                    string.Equals(bindingType, McpToolTriggerBindingType, StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(bindingType, McpPromptTriggerBindingType, StringComparison.OrdinalIgnoreCase);
+
+                if (!isMcpTrigger)
+                {
+                    continue;
+                }
+
+                // Only set useResultSchema to true if there are NO output bindings.
+                // When output bindings exist, we want the simple binder to handle the raw value.
+                if (!hasOutputBindings)
+                {
+                    jsonObject[UseResultSchemaFlag] = true;
+                }
+
+                function.RawBindings[i] = jsonObject.ToJsonString();
             }
         }
     }

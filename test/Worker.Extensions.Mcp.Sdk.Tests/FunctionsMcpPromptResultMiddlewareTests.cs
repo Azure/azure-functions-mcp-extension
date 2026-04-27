@@ -256,9 +256,33 @@ public class FunctionsMcpPromptResultMiddlewareTests
     private GetPromptResult DeserializePromptResult()
     {
         var json = Assert.IsType<string>(_currentResult);
-        var promptResult = JsonSerializer.Deserialize<GetPromptResult>(json, McpJsonUtilities.DefaultOptions);
-        Assert.NotNull(promptResult);
-        return promptResult!;
+        var envelope = JsonSerializer.Deserialize<McpPromptResult>(json, McpJsonUtilities.DefaultOptions);
+        Assert.NotNull(envelope);
+        Assert.NotNull(envelope!.Content);
+
+        if (string.Equals(envelope.Type, Constants.GetPromptResultType, StringComparison.OrdinalIgnoreCase))
+        {
+            var promptResult = JsonSerializer.Deserialize<GetPromptResult>(envelope.Content!, McpJsonUtilities.DefaultOptions);
+            Assert.NotNull(promptResult);
+            return promptResult!;
+        }
+
+        if (string.Equals(envelope.Type, Constants.PromptMessagesType, StringComparison.OrdinalIgnoreCase))
+        {
+            var messages = JsonSerializer.Deserialize<IList<PromptMessage>>(envelope.Content!, McpJsonUtilities.DefaultOptions);
+            Assert.NotNull(messages);
+            return new GetPromptResult { Messages = messages! };
+        }
+
+        throw new InvalidOperationException($"Unexpected envelope type '{envelope.Type}'.");
+    }
+
+    private string GetEnvelopeType()
+    {
+        var json = Assert.IsType<string>(_currentResult);
+        var envelope = JsonSerializer.Deserialize<McpPromptResult>(json, McpJsonUtilities.DefaultOptions);
+        Assert.NotNull(envelope);
+        return envelope!.Type;
     }
 
     private static FunctionContext CreateMcpPromptFunctionContext()

@@ -24,12 +24,22 @@ public class McpUseResultSchemaTransformerTests
     }
 
     [Fact]
-    public void Transform_McpPromptTrigger_DoesNotSetFlag()
+    public void Transform_McpPromptTrigger_NoOutputBindings_SetsUseResultSchemaTrue()
     {
-        // Prompts do not use the envelope contract; the host always deserializes
-        // a GetPromptResult directly. The transformer should leave prompt bindings alone.
         var function = CreateFunction(
             """{"type":"mcpPromptTrigger","direction":"in","name":"trigger"}""");
+
+        _transformer.Transform([function]);
+
+        Assert.True(GetFlag(function.RawBindings![0]));
+    }
+
+    [Fact]
+    public void Transform_McpPromptTrigger_WithOutputBinding_DoesNotSetFlag()
+    {
+        var function = CreateFunction(
+            """{"type":"mcpPromptTrigger","direction":"in","name":"trigger"}""",
+            """{"type":"queue","direction":"out","name":"outQueue"}""");
 
         _transformer.Transform([function]);
 

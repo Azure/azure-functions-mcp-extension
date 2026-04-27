@@ -85,7 +85,9 @@ internal sealed class McpPromptTriggerBinding : ITriggerBinding
         }
 
         IValueProvider valueProvider = new ObjectValueProvider(triggerValue, _triggerParameter.ParameterType);
-        IValueBinder returnValueBinder = new PromptReturnValueBinder(executionContext);
+        IValueBinder returnValueBinder = _promptAttribute.UseResultSchema
+            ? new PromptReturnValueBinder(executionContext)
+            : new SimplePromptReturnValueBinder(executionContext);
 
         var data = new TriggerData(valueProvider, bindingData)
         {
