@@ -14,6 +14,7 @@
 
 - Validate required prompt arguments (#244)
 - Added output schema support on the tool trigger (#245)
+- Added `UseResultSchema` to `McpPromptTriggerAttribute`. When set by the worker, the host unwraps the `McpPromptResult` envelope produced by the worker instead of inferring the shape from the JSON. (#212)
 
 ### Microsoft.Azure.Functions.Worker.Extensions.Mcp 1.5.0-preview.1
 
@@ -75,3 +76,4 @@
 ### Microsoft.Azure.Functions.Worker.Extensions.Mcp.Sdk <version>
 
 - Upgraded MCP C# SDK dependency from 0.4.0-preview.3 to 1.2.0 (#222)
+- Add support for strongly-typed prompt trigger return types: `GetPromptResult`, `PromptMessage`, and `IList<PromptMessage>` (#212)

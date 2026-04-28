@@ -3,6 +3,7 @@
 
 using System.Text.Json;
 using Microsoft.Azure.Functions.Extensions.Mcp.Serialization;
+using ModelContextProtocol;
 using ModelContextProtocol.Protocol;
 
 namespace Microsoft.Azure.Functions.Extensions.Mcp.Tests;
@@ -23,101 +24,139 @@ public class PromptReturnValueBinderTests
     }
 
     [Fact]
-    public async Task SetValueAsync_WithPlainString_WrapsAsUserMessage()
+    public async Task SetValueAsync_WithGetPromptResultEnvelope_DeserializesInner()
     {
         var executionContext = GetPromptExecutionContextHelper.CreateExecutionContext();
         var binder = new PromptReturnValueBinder(executionContext);
 
-        await binder.SetValueAsync("Please review this code", CancellationToken.None);
-
-        var result = await executionContext.ResultTask;
-        Assert.NotNull(result);
-        Assert.Single(result.Messages);
-        Assert.Equal(Role.User, result.Messages[0].Role);
-        var content = Assert.IsType<TextContentBlock>(result.Messages[0].Content);
-        Assert.Equal("Please review this code", content.Text);
-    }
-
-    [Fact]
-    public async Task SetValueAsync_WithGetPromptResultJson_DeserializesDirectly()
-    {
-        var executionContext = GetPromptExecutionContextHelper.CreateExecutionContext();
-        var binder = new PromptReturnValueBinder(executionContext);
-
-        var getPromptResult = new GetPromptResult
+        var inner = new GetPromptResult
         {
             Description = "Test prompt",
             Messages =
             [
-                new PromptMessage
-                {
-                    Role = Role.User,
-                    Content = new TextContentBlock { Text = "User message" }
-                },
-                new PromptMessage
-                {
-                    Role = Role.Assistant,
-                    Content = new TextContentBlock { Text = "Assistant message" }
-                }
+                new PromptMessage { Role = Role.User, Content = new TextContentBlock { Text = "User message" } },
+                new PromptMessage { Role = Role.Assistant, Content = new TextContentBlock { Text = "Assistant message" } }
             ]
         };
 
-        var json = JsonSerializer.Serialize(getPromptResult, McpJsonSerializerOptions.DefaultOptions);
-        await binder.SetValueAsync(json, CancellationToken.None);
+        await binder.SetValueAsync(SerializeEnvelope(McpConstants.PromptResultContentTypes.GetPromptResult, inner), CancellationToken.None);
 
         var result = await executionContext.ResultTask;
         Assert.NotNull(result);
+        Assert.Equal("Test prompt", result.Description);
         Assert.Equal(2, result.Messages.Count);
         Assert.Equal(Role.User, result.Messages[0].Role);
         Assert.Equal(Role.Assistant, result.Messages[1].Role);
     }
 
     [Fact]
-    public async Task SetValueAsync_WithInvalidJson_WrapsAsUserMessage()
+    public async Task SetValueAsync_WithEmptyGetPromptResultEnvelope_PreservesEmpty()
     {
         var executionContext = GetPromptExecutionContextHelper.CreateExecutionContext();
         var binder = new PromptReturnValueBinder(executionContext);
 
-        await binder.SetValueAsync("not a json { string", CancellationToken.None);
+        var inner = new GetPromptResult { Messages = [] };
+
+        await binder.SetValueAsync(SerializeEnvelope(McpConstants.PromptResultContentTypes.GetPromptResult, inner), CancellationToken.None);
+
+        var result = await executionContext.ResultTask;
+        Assert.NotNull(result);
+        Assert.Empty(result.Messages);
+        Assert.Null(result.Description);
+    }
+
+    [Fact]
+    public async Task SetValueAsync_WithDescriptionOnlyEnvelope_DeserializesInner()
+    {
+        var executionContext = GetPromptExecutionContextHelper.CreateExecutionContext();
+        var binder = new PromptReturnValueBinder(executionContext);
+
+        var inner = new GetPromptResult { Description = "some description" };
+
+        await binder.SetValueAsync(SerializeEnvelope(McpConstants.PromptResultContentTypes.GetPromptResult, inner), CancellationToken.None);
+
+        var result = await executionContext.ResultTask;
+        Assert.NotNull(result);
+        Assert.Equal("some description", result.Description);
+        Assert.Empty(result.Messages);
+    }
+
+    [Fact]
+    public async Task SetValueAsync_WithPromptMessagesEnvelope_WrapsInGetPromptResult()
+    {
+        var executionContext = GetPromptExecutionContextHelper.CreateExecutionContext();
+        var binder = new PromptReturnValueBinder(executionContext);
+
+        var messages = new List<PromptMessage>
+        {
+            new() { Role = Role.User, Content = new TextContentBlock { Text = "Hello" } }
+        };
+
+        await binder.SetValueAsync(SerializeEnvelope(McpConstants.PromptResultContentTypes.PromptMessages, messages), CancellationToken.None);
 
         var result = await executionContext.ResultTask;
         Assert.NotNull(result);
         Assert.Single(result.Messages);
         Assert.Equal(Role.User, result.Messages[0].Role);
-        var content = Assert.IsType<TextContentBlock>(result.Messages[0].Content);
-        Assert.Equal("not a json { string", content.Text);
+        Assert.Equal("Hello", Assert.IsType<TextContentBlock>(result.Messages[0].Content).Text);
     }
 
     [Fact]
-    public async Task SetValueAsync_WithJsonWithoutMessagesField_DeserializesAsEmptyPromptResult()
+    public async Task SetValueAsync_WithUnknownEnvelopeType_Throws()
     {
         var executionContext = GetPromptExecutionContextHelper.CreateExecutionContext();
         var binder = new PromptReturnValueBinder(executionContext);
 
-        // JSON that can deserialize to GetPromptResult but has no messages field.
-        // GetPromptResult initializes Messages to empty list by default,
-        // so this will successfully deserialize with empty messages.
-        var json = """{"description": "some description"}""";
-        await binder.SetValueAsync(json, CancellationToken.None);
-
-        var result = await executionContext.ResultTask;
-        Assert.NotNull(result);
-        Assert.NotNull(result.Messages);
-        Assert.Empty(result.Messages);
-        Assert.Equal("some description", result.Description);
-    }
-
-    [Fact]
-    public async Task SetValueAsync_WithUnsupportedType_ThrowsInvalidOperationException()
-    {
-        var executionContext = GetPromptExecutionContextHelper.CreateExecutionContext();
-        var binder = new PromptReturnValueBinder(executionContext);
+        var envelope = new McpPromptResult
+        {
+            Type = "not_a_known_type",
+            Content = "{}"
+        };
+        var json = JsonSerializer.Serialize(envelope, McpJsonSerializerOptions.DefaultOptions);
 
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(
-            () => binder.SetValueAsync(42, CancellationToken.None));
+            () => binder.SetValueAsync(json, CancellationToken.None));
 
-        Assert.Contains("Unsupported return type", exception.Message);
-        Assert.Contains("Int32", exception.Message);
+        Assert.Contains("Unknown McpPromptResult type", exception.Message);
+    }
+
+    [Fact]
+    public async Task SetValueAsync_WithMissingContent_Throws()
+    {
+        var executionContext = GetPromptExecutionContextHelper.CreateExecutionContext();
+        var binder = new PromptReturnValueBinder(executionContext);
+
+        var envelope = new McpPromptResult
+        {
+            Type = McpConstants.PromptResultContentTypes.GetPromptResult,
+            Content = null
+        };
+        var json = JsonSerializer.Serialize(envelope, McpJsonSerializerOptions.DefaultOptions);
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => binder.SetValueAsync(json, CancellationToken.None));
+
+        Assert.Contains("Content was null", exception.Message);
+    }
+
+    [Fact]
+    public async Task SetValueAsync_WithNonStringValue_ThrowsArgumentException()
+    {
+        var executionContext = GetPromptExecutionContextHelper.CreateExecutionContext();
+        var binder = new PromptReturnValueBinder(executionContext);
+
+        await Assert.ThrowsAsync<ArgumentException>(
+            () => binder.SetValueAsync(42, CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task SetValueAsync_WithInvalidJson_ThrowsInvalidOperationException()
+    {
+        var executionContext = GetPromptExecutionContextHelper.CreateExecutionContext();
+        var binder = new PromptReturnValueBinder(executionContext);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () => binder.SetValueAsync("not a json { string", CancellationToken.None));
     }
 
     [Fact]
@@ -138,18 +177,13 @@ public class PromptReturnValueBinderTests
         Assert.Equal(string.Empty, binder.ToInvokeString());
     }
 
-    [Fact]
-    public async Task SetValueAsync_WithEmptyString_WrapsAsUserMessage()
+    private static string SerializeEnvelope<T>(string type, T inner)
     {
-        var executionContext = GetPromptExecutionContextHelper.CreateExecutionContext();
-        var binder = new PromptReturnValueBinder(executionContext);
-
-        await binder.SetValueAsync("", CancellationToken.None);
-
-        var result = await executionContext.ResultTask;
-        Assert.NotNull(result);
-        Assert.Single(result.Messages);
-        var content = Assert.IsType<TextContentBlock>(result.Messages[0].Content);
-        Assert.Equal("", content.Text);
+        var envelope = new McpPromptResult
+        {
+            Type = type,
+            Content = JsonSerializer.Serialize(inner, McpJsonUtilities.DefaultOptions)
+        };
+        return JsonSerializer.Serialize(envelope, McpJsonSerializerOptions.DefaultOptions);
     }
 }

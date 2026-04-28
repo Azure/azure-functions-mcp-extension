@@ -4,6 +4,7 @@
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Extensions.Mcp;
 using Microsoft.Extensions.Logging;
+using ModelContextProtocol.Protocol;
 
 namespace TestAppIsolated.Prompts;
 
@@ -15,10 +16,11 @@ public class PromptFunctions(ILogger<PromptFunctions> logger)
 {
     /// <summary>
     /// A prompt with multiple arguments (1 required, 1 optional).
-    /// Tests multi-argument prompt with mixed required/optional + Title + Description.
+    /// Returns a GetPromptResult with structured messages; the SDK middleware
+    /// serializes this to a GetPromptResult JSON for the host to consume.
     /// </summary>
     [Function(nameof(CodeReviewPrompt))]
-    public string CodeReviewPrompt(
+    public GetPromptResult CodeReviewPrompt(
         [McpPromptTrigger(
             "code_review",
             Title = "Code Review",
@@ -32,7 +34,21 @@ public class PromptFunctions(ILogger<PromptFunctions> logger)
         code ??= "// no code provided";
         language ??= "unknown";
 
-        return $"Please review the following {language} code and suggest improvements:\n\n```{language}\n{code}\n```";
+        return new GetPromptResult
+        {
+            Description = $"Code review prompt for {language}",
+            Messages =
+            [
+                new PromptMessage
+                {
+                    Role = Role.User,
+                    Content = new TextContentBlock
+                    {
+                        Text = $"Please review the following {language} code and suggest improvements:\n\n```{language}\n{code}\n```"
+                    }
+                }
+            ]
+        };
     }
 
     /// <summary>
@@ -125,5 +141,43 @@ public class PromptFunctions(ILogger<PromptFunctions> logger)
         logger.LogInformation("Generating fluent prompt");
         // Arguments are defined via builder in Program.cs, accessed through the context
         return "This prompt has its arguments defined via the fluent builder API.";
+    }
+
+    /// <summary>
+    /// A prompt that returns an IList&lt;PromptMessage&gt; directly (a multi-turn
+    /// conversation seed). The SDK middleware wraps the list in a GetPromptResult
+    /// before serializing it for the host.
+    /// </summary>
+    [Function(nameof(MultiTurnPrompt))]
+    public IList<PromptMessage> MultiTurnPrompt(
+        [McpPromptTrigger(
+            "multi_turn_prompt",
+            Title = "Multi-Turn Prompt",
+            Description = "Returns a multi-turn conversation as an IList<PromptMessage>")]
+        PromptInvocationContext context,
+        [McpPromptArgument("topic", "The topic to discuss", isRequired: true)] string? topic)
+    {
+        logger.LogInformation("Generating multi-turn prompt");
+
+        topic ??= "general";
+
+        return
+        [
+            new PromptMessage
+            {
+                Role = Role.User,
+                Content = new TextContentBlock { Text = $"Let's discuss {topic}." }
+            },
+            new PromptMessage
+            {
+                Role = Role.Assistant,
+                Content = new TextContentBlock { Text = $"Sure, what about {topic} would you like to explore?" }
+            },
+            new PromptMessage
+            {
+                Role = Role.User,
+                Content = new TextContentBlock { Text = "Start with the basics." }
+            }
+        ];
     }
 }

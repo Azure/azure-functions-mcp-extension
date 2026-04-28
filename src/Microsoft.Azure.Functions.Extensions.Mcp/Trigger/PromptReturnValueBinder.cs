@@ -4,10 +4,18 @@
 using System.Text.Json;
 using Microsoft.Azure.Functions.Extensions.Mcp.Serialization;
 using Microsoft.Azure.WebJobs.Host.Bindings;
+using ModelContextProtocol;
 using ModelContextProtocol.Protocol;
 
 namespace Microsoft.Azure.Functions.Extensions.Mcp;
 
+/// <summary>
+/// Return value binder used when the worker SDK middleware wraps prompt results
+/// in an <see cref="McpPromptResult"/> envelope. Unwraps the envelope and
+/// deserializes the inner payload based on the envelope's <c>Type</c> discriminator,
+/// so any successfully deserialized payload — including empty results — round-trips
+/// without shape-sniffing.
+/// </summary>
 internal sealed class PromptReturnValueBinder(GetPromptExecutionContext executionContext) : IValueBinder
 {
     public Type Type { get; } = typeof(object);
@@ -20,65 +28,60 @@ internal sealed class PromptReturnValueBinder(GetPromptExecutionContext executio
             return Task.CompletedTask;
         }
 
-        if (value is string stringValue)
+        if (value is not string jsonString)
         {
-            // Try to deserialize as GetPromptResult JSON from worker
-            if (TryDeserializeGetPromptResult(stringValue, out var promptResult))
-            {
-                executionContext.SetResult(promptResult);
-                return Task.CompletedTask;
-            }
-
-            // Otherwise treat as a single user text message
-            var result = new GetPromptResult
-            {
-                Messages =
-                [
-                    new PromptMessage
-                    {
-                        Role = Role.User,
-                        Content = new TextContentBlock { Text = stringValue }
-                    }
-                ]
-            };
-
-            executionContext.SetResult(result);
-            return Task.CompletedTask;
+            throw new ArgumentException("Expected JSON string.", nameof(value));
         }
 
-        throw new InvalidOperationException(
-            $"Unsupported return type for prompt: {value.GetType().Name}. Expected string.");
-    }
+        McpPromptResult envelope;
+        try
+        {
+            envelope = JsonSerializer.Deserialize<McpPromptResult>(jsonString, McpJsonSerializerOptions.DefaultOptions)
+                ?? throw new InvalidOperationException("The function return value could not be deserialized to a valid McpPromptResult.");
+        }
+        catch (JsonException ex)
+        {
+            throw new InvalidOperationException("The function return value could not be deserialized to a valid McpPromptResult.", ex);
+        }
 
-    public Task<object> GetValueAsync()
-    {
-        throw new NotSupportedException();
-    }
-
-    public string ToInvokeString()
-    {
-        return string.Empty;
-    }
-
-    private static bool TryDeserializeGetPromptResult(string jsonString, out GetPromptResult result)
-    {
-        result = null!;
+        if (envelope.Content is not { } content)
+        {
+            throw new InvalidOperationException("McpPromptResult.Content was null; cannot process prompt result.");
+        }
 
         try
         {
-            var deserialized = JsonSerializer.Deserialize<GetPromptResult>(jsonString, McpJsonSerializerOptions.DefaultOptions);
-
-            if (deserialized?.Messages is { Count: > 0 } || deserialized?.Description is not null)
-            {
-                result = deserialized;
-                return true;
-            }
-
-            return false;
+            executionContext.SetResult(ProcessMcpPromptResult(envelope.Type, content));
         }
-        catch (JsonException)
+        catch (JsonException ex)
         {
-            return false;
+            throw new InvalidOperationException($"Failed to deserialize content for type '{envelope.Type}'.", ex);
         }
+
+        return Task.CompletedTask;
+    }
+
+    public Task<object> GetValueAsync() => throw new NotSupportedException();
+
+    public string ToInvokeString() => string.Empty;
+
+    private static GetPromptResult ProcessMcpPromptResult(string type, string content)
+    {
+        if (string.Equals(type, McpConstants.PromptResultContentTypes.GetPromptResult, StringComparison.OrdinalIgnoreCase))
+        {
+            return JsonSerializer.Deserialize<GetPromptResult>(content, McpJsonUtilities.DefaultOptions)
+                ?? throw new InvalidOperationException("Failed to deserialize GetPromptResult from McpPromptResult content.");
+        }
+
+        if (string.Equals(type, McpConstants.PromptResultContentTypes.PromptMessages, StringComparison.OrdinalIgnoreCase))
+        {
+            var messages = JsonSerializer.Deserialize<IList<PromptMessage>>(content, McpJsonUtilities.DefaultOptions)
+                ?? throw new InvalidOperationException("Failed to deserialize PromptMessage list from McpPromptResult content.");
+
+            return new GetPromptResult { Messages = messages };
+        }
+
+        throw new InvalidOperationException($"Unknown McpPromptResult type: '{type}'.");
     }
 }
+
