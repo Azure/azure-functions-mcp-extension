@@ -13,30 +13,27 @@ namespace Microsoft.Azure.Functions.Worker.Extensions.Mcp.Configuration;
 internal static class McpToolSchemaValidator
 {
     /// <summary>
-    /// Parses <paramref name="jsonSchema"/> and validates its shape.
+    /// Parses <paramref name="jsonSchema"/> into a <see cref="JsonNode"/>.
     /// </summary>
     /// <param name="jsonSchema">JSON schema string.</param>
-    /// <param name="kind">"Input" or "Output" — used only for exception messages.</param>
+    /// <param name="kind">Schema kind used for exception messages.</param>
     /// <param name="paramName">Parameter name used in thrown exceptions.</param>
     /// <returns>The parsed <see cref="JsonNode"/> on success.</returns>
-    /// <exception cref="ArgumentException">Thrown when the schema is null/whitespace, not an object, or violates MCP shape rules.</exception>
+    /// <exception cref="ArgumentException">Thrown when the schema is null/whitespace or resolves to null.</exception>
     /// <exception cref="JsonException">Thrown when the schema is not valid JSON.</exception>
-    public static JsonNode ValidateAndParse(string jsonSchema, string kind, string paramName)
+    public static JsonNode Parse(string jsonSchema, SchemaKind kind, string paramName)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(jsonSchema, paramName);
 
-        var node = JsonNode.Parse(jsonSchema)
+        return JsonNode.Parse(jsonSchema)
             ?? throw new ArgumentException($"{kind} schema must be a JSON object.", paramName);
-
-        Validate(node, kind, paramName);
-        return node;
     }
 
     /// <summary>
     /// Validates a parsed schema node.
     /// </summary>
     /// <exception cref="ArgumentException">Thrown when the schema does not match MCP requirements.</exception>
-    public static void Validate(JsonNode schemaNode, string kind, string paramName)
+    public static void Validate(JsonNode schemaNode, SchemaKind kind, string paramName)
     {
         ArgumentNullException.ThrowIfNull(schemaNode, paramName);
 

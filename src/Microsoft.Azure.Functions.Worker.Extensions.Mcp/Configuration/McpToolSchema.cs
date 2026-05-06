@@ -15,23 +15,18 @@ namespace Microsoft.Azure.Functions.Worker.Builder;
 /// </summary>
 public abstract class McpToolSchema
 {
-    private protected McpToolSchema(string json, string paramName)
+    private protected McpToolSchema(string json, string paramName, SchemaKind kind)
     {
-        var node = McpToolSchemaValidator.ValidateAndParse(json, SchemaKind, paramName);
+        var node = McpToolSchemaValidator.Parse(json, kind, paramName);
+        McpToolSchemaValidator.Validate(node, kind, paramName);
         Json = node.ToJsonString();
     }
 
-    private protected McpToolSchema(JsonNode schemaNode, string paramName)
+    private protected McpToolSchema(JsonNode schemaNode, string paramName, SchemaKind kind)
     {
-        ArgumentNullException.ThrowIfNull(schemaNode, paramName);
-        McpToolSchemaValidator.Validate(schemaNode, SchemaKind, paramName);
+        McpToolSchemaValidator.Validate(schemaNode, kind, paramName);
         Json = schemaNode.ToJsonString();
     }
-
-    /// <summary>
-    /// Human-readable label used in validation exception messages (e.g. "Input", "Output").
-    /// </summary>
-    private protected abstract string SchemaKind { get; }
 
     /// <summary>
     /// The canonical JSON representation of the validated schema.

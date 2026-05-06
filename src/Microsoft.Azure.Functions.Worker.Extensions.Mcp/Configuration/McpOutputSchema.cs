@@ -3,6 +3,7 @@
 
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using Microsoft.Azure.Functions.Worker.Extensions.Mcp.Configuration;
 
 namespace Microsoft.Azure.Functions.Worker.Builder;
 
@@ -20,7 +21,7 @@ public sealed class McpOutputSchema : McpToolSchema
     /// <param name="json">A valid JSON schema string with root <c>"type": "object"</c>.</param>
     /// <exception cref="ArgumentException">Thrown when the schema is null/whitespace or violates MCP shape rules.</exception>
     /// <exception cref="JsonException">Thrown when the schema is not valid JSON.</exception>
-    public McpOutputSchema(string json) : base(json, nameof(json)) { }
+    public McpOutputSchema(string json) : base(json, nameof(json), SchemaKind.Output) { }
 
     /// <summary>
     /// Initializes a new instance from a <see cref="JsonNode"/>.
@@ -28,7 +29,5 @@ public sealed class McpOutputSchema : McpToolSchema
     /// <param name="schemaNode">A <see cref="JsonNode"/> representing a valid JSON schema.</param>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="schemaNode"/> is null.</exception>
     /// <exception cref="ArgumentException">Thrown when the schema does not conform to MCP requirements.</exception>
-    public McpOutputSchema(JsonNode schemaNode) : base(schemaNode, nameof(schemaNode)) { }
-
-    private protected override string SchemaKind => "Output";
+    public McpOutputSchema(JsonNode schemaNode) : base(schemaNode, nameof(schemaNode), SchemaKind.Output) { }
 }
