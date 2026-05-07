@@ -8,12 +8,12 @@ using Microsoft.Azure.Functions.Worker.Extensions.Mcp.Configuration;
 namespace Microsoft.Azure.Functions.Worker.Builder;
 
 /// <summary>
-/// A strongly-typed, validated MCP tool input JSON schema.
-/// An <see cref="McpInputSchema"/> instance can only exist when the schema
-/// conforms to the MCP tool input-schema shape expected by the host — once constructed,
+/// A strongly-typed, validated MCP tool output JSON schema.
+/// An <see cref="McpOutputSchema"/> instance can only exist when the schema
+/// conforms to the MCP tool output-schema shape expected by the host — once constructed,
 /// consumers can use <see cref="McpToolSchema.Json"/> without re-validating.
 /// </summary>
-public sealed class McpInputSchema : McpToolSchema
+public sealed class McpOutputSchema : McpToolSchema
 {
     /// <summary>
     /// Initializes a new instance from a JSON schema string.
@@ -21,7 +21,7 @@ public sealed class McpInputSchema : McpToolSchema
     /// <param name="json">A valid JSON schema string with root <c>"type": "object"</c>.</param>
     /// <exception cref="ArgumentException">Thrown when the schema is null/whitespace or violates MCP shape rules.</exception>
     /// <exception cref="JsonException">Thrown when the schema is not valid JSON.</exception>
-    public McpInputSchema(string json) : base(json, nameof(json), SchemaKind.Input) { }
+    public McpOutputSchema(string json) : base(json, nameof(json), SchemaKind.Output) { }
 
     /// <summary>
     /// Initializes a new instance from a <see cref="JsonNode"/>.
@@ -29,5 +29,5 @@ public sealed class McpInputSchema : McpToolSchema
     /// <param name="schemaNode">A <see cref="JsonNode"/> representing a valid JSON schema.</param>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="schemaNode"/> is null.</exception>
     /// <exception cref="ArgumentException">Thrown when the schema does not conform to MCP requirements.</exception>
-    public McpInputSchema(JsonNode schemaNode) : base(schemaNode, nameof(schemaNode), SchemaKind.Input) { }
+    public McpOutputSchema(JsonNode schemaNode) : base(schemaNode, nameof(schemaNode), SchemaKind.Output) { }
 }

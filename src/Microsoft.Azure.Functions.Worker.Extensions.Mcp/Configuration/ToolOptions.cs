@@ -52,4 +52,10 @@ public class ToolOptions : McpBuilderOptions
     /// generated from <see cref="Properties"/>.
     /// </summary>
     public McpInputSchema? InputSchema { get; set; }
+
+    /// <summary>
+    /// Gets or sets an explicit JSON output schema for the tool.
+    /// When set, the worker emits this schema on the tool trigger binding.
+    /// </summary>
+    public McpOutputSchema? OutputSchema { get; set; }
 }
