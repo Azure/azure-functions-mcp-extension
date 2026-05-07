@@ -12,13 +12,17 @@ public class McpResourceListenerTests
 {
     private static RequestContext<ReadResourceRequestParams> CreateRequest(string uri = "test://resource/1")
     {
+#pragma warning disable MCPEXP002
         var server = new Mock<McpServer>().Object;
+#pragma warning restore MCPEXP002
         var parameters = new ReadResourceRequestParams { Uri = uri };
 
+#pragma warning disable MCP9003
         return new RequestContext<ReadResourceRequestParams>(server, new JsonRpcRequest() { Method = RequestMethods.ResourcesRead })
         {
             Params = parameters
         };
+#pragma warning restore MCP9003
     }
 
     [Fact]

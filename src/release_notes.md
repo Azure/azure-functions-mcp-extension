@@ -4,6 +4,10 @@
 - My change description (#PR/#issue)
 -->
 
+### Microsoft.Azure.Functions.Extensions <version>
+
+- Upgraded ModelContextProtocol SDK dependency from `0.4.0-preview.3` to `1.2.0` (#218)
+
 ### Microsoft.Azure.Functions.Extensions 1.5.0
 
 #### Breaking Changes

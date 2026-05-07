@@ -23,7 +23,7 @@ internal sealed class ToolInvocationContext
     /// Each key-value pair represents a parameter name and its corresponding argument value.
     /// </remarks>
     [JsonPropertyName("arguments")]
-    public IReadOnlyDictionary<string, JsonElement>? Arguments { get; init; }
+    public IDictionary<string, JsonElement>? Arguments { get; init; }
 
 
     /// <summary>
