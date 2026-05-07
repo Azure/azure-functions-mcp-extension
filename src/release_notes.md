@@ -4,19 +4,11 @@
 - My change description (#PR/#issue)
 -->
 
-### Microsoft.Azure.Functions.Extensions 1.5.0
+### Microsoft.Azure.Functions.Extensions <version>
 
-#### Breaking Changes
+- <entry>
 
-- `McpInputSchemaJsonUtilities` is now `internal` (was `public`). It was never intended as a public API. (#245)
-
-#### Changes
-
-- Validate required prompt arguments (#244)
-- Added output schema support on the tool trigger (#245)
-- Added `UseResultSchema` to `McpPromptTriggerAttribute`. When set by the worker, the host unwraps the `McpPromptResult` envelope produced by the worker instead of inferring the shape from the JSON. (#212)
-
-### Microsoft.Azure.Functions.Worker.Extensions.Mcp 1.5.0-preview.1
+### Microsoft.Azure.Functions.Worker.Extensions.Mcp 1.5.0
 
 #### Bug Fixes
 
