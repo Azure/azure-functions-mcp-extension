@@ -307,6 +307,71 @@ public class McpInputConversionHelperTests
         AssertWidgetAndGadget(order.Items!.ToList());
     }
 
+    [Fact]
+    public void TryConvertToTargetType_DeeplyNested_PocoAndArrayOfPoco_IsPopulated()
+    {
+        // Company -> Department[] -> Employee.Address (POCO)
+        // Exercises: nested POCO inside an element of an array property, plus a POCO property
+        // on that element. Proves the recursion works at arbitrary depth.
+        var input = new Dictionary<string, object>
+        {
+            ["Name"] = "Contoso",
+            ["Departments"] = new List<object?>
+            {
+                new Dictionary<string, object>
+                {
+                    ["Name"] = "Engineering",
+                    ["Lead"] = new Dictionary<string, object>
+                    {
+                        ["Name"] = "Alice",
+                        ["Address"] = new Dictionary<string, object>
+                        {
+                            ["Street"] = "1 Infinite Loop",
+                            ["City"] = "Cupertino",
+                        },
+                    },
+                },
+                new Dictionary<string, object>
+                {
+                    ["Name"] = "Sales",
+                    ["Lead"] = new Dictionary<string, object>
+                    {
+                        ["Name"] = "Bob",
+                        ["Address"] = new Dictionary<string, object>
+                        {
+                            ["Street"] = "350 5th Ave",
+                            ["City"] = "New York",
+                        },
+                    },
+                },
+            },
+        };
+
+        var success = McpInputConversionHelper.TryConvertArgumentToTargetType(input, typeof(Company), out var result);
+
+        Assert.True(success);
+        var company = Assert.IsType<Company>(result);
+        Assert.Equal("Contoso", company.Name);
+        Assert.NotNull(company.Departments);
+        Assert.Equal(2, company.Departments!.Length);
+
+        var eng = company.Departments[0];
+        Assert.Equal("Engineering", eng.Name);
+        Assert.NotNull(eng.Lead);
+        Assert.Equal("Alice", eng.Lead!.Name);
+        Assert.NotNull(eng.Lead.Address);
+        Assert.Equal("1 Infinite Loop", eng.Lead.Address!.Street);
+        Assert.Equal("Cupertino", eng.Lead.Address.City);
+
+        var sales = company.Departments[1];
+        Assert.Equal("Sales", sales.Name);
+        Assert.NotNull(sales.Lead);
+        Assert.Equal("Bob", sales.Lead!.Name);
+        Assert.NotNull(sales.Lead.Address);
+        Assert.Equal("350 5th Ave", sales.Lead.Address!.Street);
+        Assert.Equal("New York", sales.Lead.Address.City);
+    }
+
     private static List<object?> BuildItemDictionaries() =>
     [
         new Dictionary<string, object>
@@ -366,6 +431,24 @@ public class McpInputConversionHelperTests
     {
         public string? Name { get; set; }
         public int Quantity { get; set; }
+    }
+
+    private class Company
+    {
+        public string? Name { get; set; }
+        public Department[]? Departments { get; set; }
+    }
+
+    private class Department
+    {
+        public string? Name { get; set; }
+        public Employee? Lead { get; set; }
+    }
+
+    private class Employee
+    {
+        public string? Name { get; set; }
+        public Address? Address { get; set; }
     }
 
     [TypeConverter(typeof(TestPocoConverter))]
