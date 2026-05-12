@@ -206,6 +206,162 @@ public class McpInputConversionHelperTests
         Assert.Equal(7, items[1]!.Quantity);
     }
 
+    [Fact]
+    public void TryConvertToTargetType_ListOfComplexType_PreservesElementValues()
+    {
+        var input = BuildItemDictionaries();
+
+        var success = McpInputConversionHelper.TryConvertArgumentToTargetType(input, typeof(List<Item>), out var result);
+
+        Assert.True(success);
+        var items = Assert.IsType<List<Item>>(result);
+        AssertWidgetAndGadget(items);
+    }
+
+    [Fact]
+    public void TryConvertToTargetType_IEnumerableOfComplexType_PreservesElementValues()
+    {
+        var input = BuildItemDictionaries();
+
+        var success = McpInputConversionHelper.TryConvertArgumentToTargetType(input, typeof(IEnumerable<Item>), out var result);
+
+        Assert.True(success);
+        var items = (IEnumerable<Item>)result!;
+        AssertWidgetAndGadget(items.ToList());
+    }
+
+    [Fact]
+    public void TryConvertToTargetType_NestedPocoProperty_IsPopulated()
+    {
+        var input = new Dictionary<string, object>
+        {
+            ["Name"] = "Alice",
+            ["Address"] = new Dictionary<string, object>
+            {
+                ["Street"] = "123 Main",
+                ["City"] = "Seattle",
+            },
+        };
+
+        var success = McpInputConversionHelper.TryConvertArgumentToTargetType(input, typeof(Person), out var result);
+
+        Assert.True(success);
+        var person = Assert.IsType<Person>(result);
+        Assert.Equal("Alice", person.Name);
+        Assert.NotNull(person.Address);
+        Assert.Equal("123 Main", person.Address!.Street);
+        Assert.Equal("Seattle", person.Address.City);
+    }
+
+    [Fact]
+    public void TryConvertToTargetType_PocoWithArrayOfComplexProperty_IsPopulated()
+    {
+        var input = new Dictionary<string, object>
+        {
+            ["Name"] = "Order #1",
+            ["Items"] = BuildItemDictionaries(),
+        };
+
+        var success = McpInputConversionHelper.TryConvertArgumentToTargetType(input, typeof(OrderWithArray), out var result);
+
+        Assert.True(success);
+        var order = Assert.IsType<OrderWithArray>(result);
+        Assert.Equal("Order #1", order.Name);
+        Assert.NotNull(order.Items);
+        AssertWidgetAndGadget(order.Items!);
+    }
+
+    [Fact]
+    public void TryConvertToTargetType_PocoWithListOfComplexProperty_IsPopulated()
+    {
+        var input = new Dictionary<string, object>
+        {
+            ["Name"] = "Order #2",
+            ["Items"] = BuildItemDictionaries(),
+        };
+
+        var success = McpInputConversionHelper.TryConvertArgumentToTargetType(input, typeof(OrderWithList), out var result);
+
+        Assert.True(success);
+        var order = Assert.IsType<OrderWithList>(result);
+        Assert.Equal("Order #2", order.Name);
+        Assert.NotNull(order.Items);
+        AssertWidgetAndGadget(order.Items!);
+    }
+
+    [Fact]
+    public void TryConvertToTargetType_PocoWithIEnumerableOfComplexProperty_IsPopulated()
+    {
+        var input = new Dictionary<string, object>
+        {
+            ["Name"] = "Order #3",
+            ["Items"] = BuildItemDictionaries(),
+        };
+
+        var success = McpInputConversionHelper.TryConvertArgumentToTargetType(input, typeof(OrderWithEnumerable), out var result);
+
+        Assert.True(success);
+        var order = Assert.IsType<OrderWithEnumerable>(result);
+        Assert.Equal("Order #3", order.Name);
+        Assert.NotNull(order.Items);
+        AssertWidgetAndGadget(order.Items!.ToList());
+    }
+
+    private static List<object?> BuildItemDictionaries() =>
+    [
+        new Dictionary<string, object>
+        {
+            ["Name"] = "Widget",
+            ["Quantity"] = 3,
+        },
+        new Dictionary<string, object>
+        {
+            ["Name"] = "Gadget",
+            ["Quantity"] = 7,
+        },
+    ];
+
+    private static void AssertWidgetAndGadget(IReadOnlyList<Item> items)
+    {
+        Assert.Equal(2, items.Count);
+        Assert.NotNull(items[0]);
+        Assert.Equal("Widget", items[0]!.Name);
+        Assert.Equal(3, items[0]!.Quantity);
+        Assert.NotNull(items[1]);
+        Assert.Equal("Gadget", items[1]!.Name);
+        Assert.Equal(7, items[1]!.Quantity);
+    }
+
+    private class Person
+    {
+        public string? Name { get; set; }
+        public Address? Address { get; set; }
+    }
+
+    private class Address
+    {
+        public string? Street { get; set; }
+        public string? City { get; set; }
+    }
+
+    private class OrderWithArray
+    {
+        public string? Name { get; set; }
+        public Item[]? Items { get; set; }
+    }
+
+    private class OrderWithList
+    {
+        public string? Name { get; set; }
+        public List<Item>? Items { get; set; }
+    }
+
+    private class OrderWithEnumerable
+    {
+        public string? Name { get; set; }
+        public IEnumerable<Item>? Items { get; set; }
+    }
+
     private class Item
     {
         public string? Name { get; set; }
