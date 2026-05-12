@@ -173,6 +173,45 @@ public class McpInputConversionHelperTests
         Assert.Equal(expected, result);
     }
 
+    [Fact]
+    public void TryConvertToTargetType_ArrayOfComplexType_PreservesElementValues()
+    {
+        var input = new List<object?>
+        {
+            new Dictionary<string, object>
+            {
+                ["Name"] = "Widget",
+                ["Quantity"] = 3,
+            },
+            new Dictionary<string, object>
+            {
+                ["Name"] = "Gadget",
+                ["Quantity"] = 7,
+            },
+        };
+
+        var success = McpInputConversionHelper.TryConvertArgumentToTargetType(input, typeof(Item[]), out var result);
+
+        Assert.True(success);
+        Assert.NotNull(result);
+        var items = Assert.IsType<Item[]>(result);
+        Assert.Equal(2, items.Length);
+
+        Assert.NotNull(items[0]);
+        Assert.Equal("Widget", items[0]!.Name);
+        Assert.Equal(3, items[0]!.Quantity);
+
+        Assert.NotNull(items[1]);
+        Assert.Equal("Gadget", items[1]!.Name);
+        Assert.Equal(7, items[1]!.Quantity);
+    }
+
+    private class Item
+    {
+        public string? Name { get; set; }
+        public int Quantity { get; set; }
+    }
+
     [TypeConverter(typeof(TestPocoConverter))]
     private class TestPoco
     {
