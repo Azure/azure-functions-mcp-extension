@@ -28,43 +28,19 @@ internal class ToolInvocationPocoConverter : IInputConverter
 
         try
         {
-            var poco = CreatePocoFromArguments(toolContext.Arguments!, context.TargetType);
+            // Tool arguments arrive as Dictionary<string, object?>, but the shared helper expects
+            // Dictionary<string, object>. Project nulls out so the helper can populate the POCO,
+            // including any nested complex or array-of-complex properties.
+            var arguments = toolContext.Arguments!
+                .Where(kvp => kvp.Value is not null)
+                .ToDictionary(kvp => kvp.Key, kvp => kvp.Value!, StringComparer.OrdinalIgnoreCase);
+
+            var poco = CreatePocoFromDictionary(arguments, context.TargetType);
             return new ValueTask<ConversionResult>(ConversionResult.Success(poco));
         }
         catch (Exception ex)
         {
             return new ValueTask<ConversionResult>(ConversionResult.Failed(ex));
         }
-    }
-
-    private object? CreatePocoFromArguments(IDictionary<string, object?> arguments, Type targetType)
-    {
-        ArgumentNullException.ThrowIfNull(arguments);
-        ArgumentNullException.ThrowIfNull(targetType);
-
-        var poco = Activator.CreateInstance(targetType);
-
-        foreach (var kvp in arguments)
-        {
-            var property = targetType.GetProperty(kvp.Key);
-            if (property is null || !property.CanWrite)
-            {
-                continue;
-            }
-
-            try
-            {
-                if (TryConvertArgumentToTargetType(kvp.Value, property.PropertyType, out var convertedValue))
-                {
-                    property.SetValue(poco, convertedValue);
-                }
-            }
-            catch (Exception ex)
-            {
-                throw new InvalidOperationException($"Failed to set property '{property.Name}'", ex);
-            }
-        }
-
-        return poco;
     }
 }

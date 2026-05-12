@@ -5,6 +5,8 @@ using System.Collections;
 using System.Collections.Concurrent;
 using System.ComponentModel;
 using System.Globalization;
+using System.Reflection;
+using Microsoft.Azure.Functions.Worker.Extensions.Mcp.Reflection;
 
 namespace Microsoft.Azure.Functions.Worker.Extensions.Mcp.Converters;
 
@@ -12,6 +14,7 @@ internal static class McpInputConversionHelper
 {
     private static readonly ConcurrentDictionary<Type, Func<int, IList>> _listFactoryCache = new();
     private static readonly ConcurrentDictionary<Type, Type> _elementTypeCache = new();
+    private static readonly ConcurrentDictionary<Type, PropertyInfo[]> _writablePropertyCache = new();
 
     public static bool TryConvertArgumentToTargetType(object? value, Type targetType, out object? result)
     {
@@ -76,6 +79,11 @@ internal static class McpInputConversionHelper
             return ConvertToCollection(inputCollection, targetType);
         }
 
+        if (targetType.IsPoco() && value is IDictionary<string, object> dictionaryValue)
+        {
+            return CreatePocoFromDictionary(dictionaryValue, targetType);
+        }
+
         if (targetType == typeof(DateTime) && value is DateTimeOffset dto)
         {
             return dto.UtcDateTime;
@@ -110,6 +118,43 @@ internal static class McpInputConversionHelper
         }
 
         return null;
+    }
+
+    public static object CreatePocoFromDictionary(IDictionary<string, object> source, Type targetType)
+    {
+        ArgumentNullException.ThrowIfNull(source);
+        ArgumentNullException.ThrowIfNull(targetType);
+
+        var poco = Activator.CreateInstance(targetType)
+            ?? throw new InvalidOperationException($"Could not create instance of {targetType}.");
+
+        var properties = _writablePropertyCache.GetOrAdd(
+            targetType,
+            static t => t.GetProperties(BindingFlags.Instance | BindingFlags.Public)
+                        .Where(p => p.CanWrite)
+                        .ToArray());
+
+        foreach (var property in properties)
+        {
+            if (!source.TryGetValue(property.Name, out var rawValue))
+            {
+                continue;
+            }
+
+            try
+            {
+                if (TryConvertArgumentToTargetType(rawValue, property.PropertyType, out var convertedValue))
+                {
+                    property.SetValue(poco, convertedValue);
+                }
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException($"Failed to set property '{property.Name}' on '{targetType.Name}'.", ex);
+            }
+        }
+
+        return poco;
     }
 
     public static bool IsSupportedCollectionType(Type targetType)
