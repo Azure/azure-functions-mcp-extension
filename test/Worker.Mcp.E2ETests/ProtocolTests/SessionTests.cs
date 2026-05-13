@@ -7,35 +7,21 @@ using ModelContextProtocol.Client;
 namespace Microsoft.Azure.Functions.Worker.Mcp.E2ETests.ProtocolTests;
 
 /// <summary>
-/// Default server session tests
+/// Session-handling tests for the StreamableHttp transport (the only transport
+/// that surfaces a session id).
 /// </summary>
 public class SessionTests(DefaultProjectFixture fixture, ITestOutputHelper testOutputHelper)
     : McpE2ETestBase(fixture, testOutputHelper)
 {
-    [Theory]
-    [InlineData(HttpTransportMode.StreamableHttp)]
-    public async Task DefaultServer_ClientHasSession(HttpTransportMode mode)
+    [Fact]
+    public async Task DefaultServer_AssignsUniqueSessionPerClient()
     {
-        var client = await Fixture.CreateClientAsync(mode);
-        
-        Assert.NotNull(client.SessionId);
-        Assert.NotEmpty(client.SessionId);
-        
-        TestOutputHelper.WriteLine($"Client session ID: {client.SessionId}");
-    }
+        var client1 = await Fixture.CreateClientAsync(HttpTransportMode.StreamableHttp);
+        var client2 = await Fixture.CreateClientAsync(HttpTransportMode.StreamableHttp);
 
-    [Theory]
-    [InlineData(HttpTransportMode.StreamableHttp)]
-    public async Task DefaultServer_UniqueSessionsForDifferentClients(HttpTransportMode mode)
-    {
-        var client1 = await Fixture.CreateClientAsync(mode);
-        var client2 = await Fixture.CreateClientAsync(mode);
-        
         Assert.NotNull(client1.SessionId);
+        Assert.NotEmpty(client1.SessionId);
         Assert.NotNull(client2.SessionId);
         Assert.NotEqual(client1.SessionId, client2.SessionId);
-        
-        TestOutputHelper.WriteLine($"Client 1 session: {client1.SessionId}");
-        TestOutputHelper.WriteLine($"Client 2 session: {client2.SessionId}");
     }
 }

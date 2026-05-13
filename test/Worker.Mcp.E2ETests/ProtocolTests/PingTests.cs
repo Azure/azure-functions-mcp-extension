@@ -1,9 +1,9 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
+using System.Text.Json;
 using Microsoft.Azure.Functions.Worker.Mcp.E2ETests.Fixtures;
 using ModelContextProtocol.Client;
-using System.Text.Json;
 
 namespace Microsoft.Azure.Functions.Worker.Mcp.E2ETests.ProtocolTests;
 
@@ -11,9 +11,7 @@ public class PingTests(DefaultProjectFixture fixture, ITestOutputHelper testOutp
     : McpE2ETestBase(fixture, testOutputHelper)
 {
     [Theory]
-    [InlineData(HttpTransportMode.Sse)]
-    [InlineData(HttpTransportMode.AutoDetect)]
-    [InlineData(HttpTransportMode.StreamableHttp)]
+    [MemberData(nameof(TransportModes.All), MemberType = typeof(TransportModes))]
     public async Task DefaultServerRespondsToClientPing(HttpTransportMode mode)
     {
         var client = await Fixture.CreateClientAsync(mode);
@@ -22,13 +20,11 @@ public class PingTests(DefaultProjectFixture fixture, ITestOutputHelper testOutp
         Assert.True(true, "Server responded to ping without exception");
     }
 
-    [Theory]
-    [InlineData(HttpTransportMode.Sse)]
-    [InlineData(HttpTransportMode.AutoDetect)]
-    public async Task DefaultServerSendsPingsWithinSixMinutes(HttpTransportMode mode)
+    [Fact]
+    public async Task DefaultServerSendsPingsWithinSixMinutes()
     {
         var handler = new PingResponseHandler();
-        var client = await Fixture.CreateClientAsync(mode, delegatingHandler: handler);
+        var client = await Fixture.CreateClientAsync(HttpTransportMode.Sse, delegatingHandler: handler);
 
         var timeout = TimeSpan.FromMinutes(6);
         var sw = System.Diagnostics.Stopwatch.StartNew();
@@ -54,11 +50,11 @@ public class PingTests(DefaultProjectFixture fixture, ITestOutputHelper testOutp
                 {
                     using var doc = JsonDocument.Parse(contentString);
                     var root = doc.RootElement;
-                    
+
                     if (
                         // Look for a response with an empty object for the result
-                        (root.TryGetProperty("result", out var resultProp) && resultProp.ValueKind == System.Text.Json.JsonValueKind.Object && !resultProp.EnumerateObject().Any())
-                        // or look for an error referencing the ping - this is specific to the curent version of the MCP client and is not a stable detection
+                        (root.TryGetProperty("result", out var resultProp) && resultProp.ValueKind == JsonValueKind.Object && !resultProp.EnumerateObject().Any())
+                        // or look for an error referencing the ping (specific to the current MCP client, not a stable detection)
                         || (root.TryGetProperty("error", out var errorProp) && errorProp.TryGetProperty("message", out var messageProp) && messageProp.GetString() == "Method 'ping' is not available."))
                     {
                         PingReceived = true;
