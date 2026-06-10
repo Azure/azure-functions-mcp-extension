@@ -10,7 +10,7 @@
 
 ### Microsoft.Azure.Functions.Worker.Extensions.Mcp <version>
 
-- <entry>
+- Fixed argument conversion so tool properties typed as arrays of complex objects (and POCO trigger properties typed as arrays of complex objects, or as nested complex objects) are populated instead of arriving as `null` elements. (#260)
 
 ### Microsoft.Azure.Functions.Worker.Extensions.Mcp.Sdk <version>
 
