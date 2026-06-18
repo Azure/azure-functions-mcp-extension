@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
 using Microsoft.AspNetCore.WebUtilities;
@@ -17,123 +17,29 @@ internal sealed class TokenUtility
     public static string ProtectUriState(string uriState, byte[]? key = null)
     {
         key ??= GetKey();
+        var (encKey, macKey) = DeriveKeys(key);
 
-        byte[] iv = new byte[IvSize];
-        RandomNumberGenerator.Fill(iv);
+        byte[] iv = GenerateIv();
+        byte[] ciphertext = Encrypt(Encoding.UTF8.GetBytes(uriState), encKey, iv);
+        byte[] payload = Concat(iv, ciphertext);
+        byte[] signature = ComputeHmac(macKey, payload);
 
-        byte[] ciphertext;
-        using (var aes = Aes.Create())
-        {
-            aes.Key = key;
-            aes.IV = iv;
-            aes.Mode = CipherMode.CBC;
-            aes.Padding = PaddingMode.PKCS7;
-
-            using var encryptor = aes.CreateEncryptor();
-            var plaintext = Encoding.UTF8.GetBytes(uriState);
-            ciphertext = encryptor.TransformFinalBlock(plaintext, 0, plaintext.Length);
-        }
-
-        // Compute HMAC-SHA256 over IV + ciphertext for integrity
-        int dataLength = iv.Length + ciphertext.Length;
-        byte[] tokenBytes = new byte[dataLength];
-        Buffer.BlockCopy(iv, 0, tokenBytes, 0, iv.Length);
-        Buffer.BlockCopy(ciphertext, 0, tokenBytes, iv.Length, ciphertext.Length);
-
-        byte[] signature;
-        using (var hmac = new HMACSHA256(key))
-        {
-            signature = hmac.ComputeHash(tokenBytes);
-        }
-
-        // Encode for URL use
-        var finalToken = new byte[tokenBytes.Length + signature.Length];
-        Buffer.BlockCopy(tokenBytes, 0, finalToken, 0, tokenBytes.Length);
-        Buffer.BlockCopy(signature, 0, finalToken, tokenBytes.Length, signature.Length);
-
-        return WebEncoders.Base64UrlEncode(finalToken);
+        return WebEncoders.Base64UrlEncode(Concat(payload, signature));
     }
 
     public static string ReadUriState(string token, byte[]? key = null)
     {
         key ??= GetKey();
+        var (encKey, macKey) = DeriveKeys(key);
 
         byte[] tokenBytes = WebEncoders.Base64UrlDecode(token);
+        var (iv, ciphertext, signature) = ParseToken(tokenBytes);
 
-        const int minLength = IvSize + SignatureSize + 1; // at least 1 byte of ciphertext
+        byte[] payload = new byte[IvSize + ciphertext.Length];
+        Buffer.BlockCopy(tokenBytes, 0, payload, 0, payload.Length);
+        VerifyHmac(macKey, payload, signature);
 
-        if (tokenBytes.Length < minLength)
-        {
-            throw new InvalidOperationException("Token is too short or malformed.");
-        }
-
-        int cipherLength = tokenBytes.Length - IvSize - SignatureSize;
-
-        byte[] iv = new byte[IvSize];
-        Buffer.BlockCopy(tokenBytes, 0, iv, 0, IvSize);
-
-        byte[] ciphertext = new byte[cipherLength];
-        Buffer.BlockCopy(tokenBytes, IvSize, ciphertext, 0, cipherLength);
-
-        byte[] signature = new byte[SignatureSize];
-        Buffer.BlockCopy(tokenBytes, IvSize + cipherLength, signature, 0, SignatureSize);
-
-        // Verify HMAC-SHA256 signature
-        byte[] dataToSign = new byte[IvSize + cipherLength];
-        Buffer.BlockCopy(tokenBytes, 0, dataToSign, 0, IvSize + cipherLength);
-
-        byte[] computedSignature;
-        using (var hmac = new HMACSHA256(key))
-        {
-            computedSignature = hmac.ComputeHash(dataToSign);
-        }
-
-        if (!CryptographicOperations.FixedTimeEquals(signature, computedSignature))
-        {
-            throw new CryptographicException("Invalid token signature.");
-        }
-
-        using var aes = Aes.Create();
-        aes.Key = key;
-        aes.IV = iv;
-        aes.Mode = CipherMode.CBC;
-        aes.Padding = PaddingMode.PKCS7;
-
-        using var decryptor = aes.CreateDecryptor();
-        byte[] plaintext = decryptor.TransformFinalBlock(ciphertext, 0, ciphertext.Length);
-
-        return Encoding.UTF8.GetString(plaintext);
-    }
-
-    private static byte[] GetKey()
-    {
-        if (TryGetEncryptionKey(out string? key))
-        {
-            return ToKeyBytes(key);
-        }
-
-        throw new InvalidOperationException("Encryption key not found.");
-    }
-
-    // Logic adapted from the Functions Host (https://github.com/Azure/azure-functions-host/blob/d1e06f1d9816105eefc4f50a78a1a43e63a936de/src/WebJobs.Script.WebHost/Security/SecretsUtility.cs?plain=1#L25C1-L25C96)
-    public static bool TryGetEncryptionKey([NotNullWhen(true)] out string? key)
-    {
-        // Use WebSiteAuthEncryptionKey if available else fall back to ContainerEncryptionKey.
-        // Until the container is specialized to a specific site WebSiteAuthEncryptionKey will not be available.
-        if (TryGetEncryptionKey("WEBSITE_AUTH_ENCRYPTION_KEY", out key) ||
-            TryGetEncryptionKey("CONTAINER_ENCRYPTION_KEY", out key))
-        {
-            return true;
-        }
-        
-        return false;
-    }
-
-    private static bool TryGetEncryptionKey(string environmentVariableName, [NotNullWhen(true)] out string? key)
-    {
-        key = Environment.GetEnvironmentVariable(environmentVariableName);
-
-        return !string.IsNullOrEmpty(key);
+        return Encoding.UTF8.GetString(Decrypt(ciphertext, encKey, iv));
     }
 
     public static byte[] ToKeyBytes(string hexOrBase64)
@@ -151,5 +57,119 @@ internal sealed class TokenUtility
         }
 
         return Convert.FromBase64String(hexOrBase64);
+    }
+
+    // Logic adapted from the Functions Host (https://github.com/Azure/azure-functions-host/blob/d1e06f1d9816105eefc4f50a78a1a43e63a936de/src/WebJobs.Script.WebHost/Security/SecretsUtility.cs?plain=1#L25C1-L25C96)
+    public static bool TryGetEncryptionKey([NotNullWhen(true)] out string? key)
+    {
+        // Use WebSiteAuthEncryptionKey if available else fall back to ContainerEncryptionKey.
+        // Until the container is specialized to a specific site WebSiteAuthEncryptionKey will not be available.
+        if (TryGetEncryptionKey("WEBSITE_AUTH_ENCRYPTION_KEY", out key) ||
+            TryGetEncryptionKey("CONTAINER_ENCRYPTION_KEY", out key))
+        {
+            return true;
+        }
+
+        return false;
+    }
+
+    private static (byte[] encKey, byte[] macKey) DeriveKeys(byte[] masterKey)
+    {
+        byte[] encKey = HKDF.DeriveKey(HashAlgorithmName.SHA256, masterKey, KeySize, info: "enc"u8.ToArray());
+        byte[] macKey = HKDF.DeriveKey(HashAlgorithmName.SHA256, masterKey, KeySize, info: "mac"u8.ToArray());
+        return (encKey, macKey);
+    }
+
+    private static byte[] GenerateIv()
+    {
+        byte[] iv = new byte[IvSize];
+        RandomNumberGenerator.Fill(iv);
+        return iv;
+    }
+
+    private static byte[] Encrypt(byte[] plaintext, byte[] key, byte[] iv)
+    {
+        using var aes = CreateAes(key, iv);
+        using var encryptor = aes.CreateEncryptor();
+        return encryptor.TransformFinalBlock(plaintext, 0, plaintext.Length);
+    }
+
+    private static byte[] Decrypt(byte[] ciphertext, byte[] key, byte[] iv)
+    {
+        using var aes = CreateAes(key, iv);
+        using var decryptor = aes.CreateDecryptor();
+        return decryptor.TransformFinalBlock(ciphertext, 0, ciphertext.Length);
+    }
+
+    private static Aes CreateAes(byte[] key, byte[] iv)
+    {
+        var aes = Aes.Create();
+        aes.Key = key;
+        aes.IV = iv;
+        aes.Mode = CipherMode.CBC;
+        aes.Padding = PaddingMode.PKCS7;
+        return aes;
+    }
+
+    private static byte[] ComputeHmac(byte[] key, byte[] data)
+    {
+        using var hmac = new HMACSHA256(key);
+        return hmac.ComputeHash(data);
+    }
+
+    private static void VerifyHmac(byte[] key, byte[] data, byte[] expectedSignature)
+    {
+        byte[] computed = ComputeHmac(key, data);
+        if (!CryptographicOperations.FixedTimeEquals(computed, expectedSignature))
+        {
+            throw new CryptographicException("Invalid token signature.");
+        }
+    }
+
+    private static (byte[] iv, byte[] ciphertext, byte[] signature) ParseToken(byte[] tokenBytes)
+    {
+        const int minLength = IvSize + SignatureSize + 1;
+        if (tokenBytes.Length < minLength)
+        {
+            throw new InvalidOperationException("Token is too short or malformed.");
+        }
+
+        int cipherLength = tokenBytes.Length - IvSize - SignatureSize;
+
+        byte[] iv = new byte[IvSize];
+        Buffer.BlockCopy(tokenBytes, 0, iv, 0, IvSize);
+
+        byte[] ciphertext = new byte[cipherLength];
+        Buffer.BlockCopy(tokenBytes, IvSize, ciphertext, 0, cipherLength);
+
+        byte[] signature = new byte[SignatureSize];
+        Buffer.BlockCopy(tokenBytes, IvSize + cipherLength, signature, 0, SignatureSize);
+
+        return (iv, ciphertext, signature);
+    }
+
+    private static byte[] Concat(byte[] a, byte[] b)
+    {
+        byte[] result = new byte[a.Length + b.Length];
+        Buffer.BlockCopy(a, 0, result, 0, a.Length);
+        Buffer.BlockCopy(b, 0, result, a.Length, b.Length);
+        return result;
+    }
+
+    private static byte[] GetKey()
+    {
+        if (TryGetEncryptionKey(out string? key))
+        {
+            return ToKeyBytes(key);
+        }
+
+        throw new InvalidOperationException("Encryption key not found.");
+    }
+
+    private static bool TryGetEncryptionKey(string environmentVariableName, [NotNullWhen(true)] out string? key)
+    {
+        key = Environment.GetEnvironmentVariable(environmentVariableName);
+
+        return !string.IsNullOrEmpty(key);
     }
 }
