@@ -11,43 +11,45 @@ namespace Microsoft.Azure.Functions.Extensions.Mcp;
 internal sealed class TokenUtility
 {
     private const int KeySize = 32;
-    private const int IvSize = 12;
-    private const int TagSize = 16;
+    private const int IvSize = 16; // AES block size for CBC
     private const int SignatureSize = 32;
 
     public static string ProtectUriState(string uriState, byte[]? key = null)
     {
         key ??= GetKey();
 
-        Span<byte> iv = stackalloc byte[IvSize];
+        byte[] iv = new byte[IvSize];
         RandomNumberGenerator.Fill(iv);
 
-        var plaintext = Encoding.UTF8.GetBytes(uriState);
-        Span<byte> ciphertext = new byte[plaintext.Length]; // Allocate on the heap here
-        Span<byte> tag = stackalloc byte[TagSize];
-
-        using (var aes = new AesGcm(key, TagSize))
+        byte[] ciphertext;
+        using (var aes = Aes.Create())
         {
-            aes.Encrypt(iv, plaintext, ciphertext, tag);
+            aes.Key = key;
+            aes.IV = iv;
+            aes.Mode = CipherMode.CBC;
+            aes.Padding = PaddingMode.PKCS7;
+
+            using var encryptor = aes.CreateEncryptor();
+            var plaintext = Encoding.UTF8.GetBytes(uriState);
+            ciphertext = encryptor.TransformFinalBlock(plaintext, 0, plaintext.Length);
         }
 
-        // Compute HMAC-SHA256 to sign the token
-        int tokenLength = iv.Length + ciphertext.Length + tag.Length;
-        Span<byte> tokenBytes = new byte[tokenLength];
-        iv.CopyTo(tokenBytes[..iv.Length]);
-        ciphertext.CopyTo(tokenBytes.Slice(iv.Length, ciphertext.Length));
-        tag.CopyTo(tokenBytes.Slice(iv.Length + ciphertext.Length, tag.Length));
+        // Compute HMAC-SHA256 over IV + ciphertext for integrity
+        int dataLength = iv.Length + ciphertext.Length;
+        byte[] tokenBytes = new byte[dataLength];
+        Buffer.BlockCopy(iv, 0, tokenBytes, 0, iv.Length);
+        Buffer.BlockCopy(ciphertext, 0, tokenBytes, iv.Length, ciphertext.Length);
 
-        Span<byte> signature = stackalloc byte[SignatureSize];
+        byte[] signature;
         using (var hmac = new HMACSHA256(key))
         {
-            hmac.TryComputeHash(tokenBytes, signature, out _);
+            signature = hmac.ComputeHash(tokenBytes);
         }
 
         // Encode for URL use
         var finalToken = new byte[tokenBytes.Length + signature.Length];
-        tokenBytes.CopyTo(finalToken);
-        signature.CopyTo(finalToken.AsSpan(tokenLength, SignatureSize));
+        Buffer.BlockCopy(tokenBytes, 0, finalToken, 0, tokenBytes.Length);
+        Buffer.BlockCopy(signature, 0, finalToken, tokenBytes.Length, signature.Length);
 
         return WebEncoders.Base64UrlEncode(finalToken);
     }
@@ -56,28 +58,34 @@ internal sealed class TokenUtility
     {
         key ??= GetKey();
 
-        ReadOnlySpan<byte> tokenSpan = WebEncoders.Base64UrlDecode(token);
+        byte[] tokenBytes = WebEncoders.Base64UrlDecode(token);
 
-        const int minLength = IvSize + TagSize + SignatureSize + 1; // at least 1 byte of ciphertext
+        const int minLength = IvSize + SignatureSize + 1; // at least 1 byte of ciphertext
 
-        if (tokenSpan.Length < minLength)
+        if (tokenBytes.Length < minLength)
         {
             throw new InvalidOperationException("Token is too short or malformed.");
         }
 
-        int cipherLength = tokenSpan.Length - IvSize - TagSize - SignatureSize;
+        int cipherLength = tokenBytes.Length - IvSize - SignatureSize;
 
-        var iv = tokenSpan[..IvSize];
-        var ciphertext = tokenSpan.Slice(IvSize, cipherLength);
-        var tag = tokenSpan.Slice(IvSize + cipherLength, TagSize);
-        var signature = tokenSpan.Slice(IvSize + cipherLength + TagSize, SignatureSize);
+        byte[] iv = new byte[IvSize];
+        Buffer.BlockCopy(tokenBytes, 0, iv, 0, IvSize);
 
-        var dataToSign = tokenSpan[..(IvSize + cipherLength + TagSize)];
+        byte[] ciphertext = new byte[cipherLength];
+        Buffer.BlockCopy(tokenBytes, IvSize, ciphertext, 0, cipherLength);
 
-        Span<byte> computedSignature = stackalloc byte[SignatureSize];
+        byte[] signature = new byte[SignatureSize];
+        Buffer.BlockCopy(tokenBytes, IvSize + cipherLength, signature, 0, SignatureSize);
+
+        // Verify HMAC-SHA256 signature
+        byte[] dataToSign = new byte[IvSize + cipherLength];
+        Buffer.BlockCopy(tokenBytes, 0, dataToSign, 0, IvSize + cipherLength);
+
+        byte[] computedSignature;
         using (var hmac = new HMACSHA256(key))
         {
-            hmac.TryComputeHash(dataToSign, computedSignature, out _);
+            computedSignature = hmac.ComputeHash(dataToSign);
         }
 
         if (!CryptographicOperations.FixedTimeEquals(signature, computedSignature))
@@ -85,11 +93,14 @@ internal sealed class TokenUtility
             throw new CryptographicException("Invalid token signature.");
         }
 
-        Span<byte> plaintext = stackalloc byte[cipherLength];
-        using (var aes = new AesGcm(key, TagSize))
-        {
-            aes.Decrypt(iv, ciphertext, tag, plaintext);
-        }
+        using var aes = Aes.Create();
+        aes.Key = key;
+        aes.IV = iv;
+        aes.Mode = CipherMode.CBC;
+        aes.Padding = PaddingMode.PKCS7;
+
+        using var decryptor = aes.CreateDecryptor();
+        byte[] plaintext = decryptor.TransformFinalBlock(ciphertext, 0, ciphertext.Length);
 
         return Encoding.UTF8.GetString(plaintext);
     }
