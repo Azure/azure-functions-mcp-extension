@@ -1,0 +1,15 @@
+# MCP conformance expected-failures baseline.
+#
+# Format and semantics:
+# https://github.com/modelcontextprotocol/conformance/blob/main/SDK_INTEGRATION.md
+#
+# Entries here are scenarios that are currently failing and are known
+# to be unsupported or in-progress. The conformance runner will:
+#   - exit 0 when a listed scenario fails (expected)
+#   - exit 1 when a listed scenario starts passing (stale entry, remove it)
+#   - exit 1 when an unlisted scenario fails (regression)
+#
+# Keep this list small and link each entry to a tracking issue.
+
+server: []
+client: []
