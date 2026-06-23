@@ -63,12 +63,15 @@ jobs:
       - name: Locate built host.json
         id: locate
         run: |
-          host_json="$(find "out/bin/${TEST_APP}/${CONFIGURATION}" -name host.json -print -quit)"
+          host_json="$(find "out/bin/${TEST_APP}" -iname host.json -print -quit)"
           if [ -z "$host_json" ]; then
             echo "::error::Could not find built host.json for ${TEST_APP}."
+            echo "----- out/bin contents -----"
+            ls -R "out/bin" || true
             exit 1
           fi
           app_dir="$(dirname "$host_json")"
+          echo "Using app dir: $app_dir"
           echo "app_dir=$app_dir" >> "$GITHUB_OUTPUT"
 
       - name: Start Functions host
