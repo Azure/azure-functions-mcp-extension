@@ -38,7 +38,6 @@ internal sealed class TokenUtility
         byte[] tokenBytes = WebEncoders.Base64UrlDecode(token);
         var (iv, ciphertext, signature) = ParseToken(tokenBytes);
 
-        // Verify HMAC over the payload (iv + ciphertext) using a slice to avoid redundant allocation
         int payloadLength = tokenBytes.Length - SignatureSize;
         VerifyHmac(macKey, tokenBytes.AsSpan(0, payloadLength), signature);
 
