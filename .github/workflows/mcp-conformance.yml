@@ -95,7 +95,7 @@ jobs:
 
       - name: Run MCP conformance (server mode)
         id: conformance
-        uses: modelcontextprotocol/conformance@v0.1.10
+        uses: modelcontextprotocol/conformance@v0.1.16
         with:
           mode: server
           url: ${{ env.MCP_URL }}
