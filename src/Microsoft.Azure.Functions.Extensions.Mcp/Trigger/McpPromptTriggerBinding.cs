@@ -36,6 +36,8 @@ internal sealed class McpPromptTriggerBinding : ITriggerBinding
         var logger = loggerFactory.CreateLogger<McpPromptTriggerBinding>();
         _promptMetadata = MetadataParser.ParseMetadata(promptAttribute.Metadata, logger);
 
+        Console.WriteLine($"[MCP-DIAG] McpPromptTriggerBinding ctor prompt={promptAttribute.PromptName} useResultSchema={promptAttribute.UseResultSchema}");
+
         BindingDataContract = new Dictionary<string, Type>(StringComparer.OrdinalIgnoreCase)
         {
             { triggerParameter.Name!, triggerParameter.ParameterType },
