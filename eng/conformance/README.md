@@ -8,7 +8,12 @@ against the Azure Functions MCP extension.
 
 The `.github/workflows/mcp-conformance.yml` workflow:
 
-1. Builds `test/TestAppIsolated` against the in-tree extension.
+1. Builds `test/ConformanceTestApp` against the in-tree extension.
+   This is a dedicated test app whose tools, resources, and prompts
+   match the fixture surface the conformance scenarios expect (names
+   like `test_simple_text`, URIs like `test://static-text`, etc.). The
+   regular `TestAppIsolated` exposes different fixtures, so it isn't
+   used here.
 2. Starts Azurite and the Azure Functions host (Core Tools v4).
 3. Invokes the conformance runner in server mode against the extension's
    Streamable HTTP endpoint: `http://localhost:7071/runtime/webhooks/mcp`.
@@ -20,9 +25,10 @@ The `active` server suite is used. To run a broader set locally, swap the
 ## Running locally
 
 ```bash
-# 1. From the repo root, build the test app and start the host.
-dotnet build test/TestAppIsolated/TestAppIsolated.csproj -c Release
-cd out/bin/TestAppIsolated/Release
+# 1. From the repo root, build the conformance app and start the host.
+dotnet restore src/Microsoft.Azure.Functions.Extensions.Mcp/Extensions.Mcp.csproj
+dotnet build test/ConformanceTestApp/ConformanceTestApp.csproj -c Release
+cd out/bin/ConformanceTestApp/release
 func start --port 7071
 
 # 2. In a separate shell:
