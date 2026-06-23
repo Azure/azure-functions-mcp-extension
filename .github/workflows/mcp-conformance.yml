@@ -104,6 +104,7 @@ jobs:
           url: ${{ env.MCP_URL }}
           suite: active
           expected-failures: ./eng/conformance/conformance-baseline.yml
+          verbose: 'true'
 
       - name: Stop Functions host
         if: always()
