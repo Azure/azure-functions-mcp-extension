@@ -6,7 +6,11 @@
          BuildReason-tagged package from a non-existent feed. -->
 
     <PropertyGroup>
-        <_WorkerExtensionsPath>$(BaseIntermediateOutputPath)$(Configuration)\WorkerExtensions\WorkerExtensions.csproj</_WorkerExtensionsPath>
+        <!-- Use lowercase config name to match the artifacts-style obj layout
+             (e.g. out/obj/ConformanceTestApp/release/). Without ToLowerInvariant
+             this resolves to "Release" and the Exists() check below misses the
+             generated csproj on case-sensitive filesystems (CI). -->
+        <_WorkerExtensionsPath>$(BaseIntermediateOutputPath)$(Configuration.ToLowerInvariant())\WorkerExtensions\WorkerExtensions.csproj</_WorkerExtensionsPath>
         <_McpProjectPath>$(SrcRoot)Microsoft.Azure.Functions.Extensions.Mcp\Extensions.Mcp.csproj</_McpProjectPath>
 
         <_PkgBlockRegex><![CDATA[(?s)\s*<PackageReference\s+Include="Microsoft\.Azure\.Functions\.Extensions\.Mcp"[\s\S]*?\/>\s*]]></_PkgBlockRegex>
