@@ -14,6 +14,9 @@ internal sealed class TokenUtility
     private const int IvSize = 16; // AES block size for CBC
     private const int SignatureSize = 32;
 
+    private static readonly byte[] HkdfEncInfo = "enc"u8.ToArray();
+    private static readonly byte[] HkdfMacInfo = "mac"u8.ToArray();
+
     public static string ProtectUriState(string uriState, byte[]? key = null)
     {
         key ??= GetKey();
@@ -35,9 +38,9 @@ internal sealed class TokenUtility
         byte[] tokenBytes = WebEncoders.Base64UrlDecode(token);
         var (iv, ciphertext, signature) = ParseToken(tokenBytes);
 
-        byte[] payload = new byte[IvSize + ciphertext.Length];
-        Buffer.BlockCopy(tokenBytes, 0, payload, 0, payload.Length);
-        VerifyHmac(macKey, payload, signature);
+        // Verify HMAC over the payload (iv + ciphertext) using a slice to avoid redundant allocation
+        int payloadLength = tokenBytes.Length - SignatureSize;
+        VerifyHmac(macKey, tokenBytes.AsSpan(0, payloadLength), signature);
 
         return Encoding.UTF8.GetString(Decrypt(ciphertext, encKey, iv));
     }
@@ -75,8 +78,8 @@ internal sealed class TokenUtility
 
     private static (byte[] encKey, byte[] macKey) DeriveKeys(byte[] masterKey)
     {
-        byte[] encKey = HKDF.DeriveKey(HashAlgorithmName.SHA256, masterKey, KeySize, info: "enc"u8.ToArray());
-        byte[] macKey = HKDF.DeriveKey(HashAlgorithmName.SHA256, masterKey, KeySize, info: "mac"u8.ToArray());
+        byte[] encKey = HKDF.DeriveKey(HashAlgorithmName.SHA256, masterKey, KeySize, info: HkdfEncInfo);
+        byte[] macKey = HKDF.DeriveKey(HashAlgorithmName.SHA256, masterKey, KeySize, info: HkdfMacInfo);
         return (encKey, macKey);
     }
 
@@ -104,20 +107,28 @@ internal sealed class TokenUtility
     private static Aes CreateAes(byte[] key, byte[] iv)
     {
         var aes = Aes.Create();
-        aes.Key = key;
-        aes.IV = iv;
-        aes.Mode = CipherMode.CBC;
-        aes.Padding = PaddingMode.PKCS7;
-        return aes;
+        try
+        {
+            aes.Key = key;
+            aes.IV = iv;
+            aes.Mode = CipherMode.CBC;
+            aes.Padding = PaddingMode.PKCS7;
+            return aes;
+        }
+        catch
+        {
+            aes.Dispose();
+            throw;
+        }
     }
 
-    private static byte[] ComputeHmac(byte[] key, byte[] data)
+    private static byte[] ComputeHmac(byte[] key, ReadOnlySpan<byte> data)
     {
         using var hmac = new HMACSHA256(key);
-        return hmac.ComputeHash(data);
+        return hmac.ComputeHash(data.ToArray());
     }
 
-    private static void VerifyHmac(byte[] key, byte[] data, byte[] expectedSignature)
+    private static void VerifyHmac(byte[] key, ReadOnlySpan<byte> data, byte[] expectedSignature)
     {
         byte[] computed = ComputeHmac(key, data);
         if (!CryptographicOperations.FixedTimeEquals(computed, expectedSignature))
