@@ -105,13 +105,23 @@ jobs:
 
       - name: Run MCP conformance (server mode)
         id: conformance
-        uses: modelcontextprotocol/conformance@v0.1.16
+        run: |
+          set -o pipefail
+          mkdir -p "$RUNNER_TEMP/conformance-out"
+          npx --yes @modelcontextprotocol/conformance@0.1.16 server \
+            --url "$MCP_URL" \
+            --suite active \
+            --expected-failures ./eng/conformance/conformance-baseline.yml \
+            -o "$RUNNER_TEMP/conformance-out" \
+            2>&1 | tee "$RUNNER_TEMP/conformance-out/console.log"
+
+      - name: Upload conformance reports
+        if: always()
+        uses: actions/upload-artifact@v4
         with:
-          mode: server
-          url: ${{ env.MCP_URL }}
-          suite: active
-          expected-failures: ./eng/conformance/conformance-baseline.yml
-          verbose: 'true'
+          name: conformance-reports
+          path: ${{ runner.temp }}/conformance-out
+          if-no-files-found: ignore
 
       - name: Stop Functions host
         if: always()
