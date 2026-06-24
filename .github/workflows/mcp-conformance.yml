@@ -162,6 +162,11 @@ jobs:
           echo "| --- | --- | --- |" >> "$summary"
 
           # Parse per-scenario lines: ✓ or ✗ scenario-name: X passed, Y failed
+          # Also build the expected doc table for drift detection
+          doc_table="$RUNNER_TEMP/conformance-doc-table.md"
+          echo "| Status | Scenario | Detail |" > "$doc_table"
+          echo "| --- | --- | --- |" >> "$doc_table"
+
           grep -E '^[✓✗]' "$log" | while IFS= read -r line; do
             if echo "$line" | grep -q '^✓'; then
               icon="✅"
@@ -171,6 +176,7 @@ jobs:
             scenario=$(echo "$line" | sed -E 's/^[✓✗] ([^:]+):.*/\1/')
             detail=$(echo "$line" | sed -E 's/^[✓✗] [^:]+: (.*)/\1/')
             echo "| $icon | \`$scenario\` | $detail |" >> "$summary"
+            echo "| $icon | \`$scenario\` | $detail |" >> "$doc_table"
           done
 
           echo "" >> "$summary"
@@ -213,6 +219,42 @@ jobs:
           # Write to job summary
           cat "$summary" >> "$GITHUB_STEP_SUMMARY"
 
+      - name: Check docs drift
+        if: always()
+        id: drift
+        run: |
+          doc="docs/protocol-conformance.md"
+          expected_table="$RUNNER_TEMP/conformance-doc-table.md"
+
+          if [ ! -f "$expected_table" ]; then
+            echo "drift=unknown" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # Extract the table between the sentinel comments in the doc
+          checked_in=$(sed -n '/<!-- conformance-table-start -->/,/<!-- conformance-table-end -->/p' "$doc" \
+            | grep -E '^\|' || echo "")
+
+          expected=$(cat "$expected_table")
+
+          if [ "$checked_in" = "$expected" ]; then
+            echo "drift=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "drift=true" >> "$GITHUB_OUTPUT"
+            echo "::warning::docs/protocol-conformance.md is out of date with the conformance results."
+
+            # Show the diff in the job summary
+            {
+              echo ""
+              echo "---"
+              echo "### 📝 Documentation drift detected"
+              echo ""
+              echo "\`docs/protocol-conformance.md\` does not match the conformance results."
+              echo "Update the table between the \`<!-- conformance-table-start -->\` and"
+              echo "\`<!-- conformance-table-end -->\` markers with the table from the results above."
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
+
       - name: Comment on PR
         if: always() && github.event_name == 'pull_request'
         env:
@@ -221,6 +263,20 @@ jobs:
           summary="$RUNNER_TEMP/conformance-summary.md"
           if [ ! -f "$summary" ]; then
             exit 0
+          fi
+
+          # Append drift warning if detected
+          if [ "${{ steps.drift.outputs.drift }}" = "true" ]; then
+            {
+              echo ""
+              echo "---"
+              echo "### 📝 Documentation drift detected"
+              echo ""
+              echo "The conformance results table in \`docs/protocol-conformance.md\` does not"
+              echo "match these results. Please update the table between the"
+              echo "\`<!-- conformance-table-start -->\` and \`<!-- conformance-table-end -->\`"
+              echo "markers to match the scenario results above."
+            } >> "$summary"
           fi
 
           # Add a marker so we can find and update this comment on re-runs

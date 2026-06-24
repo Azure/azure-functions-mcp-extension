@@ -10,12 +10,12 @@ how that support is verified.
 We run the official
 [MCP conformance suite](https://github.com/modelcontextprotocol/conformance)
 in server mode against a real Azure Functions host loaded with this
-extension. See `.github/workflows/mcp-conformance.yml`. The
-authoritative answer to "does the extension support feature X" is the
-latest green run of that workflow, not this table.
+extension. See `.github/workflows/mcp-conformance.yml`.
 
-The table below is a human summary kept in sync with the conformance
-results.
+The table below uses the exact scenario names from the conformance suite.
+CI verifies this table matches the latest results — if a scenario
+changes status, the workflow will flag this doc as out of date and the
+PR comment will include a reminder to update it.
 
 ## Protocol versions
 
@@ -33,24 +33,56 @@ the bundled SDK supports during `initialize`.
 Clients can discover the negotiated `protocolVersion` and the server's
 declared `capabilities` from the standard MCP `initialize` response.
 
-## Feature support
+## Conformance scenarios
 
-| Feature                     | Supported | Notes                                                                            |
-| --------------------------- | --------- | -------------------------------------------------------------------------------- |
-| Tools                       | Yes       | Trigger-based, with typed argument binding                                       |
-| Resources (static)          | Yes       |                                                                                  |
-| Resource templates          | Yes       |                                                                                  |
-| Prompts                     | Yes       |                                                                                  |
-| Notifications (listChanged) | Yes       |                                                                                  |
-| Transport: SSE              | Yes       | `/runtime/webhooks/mcp/sse`                                                      |
-| Transport: Streamable HTTP  | Yes       | `/runtime/webhooks/mcp` (default)                                                |
-| Sampling (server-initiated) | No        | Not currently surfaced through the trigger model                                 |
-| Roots                       | No        | Not currently surfaced through the trigger model                                 |
-| Auth (OAuth)                | n/a       | Out of scope for the extension; handled by the Functions host, APIM, Easy Auth   |
+<!-- conformance-table-start -->
+| Status | Scenario | Detail |
+| --- | --- | --- |
+| ✅ | `server-initialize` | 1 passed, 0 failed |
+| ✅ | `logging-set-level` | 1 passed, 0 failed |
+| ✅ | `ping` | 1 passed, 0 failed |
+| ❌ | `completion-complete` | 0 passed, 1 failed |
+| ✅ | `tools-list` | 1 passed, 0 failed |
+| ✅ | `tools-call-simple-text` | 1 passed, 0 failed |
+| ✅ | `tools-call-image` | 1 passed, 0 failed |
+| ✅ | `tools-call-audio` | 1 passed, 0 failed |
+| ✅ | `tools-call-embedded-resource` | 1 passed, 0 failed |
+| ✅ | `tools-call-mixed-content` | 1 passed, 0 failed |
+| ❌ | `tools-call-with-logging` | 0 passed, 1 failed |
+| ✅ | `tools-call-error` | 1 passed, 0 failed |
+| ❌ | `tools-call-with-progress` | 0 passed, 1 failed |
+| ❌ | `tools-call-sampling` | 0 passed, 1 failed |
+| ❌ | `tools-call-elicitation` | 0 passed, 1 failed |
+| ❌ | `elicitation-sep1034-defaults` | 0 passed, 1 failed |
+| ✅ | `server-sse-multiple-streams` | 2 passed, 0 failed |
+| ❌ | `elicitation-sep1330-enums` | 0 passed, 1 failed |
+| ✅ | `resources-list` | 1 passed, 0 failed |
+| ✅ | `resources-read-text` | 1 passed, 0 failed |
+| ✅ | `resources-read-binary` | 1 passed, 0 failed |
+| ✅ | `resources-templates-read` | 1 passed, 0 failed |
+| ✅ | `resources-subscribe` | 1 passed, 0 failed |
+| ✅ | `resources-unsubscribe` | 1 passed, 0 failed |
+| ✅ | `prompts-list` | 1 passed, 0 failed |
+| ✅ | `prompts-get-simple` | 1 passed, 0 failed |
+| ✅ | `prompts-get-with-args` | 1 passed, 0 failed |
+| ✅ | `prompts-get-embedded-resource` | 1 passed, 0 failed |
+| ✅ | `prompts-get-with-image` | 1 passed, 0 failed |
+| ❌ | `dns-rebinding-protection` | 1 passed, 1 failed |
+<!-- conformance-table-end -->
 
-For the exact list of conformance scenarios that pass and any expected
-failures, see [`eng/conformance/conformance-baseline.yml`](../eng/conformance/conformance-baseline.yml)
-and the latest run of the `MCP Conformance` workflow.
+**24** passed, **8** failed out of **32** scenarios
+
+Expected failures are tracked in
+[`eng/conformance/conformance-baseline.yml`](../eng/conformance/conformance-baseline.yml).
+
+## Additional features (not covered by conformance suite)
+
+| Feature | Status | Notes |
+| --- | --- | --- |
+| Transport: SSE | ✅ Supported | `/runtime/webhooks/mcp/sse` |
+| Transport: Streamable HTTP | ✅ Supported | `/runtime/webhooks/mcp` (default) |
+| Notifications (listChanged) | ✅ Supported | |
+| Auth (OAuth) | n/a | Out of scope; handled by Functions host, APIM, Easy Auth |
 
 ## Running conformance locally
 
