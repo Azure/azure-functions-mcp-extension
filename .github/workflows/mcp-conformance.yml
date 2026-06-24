@@ -18,6 +18,7 @@ on:
 
 permissions:
   contents: read
+  pull-requests: write
 
 jobs:
   conformance:
@@ -114,6 +115,132 @@ jobs:
             --expected-failures ./eng/conformance/conformance-baseline.yml \
             -o "$RUNNER_TEMP/conformance-out" \
             2>&1 | tee "$RUNNER_TEMP/conformance-out/console.log"
+
+      - name: Generate conformance summary
+        if: always()
+        run: |
+          log="$RUNNER_TEMP/conformance-out/console.log"
+          summary="$RUNNER_TEMP/conformance-summary.md"
+
+          # Header
+          echo "## MCP Conformance Results" > "$summary"
+          echo "" >> "$summary"
+
+          if [ ! -f "$log" ]; then
+            echo "⚠️ No conformance output found — the runner may not have started." >> "$summary"
+            cat "$summary" >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          # Extract the totals line (e.g. "Total: 24 passed, 8 failed")
+          totals=$(grep -oP 'Total: \d+ passed, \d+ failed' "$log" || echo "")
+          passed=$(echo "$totals" | grep -oP '\d+ passed' | grep -oP '\d+' || echo "0")
+          failed=$(echo "$totals" | grep -oP '\d+ failed' | grep -oP '\d+' || echo "0")
+          total=$((passed + failed))
+
+          # Check baseline result
+          if grep -q "Baseline check passed" "$log"; then
+            baseline_ok=true
+          else
+            baseline_ok=false
+          fi
+
+          # Status badge
+          if [ "$baseline_ok" = true ]; then
+            echo "✅ **Baseline check passed** — all failures are expected." >> "$summary"
+          else
+            echo "❌ **Baseline check failed** — see details below." >> "$summary"
+          fi
+          echo "" >> "$summary"
+          echo "**${passed}** passed, **${failed}** failed out of **${total}** scenarios" >> "$summary"
+          echo "" >> "$summary"
+
+          # Build scenario table
+          echo "### Scenario Results" >> "$summary"
+          echo "" >> "$summary"
+          echo "| Status | Scenario | Detail |" >> "$summary"
+          echo "| --- | --- | --- |" >> "$summary"
+
+          # Parse per-scenario lines: ✓ or ✗ scenario-name: X passed, Y failed
+          grep -E '^[✓✗]' "$log" | while IFS= read -r line; do
+            if echo "$line" | grep -q '^✓'; then
+              icon="✅"
+            else
+              icon="❌"
+            fi
+            scenario=$(echo "$line" | sed -E 's/^[✓✗] ([^:]+):.*/\1/')
+            detail=$(echo "$line" | sed -E 's/^[✓✗] [^:]+: (.*)/\1/')
+            echo "| $icon | \`$scenario\` | $detail |" >> "$summary"
+          done
+
+          echo "" >> "$summary"
+
+          # List expected failures
+          expected=$(grep -A 100 'Expected failures' "$log" | grep '^ *~' | sed 's/^ *~ *//' || echo "")
+          if [ -n "$expected" ]; then
+            echo "<details><summary>Expected failures (in baseline)</summary>" >> "$summary"
+            echo "" >> "$summary"
+            echo "$expected" | while IFS= read -r ef; do
+              echo "- \`$ef\`" >> "$summary"
+            done
+            echo "" >> "$summary"
+            echo "These scenarios are tracked in [\`eng/conformance/conformance-baseline.yml\`](../blob/${{ github.sha }}/eng/conformance/conformance-baseline.yml)." >> "$summary"
+            echo "</details>" >> "$summary"
+          fi
+
+          # Unexpected failures
+          unexpected=$(grep -A 100 'Unexpected failures' "$log" | grep '^ *!' | sed 's/^ *! *//' || echo "")
+          if [ -n "$unexpected" ]; then
+            echo "" >> "$summary"
+            echo "### 🚨 Unexpected failures (regressions)" >> "$summary"
+            echo "" >> "$summary"
+            echo "$unexpected" | while IFS= read -r uf; do
+              echo "- \`$uf\`" >> "$summary"
+            done
+          fi
+
+          # Newly passing (stale baseline entries)
+          newly_passing=$(grep -A 100 'Newly passing' "$log" | grep '^ *+' | sed 's/^ *+ *//' || echo "")
+          if [ -n "$newly_passing" ]; then
+            echo "" >> "$summary"
+            echo "### 🎉 Newly passing (remove from baseline)" >> "$summary"
+            echo "" >> "$summary"
+            echo "$newly_passing" | while IFS= read -r np; do
+              echo "- \`$np\`" >> "$summary"
+            done
+          fi
+
+          # Write to job summary
+          cat "$summary" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Comment on PR
+        if: always() && github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          summary="$RUNNER_TEMP/conformance-summary.md"
+          if [ ! -f "$summary" ]; then
+            exit 0
+          fi
+
+          # Add a marker so we can find and update this comment on re-runs
+          marker="<!-- mcp-conformance-bot -->"
+          body="${marker}
+          $(cat "$summary")"
+
+          # Try to update an existing comment, otherwise create a new one
+          existing=$(gh api \
+            "repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments" \
+            --jq ".[] | select(.body | startswith(\"${marker}\")) | .id" \
+            2>/dev/null | head -1)
+
+          if [ -n "$existing" ]; then
+            gh api \
+              "repos/${{ github.repository }}/issues/comments/${existing}" \
+              -X PATCH -f body="$body" --silent
+          else
+            gh pr comment "${{ github.event.pull_request.number }}" --body "$body"
+          fi
 
       - name: Upload conformance reports
         if: always()
