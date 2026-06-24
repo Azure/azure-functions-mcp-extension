@@ -1,0 +1,139 @@
+name: MCP Conformance
+
+# Runs the Model Context Protocol conformance suite
+# (https://github.com/modelcontextprotocol/conformance) against a real
+# Azure Functions host loaded with this extension. We boot the isolated
+# worker test app under Core Tools, then point the conformance runner at
+# the Streamable HTTP endpoint exposed by the extension.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    # Catch upstream conformance / SDK drift even without code changes.
+    - cron: '0 6 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  conformance:
+    name: Server conformance (ConformanceTestApp)
+    runs-on: ubuntu-latest
+
+    env:
+      CONFIGURATION: Release
+      TEST_APP: ConformanceTestApp
+      MCP_URL: http://localhost:7071/runtime/webhooks/mcp
+      AzureWebJobsStorage: UseDevelopmentStorage=true
+      FUNCTIONS_WORKER_RUNTIME: dotnet-isolated
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET (from global.json)
+        uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install Azurite (storage emulator)
+        run: npm install -g azurite
+
+      - name: Start Azurite
+        run: |
+          mkdir -p "$RUNNER_TEMP/azurite"
+          nohup azurite --silent --location "$RUNNER_TEMP/azurite" --debug "$RUNNER_TEMP/azurite/debug.log" >/dev/null 2>&1 &
+          # Wait for the blob endpoint to accept connections.
+          timeout 30 bash -c 'until curl -fsS -o /dev/null http://127.0.0.1:10000/ || [ $? -eq 22 ]; do sleep 1; done'
+
+      - name: Install Azure Functions Core Tools v4
+        run: npm install -g azure-functions-core-tools@4 --unsafe-perm true
+
+      - name: Build test app
+        run: |
+          # The test app's worker SDK generates a WorkerExtensions
+          # project that references the host extension by ProjectReference,
+          # but its restore happens after the test app's own restore. Pre-
+          # restoring the host extension ensures the assets file exists by
+          # the time the WorkerExtensions build kicks in.
+          dotnet restore src/Microsoft.Azure.Functions.Extensions.Mcp/Extensions.Mcp.csproj
+          dotnet build "test/${TEST_APP}/${TEST_APP}.csproj" -c "$CONFIGURATION"
+
+      - name: Locate built host.json
+        id: locate
+        run: |
+          host_json="$(find "out/bin/${TEST_APP}" -iname host.json -print -quit)"
+          if [ -z "$host_json" ]; then
+            echo "::error::Could not find built host.json for ${TEST_APP}."
+            echo "----- out/bin contents -----"
+            ls -R "out/bin" || true
+            exit 1
+          fi
+          app_dir="$(dirname "$host_json")"
+          echo "Using app dir: $app_dir"
+          echo "app_dir=$app_dir" >> "$GITHUB_OUTPUT"
+
+      - name: Start Functions host
+        run: |
+          cd "${{ steps.locate.outputs.app_dir }}"
+          nohup func start --port 7071 --verbose > "$RUNNER_TEMP/func-host.log" 2>&1 &
+          echo $! > "$RUNNER_TEMP/func-host.pid"
+
+      - name: Wait for host readiness
+        run: |
+          # The MCP endpoint accepts POST; a GET returns a 4xx once the host
+          # is listening, which is good enough as a readiness signal.
+          for i in $(seq 1 60); do
+            if curl -fsS -o /dev/null -w '%{http_code}' "$MCP_URL" | grep -Eq '^[0-9]+$'; then
+              echo "Host is responding."
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "::error::Functions host did not become ready in time."
+          echo "----- func-host.log -----"
+          cat "$RUNNER_TEMP/func-host.log" || true
+          exit 1
+
+      - name: Run MCP conformance (server mode)
+        id: conformance
+        run: |
+          set -o pipefail
+          mkdir -p "$RUNNER_TEMP/conformance-out"
+          npx --yes @modelcontextprotocol/conformance@0.1.16 server \
+            --url "$MCP_URL" \
+            --suite active \
+            --expected-failures ./eng/conformance/conformance-baseline.yml \
+            -o "$RUNNER_TEMP/conformance-out" \
+            2>&1 | tee "$RUNNER_TEMP/conformance-out/console.log"
+
+      - name: Upload conformance reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: conformance-reports
+          path: ${{ runner.temp }}/conformance-out
+          if-no-files-found: ignore
+
+      - name: Stop Functions host
+        if: always()
+        run: |
+          if [ -f "$RUNNER_TEMP/func-host.pid" ]; then
+            kill "$(cat "$RUNNER_TEMP/func-host.pid")" 2>/dev/null || true
+          fi
+
+      - name: Upload host log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: func-host-log
+          path: ${{ runner.temp }}/func-host.log
+          if-no-files-found: ignore
