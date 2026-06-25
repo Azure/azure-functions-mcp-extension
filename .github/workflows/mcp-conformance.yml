@@ -33,15 +33,15 @@ jobs:
       FUNCTIONS_WORKER_RUNTIME: dotnet-isolated
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Setup .NET (from global.json)
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v5
         with:
           global-json-file: global.json
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: '22'
 
@@ -104,43 +104,6 @@ jobs:
           cat "$RUNNER_TEMP/func-host.log" || true
           exit 1
 
-      - name: Capture MCP protocol version
-        id: protocol
-        run: |
-          response=$(curl -sS -X POST "$MCP_URL" \
-            -H "Content-Type: application/json" \
-            -H "Accept: application/json, text/event-stream" \
-            -d '{
-              "jsonrpc": "2.0",
-              "id": 1,
-              "method": "initialize",
-              "params": {
-                "protocolVersion": "2025-06-18",
-                "capabilities": {},
-                "clientInfo": { "name": "conformance-ci", "version": "1.0.0" }
-              }
-            }')
-
-          # The response may be SSE-formatted (data: ...) or raw JSON
-          json=$(echo "$response" | sed -n 's/^data: //p' | head -1)
-          if [ -z "$json" ]; then
-            json="$response"
-          fi
-
-          version=$(echo "$json" | node -e "
-            const chunks = [];
-            process.stdin.on('data', c => chunks.push(c));
-            process.stdin.on('end', () => {
-              try {
-                const obj = JSON.parse(chunks.join(''));
-                console.log(obj.result?.protocolVersion || 'unknown');
-              } catch { console.log('unknown'); }
-            });
-          ")
-
-          echo "Protocol version: $version"
-          echo "version=$version" >> "$GITHUB_OUTPUT"
-
       - name: Run MCP conformance (server mode)
         id: conformance
         run: |
@@ -155,16 +118,55 @@ jobs:
 
       - name: Generate conformance summary
         if: always()
+        id: summary
         run: |
           log="$RUNNER_TEMP/conformance-out/console.log"
           summary="$RUNNER_TEMP/conformance-summary.md"
+
+          # Extract protocol version from the running host (with retries)
+          protocol_version="unknown"
+          for attempt in 1 2 3; do
+            response=$(curl -sS --max-time 5 -X POST "$MCP_URL" \
+              -H "Content-Type: application/json" \
+              -H "Accept: application/json, text/event-stream" \
+              -d '{
+                "jsonrpc": "2.0",
+                "id": 1,
+                "method": "initialize",
+                "params": {
+                  "protocolVersion": "2025-06-18",
+                  "capabilities": {},
+                  "clientInfo": { "name": "conformance-ci", "version": "1.0.0" }
+                }
+              }' 2>/dev/null) && {
+              # Response may be SSE-formatted (data: ...) or raw JSON
+              json=$(echo "$response" | sed -n 's/^data: //p' | head -1)
+              [ -z "$json" ] && json="$response"
+              version=$(echo "$json" | node -e "
+                const chunks = [];
+                process.stdin.on('data', c => chunks.push(c));
+                process.stdin.on('end', () => {
+                  try {
+                    const obj = JSON.parse(chunks.join(''));
+                    console.log(obj.result?.protocolVersion || 'unknown');
+                  } catch { console.log('unknown'); }
+                });
+              ")
+              if [ "$version" != "unknown" ] && [ -n "$version" ]; then
+                protocol_version="$version"
+                break
+              fi
+            }
+            sleep 2
+          done
+          echo "Protocol version: $protocol_version"
+          echo "protocol_version=$protocol_version" >> "$GITHUB_OUTPUT"
 
           # Header
           echo "## MCP Conformance Results" > "$summary"
           echo "" >> "$summary"
 
-          protocol_version="${{ steps.protocol.outputs.version }}"
-          if [ -n "$protocol_version" ] && [ "$protocol_version" != "unknown" ]; then
+          if [ "$protocol_version" != "unknown" ]; then
             echo "**MCP Protocol Version:** \`${protocol_version}\`" >> "$summary"
             echo "" >> "$summary"
           fi
@@ -276,7 +278,7 @@ jobs:
           fi
 
           # Check protocol version drift
-          protocol_version="${{ steps.protocol.outputs.version }}"
+          protocol_version="${{ steps.summary.outputs.protocol_version }}"
           if [ -n "$protocol_version" ] && [ "$protocol_version" != "unknown" ]; then
             doc_version=$(grep -oP '(?<=conformance-protocol-version: )\S+' "$doc" || echo "")
             if [ "$doc_version" != "$protocol_version" ]; then
@@ -355,7 +357,7 @@ jobs:
 
       - name: Upload conformance reports
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: conformance-reports
           path: ${{ runner.temp }}/conformance-out
@@ -370,7 +372,7 @@ jobs:
 
       - name: Upload host log
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: func-host-log
           path: ${{ runner.temp }}/func-host.log
