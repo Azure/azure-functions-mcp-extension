@@ -26,7 +26,8 @@ internal class FunctionsMcpServerOptionsSetup(IOptions<McpOptions> extensionOpti
         options.Capabilities = new ServerCapabilities
         {
             Tools = new ToolsCapability(),
-            Resources = new ResourcesCapability()
+            Resources = new ResourcesCapability(),
+            Prompts = new PromptsCapability()
         };
     }
 }

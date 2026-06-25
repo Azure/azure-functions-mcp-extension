@@ -45,7 +45,7 @@ public class FunctionsMcpServerOptionsSetupTests
     }
 
     [Fact]
-    public void Configure_SetsCapabilities_WithToolsAndResources()
+    public void Configure_SetsCapabilities_WithToolsResourcesAndPrompts()
     {
         var mcpOptions = new McpOptions();
         var optionsWrapper = Options.Create(mcpOptions);
@@ -57,6 +57,7 @@ public class FunctionsMcpServerOptionsSetupTests
         Assert.NotNull(serverOptions.Capabilities);
         Assert.NotNull(serverOptions.Capabilities.Tools);
         Assert.NotNull(serverOptions.Capabilities.Resources);
+        Assert.NotNull(serverOptions.Capabilities.Prompts);
     }
 
     [Fact]
@@ -86,5 +87,6 @@ public class FunctionsMcpServerOptionsSetupTests
         Assert.NotNull(serverOptions.Capabilities);
         Assert.NotNull(serverOptions.Capabilities.Tools);
         Assert.NotNull(serverOptions.Capabilities.Resources);
+        Assert.NotNull(serverOptions.Capabilities.Prompts);
     }
 }
