@@ -7,6 +7,7 @@
 ### Microsoft.Azure.Functions.Extensions <version>
 
 - Added `UseResultSchema` to `McpPromptTriggerAttribute`. When set by the worker, the host unwraps the `McpPromptResult` envelope produced by the worker instead of inferring the shape from the JSON. (#212)
+- Advertise `Prompts` in `ServerCapabilities` so spec-compliant MCP clients invoke `prompts/list`.
 
 ### Microsoft.Azure.Functions.Worker.Extensions.Mcp 1.5.1
 
