@@ -25,6 +25,9 @@ that the extension and the .NET isolated worker SDK depend on. The
 extension itself does not pin a protocol version: it advertises whatever
 the bundled SDK supports during `initialize`.
 
+<!-- conformance-protocol-version: 2025-06-18 -->
+**Supported MCP protocol version:** `2025-06-18`
+
 | Layer                                                          | SDK package version |
 | -------------------------------------------------------------- | ------------------- |
 | `Microsoft.Azure.Functions.Extensions.Mcp` (host)              | `0.4.0-preview.3`   |
