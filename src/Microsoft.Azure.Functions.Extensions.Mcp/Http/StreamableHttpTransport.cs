@@ -27,7 +27,7 @@ internal sealed class StreamableHttpTransport : McpExtensionTransport<Streamable
         throw new NotSupportedException();
     }
 
-    // SessionId is init-only on StreamableHttpServerTransport,
+    // SessionId is init-only on StreamableHttpServerTransport
     // so we delegate the getter to the SDK transport and reject post-construction mutation.
     public override string? SessionId
     {
