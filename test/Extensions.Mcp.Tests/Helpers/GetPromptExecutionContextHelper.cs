@@ -34,7 +34,9 @@ public static class GetPromptExecutionContextHelper
             services.AddSingleton(httpContextAccessor);
         }
 
+#pragma warning disable MCPEXP002
         var mockServer = new Mock<McpServer>();
+#pragma warning restore MCPEXP002
         mockServer.Setup(s => s.SessionId).Returns(sessionId);
         mockServer.Setup(s => s.ClientInfo).Returns(clientInfo);
 

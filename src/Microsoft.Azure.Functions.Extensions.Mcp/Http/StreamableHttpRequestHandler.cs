@@ -136,7 +136,7 @@ internal sealed class StreamableHttpRequestHandler(
 
         StreamableHttpTransport transport = new(
             sessionId: sessionId,
-            stateless: true,
+            stateless: true, // SDK transport property — controls SDK-level stateless behavior
             onSessionInitialized: (initParams, ct) =>
                 {
                     // Persist the session ID in the response header after receiving the initialize request.
@@ -145,7 +145,7 @@ internal sealed class StreamableHttpRequestHandler(
                     return ValueTask.CompletedTask;
                 })
         {
-            IsStateless = true,
+            IsStateless = true, // Host wrapper property — controls host session management
             SessionContext = new(clientId, instanceIdProvider.InstanceId),
         };
 

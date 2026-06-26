@@ -16,7 +16,9 @@ public class McpPromptListenerTests
         string name = "TestPrompt",
         IDictionary<string, JsonElement>? arguments = null)
     {
+#pragma warning disable MCPEXP002
         var server = new Mock<McpServer>().Object;
+#pragma warning restore MCPEXP002
         var parameters = new GetPromptRequestParams { Name = name, Arguments = arguments };
 
         return new RequestContext<GetPromptRequestParams>(server, new JsonRpcRequest() { Method = RequestMethods.PromptsGet }, parameters);
