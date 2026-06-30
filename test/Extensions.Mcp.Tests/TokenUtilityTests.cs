@@ -2,7 +2,6 @@
 // Licensed under the MIT License.
 
 using System.Security.Cryptography;
-using System.Text;
 using Xunit;
 
 namespace Microsoft.Azure.Functions.Extensions.Mcp.Tests;

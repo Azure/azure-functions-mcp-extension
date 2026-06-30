@@ -58,7 +58,13 @@ internal sealed class TokenUtility
             return keyBytes.ToArray();
         }
 
-        return Convert.FromBase64String(hexOrBase64);
+        byte[] decoded = Convert.FromBase64String(hexOrBase64);
+        if (decoded.Length != KeySize)
+        {
+            throw new ArgumentException($"Key must be exactly {KeySize} bytes, but got {decoded.Length} bytes.");
+        }
+
+        return decoded;
     }
 
     // Logic adapted from the Functions Host (https://github.com/Azure/azure-functions-host/blob/d1e06f1d9816105eefc4f50a78a1a43e63a936de/src/WebJobs.Script.WebHost/Security/SecretsUtility.cs?plain=1#L25C1-L25C96)
@@ -123,8 +129,7 @@ internal sealed class TokenUtility
 
     private static byte[] ComputeHmac(byte[] key, ReadOnlySpan<byte> data)
     {
-        using var hmac = new HMACSHA256(key);
-        return hmac.ComputeHash(data.ToArray());
+        return HMACSHA256.HashData(key, data);
     }
 
     private static void VerifyHmac(byte[] key, ReadOnlySpan<byte> data, byte[] expectedSignature)
