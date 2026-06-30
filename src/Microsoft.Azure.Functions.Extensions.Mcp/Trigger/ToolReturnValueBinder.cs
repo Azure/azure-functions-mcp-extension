@@ -2,7 +2,6 @@
 // Licensed under the MIT License.
 
 using System.Text.Json;
-using System.Text.Json.Nodes;
 using Microsoft.Azure.Functions.Extensions.Mcp.Serialization;
 using Microsoft.Azure.WebJobs.Host.Bindings;
 using ModelContextProtocol;
@@ -43,7 +42,7 @@ internal sealed class ToolReturnValueBinder(CallToolExecutionContext executionCo
             }
 
             IList<ContentBlock> contentBlocks = DeserializeToContentBlockCollection(result);
-            JsonNode? structuredContent = DeserializeToStructuredContent(result);
+            JsonElement? structuredContent = DeserializeToStructuredContent(result);
 
             if (contentBlocks.Count == 0)
             {
@@ -86,12 +85,14 @@ internal sealed class ToolReturnValueBinder(CallToolExecutionContext executionCo
         return [contentBlock];
     }
 
-    private static JsonNode? DeserializeToStructuredContent(McpToolResult result)
+    private static JsonElement? DeserializeToStructuredContent(McpToolResult result)
     {
         if (!string.IsNullOrEmpty(result.StructuredContent))
         {
-            return JsonSerializer.Deserialize<JsonNode>(result.StructuredContent!, McpJsonUtilities.DefaultOptions)
-                ?? throw new InvalidOperationException($"Failed to deserialize structured content.");
+            var element = JsonSerializer.Deserialize<JsonElement>(result.StructuredContent!, McpJsonUtilities.DefaultOptions);
+            return element.ValueKind != JsonValueKind.Null
+                ? element
+                : throw new InvalidOperationException("Failed to deserialize structured content.");
         }
 
         return null;

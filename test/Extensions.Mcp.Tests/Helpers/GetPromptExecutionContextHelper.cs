@@ -14,7 +14,7 @@ public static class GetPromptExecutionContextHelper
 {
     internal static GetPromptExecutionContext CreateExecutionContext(
         string promptName = "TestPrompt",
-        IReadOnlyDictionary<string, JsonElement>? args = null,
+        IDictionary<string, JsonElement>? args = null,
         string? sessionId = "session-123",
         Implementation? clientInfo = null,
         IHttpContextAccessor? httpContextAccessor = null)
@@ -34,15 +34,17 @@ public static class GetPromptExecutionContextHelper
             services.AddSingleton(httpContextAccessor);
         }
 
+#pragma warning disable MCPEXP002
         var mockServer = new Mock<McpServer>();
+#pragma warning restore MCPEXP002
         mockServer.Setup(s => s.SessionId).Returns(sessionId);
         mockServer.Setup(s => s.ClientInfo).Returns(clientInfo);
 
         var requestContext = new RequestContext<GetPromptRequestParams>(
             mockServer.Object,
-            new JsonRpcRequest() { Method = RequestMethods.PromptsGet })
+            new JsonRpcRequest() { Method = RequestMethods.PromptsGet },
+            requestParams)
         {
-            Params = requestParams,
             Services = services.BuildServiceProvider()
         };
 
