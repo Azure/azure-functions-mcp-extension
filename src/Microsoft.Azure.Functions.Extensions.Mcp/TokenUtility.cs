@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
 using Microsoft.AspNetCore.WebUtilities;
@@ -11,118 +11,37 @@ namespace Microsoft.Azure.Functions.Extensions.Mcp;
 internal sealed class TokenUtility
 {
     private const int KeySize = 32;
-    private const int IvSize = 12;
-    private const int TagSize = 16;
+    private const int IvSize = 16; // AES block size for CBC
     private const int SignatureSize = 32;
+
+    private static readonly byte[] HkdfEncInfo = "enc"u8.ToArray();
+    private static readonly byte[] HkdfMacInfo = "mac"u8.ToArray();
 
     public static string ProtectUriState(string uriState, byte[]? key = null)
     {
         key ??= GetKey();
+        var (encKey, macKey) = DeriveKeys(key);
 
-        Span<byte> iv = stackalloc byte[IvSize];
-        RandomNumberGenerator.Fill(iv);
+        byte[] iv = GenerateIv();
+        byte[] ciphertext = Encrypt(Encoding.UTF8.GetBytes(uriState), encKey, iv);
+        byte[] payload = Concat(iv, ciphertext);
+        byte[] signature = ComputeHmac(macKey, payload);
 
-        var plaintext = Encoding.UTF8.GetBytes(uriState);
-        Span<byte> ciphertext = new byte[plaintext.Length]; // Allocate on the heap here
-        Span<byte> tag = stackalloc byte[TagSize];
-
-        using (var aes = new AesGcm(key, TagSize))
-        {
-            aes.Encrypt(iv, plaintext, ciphertext, tag);
-        }
-
-        // Compute HMAC-SHA256 to sign the token
-        int tokenLength = iv.Length + ciphertext.Length + tag.Length;
-        Span<byte> tokenBytes = new byte[tokenLength];
-        iv.CopyTo(tokenBytes[..iv.Length]);
-        ciphertext.CopyTo(tokenBytes.Slice(iv.Length, ciphertext.Length));
-        tag.CopyTo(tokenBytes.Slice(iv.Length + ciphertext.Length, tag.Length));
-
-        Span<byte> signature = stackalloc byte[SignatureSize];
-        using (var hmac = new HMACSHA256(key))
-        {
-            hmac.TryComputeHash(tokenBytes, signature, out _);
-        }
-
-        // Encode for URL use
-        var finalToken = new byte[tokenBytes.Length + signature.Length];
-        tokenBytes.CopyTo(finalToken);
-        signature.CopyTo(finalToken.AsSpan(tokenLength, SignatureSize));
-
-        return WebEncoders.Base64UrlEncode(finalToken);
+        return WebEncoders.Base64UrlEncode(Concat(payload, signature));
     }
 
     public static string ReadUriState(string token, byte[]? key = null)
     {
         key ??= GetKey();
+        var (encKey, macKey) = DeriveKeys(key);
 
-        ReadOnlySpan<byte> tokenSpan = WebEncoders.Base64UrlDecode(token);
+        byte[] tokenBytes = WebEncoders.Base64UrlDecode(token);
+        var (iv, ciphertext, signature) = ParseToken(tokenBytes);
 
-        const int minLength = IvSize + TagSize + SignatureSize + 1; // at least 1 byte of ciphertext
+        int payloadLength = tokenBytes.Length - SignatureSize;
+        VerifyHmac(macKey, tokenBytes.AsSpan(0, payloadLength), signature);
 
-        if (tokenSpan.Length < minLength)
-        {
-            throw new InvalidOperationException("Token is too short or malformed.");
-        }
-
-        int cipherLength = tokenSpan.Length - IvSize - TagSize - SignatureSize;
-
-        var iv = tokenSpan[..IvSize];
-        var ciphertext = tokenSpan.Slice(IvSize, cipherLength);
-        var tag = tokenSpan.Slice(IvSize + cipherLength, TagSize);
-        var signature = tokenSpan.Slice(IvSize + cipherLength + TagSize, SignatureSize);
-
-        var dataToSign = tokenSpan[..(IvSize + cipherLength + TagSize)];
-
-        Span<byte> computedSignature = stackalloc byte[SignatureSize];
-        using (var hmac = new HMACSHA256(key))
-        {
-            hmac.TryComputeHash(dataToSign, computedSignature, out _);
-        }
-
-        if (!CryptographicOperations.FixedTimeEquals(signature, computedSignature))
-        {
-            throw new CryptographicException("Invalid token signature.");
-        }
-
-        Span<byte> plaintext = stackalloc byte[cipherLength];
-        using (var aes = new AesGcm(key, TagSize))
-        {
-            aes.Decrypt(iv, ciphertext, tag, plaintext);
-        }
-
-        return Encoding.UTF8.GetString(plaintext);
-    }
-
-    private static byte[] GetKey()
-    {
-        if (TryGetEncryptionKey(out string? key))
-        {
-            return ToKeyBytes(key);
-        }
-
-        throw new InvalidOperationException("Encryption key not found.");
-    }
-
-    // Logic adapted from the Functions Host (https://github.com/Azure/azure-functions-host/blob/d1e06f1d9816105eefc4f50a78a1a43e63a936de/src/WebJobs.Script.WebHost/Security/SecretsUtility.cs?plain=1#L25C1-L25C96)
-    public static bool TryGetEncryptionKey([NotNullWhen(true)] out string? key)
-    {
-        // Use WebSiteAuthEncryptionKey if available else fall back to ContainerEncryptionKey.
-        // Until the container is specialized to a specific site WebSiteAuthEncryptionKey will not be available.
-        if (TryGetEncryptionKey("WEBSITE_AUTH_ENCRYPTION_KEY", out key) ||
-            TryGetEncryptionKey("CONTAINER_ENCRYPTION_KEY", out key))
-        {
-            return true;
-        }
-        
-        return false;
-    }
-
-    private static bool TryGetEncryptionKey(string environmentVariableName, [NotNullWhen(true)] out string? key)
-    {
-        key = Environment.GetEnvironmentVariable(environmentVariableName);
-
-        return !string.IsNullOrEmpty(key);
+        return Encoding.UTF8.GetString(Decrypt(ciphertext, encKey, iv));
     }
 
     public static byte[] ToKeyBytes(string hexOrBase64)
@@ -139,6 +58,133 @@ internal sealed class TokenUtility
             return keyBytes.ToArray();
         }
 
-        return Convert.FromBase64String(hexOrBase64);
+        byte[] decoded = Convert.FromBase64String(hexOrBase64);
+        if (decoded.Length != KeySize)
+        {
+            throw new ArgumentException($"Key must be exactly {KeySize} bytes, but got {decoded.Length} bytes.");
+        }
+
+        return decoded;
+    }
+
+    // Logic adapted from the Functions Host (https://github.com/Azure/azure-functions-host/blob/d1e06f1d9816105eefc4f50a78a1a43e63a936de/src/WebJobs.Script.WebHost/Security/SecretsUtility.cs?plain=1#L25C1-L25C96)
+    public static bool TryGetEncryptionKey([NotNullWhen(true)] out string? key)
+    {
+        // Use WebSiteAuthEncryptionKey if available else fall back to ContainerEncryptionKey.
+        // Until the container is specialized to a specific site WebSiteAuthEncryptionKey will not be available.
+        if (TryGetEncryptionKey("WEBSITE_AUTH_ENCRYPTION_KEY", out key) ||
+            TryGetEncryptionKey("CONTAINER_ENCRYPTION_KEY", out key))
+        {
+            return true;
+        }
+
+        return false;
+    }
+
+    private static (byte[] encKey, byte[] macKey) DeriveKeys(byte[] masterKey)
+    {
+        byte[] encKey = HKDF.DeriveKey(HashAlgorithmName.SHA256, masterKey, KeySize, info: HkdfEncInfo);
+        byte[] macKey = HKDF.DeriveKey(HashAlgorithmName.SHA256, masterKey, KeySize, info: HkdfMacInfo);
+        return (encKey, macKey);
+    }
+
+    private static byte[] GenerateIv()
+    {
+        byte[] iv = new byte[IvSize];
+        RandomNumberGenerator.Fill(iv);
+        return iv;
+    }
+
+    private static byte[] Encrypt(byte[] plaintext, byte[] key, byte[] iv)
+    {
+        using var aes = CreateAes(key, iv);
+        using var encryptor = aes.CreateEncryptor();
+        return encryptor.TransformFinalBlock(plaintext, 0, plaintext.Length);
+    }
+
+    private static byte[] Decrypt(byte[] ciphertext, byte[] key, byte[] iv)
+    {
+        using var aes = CreateAes(key, iv);
+        using var decryptor = aes.CreateDecryptor();
+        return decryptor.TransformFinalBlock(ciphertext, 0, ciphertext.Length);
+    }
+
+    private static Aes CreateAes(byte[] key, byte[] iv)
+    {
+        var aes = Aes.Create();
+        try
+        {
+            aes.Key = key;
+            aes.IV = iv;
+            aes.Mode = CipherMode.CBC;
+            aes.Padding = PaddingMode.PKCS7;
+            return aes;
+        }
+        catch
+        {
+            aes.Dispose();
+            throw;
+        }
+    }
+
+    private static byte[] ComputeHmac(byte[] key, ReadOnlySpan<byte> data)
+    {
+        return HMACSHA256.HashData(key, data);
+    }
+
+    private static void VerifyHmac(byte[] key, ReadOnlySpan<byte> data, byte[] expectedSignature)
+    {
+        byte[] computed = ComputeHmac(key, data);
+        if (!CryptographicOperations.FixedTimeEquals(computed, expectedSignature))
+        {
+            throw new CryptographicException("Invalid token signature.");
+        }
+    }
+
+    private static (byte[] iv, byte[] ciphertext, byte[] signature) ParseToken(byte[] tokenBytes)
+    {
+        const int minLength = IvSize + SignatureSize + 1;
+        if (tokenBytes.Length < minLength)
+        {
+            throw new InvalidOperationException("Token is too short or malformed.");
+        }
+
+        int cipherLength = tokenBytes.Length - IvSize - SignatureSize;
+
+        byte[] iv = new byte[IvSize];
+        Buffer.BlockCopy(tokenBytes, 0, iv, 0, IvSize);
+
+        byte[] ciphertext = new byte[cipherLength];
+        Buffer.BlockCopy(tokenBytes, IvSize, ciphertext, 0, cipherLength);
+
+        byte[] signature = new byte[SignatureSize];
+        Buffer.BlockCopy(tokenBytes, IvSize + cipherLength, signature, 0, SignatureSize);
+
+        return (iv, ciphertext, signature);
+    }
+
+    private static byte[] Concat(byte[] a, byte[] b)
+    {
+        byte[] result = new byte[a.Length + b.Length];
+        Buffer.BlockCopy(a, 0, result, 0, a.Length);
+        Buffer.BlockCopy(b, 0, result, a.Length, b.Length);
+        return result;
+    }
+
+    private static byte[] GetKey()
+    {
+        if (TryGetEncryptionKey(out string? key))
+        {
+            return ToKeyBytes(key);
+        }
+
+        throw new InvalidOperationException("Encryption key not found.");
+    }
+
+    private static bool TryGetEncryptionKey(string environmentVariableName, [NotNullWhen(true)] out string? key)
+    {
+        key = Environment.GetEnvironmentVariable(environmentVariableName);
+
+        return !string.IsNullOrEmpty(key);
     }
 }
