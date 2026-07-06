@@ -96,7 +96,7 @@ public class TokenUtilityTests
         var token = TokenUtility.ProtectUriState(state, key);
         var tokenBytes = Microsoft.AspNetCore.WebUtilities.WebEncoders.Base64UrlDecode(token);
 
-        // Flip a byte in the ciphertext area (after the 16-byte IV)
+        // Flip a byte in the ciphertext area (after the 12-byte IV)
         tokenBytes[20] ^= 0xFF;
 
         var tamperedToken = Microsoft.AspNetCore.WebUtilities.WebEncoders.Base64UrlEncode(tokenBytes);
@@ -108,7 +108,7 @@ public class TokenUtilityTests
     {
         var key = GenerateKey();
 
-        // Token shorter than minimum (IvSize + SignatureSize + 1 = 49 bytes)
+        // Token shorter than minimum length
         var shortBytes = new byte[40];
         var shortToken = Microsoft.AspNetCore.WebUtilities.WebEncoders.Base64UrlEncode(shortBytes);
 
@@ -129,5 +129,116 @@ public class TokenUtilityTests
 
         var tamperedToken = Microsoft.AspNetCore.WebUtilities.WebEncoders.Base64UrlEncode(tokenBytes);
         Assert.Throws<CryptographicException>(() => TokenUtility.ReadUriState(tamperedToken, key));
+    }
+
+    [Fact]
+    public void ReadUriState_CanReadNewFormatToken()
+    {
+        // Directly use the new protector to create a v1 token, then verify TokenUtility can read it
+        var state = "new-format-state";
+        var key = GenerateKey();
+
+        var newProtector = new AesCbcHmacUriStateProtector();
+        var tokenBytes = newProtector.Protect(state, key);
+        var token = Microsoft.AspNetCore.WebUtilities.WebEncoders.Base64UrlEncode(tokenBytes);
+
+        var result = TokenUtility.ReadUriState(token, key);
+        Assert.Equal(state, result);
+    }
+
+    [Fact]
+    public void ProtectUriState_EmitsLegacyFormat()
+    {
+        // Verify the writer still emits legacy (AES-GCM) format — no version byte prefix
+        var state = "legacy-check";
+        var key = GenerateKey();
+
+        var token = TokenUtility.ProtectUriState(state, key);
+        var tokenBytes = Microsoft.AspNetCore.WebUtilities.WebEncoders.Base64UrlDecode(token);
+
+        // Legacy format should NOT start with the v1 version byte (0x01) deterministically.
+        // Since the first byte is a random IV byte, we verify by checking the legacy reader can parse it.
+        var legacyReader = new AesGcmUriStateProtector();
+        Assert.True(legacyReader.TryRead(tokenBytes, key, out var result));
+        Assert.Equal(state, result);
+    }
+
+    [Fact]
+    public void NewFormatProtector_RoundTrip_Success()
+    {
+        var state = "cbc-hmac-round-trip";
+        var key = GenerateKey();
+
+        var protector = new AesCbcHmacUriStateProtector();
+        var tokenBytes = protector.Protect(state, key);
+
+        Assert.True(protector.TryRead(tokenBytes, key, out var result));
+        Assert.Equal(state, result);
+    }
+
+    [Fact]
+    public void NewFormatProtector_TamperedToken_ReturnsFalse()
+    {
+        var state = "tamper-test";
+        var key = GenerateKey();
+
+        var protector = new AesCbcHmacUriStateProtector();
+        var tokenBytes = protector.Protect(state, key);
+
+        // Tamper with ciphertext
+        tokenBytes[10] ^= 0xFF;
+
+        Assert.False(protector.TryRead(tokenBytes, key, out _));
+    }
+
+    [Fact]
+    public void NewFormatProtector_WrongKey_ReturnsFalse()
+    {
+        var state = "wrong-key-test";
+        var key1 = GenerateKey();
+        var key2 = GenerateKey();
+
+        var protector = new AesCbcHmacUriStateProtector();
+        var tokenBytes = protector.Protect(state, key1);
+
+        Assert.False(protector.TryRead(tokenBytes, key2, out _));
+    }
+
+    [Fact]
+    public void NewFormatToken_HasVersionByte()
+    {
+        var state = "version-byte-check";
+        var key = GenerateKey();
+
+        var protector = new AesCbcHmacUriStateProtector();
+        var tokenBytes = protector.Protect(state, key);
+
+        Assert.Equal(AesCbcHmacUriStateProtector.Version, tokenBytes[0]);
+    }
+
+    [Fact]
+    public void LegacyProtector_RoundTrip_Success()
+    {
+        var state = "legacy-round-trip";
+        var key = GenerateKey();
+
+        var protector = new AesGcmUriStateProtector();
+        var tokenBytes = protector.Protect(state, key);
+
+        Assert.True(protector.TryRead(tokenBytes, key, out var result));
+        Assert.Equal(state, result);
+    }
+
+    [Fact]
+    public void LegacyProtector_WrongKey_ReturnsFalse()
+    {
+        var state = "legacy-wrong-key";
+        var key1 = GenerateKey();
+        var key2 = GenerateKey();
+
+        var protector = new AesGcmUriStateProtector();
+        var tokenBytes = protector.Protect(state, key1);
+
+        Assert.False(protector.TryRead(tokenBytes, key2, out _));
     }
 }
