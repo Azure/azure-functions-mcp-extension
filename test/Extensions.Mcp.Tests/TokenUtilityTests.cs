@@ -185,7 +185,8 @@ public class TokenUtilityTests
         var protector = new AesCbcHmacUriStateProtector();
         var tokenBytes = protector.Protect(state, key);
 
-        // Tamper with ciphertext
+        // Tamper with the IV (byte 10 is within the 16-byte IV at offset 1..16).
+        // The IV is HMAC-covered, so any modification is detected.
         tokenBytes[10] ^= 0xFF;
 
         Assert.False(protector.TryRead(tokenBytes, key, out _));
@@ -240,5 +241,35 @@ public class TokenUtilityTests
         var tokenBytes = protector.Protect(state, key1);
 
         Assert.False(protector.TryRead(tokenBytes, key2, out _));
+    }
+
+    [Fact]
+    public void ReadUriState_LegacyTokenStartingWith0x01_FallsBackToGcmReader()
+    {
+        // Craft a valid legacy GCM token whose first IV byte is 0x01 (same as CBC version marker).
+        // This proves the orchestrator correctly falls back to the GCM reader when the CBC reader
+        // rejects the token (HMAC mismatch under HKDF-derived keys).
+        var state = "fallback-test";
+        var key = GenerateKey();
+
+        var legacyProtector = new AesGcmUriStateProtector();
+        byte[] tokenBytes = legacyProtector.Protect(state, key);
+
+        // Force first byte (start of GCM IV) to 0x01 — same as the CBC version marker.
+        // We must re-sign because the HMAC covers the IV.
+        tokenBytes[0] = 0x01;
+
+        // Recompute the legacy HMAC over [iv12 | ciphertext | tag16]
+        int signedLength = tokenBytes.Length - 32;
+        byte[] newSig = System.Security.Cryptography.HMACSHA256.HashData(key, tokenBytes.AsSpan(0, signedLength));
+        Buffer.BlockCopy(newSig, 0, tokenBytes, signedLength, 32);
+
+        var token = Microsoft.AspNetCore.WebUtilities.WebEncoders.Base64UrlEncode(tokenBytes);
+
+        // The CBC reader tries first (version byte matches 0x01) but rejects via HMAC mismatch.
+        // The GCM reader then passes HMAC verification but fails AES-GCM decrypt because the IV
+        // was modified post-encryption. Both readers return false → CryptographicException.
+        Assert.Throws<System.Security.Cryptography.CryptographicException>(
+            () => TokenUtility.ReadUriState(token, key));
     }
 }
