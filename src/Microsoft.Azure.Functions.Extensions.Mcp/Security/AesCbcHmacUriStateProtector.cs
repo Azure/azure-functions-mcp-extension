@@ -129,6 +129,7 @@ internal sealed class AesCbcHmacUriStateProtector : IUriStateProtector
         }
         catch
         {
+            // Dispose only on failure.
             aes.Dispose();
             throw;
         }
