@@ -57,12 +57,7 @@ internal sealed class ResourceReturnValueBinder(
         {
             var blobResult = new ReadResourceResult
             {
-                Contents = [new BlobResourceContents
-                {
-                    Uri = ResolvedUri,
-                    MimeType = resourceAttribute.MimeType,
-                    Blob = Convert.ToBase64String(binaryData)
-                }]
+                Contents = [BlobResourceContents.FromBytes(binaryData, ResolvedUri, resourceAttribute.MimeType)]
             };
 
             executionContext.SetResult(blobResult);

@@ -31,15 +31,17 @@ public static class ReadResourceExecutionContextHelper
             services.AddSingleton(httpContextAccessor);
         }
 
+#pragma warning disable MCPEXP002 // Type is for evaluation purposes only and is subject to change or removal in future updates.
         var mockServer = new Mock<McpServer>();
+#pragma warning restore MCPEXP002
         mockServer.Setup(s => s.SessionId).Returns(sessionId);
         mockServer.Setup(s => s.ClientInfo).Returns(clientInfo);
 
         var requestContext = new RequestContext<ReadResourceRequestParams>(
             mockServer.Object,
-            new JsonRpcRequest() { Method = RequestMethods.ResourcesRead })
+            new JsonRpcRequest() { Method = RequestMethods.ResourcesRead },
+            requestParams)
         {
-            Params = requestParams,
             Services = services.BuildServiceProvider()
         };
 
