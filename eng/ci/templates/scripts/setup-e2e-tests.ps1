@@ -49,7 +49,7 @@ else
   $version = $cliFeed.tags.v4.release
   Write-Host "Latest Core Tools version: $version"
 
-  $release = $cliFeed.releases.$version
+  $release = $cliFeed.releases.PSObject.Properties[$version].Value
   if (-not $release) {
     Write-Error "Could not find release '$version' in the CLI feed"
     exit 1
