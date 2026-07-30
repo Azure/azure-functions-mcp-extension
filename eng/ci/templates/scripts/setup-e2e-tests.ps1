@@ -29,42 +29,39 @@ else
 {
   $arch = [System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture.ToString().ToLowerInvariant()
   if ($IsWindows) {
-      $os = "win"
+      $os = "Windows"
   }
   elseif ($IsMacOS) {
-      $os = "osx"
+      $os = "MacOS"
   }
   elseif ($IsLinux) {
-      $os = "linux"
+      $os = "Linux"
   }
   else {
     throw "Unsupported operating system detected. Please run this script on Windows, macOS, or Linux."
   }
 
   Write-Host ""
-  Write-Host "Using latest Core Tools release from GitHub..."
 
-  # GitHub API call for latest release
-  $releaseInfo = Invoke-RestMethod -Uri "https://api.github.com/repos/Azure/azure-functions-core-tools/releases/latest" -Headers @{ "User-Agent" = "PowerShell" }
+  # Resolve latest v4 version and download URL from the CLI feed (no auth required)
+  $cliFeedUrl = "https://functionscdn.azureedge.net/public/cli-feed-v4.json"
+  $cliFeed = Invoke-RestMethod -Uri $cliFeedUrl
+  $version = $cliFeed.tags.v4.release
+  Write-Host "Latest Core Tools version: $version"
 
-  $latestVersion = $releaseInfo.tag_name
-  Write-Host "`nLatest Core Tools version: $latestVersion"
-
-  # Look for zip file matching os and arch
-  $pattern = "Azure\.Functions\.Cli\.$os-$arch\..*\.zip$"
-  $asset = $releaseInfo.assets | Where-Object {
-      $_.name -match $pattern
+  $release = $cliFeed.releases.PSObject.Properties[$version].Value
+  if (-not $release) {
+    Write-Error "Could not find release '$version' in the CLI feed"
+    exit 1
   }
 
+  $asset = $release.coreTools | Where-Object { $_.OS -eq $os -and $_.Architecture -eq $arch } | Select-Object -First 1
   if (-not $asset) {
-      Write-Error "Could not find a Core Tools .zip for OS '$os' and arch '$arch'"
-      exit 1
+    Write-Error "Could not find a Core Tools download for OS '$os' and arch '$arch'"
+    exit 1
   }
 
-  $coreToolsURL = $asset.browser_download_url
-
-  # Add query string to avoid caching issues
-  $coreToolsURL = $coreToolsURL + "?raw=true"
+  $coreToolsURL = $asset.downloadLink
 
   Write-Host ""
   Write-Host "---Downloading the Core Tools for Functions V$FunctionsRuntimeVersion---"
@@ -75,14 +72,8 @@ else
   Remove-Item -Force "$FUNC_CLI_DIRECTORY.zip" -ErrorAction Ignore
   Remove-Item -Recurse -Force $FUNC_CLI_DIRECTORY -ErrorAction Ignore
 
-  if ($versionUrl)
-  {
-    $version = Invoke-RestMethod -Uri $versionUrl
-    Write-Host "Downloading Functions Core Tools (Version: $version)..."
-  }
-
   $output = "$FUNC_CLI_DIRECTORY.zip"
-  Invoke-RestMethod -Uri $coreToolsURL -OutFile $output
+  Invoke-WebRequest -Uri $coreToolsURL -OutFile $output
 
   Write-Host 'Extracting Functions Core Tools...'
   Expand-Archive $output -DestinationPath $FUNC_CLI_DIRECTORY
