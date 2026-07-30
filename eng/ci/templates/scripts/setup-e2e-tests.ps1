@@ -55,7 +55,7 @@ else
     exit 1
   }
 
-  $asset = $release.coreTools | Where-Object { $_.OS -eq $os -and $_.Architecture -eq $arch }
+  $asset = $release.coreTools | Where-Object { $_.OS -eq $os -and $_.Architecture -eq $arch } | Select-Object -First 1
   if (-not $asset) {
     Write-Error "Could not find a Core Tools download for OS '$os' and arch '$arch'"
     exit 1
