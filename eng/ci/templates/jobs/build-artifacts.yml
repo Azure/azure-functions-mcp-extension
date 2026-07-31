@@ -72,6 +72,8 @@ jobs:
       filePath: $(Build.SourcesDirectory)/eng/ci/templates/scripts/setup-e2e-tests.ps1
       arguments: '-RepoRoot $(RepoRoot)'
       pwsh: true
+    env:
+      NPM_CONFIG_USERCONFIG: $(Build.SourcesDirectory)/.npmrc
 
   - task: DotNetCoreCLI@2
     displayName: Run tests
