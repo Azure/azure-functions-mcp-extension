@@ -44,7 +44,7 @@ else
   Write-Host ""
 
   # Resolve latest v4 version and download URL from the CLI feed (no auth required)
-  $cliFeedUrl = "https://functionscdn.azureedge.net/public/cli-feed-v4.json"
+  $cliFeedUrl = "https://cdn.functions.azure.com/public/cli-feed-v4.json"
   $cliFeed = Invoke-RestMethod -Uri $cliFeedUrl
   $version = $cliFeed.tags.v4.release
   Write-Host "Latest Core Tools version: $version"
