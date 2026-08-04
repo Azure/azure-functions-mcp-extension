@@ -1,0 +1,38 @@
+<Project>
+
+    <!-- Same workaround as TestAppIsolated: rewrite the generated
+         WorkerExtensions.csproj so it picks up the in-tree
+         Extensions.Mcp project instead of trying to restore a local
+         BuildReason-tagged package from a non-existent feed. -->
+
+    <PropertyGroup>
+        <!-- Use lowercase config name to match the artifacts-style obj layout
+             (e.g. out/obj/ConformanceTestApp/release/). Without ToLowerInvariant
+             this resolves to "Release" and the Exists() check below misses the
+             generated csproj on case-sensitive filesystems (CI). -->
+        <_WorkerExtensionsPath>$(BaseIntermediateOutputPath)$(Configuration.ToLowerInvariant())\WorkerExtensions\WorkerExtensions.csproj</_WorkerExtensionsPath>
+        <_McpProjectPath>$(SrcRoot)Microsoft.Azure.Functions.Extensions.Mcp\Extensions.Mcp.csproj</_McpProjectPath>
+
+        <_PkgBlockRegex><![CDATA[(?s)\s*<PackageReference\s+Include="Microsoft\.Azure\.Functions\.Extensions\.Mcp"[\s\S]*?\/>\s*]]></_PkgBlockRegex>
+        <_CloseProjRegex><![CDATA[(?m)^\s*</Project>\s*$]]></_CloseProjRegex>
+
+        <_InjectBlock>
+<![CDATA[
+    <ItemGroup>
+        <ProjectReference Include="$(_McpProjectPath)" GlobalPropertiesToRemove="IsRestoring;RestoreSources;ImportDirectoryBuildProps;ImportDirectoryBuildTargets;ImportDirectoryPackagesProps;Configuration" />
+    </ItemGroup>
+</Project>]]>
+        </_InjectBlock>
+    </PropertyGroup>
+
+    <Target Name="FixWorkerExtensionsProject" BeforeTargets="_WorkerExtensionsRestore" Condition="Exists('$(_WorkerExtensionsPath)')">
+        <PropertyGroup>
+            <_Text>$([System.IO.File]::ReadAllText('$(_WorkerExtensionsPath)'))</_Text>
+            <_Text>$([System.Text.RegularExpressions.Regex]::Replace('$(_Text)', '$(_PkgBlockRegex)', ''))</_Text>
+            <_Text>$([System.Text.RegularExpressions.Regex]::Replace('$(_Text)', '$(_CloseProjRegex)', '$(_InjectBlock)'))</_Text>
+        </PropertyGroup>
+
+        <WriteLinesToFile File="$(_WorkerExtensionsPath)" Lines="$(_Text)" Overwrite="true" />
+    </Target>
+
+</Project>
