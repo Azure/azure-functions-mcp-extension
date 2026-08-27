@@ -35,5 +35,16 @@ public class ListToolTests(DefaultProjectFixture fixture, ITestOutputHelper test
         Assert.Contains(tools, t => t.Name == "FluentDefinedTool");  // fluent builder
         Assert.Contains(tools, t => t.Name == "SchemaTool");         // explicit schema
         Assert.Contains(tools, t => t.Name == "HelloApp");           // MCP app tool
+
+        var readOnlyTool = Assert.Single(tools, t => t.Name == "AnnotatedReadOnlyTool");
+        Assert.Equal("Annotated Read-Only Tool", readOnlyTool.Title);
+        Assert.Equal("Annotated Read-Only Tool", readOnlyTool.ProtocolTool.Annotations?.Title);
+        Assert.True(readOnlyTool.ProtocolTool.Annotations?.ReadOnlyHint);
+        Assert.False(readOnlyTool.ProtocolTool.Annotations?.DestructiveHint);
+
+        var destructiveTool = Assert.Single(tools, t => t.Name == "AnnotatedDestructiveTool");
+        Assert.Equal("Annotated Destructive Tool", destructiveTool.Title);
+        Assert.False(destructiveTool.ProtocolTool.Annotations?.ReadOnlyHint);
+        Assert.True(destructiveTool.ProtocolTool.Annotations?.DestructiveHint);
     }
 }

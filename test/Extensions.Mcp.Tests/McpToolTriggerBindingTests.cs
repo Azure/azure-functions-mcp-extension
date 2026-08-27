@@ -841,4 +841,54 @@ public class McpToolTriggerBindingTests
         Assert.Equal("object", result.Value.GetProperty("type").GetString());
         Assert.Equal("string", result.Value.GetProperty("properties").GetProperty("x").GetProperty("type").GetString());
     }
+
+    // ── GetAnnotations ──────────────────────────────────────────────────────
+
+    [Fact]
+    public void GetAnnotations_WithoutConfiguredValues_ReturnsNull()
+    {
+        var attribute = new McpToolTriggerAttribute("TestTool", "Test Description");
+
+        Assert.Null(McpToolTriggerBinding.GetAnnotations(attribute));
+    }
+
+    [Fact]
+    public void GetAnnotations_WithPartialValues_LeavesUnconfiguredHintsNull()
+    {
+        var attribute = new McpToolTriggerAttribute("TestTool", "Test Description")
+        {
+            Title = "Test Tool",
+            ReadOnly = true,
+            Destructive = false
+        };
+
+        var annotations = McpToolTriggerBinding.GetAnnotations(attribute);
+
+        Assert.NotNull(annotations);
+        Assert.Equal("Test Tool", annotations.Title);
+        Assert.True(annotations.ReadOnlyHint);
+        Assert.False(annotations.DestructiveHint);
+        Assert.Null(annotations.IdempotentHint);
+        Assert.Null(annotations.OpenWorldHint);
+    }
+
+    [Fact]
+    public void GetAnnotations_WithExplicitBooleanValues_MapsProtocolHints()
+    {
+        var attribute = new McpToolTriggerAttribute("TestTool", "Test Description")
+        {
+            Title = "Test Tool",
+            ReadOnly = false,
+            Destructive = true
+        };
+
+        var annotations = McpToolTriggerBinding.GetAnnotations(attribute);
+
+        Assert.NotNull(annotations);
+        Assert.Equal("Test Tool", annotations.Title);
+        Assert.False(annotations.ReadOnlyHint);
+        Assert.True(annotations.DestructiveHint);
+        Assert.Null(annotations.IdempotentHint);
+        Assert.Null(annotations.OpenWorldHint);
+    }
 }

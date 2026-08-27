@@ -39,9 +39,11 @@ internal sealed class DefaultToolRegistry : IToolRegistry
             Tools = _tools.Values.Select(static tool => new Tool
             {
                 Name = tool.Name,
+                Title = tool.Annotations?.Title,
                 Description = tool.Description,
                 InputSchema = tool.GetPropertiesInputSchema(),
                 OutputSchema = tool.OutputSchema,
+                Annotations = tool.Annotations,
                 Meta = MetadataParser.SerializeMetadata(tool.Metadata)
             }).ToList()
         };

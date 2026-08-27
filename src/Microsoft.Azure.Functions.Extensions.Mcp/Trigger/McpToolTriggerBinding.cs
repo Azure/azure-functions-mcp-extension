@@ -11,6 +11,7 @@ using Microsoft.Azure.WebJobs.Host.Listeners;
 using Microsoft.Azure.WebJobs.Host.Protocols;
 using Microsoft.Azure.WebJobs.Host.Triggers;
 using Microsoft.Extensions.Logging;
+using ModelContextProtocol.Protocol;
 
 namespace Microsoft.Azure.Functions.Extensions.Mcp;
 
@@ -115,6 +116,7 @@ internal sealed class McpToolTriggerBinding : ITriggerBinding
     {
         ToolInputSchema inputSchema = CreateToolInputSchema();
         JsonElement? outputSchema = GetOutputSchema(_toolAttribute);
+        ToolAnnotations? annotations = GetAnnotations(_toolAttribute);
 
         var listener = new McpToolListener(
             context.Executor,
@@ -123,7 +125,8 @@ internal sealed class McpToolTriggerBinding : ITriggerBinding
             _toolAttribute.Description,
             inputSchema,
             _toolMetadata,
-            outputSchema);
+            outputSchema,
+            annotations);
 
         _toolRegistry.Register(listener);
 
@@ -214,6 +217,28 @@ internal sealed class McpToolTriggerBinding : ITriggerBinding
             throw new InvalidOperationException(
                 $"Failed to parse OutputSchema for tool '{attribute.ToolName}'. Schema must be valid JSON.", ex);
         }
+    }
+
+    /// <summary>
+    /// Builds the <see cref="ToolAnnotations"/> advertised on <c>tools/list</c> from the trigger attribute.
+    /// Returns <see langword="null"/> when no title or behavior hint has been configured, so tools without
+    /// annotations do not emit an empty object.
+    /// </summary>
+    internal static ToolAnnotations? GetAnnotations(McpToolTriggerAttribute attribute)
+    {
+        if (string.IsNullOrEmpty(attribute.Title)
+            && attribute.ReadOnly is null
+            && attribute.Destructive is null)
+        {
+            return null;
+        }
+
+        return new ToolAnnotations
+        {
+            Title = string.IsNullOrEmpty(attribute.Title) ? null : attribute.Title,
+            ReadOnlyHint = attribute.ReadOnly,
+            DestructiveHint = attribute.Destructive
+        };
     }
 
     private static List<IMcpToolProperty> GetProperties(McpToolTriggerAttribute attribute, ParameterInfo triggerParameter)
