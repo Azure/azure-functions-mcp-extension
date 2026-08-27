@@ -6,6 +6,7 @@
 
 ### Microsoft.Azure.Functions.Extensions.Mcp 1.6.0
 
+- Added MCP tool annotation support for `Title`, `ReadOnly`, and `Destructive` in `tools/list` (#58)
 - Refactored token utility to use dedicated `IUriStateProtector` abstraction (#268)
 - Advertise `Prompts` in `ServerCapabilities` so spec-compliant MCP clients invoke `prompts/list` (#271)
 - Added `UseResultSchema` to `McpPromptTriggerAttribute` for unwrapping `McpPromptResult` envelopes (#212)
