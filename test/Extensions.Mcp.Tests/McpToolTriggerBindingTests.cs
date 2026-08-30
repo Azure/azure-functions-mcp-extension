@@ -858,8 +858,7 @@ public class McpToolTriggerBindingTests
         var attribute = new McpToolTriggerAttribute("TestTool", "Test Description")
         {
             Title = "Test Tool",
-            ReadOnly = true,
-            Destructive = false
+            ReadOnly = true
         };
 
         var annotations = McpToolTriggerBinding.GetAnnotations(attribute);
@@ -867,7 +866,7 @@ public class McpToolTriggerBindingTests
         Assert.NotNull(annotations);
         Assert.Equal("Test Tool", annotations.Title);
         Assert.True(annotations.ReadOnlyHint);
-        Assert.False(annotations.DestructiveHint);
+        Assert.Null(annotations.DestructiveHint);
         Assert.Null(annotations.IdempotentHint);
         Assert.Null(annotations.OpenWorldHint);
     }
