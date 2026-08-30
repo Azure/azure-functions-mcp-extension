@@ -221,18 +221,10 @@ internal sealed class McpToolTriggerBinding : ITriggerBinding
 
     /// <summary>
     /// Builds the <see cref="ToolAnnotations"/> advertised on <c>tools/list</c> from the trigger attribute.
-    /// Returns <see langword="null"/> when no title or behavior hint has been configured, so tools without
-    /// annotations do not emit an empty object.
+    /// The behavior hints use the same defaults as the Model Context Protocol SDK.
     /// </summary>
-    internal static ToolAnnotations? GetAnnotations(McpToolTriggerAttribute attribute)
+    internal static ToolAnnotations GetAnnotations(McpToolTriggerAttribute attribute)
     {
-        if (string.IsNullOrEmpty(attribute.Title)
-            && attribute.ReadOnly is null
-            && attribute.Destructive is null)
-        {
-            return null;
-        }
-
         return new ToolAnnotations
         {
             Title = string.IsNullOrEmpty(attribute.Title) ? null : attribute.Title,

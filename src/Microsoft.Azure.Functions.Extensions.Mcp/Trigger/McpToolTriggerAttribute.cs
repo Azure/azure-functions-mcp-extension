@@ -30,15 +30,15 @@ public sealed class McpToolTriggerAttribute(string toolName, string? description
 
     /// <summary>
     /// Gets or sets the tool's read-only behavior hint (<c>annotations.readOnlyHint</c>).
-    /// When null, the hint is omitted from the advertised annotations.
+    /// The default is <see langword="false"/>.
     /// </summary>
-    public bool? ReadOnly { get; set; }
+    public bool ReadOnly { get; set; }
 
     /// <summary>
     /// Gets or sets the tool's destructive behavior hint (<c>annotations.destructiveHint</c>).
-    /// When null, the hint is omitted from the advertised annotations.
+    /// The default is <see langword="true"/>.
     /// </summary>
-    public bool? Destructive { get; set; }
+    public bool Destructive { get; set; } = true;
 
     /// <summary>
     /// Gets or sets the JSON representation of the tool properties schema.

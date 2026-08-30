@@ -17,7 +17,7 @@ public class McpToolTriggerAttributeTests
         Assert.Null(attribute.ToolProperties);
         Assert.Null(attribute.InputSchema);
         Assert.Null(attribute.Title);
-        Assert.Null(attribute.ReadOnly);
-        Assert.Null(attribute.Destructive);
+        Assert.False(attribute.ReadOnly);
+        Assert.True(attribute.Destructive);
     }
 }

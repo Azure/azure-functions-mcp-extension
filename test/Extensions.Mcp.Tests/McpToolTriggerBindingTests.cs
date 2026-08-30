@@ -845,15 +845,21 @@ public class McpToolTriggerBindingTests
     // ── GetAnnotations ──────────────────────────────────────────────────────
 
     [Fact]
-    public void GetAnnotations_WithoutConfiguredValues_ReturnsNull()
+    public void GetAnnotations_WithoutConfiguredValues_ReturnsProtocolDefaults()
     {
         var attribute = new McpToolTriggerAttribute("TestTool", "Test Description");
 
-        Assert.Null(McpToolTriggerBinding.GetAnnotations(attribute));
+        var annotations = McpToolTriggerBinding.GetAnnotations(attribute);
+
+        Assert.Null(annotations.Title);
+        Assert.False(annotations.ReadOnlyHint);
+        Assert.True(annotations.DestructiveHint);
+        Assert.Null(annotations.IdempotentHint);
+        Assert.Null(annotations.OpenWorldHint);
     }
 
     [Fact]
-    public void GetAnnotations_WithPartialValues_LeavesUnconfiguredHintsNull()
+    public void GetAnnotations_WithPartialValues_UsesProtocolDefaults()
     {
         var attribute = new McpToolTriggerAttribute("TestTool", "Test Description")
         {
@@ -866,7 +872,7 @@ public class McpToolTriggerBindingTests
         Assert.NotNull(annotations);
         Assert.Equal("Test Tool", annotations.Title);
         Assert.True(annotations.ReadOnlyHint);
-        Assert.Null(annotations.DestructiveHint);
+        Assert.True(annotations.DestructiveHint);
         Assert.Null(annotations.IdempotentHint);
         Assert.Null(annotations.OpenWorldHint);
     }

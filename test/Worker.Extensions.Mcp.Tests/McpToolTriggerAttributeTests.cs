@@ -14,7 +14,7 @@ public class McpToolTriggerAttributeTests
         Assert.Equal("Test description", attribute.Description);
         Assert.Null(attribute.Title);
         Assert.False(attribute.ReadOnly);
-        Assert.False(attribute.Destructive);
+        Assert.True(attribute.Destructive);
     }
 
     [Fact]
