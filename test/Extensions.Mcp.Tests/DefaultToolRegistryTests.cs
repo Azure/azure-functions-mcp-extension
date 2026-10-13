@@ -49,13 +49,52 @@ public class DefaultToolRegistryTests
         Assert.Null(tool.OutputSchema);
     }
 
-    private static IMcpTool CreateTool(string name, JsonElement? outputSchema)
+    [Fact]
+    public async Task ListToolsAsync_PropagatesAnnotationsAndTitleToProtocolResponse()
+    {
+        var annotations = new ToolAnnotations
+        {
+            Title = "Friendly Tool",
+            ReadOnlyHint = true,
+            DestructiveHint = false
+        };
+
+        var registry = new DefaultToolRegistry();
+        registry.Register(CreateTool("annotated-tool", outputSchema: null, annotations));
+
+        var result = await registry.ListToolsAsync();
+
+        var tool = Assert.Single(result.Tools);
+        Assert.Equal("Friendly Tool", tool.Title);
+        Assert.NotNull(tool.Annotations);
+        Assert.Equal("Friendly Tool", tool.Annotations!.Title);
+        Assert.True(tool.Annotations.ReadOnlyHint);
+        Assert.False(tool.Annotations.DestructiveHint);
+        Assert.Null(tool.Annotations.IdempotentHint);
+        Assert.Null(tool.Annotations.OpenWorldHint);
+    }
+
+    [Fact]
+    public async Task ListToolsAsync_WithoutAnnotations_LeavesProtocolFieldsNull()
+    {
+        var registry = new DefaultToolRegistry();
+        registry.Register(CreateTool("plain-tool", outputSchema: null, annotations: null));
+
+        var result = await registry.ListToolsAsync();
+
+        var tool = Assert.Single(result.Tools);
+        Assert.Null(tool.Title);
+        Assert.Null(tool.Annotations);
+    }
+
+    private static IMcpTool CreateTool(string name, JsonElement? outputSchema, ToolAnnotations? annotations = null)
     {
         var mock = new Mock<IMcpTool>();
         mock.SetupGet(t => t.Name).Returns(name);
         mock.SetupProperty(t => t.Description, "desc");
         mock.SetupGet(t => t.ToolInputSchema).Returns(new PropertyBasedToolInputSchema([]));
         mock.SetupGet(t => t.OutputSchema).Returns(outputSchema);
+        mock.SetupGet(t => t.Annotations).Returns(annotations);
         mock.SetupGet(t => t.Metadata).Returns(new Dictionary<string, object?>());
         mock.Setup(t => t.RunAsync(It.IsAny<RequestContext<CallToolRequestParams>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new CallToolResult());

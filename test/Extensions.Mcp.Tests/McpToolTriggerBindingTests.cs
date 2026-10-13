@@ -841,4 +841,59 @@ public class McpToolTriggerBindingTests
         Assert.Equal("object", result.Value.GetProperty("type").GetString());
         Assert.Equal("string", result.Value.GetProperty("properties").GetProperty("x").GetProperty("type").GetString());
     }
+
+    // ── GetAnnotations ──────────────────────────────────────────────────────
+
+    [Fact]
+    public void GetAnnotations_WithoutConfiguredValues_ReturnsProtocolDefaults()
+    {
+        var attribute = new McpToolTriggerAttribute("TestTool", "Test Description");
+
+        var annotations = McpToolTriggerBinding.GetAnnotations(attribute);
+
+        Assert.Null(annotations.Title);
+        Assert.False(annotations.ReadOnlyHint);
+        Assert.True(annotations.DestructiveHint);
+        Assert.Null(annotations.IdempotentHint);
+        Assert.Null(annotations.OpenWorldHint);
+    }
+
+    [Fact]
+    public void GetAnnotations_WithPartialValues_UsesProtocolDefaults()
+    {
+        var attribute = new McpToolTriggerAttribute("TestTool", "Test Description")
+        {
+            Title = "Test Tool",
+            ReadOnly = true
+        };
+
+        var annotations = McpToolTriggerBinding.GetAnnotations(attribute);
+
+        Assert.NotNull(annotations);
+        Assert.Equal("Test Tool", annotations.Title);
+        Assert.True(annotations.ReadOnlyHint);
+        Assert.True(annotations.DestructiveHint);
+        Assert.Null(annotations.IdempotentHint);
+        Assert.Null(annotations.OpenWorldHint);
+    }
+
+    [Fact]
+    public void GetAnnotations_WithExplicitBooleanValues_MapsProtocolHints()
+    {
+        var attribute = new McpToolTriggerAttribute("TestTool", "Test Description")
+        {
+            Title = "Test Tool",
+            ReadOnly = false,
+            Destructive = true
+        };
+
+        var annotations = McpToolTriggerBinding.GetAnnotations(attribute);
+
+        Assert.NotNull(annotations);
+        Assert.Equal("Test Tool", annotations.Title);
+        Assert.False(annotations.ReadOnlyHint);
+        Assert.True(annotations.DestructiveHint);
+        Assert.Null(annotations.IdempotentHint);
+        Assert.Null(annotations.OpenWorldHint);
+    }
 }

@@ -31,6 +31,11 @@ internal interface IMcpTool
     public JsonElement? OutputSchema { get; }
 
     /// <summary>
+    /// Gets the behavior annotations advertised for the tool, if any.
+    /// </summary>
+    public ToolAnnotations? Annotations { get; }
+
+    /// <summary>
     /// Gets the metadata dictionary associated with the tool.
     /// </summary>
     IReadOnlyDictionary<string, object?> Metadata { get; }
