@@ -132,24 +132,21 @@ internal sealed class StreamableHttpRequestHandler(
         ThrowIfNotStatelessSession(stateless);
 
         string clientId = Utility.EmptyId;
-        StreamableHttpTransport transport = new()
-        {
-            IsStateless = true,
-            SessionContext = new(clientId, instanceIdProvider.InstanceId),
-            OnInitRequestReceived = (t, p) =>
+        var sessionId = Utility.CreateId();
+
+        StreamableHttpTransport transport = new(
+            sessionId: sessionId,
+            stateless: true, // SDK transport property — controls SDK-level stateless behavior
+            onSessionInitialized: (initParams, ct) =>
                 {
-                    var sessionId = Utility.CreateId();
-                    var clientState = ClientStateManager.FormatUriState(sessionId, instanceIdProvider.InstanceId, mcpOptions.Value.EncryptClientState);
-
                     // Persist the session ID in the response header after receiving the initialize request.
-                    // TODO: Persist client information here from `initRequestParams.ClientInfo`
-                    // Do we need any additional client information? With that, if we're limiting to client info, we won't be able to provide
-                    // capabilities and other client details.
-                    t.SessionId = sessionId;
+                    var clientState = ClientStateManager.FormatUriState(sessionId, instanceIdProvider.InstanceId, mcpOptions.Value.EncryptClientState);
                     context.Response.Headers[McpSessionIdHeaderName] = clientState;
-
                     return ValueTask.CompletedTask;
-                }
+                })
+        {
+            IsStateless = true, // Host wrapper property — controls host session management
+            SessionContext = new(clientId, instanceIdProvider.InstanceId),
         };
 
         // Create a new session with the transport.
@@ -167,10 +164,11 @@ internal sealed class StreamableHttpRequestHandler(
             return null;
         }
 
-        var transport = new StreamableHttpTransport
+        var transport = new StreamableHttpTransport(
+            sessionId: clientId,
+            stateless: true)
         {
             IsStateless = true,
-            SessionId = clientId,
             SessionContext = new(clientId, instanceIdProvider.InstanceId)
         };
 

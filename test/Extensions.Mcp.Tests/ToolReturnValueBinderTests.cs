@@ -1,7 +1,9 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
+using System.Text;
 using System.Text.Json;
+using ModelContextProtocol;
 using ModelContextProtocol.Protocol;
 
 namespace Microsoft.Azure.Functions.Extensions.Mcp.Tests;
@@ -41,11 +43,11 @@ public class ToolReturnValueBinderTests
         var binder = new ToolReturnValueBinder(context);
 
         var data = Convert.ToBase64String(new byte[] { 1, 2, 3, 4, 5 });
-        var innerBlock = new AudioContentBlock { Data = data, MimeType = "audio/mpeg", };
+        ContentBlock innerBlock = new AudioContentBlock { Data = Encoding.UTF8.GetBytes(data), MimeType = "audio/mpeg", };
         var mcpToolResult = new McpToolResult
         {
             Type = "audio",
-            Content = JsonSerializer.Serialize(innerBlock)
+            Content = JsonSerializer.Serialize(innerBlock, McpJsonUtilities.DefaultOptions)
         };
         var json = JsonSerializer.Serialize(mcpToolResult);
 
@@ -54,8 +56,8 @@ public class ToolReturnValueBinderTests
         var result = Assert.IsType<CallToolResult>(await context.ResultTask);
         var audioBlock = Assert.Single(result.Content) as AudioContentBlock;
         Assert.NotNull(audioBlock);
-        Assert.Equal(innerBlock.MimeType, audioBlock!.MimeType);
-        Assert.Equal(innerBlock.Data, audioBlock.Data);
+        Assert.Equal("audio/mpeg", audioBlock!.MimeType);
+        Assert.Equal(((AudioContentBlock)innerBlock).Data, audioBlock.Data);
     }
 
     [Fact]
@@ -65,11 +67,11 @@ public class ToolReturnValueBinderTests
         var binder = new ToolReturnValueBinder(context);
 
         var data = Convert.ToBase64String(new byte[] { 1, 2, 3, 4, 5 });
-        var innerBlock = new ImageContentBlock { Data = data, MimeType = "image/png", };
+        ContentBlock innerBlock = new ImageContentBlock { Data = Encoding.UTF8.GetBytes(data), MimeType = "image/png", };
         var mcpToolResult = new McpToolResult
         {
             Type = "image",
-            Content = JsonSerializer.Serialize(innerBlock)
+            Content = JsonSerializer.Serialize(innerBlock, McpJsonUtilities.DefaultOptions)
         };
         var json = JsonSerializer.Serialize(mcpToolResult);
 
@@ -78,8 +80,8 @@ public class ToolReturnValueBinderTests
         var result = Assert.IsType<CallToolResult>(await context.ResultTask);
         var imageBlock = Assert.Single(result.Content) as ImageContentBlock;
         Assert.NotNull(imageBlock);
-        Assert.Equal(innerBlock.MimeType, imageBlock!.MimeType);
-        Assert.Equal(innerBlock.Data, imageBlock.Data);
+        Assert.Equal("image/png", imageBlock!.MimeType);
+        Assert.Equal(((ImageContentBlock)innerBlock).Data, imageBlock.Data);
     }
 
     [Fact]
@@ -94,6 +96,7 @@ public class ToolReturnValueBinderTests
             {
                 Uri = "urn:example",
                 MimeType = "text/plain",
+                Text = "",
             },
         };
         var mcpToolResult = new McpToolResult
@@ -252,7 +255,7 @@ public class ToolReturnValueBinderTests
 
         var imageBlock = (ImageContentBlock)result.Content[1];
         Assert.Equal("image/png", imageBlock.MimeType);
-        Assert.Equal("AQID", imageBlock.Data);
+        Assert.Equal("AQID", Encoding.UTF8.GetString(imageBlock.Data.Span));
 
         var linkBlock = (ResourceLinkBlock)result.Content[2];
         Assert.Equal("https://example.com/resource", linkBlock.Uri);
@@ -268,12 +271,12 @@ public class ToolReturnValueBinderTests
 
         var img1 = new ImageContentBlock
         {
-            Data = Convert.ToBase64String(new byte[] { 1, 2, 3 }),
+            Data = Encoding.UTF8.GetBytes(Convert.ToBase64String(new byte[] { 1, 2, 3 })),
             MimeType = "image/png"
         };
         var img2 = new ImageContentBlock
         {
-            Data = Convert.ToBase64String(new byte[] { 9, 8, 7, 6 }),
+            Data = Encoding.UTF8.GetBytes(Convert.ToBase64String(new byte[] { 9, 8, 7, 6 })),
             MimeType = "image/jpeg"
         };
 
@@ -281,7 +284,7 @@ public class ToolReturnValueBinderTests
         var mcpToolResult = new McpToolResult
         {
             Type = "multi_content_result",
-            Content = JsonSerializer.Serialize(new[] { img1, img2 })
+            Content = JsonSerializer.Serialize(new ContentBlock[] { img1, img2 }, McpJsonUtilities.DefaultOptions)
         };
         var json = JsonSerializer.Serialize(mcpToolResult);
 
@@ -351,7 +354,7 @@ public class ToolReturnValueBinderTests
             Content = new List<ContentBlock>
             {
                 new TextContentBlock { Text = "Hello from CallToolResult" },
-                new ImageContentBlock { Data = "base64data", MimeType = "image/png" }
+                new ImageContentBlock { Data = Encoding.UTF8.GetBytes("base64data"), MimeType = "image/png" }
             },
             StructuredContent = null
         };
@@ -388,7 +391,7 @@ public class ToolReturnValueBinderTests
             {
                 new TextContentBlock { Text = JsonSerializer.Serialize(structuredData) }
             },
-            StructuredContent = System.Text.Json.Nodes.JsonNode.Parse(JsonSerializer.Serialize(structuredData))
+            StructuredContent = JsonSerializer.Deserialize<JsonElement>(JsonSerializer.Serialize(structuredData))
         };
 
         var mcpToolResult = new McpToolResult

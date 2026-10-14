@@ -1,9 +1,11 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
+using System.Text;
 using System.Text.Json;
 using Microsoft.Azure.Functions.Extensions.Mcp.Serialization;
 using Microsoft.Extensions.Logging.Abstractions;
+using ModelContextProtocol;
 using ModelContextProtocol.Protocol;
 
 namespace Microsoft.Azure.Functions.Extensions.Mcp.Tests;
@@ -88,7 +90,7 @@ public class ResourceReturnValueBinderTests
         var blobContent = Assert.IsType<BlobResourceContents>(result.Contents[0]);
         Assert.Equal("test://resource/1", blobContent.Uri);
         Assert.Equal("application/octet-stream", blobContent.MimeType);
-        Assert.Equal(Convert.ToBase64String(binaryData), blobContent.Blob);
+        Assert.Equal(Convert.ToBase64String(binaryData), Encoding.UTF8.GetString(blobContent.Blob.Span));
     }
 
     [Fact]
@@ -131,13 +133,13 @@ public class ResourceReturnValueBinderTests
         var blobContent = new BlobResourceContents
         {
             Uri = "test://resource/1",
-            Blob = binaryData,
+            Blob = Encoding.UTF8.GetBytes(binaryData),
             MimeType = "image/png"
         };
 
         var mcpResult = new McpResourceResult
         {
-            Content = JsonSerializer.Serialize(blobContent, McpJsonSerializerOptions.DefaultOptions)
+            Content = JsonSerializer.Serialize((ResourceContents)blobContent, McpJsonUtilities.DefaultOptions)
         };
 
         var jsonString = JsonSerializer.Serialize(mcpResult, McpJsonSerializerOptions.DefaultOptions);
@@ -151,7 +153,7 @@ public class ResourceReturnValueBinderTests
         var resultContent = Assert.IsType<BlobResourceContents>(result.Contents[0]);
         Assert.Equal("test://resource/1", resultContent.Uri);
         Assert.Equal("image/png", resultContent.MimeType);
-        Assert.Equal(binaryData, resultContent.Blob);
+        Assert.Equal(binaryData, Encoding.UTF8.GetString(resultContent.Blob.Span));
     }
 
     [Fact]
@@ -297,7 +299,7 @@ public class ResourceReturnValueBinderTests
         Assert.Single(result.Contents);
         
         var blobContent = Assert.IsType<BlobResourceContents>(result.Contents[0]);
-        Assert.Equal(Convert.ToBase64String(binaryData), blobContent.Blob);
+        Assert.Equal(Convert.ToBase64String(binaryData), Encoding.UTF8.GetString(blobContent.Blob.Span));
     }
 
     [Fact]
