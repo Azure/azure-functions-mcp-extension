@@ -19,7 +19,7 @@ internal sealed class PromptInvocationContext
     /// Gets the arguments provided for the prompt.
     /// </summary>
     [JsonPropertyName("arguments")]
-    public IReadOnlyDictionary<string, JsonElement>? Arguments { get; init; }
+    public IDictionary<string, JsonElement>? Arguments { get; init; }
 
     /// <summary>
     /// Gets the session ID associated with the current prompt invocation.

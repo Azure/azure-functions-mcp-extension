@@ -14,15 +14,14 @@ public class McpPromptListenerTests
 {
     private static RequestContext<GetPromptRequestParams> CreateRequest(
         string name = "TestPrompt",
-        IReadOnlyDictionary<string, JsonElement>? arguments = null)
+        IDictionary<string, JsonElement>? arguments = null)
     {
+#pragma warning disable MCPEXP002
         var server = new Mock<McpServer>().Object;
+#pragma warning restore MCPEXP002
         var parameters = new GetPromptRequestParams { Name = name, Arguments = arguments };
 
-        return new RequestContext<GetPromptRequestParams>(server, new JsonRpcRequest() { Method = RequestMethods.PromptsGet })
-        {
-            Params = parameters
-        };
+        return new RequestContext<GetPromptRequestParams>(server, new JsonRpcRequest() { Method = RequestMethods.PromptsGet }, parameters);
     }
 
     private static JsonElement Json(string raw) => JsonDocument.Parse(raw).RootElement;
