@@ -1,0 +1,39 @@
+# MCP conformance expected-failures baseline.
+#
+# Format and semantics:
+# https://github.com/modelcontextprotocol/conformance/blob/main/SDK_INTEGRATION.md
+#
+# Entries here are scenarios the extension does not implement today.
+# The conformance runner will:
+#   - exit 0 when a listed scenario fails (expected)
+#   - exit 1 when a listed scenario starts passing (stale entry, remove it)
+#   - exit 1 when an unlisted scenario fails (regression)
+#
+# Each entry should reference a tracking issue once one is filed.
+# See test/ConformanceTestApp for the fixture implementations the suite
+# expects from us.
+
+server:
+  # Argument autocompletion (completion/complete) is not exposed by the
+  # extension today.
+  - completion-complete
+
+  # Server-initiated log notifications during tool execution.
+  - tools-call-with-logging
+
+  # Server-initiated progress notifications.
+  - tools-call-with-progress
+
+  # Server-to-client sampling/createMessage.
+  - tools-call-sampling
+
+  # Server-to-client elicitation/create.
+  - tools-call-elicitation
+  - elicitation-sep1034-defaults
+  - elicitation-sep1330-enums
+
+  # DNS rebinding protection on the Streamable HTTP transport.
+  - dns-rebinding-protection
+
+client: []
+

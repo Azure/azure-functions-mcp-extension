@@ -19,6 +19,12 @@ To get started with the extension, please see the following samples:
 
 Additional information can also be found in the [Azure Functions documentation](https://aka.ms/functions-mcp).
 
+### Protocol support
+
+For the list of supported MCP protocol features and how we verify them
+against the official [MCP conformance suite](https://github.com/modelcontextprotocol/conformance),
+see [`docs/protocol-conformance.md`](docs/protocol-conformance.md).
+
 ### Configuration
 
 You can configure the extension behavior using the `host.json` file. The following is an example of the configurable settings:
